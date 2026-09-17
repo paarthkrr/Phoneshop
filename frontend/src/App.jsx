@@ -104,9 +104,12 @@ function Nav() {
    degrades gracefully with no backend rather than blocking. */
 function StaffGate({ children }) {
   const [status, setStatus] = useState("checking"); // checking | needs-login | ok
+  const [mode, setMode] = useState("login"); // login | register
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [bootstrapToken, setBootstrapToken] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     if (!window.shopAuth) { setStatus("ok"); return; } // no real backend — don't block
@@ -128,18 +131,49 @@ function StaffGate({ children }) {
     }
   }
 
+  // This was the actual missing piece — the backend and storage-shim both
+  // supported registering an account, but nothing in the app ever called
+  // it. Without this, there was no way to create the very first staff
+  // account through the website at all, no matter how correctly the
+  // backend was configured.
+  async function handleRegister() {
+    setError(""); setSuccess("");
+    try {
+      await window.shopAuth.register(window.SHOP_API_BASE_URL, username, password, undefined, undefined, bootstrapToken || undefined);
+      setSuccess("Account created — you can sign in now.");
+      setMode("login");
+      setPassword("");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   if (status === "checking") return null;
   if (status === "ok") return children;
 
   return (
     <div style={{ maxWidth: 320, margin: "70px auto", padding: 20, fontFamily: "'Archivo', sans-serif" }}>
-      <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, marginBottom: 16, color: paper }}>Staff sign in</div>
+      <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, marginBottom: 16, color: paper }}>
+        {mode === "login" ? "Staff sign in" : "Create the first staff account"}
+      </div>
       <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username"
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `2px solid ${line}`, fontSize: 14, boxSizing: "border-box" }} />
-      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password"
+      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" type="password"
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `2px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
+      {mode === "register" && (
+        <input value={bootstrapToken} onChange={(e) => setBootstrapToken(e.target.value)} placeholder="Bootstrap token (if one was set)"
+          style={{ width: "100%", padding: 10, marginBottom: 8, border: `2px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
+      )}
       {error && <div style={{ color: "#8B2E2E", fontSize: 13, marginBottom: 8 }}>{error}</div>}
-      <button onClick={handleLogin} style={{ width: "100%", padding: 11, background: brass, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer" }}>Sign in</button>
+      {success && <div style={{ color: "#3F6B34", fontSize: 13, marginBottom: 8 }}>{success}</div>}
+      <button onClick={mode === "login" ? handleLogin : handleRegister}
+        style={{ width: "100%", padding: 11, background: brass, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", marginBottom: 10 }}>
+        {mode === "login" ? "Sign in" : "Create account"}
+      </button>
+      <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); }}
+        style={{ width: "100%", padding: 9, background: "transparent", border: "none", color: paper, textDecoration: "underline", cursor: "pointer", fontSize: 12.5 }}>
+        {mode === "login" ? "First time here? Create an account" : "Already have an account? Sign in"}
+      </button>
     </div>
   );
 }

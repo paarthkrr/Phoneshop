@@ -87,10 +87,10 @@
     return body;
   }
 
-  async function register(baseUrl, username, password, role, existingToken) {
+  async function register(baseUrl, username, password, role, existingToken, bootstrapToken) {
     const headers = { "Content-Type": "application/json" };
     if (existingToken) headers.Authorization = `Bearer ${existingToken}`;
-    const res = await fetch(`${baseUrl}/auth/register`, { method: "POST", headers, body: JSON.stringify({ username, password, role }) });
+    const res = await fetch(`${baseUrl}/auth/register`, { method: "POST", headers, body: JSON.stringify({ username, password, role, bootstrapToken }) });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || "registration failed");
     return body;
