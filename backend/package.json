@@ -1,7 +1,7 @@
 {
   "name": "shop-backend",
   "version": "1.0.0",
-  "description": "Real storage backend for the phone shop tools — replaces Claude's window.storage with HTTP + SQLite.",
+  "description": "Real storage backend for the phone shop tools \u2014 replaces Claude's window.storage with HTTP + SQLite.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.13.0"
   }
 }
