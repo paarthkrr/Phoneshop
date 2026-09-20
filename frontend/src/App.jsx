@@ -27,7 +27,7 @@ import CRMDashboard from "./crm-dashboard.jsx";
 ================================================================= */
 
 const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-  brass = "#BE3F29", brassDim = "rgba(190,63,41,0.10)", line = "#201C18";
+  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#201C18";
 
 const CUSTOMER_LINKS = [
   { to: "/", label: "Sell your phone" },

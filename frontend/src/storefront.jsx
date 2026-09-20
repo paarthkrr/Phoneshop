@@ -167,7 +167,7 @@ export default function Storefront() {
   }
 
   const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
-    brass = "#BE3F29", brassDim = "rgba(190,63,41,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
 
   if (inventory === null) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading available devices…</div>;
 

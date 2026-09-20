@@ -68,7 +68,7 @@ export default function DailyDashboard() {
   }, [data]);
 
   const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-    brass = "#BE3F29", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+    brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
 
   if (!summary) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading today's view…</div>;
 
