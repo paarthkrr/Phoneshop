@@ -201,8 +201,8 @@ export default function Storefront() {
                 Graded, tested, and backed by a real {WARRANTY_MONTHS}-month warranty — not just a "works fine when we packed it" promise.
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                <a href="#browse" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Shop Refurbished</a>
-                <a href="/" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote</a>
+                <a href="#browse" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Shop Refurbished</a>
+                <a href="/" className="cs-btn" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</a>
               </div>
               {stats.length > 0 && (
                 <div style={{ display: "flex", gap: 28, justifyContent: "center", flexWrap: "wrap", marginTop: 30 }}>
@@ -225,7 +225,7 @@ export default function Storefront() {
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(categoryTiles.length, 4)}, 1fr)`, gap: 10 }}>
                   {categoryTiles.map((b) => (
-                    <button key={b} onClick={() => { setBrandFilter(b); document.getElementById("browse")?.scrollIntoView?.({ behavior: "smooth" }); }}
+                    <button key={b} className="cs-tile" onClick={() => { setBrandFilter(b); document.getElementById("browse")?.scrollIntoView?.({ behavior: "smooth" }); }}
                       style={{ padding: "18px 10px", textAlign: "center", border: `2px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer", fontWeight: 700, fontSize: 13.5 }}>
                       {b}
                     </button>
@@ -243,7 +243,7 @@ export default function Storefront() {
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
                   {featured.map((item) => (
-                    <button key={item.id} onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
+                    <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
                       style={{ textAlign: "left", padding: "16px", border: `2px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: brass, marginBottom: 6 }}>FEATURED</div>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>{item.brand} {item.model}</div>
@@ -277,7 +277,7 @@ export default function Storefront() {
               </div>
             )}
             {filtered.map((item) => (
-              <button key={item.id} onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
+              <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
                 style={{ display: "block", width: "100%", textAlign: "left", padding: "14px", marginBottom: 10, borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, cursor: "pointer" }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 14 }}>{item.brand} {item.model}</span>
@@ -315,7 +315,7 @@ export default function Storefront() {
               <div style={{ border: `2px solid ${brass}`, borderRadius: 3, padding: 24, textAlign: "center" }}>
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 6 }}>Got an Old Phone?</div>
                 <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Turn it into cash, or credit toward one of the devices above.</div>
-                <a href="/" style={{ display: "inline-block", padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote →</a>
+                <a href="/" className="cs-btn" style={{ display: "inline-block", padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote →</a>
               </div>
             </div>
           </>
@@ -340,7 +340,7 @@ export default function Storefront() {
                 <div style={{ fontSize: 12, color: muted }}>{GRADE_LABELS[selectedItem.gradeId]?.desc}</div>
               </div>
 
-              <button onClick={() => setView("checkout")}
+              <button className="cs-btn" onClick={() => setView("checkout")}
                 style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Buy this device →
               </button>
@@ -378,10 +378,11 @@ export default function Storefront() {
               No card payments are processed on this device yet — you'll get {paymentMethod === "bank_transfer" ? "our bank details" : "pickup instructions"} on the confirmation screen.
             </div>
 
-            <button disabled={!customer.name || !customer.email || !customer.address || submitting} onClick={handleCheckout}
-              style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none",
+            <button className="cs-btn" disabled={!customer.name || !customer.email || !customer.address || submitting} onClick={handleCheckout}
+              style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 background: customer.name && customer.email && customer.address ? brass : line, color: customer.name && customer.email && customer.address ? "#1a1408" : muted,
                 fontSize: 14, fontWeight: 600, cursor: customer.name && customer.email && customer.address ? "pointer" : "default" }}>
+              {submitting && <span className="cs-spinner"></span>}
               {submitting ? "Placing order…" : "Place order"}
             </button>
           </div>

@@ -51,7 +51,47 @@ function Nav() {
 
   return (
     <div style={{ borderBottom: `3px solid ${line}`, background: panel }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
+
+        /* ---- Global interaction system — loaded once via Nav, applies site-wide ---- */
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        @keyframes cs-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes cs-fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes cs-spin { to { transform: rotate(360deg); } }
+
+        .cs-page-enter { animation: cs-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .cs-fade { animation: cs-fade-in 0.3s ease both; }
+
+        .cs-btn { transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, opacity 0.15s ease; }
+        .cs-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(32, 28, 24, 0.18); }
+        .cs-btn:active { transform: translateY(0); box-shadow: 0 1px 4px rgba(32, 28, 24, 0.15); }
+
+        .cs-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+        .cs-card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(32, 28, 24, 0.12); }
+
+        .cs-nav-link { position: relative; transition: color 0.15s ease; }
+        .cs-nav-link::after {
+          content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px;
+          background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform 0.2s ease;
+        }
+        .cs-nav-link:hover::after, .cs-nav-link.active::after { transform: scaleX(1); }
+
+        .cs-tile { transition: transform 0.15s ease, background-color 0.15s ease; }
+        .cs-tile:hover { transform: scale(1.03); }
+        .cs-tile:active { transform: scale(0.98); }
+
+        .cs-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: cs-spin 0.6s linear infinite; }
+
+        input, textarea, select { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+        input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(190, 63, 41, 0.18); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .cs-page-enter, .cs-fade, .cs-btn, .cs-card, .cs-nav-link, .cs-tile, .cs-spinner { animation: none !important; transition: none !important; }
+        }
+      `}</style>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
           <Link to={isStaff ? "/staff" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
@@ -61,10 +101,10 @@ function Nav() {
             {links.map((l) => {
               const active = location.pathname === l.to;
               return (
-                <Link key={l.to} to={l.to}
+                <Link key={l.to} to={l.to} className={`cs-nav-link${active ? " active" : ""}`}
                   style={{
                     padding: "7px 13px", fontSize: 13.5, fontWeight: active ? 700 : 500, textDecoration: "none",
-                    color: active ? brass : paper, borderBottom: active ? `2px solid ${brass}` : "2px solid transparent",
+                    color: active ? brass : paper,
                   }}>
                   {l.label}
                 </Link>
@@ -214,24 +254,33 @@ export default function App() {
     <BrowserRouter>
       <div style={{ background: ink, minHeight: "100vh" }}>
         <Nav />
-        <Routes>
-          <Route path="/" element={<QuoteCalculator />} />
-          <Route path="/shop" element={<Storefront />} />
-          <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
-          <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
-          <Route path="/staff/inspect" element={<StaffGate><StaffInspectionConsole /></StaffGate>} />
-          <Route path="/staff/pos" element={<StaffGate><POSInventory /></StaffGate>} />
-          <Route path="/staff/repairs" element={<StaffGate><RepairTickets /></StaffGate>} />
-          <Route path="/staff/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
-          <Route path="/staff/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
-          <Route path="*" element={
-            <div style={{ padding: 60, textAlign: "center", fontFamily: "'Archivo', sans-serif", color: paper }}>
-              <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, marginBottom: 8 }}>Page not found</div>
-              <Link to="/" style={{ color: brass }}>Back to the homepage</Link>
-            </div>
-          } />
-        </Routes>
+        <AnimatedRoutes />
       </div>
     </BrowserRouter>
+  );
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <div key={location.pathname} className="cs-page-enter">
+      <Routes>
+        <Route path="/" element={<QuoteCalculator />} />
+        <Route path="/shop" element={<Storefront />} />
+        <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
+        <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
+        <Route path="/staff/inspect" element={<StaffGate><StaffInspectionConsole /></StaffGate>} />
+        <Route path="/staff/pos" element={<StaffGate><POSInventory /></StaffGate>} />
+        <Route path="/staff/repairs" element={<StaffGate><RepairTickets /></StaffGate>} />
+        <Route path="/staff/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
+        <Route path="/staff/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
+        <Route path="*" element={
+          <div style={{ padding: 60, textAlign: "center", fontFamily: "'Archivo', sans-serif", color: paper }}>
+            <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, marginBottom: 8 }}>Page not found</div>
+            <Link to="/" style={{ color: brass }}>Back to the homepage</Link>
+          </div>
+        } />
+      </Routes>
+    </div>
   );
 }

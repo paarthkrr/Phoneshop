@@ -1348,7 +1348,7 @@ export default function QuoteCalculator() {
                     </div>
                   )}
                 </div>
-                <button onClick={() => setCheckout(true)} style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                <button className="cs-btn" onClick={() => setCheckout(true)} style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                   Continue to sell →
                 </button>
                 {!leadSaved && (
@@ -1455,10 +1455,11 @@ export default function QuoteCalculator() {
               <button onClick={() => setCheckout(false)} style={{ padding: "12px 16px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 14, cursor: "pointer" }}>
                 Back
               </button>
-              <button onClick={handleSubmitOrder} disabled={!customer.name || !customer.email || !customer.idNumber || submitting}
-                style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none",
+              <button className="cs-btn" onClick={handleSubmitOrder} disabled={!customer.name || !customer.email || !customer.idNumber || submitting}
+                style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   background: customer.name && customer.email && customer.idNumber ? brass : line, color: customer.name && customer.email && customer.idNumber ? "#1a1408" : muted,
                   fontSize: 14, fontWeight: 600, cursor: customer.name && customer.email && customer.idNumber ? "pointer" : "default" }}>
+                {submitting && <span className="cs-spinner"></span>}
                 {submitting ? "Submitting…" : "Confirm & get shipping details →"}
               </button>
             </div>
