@@ -316,8 +316,36 @@ export default function Storefront() {
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 6 }}>Got an Old Phone?</div>
                 <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Turn it into cash, or credit toward one of the devices above.</div>
                 <a href="/" className="cs-btn" style={{ display: "inline-block", padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote →</a>
+                <div style={{ fontSize: 11.5, color: muted, marginTop: 10 }}>No obligation — see your price before you commit to anything.</div>
               </div>
             </div>
+
+            <footer style={{ marginTop: 60, paddingTop: 30, borderTop: `2px solid ${line}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 24, fontSize: 13 }}>
+              <div>
+                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8 }}>Corner Shop</div>
+                <div style={{ color: muted, lineHeight: 1.7 }}>
+                  {businessSettings?.address || "Address on file at checkout"}<br />
+                  {businessSettings?.phone && <>{businessSettings.phone}<br /></>}
+                  {businessSettings?.email || "Contact us through the site"}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Shop</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <a href="#browse" style={{ color: muted, textDecoration: "none" }}>Browse devices</a>
+                  <a href="/" style={{ color: muted, textDecoration: "none" }}>Sell your phone</a>
+                  <button onClick={() => { setView("track"); setTrackResult(undefined); }} style={{ textAlign: "left", background: "none", border: "none", padding: 0, color: muted, cursor: "pointer", fontSize: 13 }}>Track an order</button>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Why Corner Shop</div>
+                <div style={{ color: muted, lineHeight: 1.9 }}>
+                  ✓ {WARRANTY_MONTHS}-month warranty on every device<br />
+                  ✓ Every unit tested & graded before listing<br />
+                  ✓ No-obligation instant quotes
+                </div>
+              </div>
+            </footer>
           </>
         )}
 

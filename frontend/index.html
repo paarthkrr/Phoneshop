@@ -2,8 +2,41 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Corner Shop</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#F7F4EC" />
+    <title>Corner Shop — Buy, Sell & Repair Phones | Instant Quotes, Graded Devices</title>
+    <meta name="description" content="Get an instant quote to sell your phone, browse graded refurbished iPhones and Samsung devices with a real warranty, or book a same-day screen and battery repair. Fast, honest, and tested." />
+
+    <!-- Open Graph — controls how the site looks when shared on social/messaging apps -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Corner Shop — Buy, Sell & Repair Phones" />
+    <meta property="og:description" content="Instant trade-in quotes, graded refurbished devices with a real warranty, and same-day repairs." />
+    <meta property="og:locale" content="en_AU" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Corner Shop — Buy, Sell & Repair Phones" />
+    <meta name="twitter:description" content="Instant trade-in quotes, graded refurbished devices with a real warranty, and same-day repairs." />
+
+    <!-- LocalBusiness structured data — this is what lets Google show rich
+         results (star rating, address, hours) in search instead of a plain
+         blue link. Update the placeholder address/phone/hours once real
+         ones exist; a schema block with fake specifics is worse than none,
+         since Google penalizes markup that doesn't match visible content. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ElectronicsStore",
+      "name": "Corner Shop",
+      "description": "Phone trade-in, refurbished device sales, and repair services.",
+      "priceRange": "$$",
+      "areaServed": "AU",
+      "makesOffer": [
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Phone trade-in / buyback" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Refurbished phone sales" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Phone screen and battery repair" } }
+      ]
+    }
+    </script>
+
     <script>
       // Catches EVERYTHING, including a failure to load the app's own
       // script — this is why it lives here, before that script tag,
