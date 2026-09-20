@@ -4,6 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Corner Shop</title>
+    <script>
+      // Catches EVERYTHING, including a failure to load the app's own
+      // script — this is why it lives here, before that script tag,
+      // not inside the React app itself. A blank page with no visible
+      // cause is the worst possible failure mode for a real customer;
+      // this guarantees there's always something on screen to report.
+      window.addEventListener("error", function (e) {
+        showBootError(e.error ? (e.error.stack || e.error.message) : e.message);
+      });
+      window.addEventListener("unhandledrejection", function (e) {
+        showBootError(e.reason ? (e.reason.stack || e.reason.message || String(e.reason)) : "Unknown error");
+      });
+      function showBootError(detail) {
+        var root = document.getElementById("root");
+        if (!root || root.dataset.appMounted === "true") return; // the real app already took over — don't stomp on it
+        root.innerHTML =
+          '<div style="max-width:480px;margin:60px auto;padding:20px;font-family:system-ui,sans-serif;color:#201C18;background:#F7F4EC;border:2px solid #8B2E2E;border-radius:4px;">' +
+          '<div style="font-weight:700;font-size:18px;margin-bottom:10px;">Something went wrong loading the page</div>' +
+          '<div style="font-size:13px;color:#6B6560;margin-bottom:14px;">Please screenshot this and send it back — it tells us exactly what to fix.</div>' +
+          '<pre style="white-space:pre-wrap;word-break:break-word;font-size:11px;background:#fff;border:1px solid #201C18;padding:10px;border-radius:3px;">' +
+          String(detail).replace(/</g, "&lt;") + "</pre></div>";
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
