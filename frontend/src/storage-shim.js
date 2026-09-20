@@ -24,11 +24,15 @@
 (function () {
   const TOKEN_KEY = "shop_auth_token";
 
-  function saveSession(session) { localStorage.setItem(TOKEN_KEY, JSON.stringify(session)); }
+  function saveSession(session) {
+    try { localStorage.setItem(TOKEN_KEY, JSON.stringify(session)); } catch (e) { /* storage blocked (e.g. Safari private mode) — session just won't persist across reloads */ }
+  }
   function loadSession() {
     try { return JSON.parse(localStorage.getItem(TOKEN_KEY) || "null"); } catch { return null; }
   }
-  function clearSession() { localStorage.removeItem(TOKEN_KEY); }
+  function clearSession() {
+    try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* nothing to clean up if storage was already blocked */ }
+  }
 
   function installStorage(baseUrl, getToken) {
     // getToken may return null/undefined for an anonymous visitor — that's

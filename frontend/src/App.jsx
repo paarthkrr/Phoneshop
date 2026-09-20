@@ -113,7 +113,12 @@ function StaffGate({ children }) {
 
   useEffect(() => {
     if (!window.shopAuth) { setStatus("ok"); return; } // no real backend — don't block
-    setStatus(window.shopAuth.currentUser() ? "ok" : "needs-login");
+    try {
+      setStatus(window.shopAuth.currentUser() ? "ok" : "needs-login");
+    } catch (e) {
+      console.error("Auth check failed, treating as logged out:", e);
+      setStatus("needs-login");
+    }
   }, []);
 
   async function handleLogin() {
@@ -188,8 +193,17 @@ export default function App() {
   // Login (via StaffGate, below) is a separate, additional layer only
   // the /staff/* routes need.
   useEffect(() => {
-    if (window.shopAuth && window.SHOP_API_BASE_URL) {
-      window.shopAuth.installStorageForEveryone(window.SHOP_API_BASE_URL);
+    // Wrapped defensively — if anything here throws (a browser blocking
+    // storage access, a network hiccup), the app must still render
+    // rather than stay permanently blank. A missing window.storage is
+    // recoverable (tools just show their own "not connected" state);
+    // a page that never renders at all is not.
+    try {
+      if (window.shopAuth && window.SHOP_API_BASE_URL) {
+        window.shopAuth.installStorageForEveryone(window.SHOP_API_BASE_URL);
+      }
+    } catch (e) {
+      console.error("Storage setup failed, continuing without it:", e);
     }
     setStorageReady(true);
   }, []);
