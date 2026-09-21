@@ -78,10 +78,12 @@ const STATUS_LABELS = {
 // safer than forcing a shared source across a customer-facing and a
 // staff-facing tool.
 const REPAIR_PRICE_TEASERS = [
-  { name: "Screen replacement", from: 150 },
+  { name: "Phone screen replacement", from: 150 },
   { name: "Battery replacement", from: 60 },
-  { name: "Charging port", from: 80 },
-  { name: "Camera repair", from: 90 },
+  { name: "Laptop screen or keyboard", from: 180 },
+  { name: "Tablet screen replacement", from: 170 },
+  { name: "Charging port (any device)", from: 80 },
+  { name: "Watch screen or battery", from: 90 },
 ];
 
 function fmt(n, currency) {
@@ -185,7 +187,7 @@ export default function Storefront() {
 
       {view !== "confirmed" && view !== "checkout" && view !== "detail" && (
         <div style={{ background: paper, color: ink, textAlign: "center", padding: "8px 16px", fontSize: 12.5, fontWeight: 500 }}>
-          ✓ {WARRANTY_MONTHS}-Month Warranty &nbsp;·&nbsp; ✓ Every Device Tested &amp; Graded &nbsp;·&nbsp; ✓ Fast, Secure Payment
+          ✓ Genuine Parts Only &nbsp;·&nbsp; ✓ Price Match Guarantee &nbsp;·&nbsp; ✓ {WARRANTY_MONTHS}-Month Warranty &nbsp;·&nbsp; ✓ All Gadgets — Phones, Tablets, Laptops & Watches
         </div>
       )}
 
@@ -301,8 +303,8 @@ export default function Storefront() {
                 ))}
               </div>
 
-              <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 14 }}>Repairs, While You Wait</div>
-              <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Screen, battery, charging port and more — most done same day. Prices are a starting point; your exact quote depends on the model.</div>
+              <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 14 }}>Repairs — Any Gadget, Genuine Parts, Price Matched</div>
+              <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Phones, tablets, laptops, watches — screens, batteries, charging ports and more, most done same day. Genuine parts only, and if you find it cheaper elsewhere, we'll match it. Prices below are a starting point; your exact quote depends on the model.</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 40 }}>
                 {REPAIR_PRICE_TEASERS.map((r) => (
                   <div key={r.name} style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14 }}>
@@ -340,8 +342,10 @@ export default function Storefront() {
               <div>
                 <div style={{ fontWeight: 700, marginBottom: 8 }}>Why Mobile Vault</div>
                 <div style={{ color: muted, lineHeight: 1.9 }}>
+                  ✓ Genuine parts only — never aftermarket knockoffs<br />
+                  ✓ Price match guarantee — found it cheaper? We'll match it<br />
                   ✓ {WARRANTY_MONTHS}-month warranty on every device<br />
-                  ✓ Every unit tested & graded before listing<br />
+                  ✓ All gadgets — phones, tablets, laptops & watches<br />
                   ✓ No-obligation instant quotes
                 </div>
               </div>
