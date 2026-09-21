@@ -1093,7 +1093,7 @@ export default function QuoteCalculator() {
         {trackMode && (
           <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
             <div style={{ display: "flex", gap: 8 }}>
-              <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email"
+              <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email" aria-label="Order number or email to track your order"
                 style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
               <button onClick={handleTrackSearch} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                 Find
@@ -1138,7 +1138,7 @@ export default function QuoteCalculator() {
         {pmTrackMode && (
           <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
             <div style={{ display: "flex", gap: 8 }}>
-              <input value={pmTrackQuery} onChange={(e) => setPmTrackQuery(e.target.value)} placeholder="Request number or email"
+              <input value={pmTrackQuery} onChange={(e) => setPmTrackQuery(e.target.value)} placeholder="Request number or email" aria-label="Request number or email to track your price match request"
                 style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
               <button onClick={handlePriceMatchTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                 Find
@@ -1199,7 +1199,7 @@ export default function QuoteCalculator() {
                 </button>
               ))}
             </div>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search model, e.g. iPhone 15 Pro Max"
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search model, e.g. iPhone 15 Pro Max" aria-label="Search for your device model"
               style={{ width: "100%", padding: "13px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper,
                 fontSize: 15, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden" }}>
@@ -1387,15 +1387,16 @@ export default function QuoteCalculator() {
                 value={customer[field]}
                 onChange={(e) => setCustomer((c) => ({ ...c, [field]: e.target.value }))}
                 placeholder={field === "name" ? "Full name" : field === "email" ? "Email address" : "Phone number"}
+                aria-label={field === "name" ? "Full name" : field === "email" ? "Email address" : "Phone number"}
                 type={field === "email" ? "email" : "text"}
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }}
               />
             ))}
 
-            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Photo ID — required by law to buy second-hand devices</div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }} id="id-type-label">Photo ID — required by law to buy second-hand devices</div>
+            <div role="group" aria-labelledby="id-type-label" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               {[{ id: "license", label: "Driver licence" }, { id: "passport", label: "Passport" }, { id: "other", label: "Other photo ID" }].map((opt) => (
-                <button key={opt.id} onClick={() => setCustomer((c) => ({ ...c, idType: opt.id }))}
+                <button key={opt.id} onClick={() => setCustomer((c) => ({ ...c, idType: opt.id }))} aria-pressed={customer.idType === opt.id}
                   style={{ flex: 1, padding: "9px 6px", borderRadius: 3, fontSize: 12, cursor: "pointer",
                     border: `1px solid ${customer.idType === opt.id ? brass : line}`, background: customer.idType === opt.id ? brassDim : "transparent",
                     color: customer.idType === opt.id ? brass : paper }}>
@@ -1404,7 +1405,7 @@ export default function QuoteCalculator() {
               ))}
             </div>
             <input value={customer.idNumber} onChange={(e) => setCustomer((c) => ({ ...c, idNumber: e.target.value }))}
-              placeholder="ID number"
+              placeholder="ID number" aria-label="ID number"
               style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 6, outline: "none", boxSizing: "border-box" }} />
             <div style={{ fontSize: 11, color: muted, marginBottom: 14 }}>
               Kept on file as required for second-hand dealer compliance. Never shown in full to anyone but you and the inspecting staff member.

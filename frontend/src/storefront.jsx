@@ -257,7 +257,7 @@ export default function Storefront() {
 
             <div id="browse">
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 12 }}>Shop All Refurbished</div>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search model"
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search model" aria-label="Search for a device model"
               style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
               {brands.map((b) => (
@@ -387,9 +387,10 @@ export default function Storefront() {
             {["name", "email", "phone"].map((field) => (
               <input key={field} value={customer[field]} onChange={(e) => setCustomer((c) => ({ ...c, [field]: e.target.value }))}
                 placeholder={field === "name" ? "Full name" : field === "email" ? "Email address" : "Phone number"}
+                aria-label={field === "name" ? "Full name" : field === "email" ? "Email address" : "Phone number"}
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
             ))}
-            <textarea value={customer.address} onChange={(e) => setCustomer((c) => ({ ...c, address: e.target.value }))} placeholder="Shipping address"
+            <textarea value={customer.address} onChange={(e) => setCustomer((c) => ({ ...c, address: e.target.value }))} placeholder="Shipping address" aria-label="Shipping address"
               style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, minHeight: 60, boxSizing: "border-box" }} />
 
             <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>How will you pay?</div>
@@ -451,7 +452,7 @@ export default function Storefront() {
             {view === "track" && (
               <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginTop: 10 }}>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email"
+                  <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email" aria-label="Order number or email to track your order"
                     style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
                   <button onClick={handleTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Find</button>
                 </div>

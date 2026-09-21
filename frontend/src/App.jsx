@@ -101,7 +101,7 @@ function Nav() {
             {links.map((l) => {
               const active = location.pathname === l.to;
               return (
-                <Link key={l.to} to={l.to} className={`cs-nav-link${active ? " active" : ""}`}
+                <Link key={l.to} to={l.to} className={`cs-nav-link${active ? " active" : ""}`} aria-current={active ? "page" : undefined}
                   style={{
                     padding: "7px 13px", fontSize: 13.5, fontWeight: active ? 700 : 500, textDecoration: "none",
                     color: active ? brass : paper,
