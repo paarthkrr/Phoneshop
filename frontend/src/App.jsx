@@ -50,7 +50,7 @@ function Nav() {
   const links = isStaff ? STAFF_LINKS : CUSTOMER_LINKS;
 
   return (
-    <div style={{ borderBottom: `3px solid ${line}`, background: panel }}>
+    <nav style={{ borderBottom: `3px solid ${line}`, background: panel }} aria-label="Main navigation">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
 
@@ -127,7 +127,7 @@ function Nav() {
           </div>
         )}
       </div>
-    </div>
+    </nav>
   );
 }
 
@@ -263,7 +263,7 @@ export default function App() {
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <div key={location.pathname} className="cs-page-enter">
+    <main key={location.pathname} className="cs-page-enter">
       <Routes>
         <Route path="/" element={<QuoteCalculator />} />
         <Route path="/shop" element={<Storefront />} />
@@ -281,6 +281,6 @@ function AnimatedRoutes() {
           </div>
         } />
       </Routes>
-    </div>
+    </main>
   );
 }
