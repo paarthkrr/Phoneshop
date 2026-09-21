@@ -322,7 +322,7 @@ export default function Storefront() {
 
             <footer style={{ marginTop: 60, paddingTop: 30, borderTop: `2px solid ${line}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 24, fontSize: 13 }}>
               <div>
-                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8 }}>Corner Shop</div>
+                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8 }}>Mobile Vault</div>
                 <div style={{ color: muted, lineHeight: 1.7 }}>
                   {businessSettings?.address || "Address on file at checkout"}<br />
                   {businessSettings?.phone && <>{businessSettings.phone}<br /></>}
@@ -338,7 +338,7 @@ export default function Storefront() {
                 </div>
               </div>
               <div>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>Why Corner Shop</div>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Why Mobile Vault</div>
                 <div style={{ color: muted, lineHeight: 1.9 }}>
                   ✓ {WARRANTY_MONTHS}-month warranty on every device<br />
                   ✓ Every unit tested & graded before listing<br />

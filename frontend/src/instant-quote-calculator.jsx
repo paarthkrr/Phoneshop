@@ -935,7 +935,7 @@ export default function QuoteCalculator() {
     setBulkSubmitted(request);
   }
 
-  // Corner Shop palette — bold Australian retail: warm paper background,
+  // Mobile Vault palette — bold Australian retail: warm paper background,
   // heritage signage red as the single brand accent, bold black structure.
   const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
     brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
@@ -1530,7 +1530,7 @@ export default function QuoteCalculator() {
 
         <footer style={{ marginTop: 50, paddingTop: 26, borderTop: `2px solid ${line}`, fontSize: 12.5, color: muted }}>
           <div style={{ marginBottom: 10 }}>✓ 12-month warranty on refurbished stock · ✓ No-obligation quotes · ✓ Real staff inspect every trade-in</div>
-          <div>Corner Shop — questions? <a href="/shop" style={{ color: brass }}>browse what's in stock</a> or track an order above.</div>
+          <div>Mobile Vault — questions? <a href="/shop" style={{ color: brass }}>browse what's in stock</a> or track an order above.</div>
         </footer>
       </div>
     </div>
