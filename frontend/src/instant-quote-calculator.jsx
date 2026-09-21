@@ -1526,6 +1526,11 @@ export default function QuoteCalculator() {
             )}
           </div>
         )}
+
+        <footer style={{ marginTop: 50, paddingTop: 26, borderTop: `2px solid ${line}`, fontSize: 12.5, color: muted }}>
+          <div style={{ marginBottom: 10 }}>✓ 12-month warranty on refurbished stock · ✓ No-obligation quotes · ✓ Real staff inspect every trade-in</div>
+          <div>Corner Shop — questions? <a href="/shop" style={{ color: brass }}>browse what's in stock</a> or track an order above.</div>
+        </footer>
       </div>
     </div>
   );
