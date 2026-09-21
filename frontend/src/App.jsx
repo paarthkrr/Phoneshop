@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-do
 
 import QuoteCalculator from "./instant-quote-calculator.jsx";
 import Storefront from "./storefront.jsx";
+import AboutUs from "./about.jsx";
+import ContactUs from "./contact.jsx";
 import DailyDashboard from "./daily-dashboard.jsx";
 import AdminPricingConsole from "./admin-pricing-console.jsx";
 import StaffInspectionConsole from "./staff-inspection-console.jsx";
@@ -32,6 +34,8 @@ const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
 const CUSTOMER_LINKS = [
   { to: "/", label: "Sell your phone" },
   { to: "/shop", label: "Shop refurbished" },
+  { to: "/about", label: "About us" },
+  { to: "/contact", label: "Contact" },
 ];
 
 const STAFF_LINKS = [
@@ -267,6 +271,8 @@ function AnimatedRoutes() {
       <Routes>
         <Route path="/" element={<QuoteCalculator />} />
         <Route path="/shop" element={<Storefront />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/contact" element={<ContactUs />} />
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
         <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
         <Route path="/staff/inspect" element={<StaffGate><StaffInspectionConsole /></StaffGate>} />
