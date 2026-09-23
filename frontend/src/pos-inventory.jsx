@@ -431,7 +431,7 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
   const [imei, setImei] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
   const [idType, setIdType] = useState("license");
-  const [idNumber, setIdNumber] = useState("");
+  const [idOwnerName, setIdOwnerName] = useState("");
   const [idSighted, setIdSighted] = useState(false);
 
   const filtered = catalog.filter((d) => !search || (d.brand + " " + d.model).toLowerCase().includes(search.toLowerCase()));
@@ -540,7 +540,7 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
               </button>
             ))}
           </div>
-          <input value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="ID number"
+          <input value={idOwnerName} onChange={(e) => setIdOwnerName(e.target.value)} placeholder="Full name (as it appears on their ID)"
             style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, marginBottom: 12, cursor: "pointer" }}>
             <input type="checkbox" checked={idSighted} onChange={(e) => setIdSighted(e.target.checked)} />
@@ -554,15 +554,15 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
               </button>
             ))}
           </div>
-          <button disabled={!imei.trim() || !idNumber.trim() || !idSighted} onClick={() => onComplete({
+          <button disabled={!imei.trim() || !idOwnerName.trim() || !idSighted} onClick={() => onComplete({
               id: genId("INV"), sourceOrderId: null, brand: selected.brand, model: selected.model, storage: selected.storage,
               imei: imei.trim(), gradeId: null, costBasis: calc.total, currency: regions[region].symbol, region,
               status: "in_stock", listedPrice: null, receivedAt: new Date().toISOString(), soldAt: null, payMethod,
-              sellerIdType: idType, sellerIdNumber: idNumber.trim(),
+              sellerIdType: idType, sellerIdOwnerName: idOwnerName.trim(),
             })}
             style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none",
-              background: imei.trim() && idNumber.trim() && idSighted ? brass : line, color: imei.trim() && idNumber.trim() && idSighted ? "#1a1408" : muted,
-              fontSize: 14, fontWeight: 600, cursor: imei.trim() && idNumber.trim() && idSighted ? "pointer" : "default" }}>
+              background: imei.trim() && idOwnerName.trim() && idSighted ? brass : line, color: imei.trim() && idOwnerName.trim() && idSighted ? "#1a1408" : muted,
+              fontSize: 14, fontWeight: 600, cursor: imei.trim() && idOwnerName.trim() && idSighted ? "pointer" : "default" }}>
             Complete purchase → add to inventory
           </button>
         </div>

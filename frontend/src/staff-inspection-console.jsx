@@ -295,7 +295,7 @@ export default function StaffInspectionConsole() {
               <div style={{ fontSize: 13 }}>{open.customer.name} · {open.customer.email} · {open.customer.phone}</div>
               <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>
                 ID on file: {open.customer.idType ? open.customer.idType.replace(/^\w/, (c) => c.toUpperCase()) : "not captured"}
-                {open.customer.idNumber && ` ending ${open.customer.idNumber.slice(-4).padStart(open.customer.idNumber.length, "•")}`}
+                {open.customer.idOwnerName && ` — name on ID: ${open.customer.idOwnerName}`}
               </div>
               <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>
                 Customer originally declared: {open.faultLabels?.length ? open.faultLabels.join(", ") : "no faults, plus accessories: " + (open.hasAccessories ? "yes" : "no")}

@@ -661,7 +661,7 @@ export default function QuoteCalculator() {
   const [hasAccessories, setHasAccessories] = useState(false);
   const [showRef, setShowRef] = useState(false);
   const [checkout, setCheckout] = useState(false);
-  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idType: "license", idNumber: "" });
+  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idType: "license", idOwnerName: "" });
   const [referralCodeEntered, setReferralCodeEntered] = useState("");
   const [myReferralCode, setMyReferralCode] = useState(null);
   const [fulfillment, setFulfillment] = useState("post");
@@ -797,7 +797,7 @@ export default function QuoteCalculator() {
   }, [selected, tier, calc, region]);
 
   async function handleSubmitOrder() {
-    if (!calc || calc.blocked || !customer.name || !customer.email || !customer.idNumber) return;
+    if (!calc || calc.blocked || !customer.name || !customer.email || !customer.idOwnerName) return;
     setSubmitting(true);
     const newCode = genReferralCode(customer.name);
     const order = {
@@ -1404,8 +1404,8 @@ export default function QuoteCalculator() {
                 </button>
               ))}
             </div>
-            <input value={customer.idNumber} onChange={(e) => setCustomer((c) => ({ ...c, idNumber: e.target.value }))}
-              placeholder="ID number" aria-label="ID number"
+            <input value={customer.idOwnerName} onChange={(e) => setCustomer((c) => ({ ...c, idOwnerName: e.target.value }))}
+              placeholder="Full name (as it appears on your ID)" aria-label="Full name as it appears on your ID"
               style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 6, outline: "none", boxSizing: "border-box" }} />
             <div style={{ fontSize: 11, color: muted, marginBottom: 14 }}>
               Kept on file as required for second-hand dealer compliance. Never shown in full to anyone but you and the inspecting staff member.
@@ -1456,10 +1456,10 @@ export default function QuoteCalculator() {
               <button onClick={() => setCheckout(false)} style={{ padding: "12px 16px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 14, cursor: "pointer" }}>
                 Back
               </button>
-              <button className="cs-btn" onClick={handleSubmitOrder} disabled={!customer.name || !customer.email || !customer.idNumber || submitting}
+              <button className="cs-btn" onClick={handleSubmitOrder} disabled={!customer.name || !customer.email || !customer.idOwnerName || submitting}
                 style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  background: customer.name && customer.email && customer.idNumber ? brass : line, color: customer.name && customer.email && customer.idNumber ? "#1a1408" : muted,
-                  fontSize: 14, fontWeight: 600, cursor: customer.name && customer.email && customer.idNumber ? "pointer" : "default" }}>
+                  background: customer.name && customer.email && customer.idOwnerName ? brass : line, color: customer.name && customer.email && customer.idOwnerName ? "#1a1408" : muted,
+                  fontSize: 14, fontWeight: 600, cursor: customer.name && customer.email && customer.idOwnerName ? "pointer" : "default" }}>
                 {submitting && <span className="cs-spinner"></span>}
                 {submitting ? "Submitting…" : "Confirm & get shipping details →"}
               </button>
@@ -1492,7 +1492,7 @@ export default function QuoteCalculator() {
                 Share your code <strong>{myReferralCode}</strong> with a friend — you both get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)} when they sell to us.
               </div>
             )}
-            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idType: "license", idNumber: "" }); setIdPhotoFile(null); setReferralCodeEntered(""); setMyReferralCode(null); }}
+            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idType: "license", idOwnerName: "" }); setIdPhotoFile(null); setReferralCodeEntered(""); setMyReferralCode(null); }}
               style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 14, cursor: "pointer" }}>
               Start another quote
             </button>
