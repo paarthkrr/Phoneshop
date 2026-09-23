@@ -46,6 +46,7 @@ export default function CRMDashboard() {
   const [expenses, setExpenses] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [bulkRequests, setBulkRequests] = useState([]);
+  const [supportQueries, setSupportQueries] = useState([]);
   const [referrals, setReferrals] = useState([]);
   const [tillRecords, setTillRecords] = useState([]);
   const [tab, setTab] = useState("Customers");
@@ -54,8 +55,8 @@ export default function CRMDashboard() {
 
   useEffect(() => {
     (async () => {
-      const [o, s, l, n, e, inv, bulk, ref, till] = await Promise.all([loadJSON("orders", true), loadJSON("sales", true), loadJSON("quote_leads", true), loadJSON("notification_queue", true), loadJSON("expenses", true), loadJSON("inventory", true), loadJSON("bulk_quote_requests", true), loadJSON("referrals", true), loadJSON("till_records", true)]);
-      setOrders(o); setSales(s); setLeads(l); setNotifications(n); setExpenses(e); setInventory(inv); setBulkRequests(bulk); setReferrals(ref); setTillRecords(till);
+      const [o, s, l, n, e, inv, bulk, ref, till, sq] = await Promise.all([loadJSON("orders", true), loadJSON("sales", true), loadJSON("quote_leads", true), loadJSON("notification_queue", true), loadJSON("expenses", true), loadJSON("inventory", true), loadJSON("bulk_quote_requests", true), loadJSON("referrals", true), loadJSON("till_records", true), loadJSON("support_queries", true)]);
+      setOrders(o); setSales(s); setLeads(l); setNotifications(n); setExpenses(e); setInventory(inv); setBulkRequests(bulk); setReferrals(ref); setTillRecords(till); setSupportQueries(sq || []);
     })();
   }, []);
   async function addExpense(exp) {
@@ -319,7 +320,30 @@ export default function CRMDashboard() {
 
         {tab === "Leads & Notifications" && (
           <div>
-            <div style={{ fontSize: 13, marginBottom: 8 }}>Bulk / business quote requests ({bulkRequests.filter((b) => b.status === "new").length} awaiting a firm offer)</div>
+            <div style={{ fontSize: 13, marginBottom: 8 }}>Support queries ({supportQueries.filter((q) => q.status === "open").length} open)</div>
+            {supportQueries.length === 0 && <div style={{ color: muted, fontSize: 13, marginBottom: 20 }}>No queries yet.</div>}
+            {supportQueries.map((q) => (
+              <div key={q.id} style={{ border: `1px solid ${q.status === "open" ? brass : line}`, borderRadius: 3, padding: 12, marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{q.name}</span>
+                  <span style={{ fontSize: 11, color: muted }}>{q.id}</span>
+                </div>
+                <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{q.email} · {q.category}</div>
+                <div style={{ fontSize: 13, marginBottom: 8 }}>{q.message}</div>
+                {q.status === "open" ? (
+                  <button onClick={async () => {
+                      const next = supportQueries.map((x) => x.id === q.id ? { ...x, status: "resolved" } : x);
+                      await saveJSON("support_queries", next, true); setSupportQueries(next);
+                    }} style={{ padding: "5px 10px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${green}`, background: "transparent", color: green, cursor: "pointer" }}>
+                    Mark resolved
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 11.5, color: green }}>✓ Resolved</span>
+                )}
+              </div>
+            ))}
+
+            <div style={{ fontSize: 13, marginBottom: 8, marginTop: 24 }}>Bulk / business quote requests ({bulkRequests.filter((b) => b.status === "new").length} awaiting a firm offer)</div>
             {bulkRequests.length === 0 && <div style={{ color: muted, fontSize: 13, marginBottom: 20 }}>No bulk requests yet.</div>}
             {bulkRequests.map((b) => (
               <div key={b.id} style={{ border: `1px solid ${b.status === "new" ? brass : line}`, borderRadius: 3, padding: 12, marginBottom: 8 }}>

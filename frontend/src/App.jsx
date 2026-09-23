@@ -6,6 +6,8 @@ import Storefront from "./storefront.jsx";
 import AboutUs from "./about.jsx";
 import ContactUs from "./contact.jsx";
 import FAQ from "./faq.jsx";
+import Help from "./help.jsx";
+import ChatWidget from "./chat-widget.jsx";
 import DailyDashboard from "./daily-dashboard.jsx";
 import AdminPricingConsole from "./admin-pricing-console.jsx";
 import StaffInspectionConsole from "./staff-inspection-console.jsx";
@@ -37,6 +39,7 @@ const CUSTOMER_LINKS = [
   { to: "/shop", label: "Shop refurbished" },
   { to: "/about", label: "About us" },
   { to: "/faq", label: "FAQ" },
+  { to: "/help", label: "Help" },
   { to: "/contact", label: "Contact" },
 ];
 
@@ -268,6 +271,7 @@ export default function App() {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const isStaff = location.pathname.startsWith("/staff");
   return (
     <main key={location.pathname} className="cs-page-enter">
       <Routes>
@@ -275,6 +279,7 @@ function AnimatedRoutes() {
         <Route path="/shop" element={<Storefront />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/faq" element={<FAQ />} />
+        <Route path="/help" element={<Help />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
         <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
@@ -290,6 +295,7 @@ function AnimatedRoutes() {
           </div>
         } />
       </Routes>
+      {!isStaff && <ChatWidget />}
     </main>
   );
 }
