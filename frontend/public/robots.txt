@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /staff
+
+# Update this to your real domain once you buy one — currently pointing
+# at the Render URL since that's the only live address that exists.
+Sitemap: https://phoneshop-frontend-51tg.onrender.com/sitemap.xml
