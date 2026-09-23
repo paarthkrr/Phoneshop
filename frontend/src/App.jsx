@@ -5,6 +5,7 @@ import QuoteCalculator from "./instant-quote-calculator.jsx";
 import Storefront from "./storefront.jsx";
 import AboutUs from "./about.jsx";
 import ContactUs from "./contact.jsx";
+import FAQ from "./faq.jsx";
 import DailyDashboard from "./daily-dashboard.jsx";
 import AdminPricingConsole from "./admin-pricing-console.jsx";
 import StaffInspectionConsole from "./staff-inspection-console.jsx";
@@ -35,6 +36,7 @@ const CUSTOMER_LINKS = [
   { to: "/", label: "Sell your phone" },
   { to: "/shop", label: "Shop refurbished" },
   { to: "/about", label: "About us" },
+  { to: "/faq", label: "FAQ" },
   { to: "/contact", label: "Contact" },
 ];
 
@@ -272,6 +274,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<QuoteCalculator />} />
         <Route path="/shop" element={<Storefront />} />
         <Route path="/about" element={<AboutUs />} />
+        <Route path="/faq" element={<FAQ />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
         <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
