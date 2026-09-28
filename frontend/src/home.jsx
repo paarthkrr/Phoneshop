@@ -65,10 +65,22 @@ export default function Home() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
+        @keyframes mv-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes mv-glow { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.06); } }
+        .mv-rise { animation: mv-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .mv-hero { position: relative; overflow: hidden; }
+        .mv-hero::before { content: ""; position: absolute; top: -140px; left: 50%; width: 620px; height: 620px; margin-left: -310px;
+          background: radial-gradient(circle, rgba(33,80,200,0.16) 0%, rgba(33,80,200,0) 65%); animation: mv-glow 7s ease-in-out infinite; pointer-events: none; }
+        .mv-hero > * { position: relative; }
+        .mv-action:hover { border-color: #2150C8 !important; }
+        .mv-action:hover .mv-arrow { transform: translateX(5px); }
+        .mv-arrow { display: inline-block; transition: transform 0.2s ease; }
+        @media (prefers-reduced-motion: reduce) { .mv-rise, .mv-hero::before { animation: none !important; } }
+      `}</style>
 
       {/* ---- Hero ---- */}
-      <div style={{ ...section, textAlign: "center", padding: "56px 16px 34px" }}>
+      <div className="mv-hero" style={{ ...section, textAlign: "center", padding: "56px 16px 34px" }}>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(30px, 6vw, 48px)", lineHeight: 1.05, letterSpacing: "-0.02em", marginBottom: 14 }}>
           Sell, buy, or fix your phone —<br /><span style={{ color: brass }}>honestly priced.</span>
         </div>
@@ -77,13 +89,13 @@ export default function Home() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, textAlign: "left" }}>
-          {ACTIONS.map((a) => (
-            <a key={a.href} href={a.href} className="cs-card"
-              style={{ display: "block", border: `2px solid ${line}`, borderRadius: 4, padding: 22, background: panel, color: paper, textDecoration: "none" }}>
+          {ACTIONS.map((a, i) => (
+            <a key={a.href} href={a.href} className="cs-card mv-action mv-rise"
+              style={{ animationDelay: `${0.15 + i * 0.1}s`, display: "block", border: `2px solid ${line}`, borderRadius: 4, padding: 22, background: panel, color: paper, textDecoration: "none" }}>
               <div style={{ fontSize: 30, marginBottom: 10 }} aria-hidden="true">{a.icon}</div>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 19, marginBottom: 6 }}>{a.title}</div>
               <div style={{ color: muted, fontSize: 13.5, marginBottom: 16, lineHeight: 1.5 }}>{a.desc}</div>
-              <span style={{ color: brass, fontWeight: 700, fontSize: 14 }}>{a.cta} →</span>
+              <span style={{ color: brass, fontWeight: 700, fontSize: 14 }}>{a.cta} <span className="mv-arrow">→</span></span>
             </a>
           ))}
         </div>
@@ -103,8 +115,8 @@ export default function Home() {
       {/* ---- Trust strip ---- */}
       <div style={{ borderTop: `2px solid ${line}`, borderBottom: `2px solid ${line}`, background: panel, padding: "26px 16px", marginBottom: 50 }}>
         <div style={{ ...section, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
-          {TRUST.map((t) => (
-            <div key={t.title}>
+          {TRUST.map((t, i) => (
+            <div key={t.title} className="mv-rise" style={{ animationDelay: `${0.45 + i * 0.08}s` }}>
               <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 4 }}><span style={{ color: brass }}>✓</span> {t.title}</div>
               <div style={{ color: muted, fontSize: 13 }}>{t.desc}</div>
             </div>
@@ -116,8 +128,8 @@ export default function Home() {
       <div style={{ ...section, marginBottom: 50 }}>
         <div style={heading}>Selling your phone takes three steps</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-          {STEPS.map((s) => (
-            <div key={s.n} style={{ border: `2px solid ${line}`, borderRadius: 4, padding: 20, background: panel }}>
+          {STEPS.map((s, i) => (
+            <div key={s.n} className="mv-rise" style={{ animationDelay: `${0.1 + i * 0.1}s`, border: `2px solid ${line}`, borderRadius: 4, padding: 20, background: panel }}>
               <div style={{ width: 34, height: 34, borderRadius: "50%", background: brass, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, marginBottom: 12 }}>{s.n}</div>
               <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{s.title}</div>
               <div style={{ color: muted, fontSize: 13.5, lineHeight: 1.55 }}>{s.desc}</div>

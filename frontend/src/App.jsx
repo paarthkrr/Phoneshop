@@ -44,6 +44,13 @@ const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
 // the area moved to an address the CDN had never seen. /staff still works
 // as an alias for whenever that saved copy expires.
 const STAFF_BASES = ["/portal", "/staff"];
+// "/portal/index.html" and "/portal/" both mean "/portal". The index.html
+// form matters: it's an exact file the host always serves, so it works
+// even when the host's handling of non-file addresses is broken.
+export function normPath(p) {
+  const n = p.replace(/\/index\.html$/, "").replace(/(.)\/$/, "$1");
+  return n || "/";
+}
 function isStaffPath(p) {
   return STAFF_BASES.some((b) => p === b || p.startsWith(b + "/"));
 }
@@ -67,7 +74,7 @@ const STAFF_LINKS = [
 
 function Nav() {
   const location = useLocation();
-  const isStaff = isStaffPath(location.pathname);
+  const isStaff = isStaffPath(normPath(location.pathname));
   const links = isStaff ? STAFF_LINKS : CUSTOMER_LINKS;
   const [menuOpen, setMenuOpen] = useState(false);
   // Close the mobile menu whenever the page changes, so tapping a link
@@ -128,12 +135,12 @@ function Nav() {
       `}</style>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-          <Link to={isStaff ? "/portal" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
+          <Link to={isStaff ? "/portal/index.html" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
             MOBILE<span style={{ color: brass }}>VAULT</span>{isStaff && <span style={{ fontSize: 11, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
           </Link>
           <div className="cs-nav-links" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {links.map((l) => {
-              const active = location.pathname === l.to;
+              const active = normPath(location.pathname) === l.to;
               return (
                 <Link key={l.to} to={l.to} className={`cs-nav-link${active ? " active" : ""}`} aria-current={active ? "page" : undefined}
                   style={{
@@ -147,7 +154,7 @@ function Nav() {
           </div>
         </div>
         {!isStaff ? (
-          <Link to="/portal" className="cs-nav-aside" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
+          <Link to="/portal/index.html" className="cs-nav-aside" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
         ) : (
           <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 14 }}>
             {window.shopAuth && window.shopAuth.currentUser() && (
@@ -167,7 +174,7 @@ function Nav() {
       <div id="cs-mobile-menu" className={`cs-mobile-menu${menuOpen ? " open" : ""}`}
         style={{ flexDirection: "column", borderTop: `1px solid ${line}`, padding: "8px 16px 14px", fontFamily: "'Archivo', system-ui, sans-serif" }}>
         {links.map((l) => {
-          const active = location.pathname === l.to;
+          const active = normPath(location.pathname) === l.to;
           return (
             <Link key={l.to} to={l.to} aria-current={active ? "page" : undefined}
               style={{ padding: "12px 4px", fontSize: 16, fontWeight: active ? 700 : 500, color: active ? brass : paper, textDecoration: "none", borderBottom: "1px solid #F0EBE0" }}>
@@ -176,7 +183,7 @@ function Nav() {
           );
         })}
         {!isStaff ? (
-          <Link to="/portal" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>Staff login →</Link>
+          <Link to="/portal/index.html" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>Staff login →</Link>
         ) : (
           <>
             {window.shopAuth && window.shopAuth.currentUser() && (
@@ -322,10 +329,10 @@ export default function App() {
 
 function AnimatedRoutes() {
   const location = useLocation();
-  const isStaff = isStaffPath(location.pathname);
+  const isStaff = isStaffPath(normPath(location.pathname));
   return (
     <main key={location.pathname} className="cs-page-enter">
-      <Routes>
+      <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />
         <Route path="/quote" element={<QuoteCalculator />} />
         <Route path="/sell" element={<QuoteCalculator />} />
