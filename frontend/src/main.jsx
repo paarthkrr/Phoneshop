@@ -46,3 +46,14 @@ ReactDOM.createRoot(rootEl).render(
 // successfully — so a later, unrelated error doesn't wipe out an
 // already-working page with a false "failed to load" message.
 rootEl.dataset.appMounted = "true";
+// A successful start resets the boot guard in index.html, so a future
+// failure still gets its one automatic retry, and removes the retry's
+// cache-bypass marker from the address bar so bookmarks stay clean.
+try { sessionStorage.removeItem("mv_boot_retry"); } catch (e) {}
+try {
+  const u = new URL(window.location.href);
+  if (u.searchParams.has("_r")) {
+    u.searchParams.delete("_r");
+    window.history.replaceState(window.history.state, "", u.pathname + u.search + u.hash);
+  }
+} catch (e) {}

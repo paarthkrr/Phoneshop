@@ -39,27 +39,66 @@
     </script>
 
     <script>
-      // Catches EVERYTHING, including a failure to load the app's own
-      // script — this is why it lives here, before that script tag,
-      // not inside the React app itself. A blank page with no visible
-      // cause is the worst possible failure mode for a real customer;
-      // this guarantees there's always something on screen to report.
-      window.addEventListener("error", function (e) {
-        showBootError(e.error ? (e.error.stack || e.error.message) : e.message);
-      });
-      window.addEventListener("unhandledrejection", function (e) {
-        showBootError(e.reason ? (e.reason.stack || e.reason.message || String(e.reason)) : "Unknown error");
-      });
-      function showBootError(detail) {
-        var root = document.getElementById("root");
-        if (!root || root.dataset.appMounted === "true") return; // the real app already took over — don't stomp on it
-        root.innerHTML =
-          '<div style="max-width:480px;margin:60px auto;padding:20px;font-family:system-ui,sans-serif;color:#201C18;background:#F7F4EC;border:2px solid #8B2E2E;border-radius:4px;">' +
-          '<div style="font-weight:700;font-size:18px;margin-bottom:10px;">Something went wrong loading the page</div>' +
-          '<div style="font-size:13px;color:#6B6560;margin-bottom:14px;">Please screenshot this and send it back — it tells us exactly what to fix.</div>' +
-          '<pre style="white-space:pre-wrap;word-break:break-word;font-size:11px;background:#fff;border:1px solid #201C18;padding:10px;border-radius:3px;">' +
-          String(detail).replace(/</g, "&lt;") + "</pre></div>";
-      }
+      // Boot guard. Lives in the HTML itself, before the app's script, so it
+      // works even when the app's JavaScript never arrives.
+      //
+      // Known failure it handles: a CDN can keep serving an OLD copy of this
+      // HTML after a deploy. That old copy points at JavaScript files from a
+      // previous build, which no longer exist, so nothing ever loads and the
+      // page is blank. A failed script download does NOT reach a normal
+      // window "error" listener — it only arrives in the capture phase —
+      // which is why the listener below passes `true`.
+      (function () {
+        var RETRY_FLAG = "mv_boot_retry";
+        var mounted = function () {
+          var r = document.getElementById("root");
+          return r && r.dataset.appMounted === "true";
+        };
+        function alreadyRetried() {
+          try { return sessionStorage.getItem(RETRY_FLAG) === "1"; } catch (e) { return true; }
+        }
+        // Try ONE automatic cache-bypassing reload before showing anything —
+        // most visitors never see a problem at all. The flag stops loops.
+        function recover(reason) {
+          if (mounted()) return;
+          if (!alreadyRetried()) {
+            try { sessionStorage.setItem(RETRY_FLAG, "1"); } catch (e) {}
+            var u = new URL(window.location.href);
+            u.searchParams.set("_r", Date.now().toString(36));
+            window.location.replace(u.toString());
+            return;
+          }
+          showBootError(reason);
+        }
+        window.addEventListener("error", function (e) {
+          var t = e.target;
+          if (t && t !== window && (t.tagName === "SCRIPT" || t.tagName === "LINK")) {
+            recover("Couldn't load " + (t.src || t.href || "a page file") + " — the page files may be updating.");
+            return;
+          }
+          if (!mounted()) showBootError(e.error ? (e.error.stack || e.error.message) : e.message);
+        }, true);
+        window.addEventListener("unhandledrejection", function (e) {
+          if (!mounted()) showBootError(e.reason ? (e.reason.stack || e.reason.message || String(e.reason)) : "Unknown error");
+        });
+        // Watchdog: if the app still hasn't started after 10s, treat it as a
+        // failed load rather than leaving the visitor staring at nothing.
+        setTimeout(function () { recover("The page took too long to start."); }, 10000);
+
+        window.showBootError = showBootError;
+        function showBootError(detail) {
+          var root = document.getElementById("root");
+          if (!root || mounted()) return;
+          root.innerHTML =
+            '<div style="max-width:480px;margin:60px auto;padding:20px;font-family:system-ui,sans-serif;color:#201C18;background:#F7F4EC;border:2px solid #8B2E2E;border-radius:4px;">' +
+            '<div style="font-weight:700;font-size:18px;margin-bottom:10px;">This page didn\'t load properly</div>' +
+            '<div style="font-size:14px;color:#6B6560;margin-bottom:14px;">Please tap reload. If it keeps happening, screenshot this and send it to us.</div>' +
+            '<button onclick="try{sessionStorage.removeItem(\'' + RETRY_FLAG + '\')}catch(e){};var u=new URL(location.href);u.searchParams.set(\'_r\',Date.now().toString(36));location.replace(u.toString())" ' +
+            'style="padding:11px 20px;background:#2150C8;color:#fff;border:none;border-radius:3px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:14px;">Reload page</button>' +
+            '<pre style="white-space:pre-wrap;word-break:break-word;font-size:11px;background:#fff;border:1px solid #201C18;padding:10px;border-radius:3px;">' +
+            String(detail).replace(/</g, "&lt;") + "</pre></div>";
+        }
+      })();
     </script>
   </head>
   <body>
