@@ -50,8 +50,32 @@ function legacyEntryForwarders() {
   };
 }
 
+// Every address on the site gets a REAL copy of index.html at build time
+// (e.g. dist/portal/index.html). The host serves real files directly, so
+// deep links like /portal or /repairs work on a fresh load without
+// depending on the dashboard rewrite rule at all — that rule was returning
+// an empty page for every address except the homepage.
+const ROUTES = [
+  "quote", "sell", "shop", "repairs", "parts", "about", "faq", "help", "contact", "blog",
+  "blog/charging-port-dust-or-real-fault", "blog/refurbished-grades-explained", "blog/how-much-is-my-old-phone-worth",
+  "portal", "portal/pricing", "portal/inspect", "portal/pos", "portal/repairs", "portal/till", "portal/crm",
+  "staff", "staff/admin", "staff/inspect", "staff/pos", "staff/repairs", "staff/till", "staff/crm",
+];
+function pagePerRoute() {
+  return {
+    name: "page-per-route",
+    writeBundle(options) {
+      const html = fs.readFileSync(path.join(options.dir, "index.html"));
+      for (const r of ROUTES) {
+        fs.mkdirSync(path.join(options.dir, r), { recursive: true });
+        fs.writeFileSync(path.join(options.dir, r, "index.html"), html);
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), legacyEntryForwarders()],
+  plugins: [react(), legacyEntryForwarders(), pagePerRoute()],
   build: {
     outDir: "dist",
     rollupOptions: {
