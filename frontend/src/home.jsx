@@ -1,0 +1,167 @@
+import React, { useState, useEffect } from "react";
+
+function storageAvailable() {
+  return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
+}
+async function loadJSON(key, shared) {
+  if (!storageAvailable()) return null;
+  try {
+    const r = await window.storage.get(key, shared);
+    return r ? JSON.parse(r.value) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
+  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#201C18";
+
+// The three things people actually come here to do — each gets equal,
+// prominent billing up top, the way PhoneExchange and Mobile Monster lead
+// with their core actions rather than burying them.
+const ACTIONS = [
+  { href: "/quote", icon: "💰", title: "Sell your device", desc: "Instant quote in under a minute. No obligation.", cta: "Get a quote" },
+  { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, and backed by a 12-month warranty.", cta: "Shop now" },
+  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Genuine parts, honest diagnosis, most done same day.", cta: "Book a repair" },
+];
+
+const TRUST = [
+  { title: "Genuine parts only", desc: "Never unmarked aftermarket substitutes." },
+  { title: "Price match guarantee", desc: "Found it cheaper? We'll match it." },
+  { title: "12-month warranty", desc: "On every repair and every device we sell." },
+  { title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
+];
+
+const STEPS = [
+  { n: "1", title: "Get your quote", desc: "Tell us the model and condition. Your price appears instantly." },
+  { n: "2", title: "Send or drop it off", desc: "Post it to us or bring it in store — whichever suits you." },
+  { n: "3", title: "Get paid", desc: "We inspect it and pay by bank transfer or PayPal. If anything differs, you choose whether to accept." },
+];
+
+const GUIDES = [
+  { href: "/blog/charging-port-dust-or-real-fault", title: "Your charging port probably isn't broken" },
+  { href: "/blog/refurbished-grades-explained", title: "What Grade A, B, or C actually means" },
+  { href: "/blog/how-much-is-my-old-phone-worth", title: "How much is your old phone worth?" },
+];
+
+export default function Home() {
+  const [stats, setStats] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      const cfg = await loadJSON("pricing-config", true);
+      const b = (cfg && cfg.businessSettings) || {};
+      // Only show numbers the owner has actually entered — never invented ones.
+      const s = [];
+      if (b.yearsInBusiness) s.push({ value: `${b.yearsInBusiness}+`, label: "years in business" });
+      if (b.devicesSoldCount) s.push({ value: Number(b.devicesSoldCount).toLocaleString(), label: "devices sold" });
+      if (b.googleRating) s.push({ value: `${b.googleRating}★`, label: "Google rating" });
+      setStats(s);
+    })();
+  }, []);
+
+  const section = { maxWidth: 1000, margin: "0 auto", padding: "0 16px" };
+  const heading = { fontFamily: "'Archivo Black', sans-serif", fontSize: 24, letterSpacing: "-0.01em", marginBottom: 18, textAlign: "center" };
+
+  return (
+    <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+
+      {/* ---- Hero ---- */}
+      <div style={{ ...section, textAlign: "center", padding: "56px 16px 34px" }}>
+        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(30px, 6vw, 48px)", lineHeight: 1.05, letterSpacing: "-0.02em", marginBottom: 14 }}>
+          Sell, buy, or fix your phone —<br /><span style={{ color: brass }}>honestly priced.</span>
+        </div>
+        <div style={{ color: muted, fontSize: 16, maxWidth: 560, margin: "0 auto 30px", lineHeight: 1.6 }}>
+          Genuine parts, a real price match guarantee, and no inflated quotes for five-minute fixes. That's the whole idea.
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, textAlign: "left" }}>
+          {ACTIONS.map((a) => (
+            <a key={a.href} href={a.href} className="cs-card"
+              style={{ display: "block", border: `2px solid ${line}`, borderRadius: 4, padding: 22, background: panel, color: paper, textDecoration: "none" }}>
+              <div style={{ fontSize: 30, marginBottom: 10 }} aria-hidden="true">{a.icon}</div>
+              <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 19, marginBottom: 6 }}>{a.title}</div>
+              <div style={{ color: muted, fontSize: 13.5, marginBottom: 16, lineHeight: 1.5 }}>{a.desc}</div>
+              <span style={{ color: brass, fontWeight: 700, fontSize: 14 }}>{a.cta} →</span>
+            </a>
+          ))}
+        </div>
+
+        {stats.length > 0 && (
+          <div style={{ display: "flex", gap: 34, justifyContent: "center", flexWrap: "wrap", marginTop: 34 }}>
+            {stats.map((s) => (
+              <div key={s.label}>
+                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, color: brass }}>{s.value}</div>
+                <div style={{ fontSize: 12, color: muted }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ---- Trust strip ---- */}
+      <div style={{ borderTop: `2px solid ${line}`, borderBottom: `2px solid ${line}`, background: panel, padding: "26px 16px", marginBottom: 50 }}>
+        <div style={{ ...section, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
+          {TRUST.map((t) => (
+            <div key={t.title}>
+              <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 4 }}><span style={{ color: brass }}>✓</span> {t.title}</div>
+              <div style={{ color: muted, fontSize: 13 }}>{t.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ---- How selling works ---- */}
+      <div style={{ ...section, marginBottom: 50 }}>
+        <div style={heading}>Selling your phone takes three steps</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+          {STEPS.map((s) => (
+            <div key={s.n} style={{ border: `2px solid ${line}`, borderRadius: 4, padding: 20, background: panel }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: brass, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, marginBottom: 12 }}>{s.n}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{s.title}</div>
+              <div style={{ color: muted, fontSize: 13.5, lineHeight: 1.55 }}>{s.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 22 }}>
+          <a href="/quote" className="cs-btn" style={{ padding: "13px 26px", background: brass, color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get your instant quote</a>
+        </div>
+      </div>
+
+      {/* ---- Brands ---- */}
+      <div style={{ ...section, marginBottom: 50, textAlign: "center" }}>
+        <div style={{ color: muted, fontSize: 12.5, marginBottom: 12, letterSpacing: "0.04em" }}>WE BUY, SELL AND REPAIR</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: "clamp(18px, 5vw, 44px)", flexWrap: "wrap" }}>
+          {["Apple", "Samsung", "Google", "OnePlus", "Xiaomi"].map((b) => (
+            <span key={b} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 17, color: muted }}>{b}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* ---- Why we exist ---- */}
+      <div style={{ ...section, marginBottom: 50 }}>
+        <div style={{ border: `2px solid ${line}`, borderRadius: 4, padding: 28, background: brassDim }}>
+          <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 21, marginBottom: 10 }}>Why we started this</div>
+          <div style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 14, maxWidth: 700 }}>
+            We kept seeing people charged $150 for a "broken" charging port that was really just full of dust. So we built a shop that checks the simple explanation first — and only charges for a real repair when one's actually needed.
+          </div>
+          <a href="/about" style={{ color: brass, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Read our story →</a>
+        </div>
+      </div>
+
+      {/* ---- Guides ---- */}
+      <div style={{ ...section, marginBottom: 50 }}>
+        <div style={heading}>Straight answers</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+          {GUIDES.map((g) => (
+            <a key={g.href} href={g.href} className="cs-card"
+              style={{ display: "block", border: `2px solid ${line}`, borderRadius: 4, padding: 18, background: panel, color: paper, textDecoration: "none", fontWeight: 600, fontSize: 14.5, lineHeight: 1.4 }}>
+              {g.title} <span style={{ color: brass }}>→</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

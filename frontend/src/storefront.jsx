@@ -204,7 +204,7 @@ export default function Storefront() {
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 <a href="#browse" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Shop Refurbished</a>
-                <a href="/" className="cs-btn" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</a>
+                <a href="/quote" className="cs-btn" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</a>
               </div>
               {stats.length > 0 && (
                 <div style={{ display: "flex", gap: 28, justifyContent: "center", flexWrap: "wrap", marginTop: 30 }}>
@@ -216,6 +216,12 @@ export default function Storefront() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "center", gap: "clamp(20px, 5vw, 44px)", flexWrap: "wrap", alignItems: "center", padding: "20px 16px", marginBottom: 30, borderTop: `1px solid ${line}`, borderBottom: `1px solid ${line}` }}>
+              {["Apple", "Samsung", "Google", "OnePlus", "Xiaomi"].map((b) => (
+                <span key={b} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 15, color: muted, letterSpacing: "0.02em" }}>{b}</span>
+              ))}
             </div>
 
             <div style={{ marginBottom: 30 }}>
@@ -317,44 +323,46 @@ export default function Storefront() {
               <div style={{ border: `2px solid ${brass}`, borderRadius: 3, padding: 24, textAlign: "center" }}>
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 6 }}>Got an Old Phone?</div>
                 <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Turn it into cash, or credit toward one of the devices above.</div>
-                <a href="/" className="cs-btn" style={{ display: "inline-block", padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote →</a>
+                <a href="/quote" className="cs-btn" style={{ display: "inline-block", padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote →</a>
                 <div style={{ fontSize: 11.5, color: muted, marginTop: 10 }}>No obligation — see your price before you commit to anything.</div>
               </div>
             </div>
 
-            <footer style={{ marginTop: 60, paddingTop: 30, borderTop: `2px solid ${line}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 24, fontSize: 13 }}>
-              <div>
-                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8 }}>Mobile Vault</div>
-                <div style={{ color: muted, lineHeight: 1.7 }}>
-                  {businessSettings?.address || "Address on file at checkout"}<br />
-                  {businessSettings?.phone && <>{businessSettings.phone}<br /></>}
-                  {businessSettings?.email || "Contact us through the site"}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>Shop</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <a href="#browse" style={{ color: muted, textDecoration: "none" }}>Browse devices</a>
-                  <a href="/" style={{ color: muted, textDecoration: "none" }}>Sell your phone</a>
-                  <button onClick={() => { setView("track"); setTrackResult(undefined); }} style={{ textAlign: "left", background: "none", border: "none", padding: 0, color: muted, cursor: "pointer", fontSize: 13 }}>Track an order</button>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>Why Mobile Vault</div>
-                <div style={{ color: muted, lineHeight: 1.9 }}>
-                  ✓ Genuine parts only — never aftermarket knockoffs<br />
-                  ✓ Price match guarantee — found it cheaper? We'll match it<br />
-                  ✓ {WARRANTY_MONTHS}-month warranty on every device<br />
-                  ✓ All gadgets — phones, tablets, laptops & watches<br />
-                  ✓ No-obligation instant quotes
-                </div>
-              </div>
-            </footer>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <a href="/repairs" style={{ flex: 1, minWidth: 200, border: `2px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Broken screen or battery?</div>
+                <div style={{ fontSize: 12.5, color: muted }}>Book a repair instead →</div>
+              </a>
+              <a href="/parts" style={{ flex: 1, minWidth: 200, border: `2px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Just need a case or charger?</div>
+                <div style={{ fontSize: 12.5, color: muted }}>Check parts &amp; accessories →</div>
+              </a>
+            </div>
+
+            <div style={{ marginTop: 40, textAlign: "center" }}>
+              <button onClick={() => { setView("track"); setTrackResult(undefined); }} style={{ background: "none", border: "none", padding: 0, color: brass, cursor: "pointer", fontSize: 13, textDecoration: "underline" }}>
+                Already ordered? Track it here
+              </button>
+            </div>
           </>
         )}
 
         {view === "detail" && selectedItem && (
           <div style={{ maxWidth: 640, margin: "30px auto 0" }}>
+            <script type="application/ld+json">{JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Product",
+              "name": `${selectedItem.brand} ${selectedItem.model} ${selectedItem.storage || ""}`.trim(),
+              "brand": { "@type": "Brand", "name": selectedItem.brand },
+              "description": `Graded ${GRADE_LABELS[selectedItem.gradeId]?.label || ""} refurbished ${selectedItem.brand} ${selectedItem.model}, tested and backed by a ${WARRANTY_MONTHS}-month warranty.`,
+              "offers": {
+                "@type": "Offer",
+                "price": Math.round(selectedItem.listedPrice || 0),
+                "priceCurrency": "AUD",
+                "availability": selectedItem.status === "listed" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                "itemCondition": "https://schema.org/UsedCondition",
+              },
+            })}</script>
             <button onClick={() => setView("browse")} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to browsing</button>
             <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 20 }}>
               <div style={{ fontSize: 20, marginBottom: 4 }}>{selectedItem.brand} {selectedItem.model}</div>

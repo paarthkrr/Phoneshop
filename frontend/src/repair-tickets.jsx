@@ -95,21 +95,28 @@ export default function RepairTickets() {
   const [trackQuery, setTrackQuery] = useState("");
   const [trackResult, setTrackResult] = useState(undefined);
   const [partsStock, setPartsStock] = useState(null);
+  const [repairRequests, setRepairRequests] = useState([]);
 
   useEffect(() => {
     (async () => {
-      const [t, s, ps] = await Promise.all([loadJSON(TICKETS_KEY, true), loadJSON(STAFF_KEY, false), loadJSON(PARTS_STOCK_KEY, true)]);
+      const [t, s, ps, rr] = await Promise.all([loadJSON(TICKETS_KEY, true), loadJSON(STAFF_KEY, false), loadJSON(PARTS_STOCK_KEY, true), loadJSON("repair_requests", true)]);
       setTickets(t || []);
       const authed = getAuthedUser();
       if (authed) { setAuthedUser(authed); setStaffName(authed.username); }
       else if (s) setStaffName(s);
       setPartsStock(ps || []);
+      setRepairRequests(rr || []);
     })();
   }, []);
 
   async function persist(next) { await saveJSON(TICKETS_KEY, next, true); setTickets(next); }
   async function persistStaffName(name) { setStaffName(name); await saveJSON(STAFF_KEY, name, false); }
   async function persistStock(next) { await saveJSON(PARTS_STOCK_KEY, next, true); setPartsStock(next); }
+  async function markRequestContacted(id) {
+    const next = repairRequests.map((r) => r.id === id ? { ...r, status: "contacted" } : r);
+    await saveJSON("repair_requests", next, true);
+    setRepairRequests(next);
+  }
 
   async function addStockItem(item) {
     await persistStock([{ id: genPartId(), qtyOnHand: 0, lowStockThreshold: 2, ...item }, ...(partsStock || [])]);
@@ -255,6 +262,29 @@ export default function RepairTickets() {
 
         {view === "queue" && !open && (
           <>
+            {repairRequests.filter((r) => r.status === "new").length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Incoming repair requests ({repairRequests.filter((r) => r.status === "new").length} new)</div>
+                {repairRequests.filter((r) => r.status === "new").map((r) => (
+                  <div key={r.id} style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 12, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>{r.name} — {r.deviceType}: {r.model}</span>
+                      <span style={{ fontSize: 11, color: muted }}>{r.id}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{r.email}{r.phone && ` · ${r.phone}`}</div>
+                    <div style={{ fontSize: 13, marginBottom: 8 }}>{r.issue}</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => setView("intake")} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
+                        Start ticket
+                      </button>
+                      <button onClick={() => markRequestContacted(r.id)} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
+                        Mark contacted
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
               {["open", "completed", "all"].map((f) => (
                 <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",

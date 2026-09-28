@@ -21,6 +21,17 @@ async function saveJSON(key, value, shared) {
     return false;
   }
 }
+async function queueNotification(entry) {
+  if (!storageAvailable()) return false;
+  try {
+    const list = (await loadJSON("notification_queue", true)) || [];
+    list.unshift({ id: "NTF-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(), status: "pending", ...entry });
+    await window.storage.set("notification_queue", JSON.stringify(list), true);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 const genId = () => "HLP-" + Math.floor(100000 + Math.random() * 900000);
 
 const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
@@ -56,6 +67,12 @@ export default function Help() {
       };
       const ok = await saveJSON("support_queries", [entry, ...list], true);
       if (!ok) throw new Error("Couldn't submit — check your connection and try again.");
+      await queueNotification({
+        type: "support_query", channel: "email", recipientEmail: entry.email,
+        subject: `We've received your question — ${entry.id}`,
+        message: `Thanks for reaching out. We've received your message and will get back to you shortly.`,
+        relatedId: entry.id,
+      });
       setSubmitted(entry);
     } catch (e) {
       setError(e.message || "Something went wrong — please try again.");

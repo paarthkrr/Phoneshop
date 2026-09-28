@@ -84,6 +84,12 @@ export default function FAQ() {
           <div style={{ color: muted, fontSize: 14, marginBottom: 14 }}>Still have a question?</div>
           <a href="/contact" className="cs-btn" style={{ padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Contact Us</a>
         </div>
+
+        <div style={{ marginTop: 20, border: `2px solid ${line}`, borderRadius: 3, padding: 22, textAlign: "center", background: panel }}>
+          <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 6 }}>Ready to sell your old device?</div>
+          <div style={{ color: muted, fontSize: 13, marginBottom: 14 }}>Get an instant quote — no obligation to sell.</div>
+          <a href="/quote" className="cs-btn" style={{ padding: "11px 20px", background: brass, color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</a>
+        </div>
       </div>
     </div>
   );

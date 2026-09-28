@@ -8,6 +8,11 @@ import ContactUs from "./contact.jsx";
 import FAQ from "./faq.jsx";
 import Help from "./help.jsx";
 import ChatWidget from "./chat-widget.jsx";
+import Repairs from "./repairs.jsx";
+import Parts from "./parts.jsx";
+import Blog from "./blog.jsx";
+import Home from "./home.jsx";
+import SiteFooter from "./site-footer.jsx";
 import DailyDashboard from "./daily-dashboard.jsx";
 import AdminPricingConsole from "./admin-pricing-console.jsx";
 import StaffInspectionConsole from "./staff-inspection-console.jsx";
@@ -35,12 +40,10 @@ const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
   brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#201C18";
 
 const CUSTOMER_LINKS = [
-  { to: "/", label: "Sell your phone" },
+  { to: "/quote", label: "Get a Quote" },
   { to: "/shop", label: "Shop refurbished" },
-  { to: "/about", label: "About us" },
-  { to: "/faq", label: "FAQ" },
-  { to: "/help", label: "Help" },
-  { to: "/contact", label: "Contact" },
+  { to: "/repairs", label: "Repairs" },
+  { to: "/parts", label: "Parts" },
 ];
 
 const STAFF_LINKS = [
@@ -275,8 +278,14 @@ function AnimatedRoutes() {
   return (
     <main key={location.pathname} className="cs-page-enter">
       <Routes>
-        <Route path="/" element={<QuoteCalculator />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/quote" element={<QuoteCalculator />} />
+        <Route path="/sell" element={<QuoteCalculator />} />
         <Route path="/shop" element={<Storefront />} />
+        <Route path="/repairs" element={<Repairs />} />
+        <Route path="/parts" element={<Parts />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/faq" element={<FAQ />} />
         <Route path="/help" element={<Help />} />
@@ -295,6 +304,7 @@ function AnimatedRoutes() {
           </div>
         } />
       </Routes>
+      {!isStaff && <SiteFooter />}
       {!isStaff && <ChatWidget />}
     </main>
   );

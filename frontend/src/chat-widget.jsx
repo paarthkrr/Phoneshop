@@ -24,8 +24,8 @@ function findAnswer(text) {
 }
 
 const QUICK_ACTIONS = [
-  { label: "Track my order", href: "/" },
-  { label: "Get a quote to sell my phone", href: "/" },
+  { label: "Track my order", href: "/quote" },
+  { label: "Get a quote to sell my phone", href: "/quote" },
   { label: "Browse refurbished stock", href: "/shop" },
   { label: "See all FAQs", href: "/faq" },
 ];

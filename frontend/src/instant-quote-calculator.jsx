@@ -661,7 +661,7 @@ export default function QuoteCalculator() {
   const [hasAccessories, setHasAccessories] = useState(false);
   const [showRef, setShowRef] = useState(false);
   const [checkout, setCheckout] = useState(false);
-  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idType: "license", idOwnerName: "" });
+  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idType: "license", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" });
   const [referralCodeEntered, setReferralCodeEntered] = useState("");
   const [myReferralCode, setMyReferralCode] = useState(null);
   const [fulfillment, setFulfillment] = useState("post");
@@ -671,6 +671,8 @@ export default function QuoteCalculator() {
   const [trackMode, setTrackMode] = useState(false);
   const [trackQuery, setTrackQuery] = useState("");
   const [trackResult, setTrackResult] = useState(undefined); // undefined = not searched, null = not found
+  const [respondSubmitting, setRespondSubmitting] = useState(false);
+  const [respondError, setRespondError] = useState("");
   const [pmOpen, setPmOpen] = useState(false);
   const [pmCompetitor, setPmCompetitor] = useState("");
   const [pmPrice, setPmPrice] = useState("");
@@ -688,6 +690,9 @@ export default function QuoteCalculator() {
   const [bulkTier, setBulkTier] = useState("good");
   const [bulkBusiness, setBulkBusiness] = useState({ businessName: "", contactName: "", email: "", phone: "", note: "" });
   const [bulkSubmitted, setBulkSubmitted] = useState(null);
+  const [bulkTrackOpen, setBulkTrackOpen] = useState(false);
+  const [bulkTrackQuery, setBulkTrackQuery] = useState("");
+  const [bulkTrackResult, setBulkTrackResult] = useState(undefined);
   const [idPhotoFile, setIdPhotoFile] = useState(null);
   const idPhotoBackendAvailable = idPhotoBackendConfigured();
 
@@ -797,7 +802,8 @@ export default function QuoteCalculator() {
   }, [selected, tier, calc, region]);
 
   async function handleSubmitOrder() {
-    if (!calc || calc.blocked || !customer.name || !customer.email || !customer.idOwnerName) return;
+    const payoutValid = customer.payoutMethod === "bank" ? (customer.bankBsb && customer.bankAccountNumber) : customer.paypalEmail;
+    if (!calc || calc.blocked || !customer.name || !customer.email || !customer.idOwnerName || !payoutValid) return;
     setSubmitting(true);
     const newCode = genReferralCode(customer.name);
     const order = {
@@ -861,6 +867,44 @@ export default function QuoteCalculator() {
     const localList = window.SHOP_API_BASE_URL ? null : await loadOrders();
     const found = await findPublicRecord("orders", q, localList);
     setTrackResult(found || null);
+  }
+
+  // Lets a customer accept or decline a revised offer themselves, no
+  // waiting on staff to record it after a phone call. On a real backend
+  // this calls the dedicated, narrow public endpoint (see server.js —
+  // it can only move an order that's already awaiting a response, and
+  // only if the caller knows the order's email). In the Claude.ai
+  // preview (no real backend), storage isn't privacy-restricted, so this
+  // falls back to a direct read-modify-write, matching every other
+  // preview-mode fallback in this file.
+  async function handleOrderRespond(decision) {
+    if (!trackResult) return;
+    setRespondSubmitting(true);
+    setRespondError("");
+    try {
+      if (window.SHOP_API_BASE_URL) {
+        const res = await fetch(`${window.SHOP_API_BASE_URL}/public/orders/${encodeURIComponent(trackResult.id)}/respond`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trackResult.customer.email, decision }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || "Something went wrong — please try again.");
+        setTrackResult({ ...trackResult, status: body.status });
+      } else {
+        const list = await loadOrders();
+        const idx = list.findIndex((o) => o.id === trackResult.id);
+        if (idx === -1) throw new Error("Order not found.");
+        const updated = { ...list[idx], status: decision === "accept" ? "approved_paid" : "returned",
+          inspection: { ...list[idx].inspection, customerRespondedAt: new Date().toISOString(), customerDecision: decision } };
+        list[idx] = updated;
+        await window.storage.set(ORDERS_KEY, JSON.stringify(list), true);
+        setTrackResult(updated);
+      }
+    } catch (e) {
+      setRespondError(e.message);
+    } finally {
+      setRespondSubmitting(false);
+    }
   }
 
   async function handlePriceMatchSubmit() {
@@ -935,6 +979,14 @@ export default function QuoteCalculator() {
     setBulkSubmitted(request);
   }
 
+  async function handleBulkTrackSearch() {
+    const q = bulkTrackQuery.trim();
+    if (!q) return;
+    const localList = window.SHOP_API_BASE_URL ? null : await loadBulkRequests();
+    const found = await findPublicRecord(BULK_KEY, q, localList, ["id", "business.email"]);
+    setBulkTrackResult(found || null);
+  }
+
   // Mobile Vault palette — bold Australian retail: warm paper background,
   // heritage signage red as the single brand accent, bold black structure.
   const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
@@ -955,9 +1007,30 @@ export default function QuoteCalculator() {
           {source === "admin console" ? "● Live pricing from admin console" : "○ Using built-in defaults — admin console not connected"}
         </div>
 
-        <button onClick={() => setBulkMode((s) => !s)} style={{ background: "none", border: "none", color: brass, fontSize: 12.5, padding: 0, marginBottom: 14, cursor: "pointer", textDecoration: "underline" }}>
+        <button onClick={() => setBulkMode((s) => !s)} style={{ background: "none", border: "none", color: brass, fontSize: 12.5, padding: 0, marginBottom: 10, cursor: "pointer", textDecoration: "underline" }}>
           {bulkMode ? "← Back to single device" : "Selling multiple devices? Get a bulk / business quote"}
         </button>
+        <br />
+        <button onClick={() => { setBulkTrackOpen((o) => !o); setBulkTrackResult(undefined); }} style={{ background: "none", border: "none", color: muted, fontSize: 12, padding: 0, marginBottom: 14, cursor: "pointer", textDecoration: "underline" }}>
+          {bulkTrackOpen ? "← Hide tracking" : "Already submitted a bulk request? Track it"}
+        </button>
+
+        {bulkTrackOpen && (
+          <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 14, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input value={bulkTrackQuery} onChange={(e) => setBulkTrackQuery(e.target.value)} placeholder="Request number or business email" aria-label="Request number or business email to track your bulk quote"
+                style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13.5, outline: "none", boxSizing: "border-box" }} />
+              <button onClick={handleBulkTrackSearch} className="cs-btn" style={{ padding: "0 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find</button>
+            </div>
+            {bulkTrackResult === null && <div style={{ fontSize: 13, color: red }}>No request found with that number or email.</div>}
+            {bulkTrackResult && (
+              <div style={{ fontSize: 13 }}>
+                <div style={{ marginBottom: 4 }}>{bulkTrackResult.itemCount} device(s) · estimated {fmt(bulkTrackResult.estimatedTotal, bulkTrackResult.region, REGIONS_A)}</div>
+                <div>Status: <strong>{bulkTrackResult.status === "new" ? "Received — a team member will follow up within 1-2 business days" : "We've been in touch with you"}</strong></div>
+              </div>
+            )}
+          </div>
+        )}
 
         {bulkMode && !bulkSubmitted && (
           <div style={{ border: `1px solid ${brass}`, borderRadius: 4, padding: 16, marginBottom: 20 }}>
@@ -1125,6 +1198,25 @@ export default function QuoteCalculator() {
                 )}
                 {trackResult.inspection?.staffNote && (
                   <div style={{ marginTop: 8, color: muted }}>Note from inspection: {trackResult.inspection.staffNote}</div>
+                )}
+                {trackResult.status === "revised_pending_customer" && (
+                  <div style={{ marginTop: 12, border: `1px solid ${brass}`, borderRadius: 3, padding: 12 }}>
+                    <div style={{ fontSize: 12.5, marginBottom: 10 }}>We found something different once we inspected your device. You can accept the revised amount above, or decline and we'll arrange getting your device back to you.</div>
+                    {respondError && <div style={{ color: red, fontSize: 12, marginBottom: 8 }}>{respondError}</div>}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="cs-btn" disabled={respondSubmitting} onClick={() => handleOrderRespond("accept")}
+                        style={{ flex: 1, padding: "9px", borderRadius: 3, border: "none", background: green, color: "#0c1a12", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                        Accept revised offer
+                      </button>
+                      <button className="cs-btn" disabled={respondSubmitting} onClick={() => handleOrderRespond("decline")}
+                        style={{ flex: 1, padding: "9px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                        Decline — return my device
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {trackResult.status === "returned" && (
+                  <div style={{ marginTop: 12, color: muted, fontSize: 12.5 }}>You declined the revised offer — we'll be in touch about getting your device back to you.</div>
                 )}
               </div>
             )}
@@ -1448,6 +1540,29 @@ export default function QuoteCalculator() {
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             )}
 
+            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }} id="payout-method-label">How should we pay you?</div>
+            <div role="group" aria-labelledby="payout-method-label" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              {[{ id: "bank", label: "Bank transfer" }, { id: "paypal", label: "PayPal" }].map((opt) => (
+                <button key={opt.id} onClick={() => setCustomer((c) => ({ ...c, payoutMethod: opt.id }))} aria-pressed={customer.payoutMethod === opt.id}
+                  style={{ flex: 1, padding: "9px 6px", borderRadius: 3, fontSize: 12.5, cursor: "pointer",
+                    border: `1px solid ${customer.payoutMethod === opt.id ? brass : line}`, background: customer.payoutMethod === opt.id ? brassDim : "transparent",
+                    color: customer.payoutMethod === opt.id ? brass : paper }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {customer.payoutMethod === "bank" ? (
+              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                <input value={customer.bankBsb} onChange={(e) => setCustomer((c) => ({ ...c, bankBsb: e.target.value }))} placeholder="BSB" aria-label="Bank BSB"
+                  style={{ width: 90, padding: "12px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+                <input value={customer.bankAccountNumber} onChange={(e) => setCustomer((c) => ({ ...c, bankAccountNumber: e.target.value }))} placeholder="Account number" aria-label="Bank account number"
+                  style={{ flex: 1, padding: "12px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+              </div>
+            ) : (
+              <input value={customer.paypalEmail} onChange={(e) => setCustomer((c) => ({ ...c, paypalEmail: e.target.value }))} placeholder="PayPal email" aria-label="PayPal email" type="email"
+                style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
+            )}
+
             <div style={{ fontSize: 11.5, color: muted, marginBottom: 14 }}>
               This quote is locked for 14 days from today. If your device doesn't match what you told us, we'll always send a revised offer for you to accept or decline — never an automatic reduced payment.
             </div>
@@ -1456,13 +1571,19 @@ export default function QuoteCalculator() {
               <button onClick={() => setCheckout(false)} style={{ padding: "12px 16px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 14, cursor: "pointer" }}>
                 Back
               </button>
-              <button className="cs-btn" onClick={handleSubmitOrder} disabled={!customer.name || !customer.email || !customer.idOwnerName || submitting}
-                style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  background: customer.name && customer.email && customer.idOwnerName ? brass : line, color: customer.name && customer.email && customer.idOwnerName ? "#1a1408" : muted,
-                  fontSize: 14, fontWeight: 600, cursor: customer.name && customer.email && customer.idOwnerName ? "pointer" : "default" }}>
-                {submitting && <span className="cs-spinner"></span>}
-                {submitting ? "Submitting…" : "Confirm & get shipping details →"}
-              </button>
+              {(() => {
+                const canSubmit = customer.name && customer.email && customer.idOwnerName &&
+                  (customer.payoutMethod === "bank" ? (customer.bankBsb && customer.bankAccountNumber) : customer.paypalEmail);
+                return (
+                  <button className="cs-btn" onClick={handleSubmitOrder} disabled={!canSubmit || submitting}
+                    style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      background: canSubmit ? brass : line, color: canSubmit ? "#1a1408" : muted,
+                      fontSize: 14, fontWeight: 600, cursor: canSubmit ? "pointer" : "default" }}>
+                    {submitting && <span className="cs-spinner"></span>}
+                    {submitting ? "Submitting…" : "Confirm & get shipping details →"}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -1492,10 +1613,15 @@ export default function QuoteCalculator() {
                 Share your code <strong>{myReferralCode}</strong> with a friend — you both get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)} when they sell to us.
               </div>
             )}
-            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idType: "license", idOwnerName: "" }); setIdPhotoFile(null); setReferralCodeEntered(""); setMyReferralCode(null); }}
+            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idType: "license", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" }); setIdPhotoFile(null); setReferralCodeEntered(""); setMyReferralCode(null); }}
               style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 14, cursor: "pointer" }}>
               Start another quote
             </button>
+
+            <div style={{ marginTop: 20, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <a href="/shop" style={{ flex: 1, minWidth: 160, border: `1px solid ${line}`, borderRadius: 3, padding: 12, textDecoration: "none", color: paper, fontSize: 12.5, textAlign: "center" }}>Browse refurbished stock →</a>
+              <a href="/repairs" style={{ flex: 1, minWidth: 160, border: `1px solid ${line}`, borderRadius: 3, padding: 12, textDecoration: "none", color: paper, fontSize: 12.5, textAlign: "center" }}>Need a repair too? →</a>
+            </div>
           </div>
         )}
 
@@ -1528,10 +1654,6 @@ export default function QuoteCalculator() {
           </div>
         )}
 
-        <footer style={{ marginTop: 50, paddingTop: 26, borderTop: `2px solid ${line}`, fontSize: 12.5, color: muted }}>
-          <div style={{ marginBottom: 10 }}>✓ 12-month warranty on refurbished stock · ✓ No-obligation quotes · ✓ Real staff inspect every trade-in</div>
-          <div>Mobile Vault — questions? <a href="/shop" style={{ color: brass }}>browse what's in stock</a> or track an order above.</div>
-        </footer>
       </div>
     </div>
   );

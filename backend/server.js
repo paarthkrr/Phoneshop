@@ -220,7 +220,7 @@ async function tryAuth(req, res, next) {
 
 // Customers need to browse stock and get quotes without a staff login —
 // these two are genuinely public catalog data, not anyone's private info.
-const PUBLIC_READ_KEYS = ["inventory", "pricing-config"];
+const PUBLIC_READ_KEYS = ["inventory", "pricing-config", "accessories"];
 // Customers need to SUBMIT to these (a trade-in order, a purchase, a
 // price-match request, a bulk quote, a lead, a referral) without a staff
 // login — but they must never be able to READ them back in bulk, since
@@ -229,7 +229,7 @@ const PUBLIC_READ_KEYS = ["inventory", "pricing-config"];
 // merge-by-id (see the PUT handler) — an anonymous client's local view
 // of "existing records" is always empty, so this only ever adds their
 // own new submission, never overwrites anyone else's data.
-const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries"];
+const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries", "repair_requests"];
 
 function scopeFor(shared, username) {
   if (shared === "true" || shared === true) return "shared";
@@ -538,6 +538,51 @@ app.get("/public/find/:key", async (req, res) => {
     });
     if (!match) return res.status(404).json({ error: "not_found" });
     res.json({ record: match });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// A customer responding to a revised trade-in offer, without needing a
+// staff login. Deliberately narrow: this can ONLY move an order that is
+// ALREADY sitting in "revised_pending_customer" — it can't be used to
+// touch any other order state, and it requires the caller to know the
+// order's email (the same lightweight proof-of-ownership already used
+// by /public/find), so a guessed order ID alone isn't enough to act on
+// someone else's order.
+app.post("/public/orders/:orderId/respond", async (req, res) => {
+  try {
+    const { email, decision } = req.body;
+    if (!email || (decision !== "accept" && decision !== "decline")) {
+      return res.status(400).json({ error: "email and decision ('accept' or 'decline') are required" });
+    }
+    const result = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = 'orders'");
+    const row = result.rows[0];
+    const list = row ? JSON.parse(row.value) : [];
+    const idx = list.findIndex((o) => o.id === req.params.orderId);
+    if (idx === -1) return res.status(404).json({ error: "not_found" });
+    const order = list[idx];
+    if ((order.customer?.email || "").toLowerCase() !== email.toLowerCase()) {
+      return res.status(403).json({ error: "email does not match this order" });
+    }
+    if (order.status !== "revised_pending_customer") {
+      return res.status(409).json({ error: "this order isn't currently awaiting a response" });
+    }
+    const updated = {
+      ...order,
+      status: decision === "accept" ? "approved_paid" : "returned",
+      inspection: { ...order.inspection, customerRespondedAt: new Date().toISOString(), customerDecision: decision },
+    };
+    list[idx] = updated;
+    await pool.query(
+      `INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ('shared', 'orders', $1, NOW(), 'public')
+       ON CONFLICT (scope, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+      [JSON.stringify(list)]
+    );
+    // Never return the full order list to an anonymous caller — only
+    // confirm the outcome of THEIR action, same privacy posture as
+    // every other public endpoint in this file.
+    res.json({ id: updated.id, status: updated.status });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }

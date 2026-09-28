@@ -76,7 +76,7 @@ export default function ContactUs() {
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 12 }}>Already have an order?</div>
           <div style={{ color: muted, fontSize: 14, marginBottom: 16 }}>You can check its status yourself without waiting for a reply — usually faster than emailing us.</div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link to="/" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Trade-In</Link>
+            <Link to="/quote" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Trade-In</Link>
             <Link to="/shop" className="cs-btn" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Purchase</Link>
           </div>
         </div>

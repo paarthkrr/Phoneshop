@@ -297,6 +297,15 @@ export default function StaffInspectionConsole() {
                 ID on file: {open.customer.idType ? open.customer.idType.replace(/^\w/, (c) => c.toUpperCase()) : "not captured"}
                 {open.customer.idOwnerName && ` — name on ID: ${open.customer.idOwnerName}`}
               </div>
+              {open.customer.payoutMethod && (
+                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>
+                  Payout via {open.customer.payoutMethod === "bank" ? "bank transfer" : "PayPal"}: {
+                    open.customer.payoutMethod === "bank"
+                      ? `BSB ${open.customer.bankBsb} · Acc ${open.customer.bankAccountNumber}`
+                      : open.customer.paypalEmail
+                  }
+                </div>
+              )}
               <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>
                 Customer originally declared: {open.faultLabels?.length ? open.faultLabels.join(", ") : "no faults, plus accessories: " + (open.hasAccessories ? "yes" : "no")}
               </div>
