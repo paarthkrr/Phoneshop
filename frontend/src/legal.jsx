@@ -100,8 +100,13 @@ export function Terms() {
         <li>Please back up your device before a repair. Some repairs can require a reset.</li>
       </ul>
 
-      <h2>Our 12-month warranty</h2>
-      <p>Refurbished devices we sell, and the parts and workmanship of repairs we carry out, are covered against defects for 12 months from purchase or repair. The warranty doesn't cover accidental damage, liquid damage, misuse, or later repairs by anyone else.</p>
+      <h2>Our warranty</h2>
+      <ul>
+        <li><strong>Refurbished devices: 3 months</strong> from the date of purchase.</li>
+        <li><strong>Repairs</strong> (the parts we fit and our workmanship): <strong>6 months</strong> from the date of repair.</li>
+        <li><strong>Parts and accessories: 6 months</strong> from the date of purchase.</li>
+      </ul>
+      <p>The warranty covers defects only, and applies only if the item hasn't been damaged. It doesn't cover drops, cracked screens or glass, bent frames, liquid damage, misuse, or later repairs by anyone else.</p>
       <p>To make a claim, contact us with your order or repair number: <ContactLine biz={biz} />. We'll assess the device and repair, replace, or refund it at no cost to you. Warranty provided by {biz.name}{biz.abn ? `, ABN ${biz.abn}` : ""}{biz.address ? `, ${biz.address}` : ""}.</p>
       <p>This warranty is in addition to your rights under the Australian Consumer Law.</p>
 

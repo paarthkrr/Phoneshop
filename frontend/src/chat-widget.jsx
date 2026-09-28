@@ -8,7 +8,7 @@ const KNOWLEDGE = [
   { keywords: ["what devices", "repair", "tablet", "laptop", "watch", "types"], a: "Phones, tablets, laptops, and watches — not just one brand." },
   { keywords: ["how long", "turnaround", "wait", "same day", "quick", "fast"], a: "Most common repairs — screens, batteries, charging ports — are done same day." },
   { keywords: ["sell", "trade", "trade-in", "quote"], a: "Answer a few questions about your device, get an instant quote, and we inspect it once we receive it to confirm the price — no surprise deductions." },
-  { keywords: ["warranty", "guarantee period", "12 month"], a: "Every repair and every device we sell carries a 12-month warranty." },
+  { keywords: ["warranty", "guarantee period", "3 month", "6 month"], a: "Devices we sell have a 3-month warranty. Repairs, parts and accessories have 6 months. Physical or liquid damage isn't covered." },
   { keywords: ["tested", "graded", "condition", "refurbished"], a: "Every device is graded (A, B, or C) based on a real inspection before it's listed." },
   { keywords: ["track", "order", "status", "where is my"], a: "You can track your order yourself — tap 'Track an order' or 'Track a purchase' at the bottom of the homepage or shop page, no waiting on a reply." },
 ];

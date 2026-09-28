@@ -187,7 +187,7 @@ export default function RepairTickets() {
       device: { brand: data.brand, model: data.model },
       issue: data.issue, repairTypeId: data.repairTypeId,
       quotedPrice: data.quotedPrice, deposit: data.deposit || 0,
-      parts: [], finalPrice: null, warrantyDays: 90, warrantyOf: null,
+      parts: [], finalPrice: null, warrantyDays: 180, warrantyOf: null,
       staffHandled: staffName || "unattributed", notifiedAt: null, completedAt: null,
       statusLog: [{ status: "dropped_off", at: new Date().toISOString(), by: staffName || "unattributed" }],
     };
@@ -214,7 +214,7 @@ export default function RepairTickets() {
       customer: ticket.customer, device: ticket.device,
       issue: `Warranty claim on ${ticket.id}: ${ticket.issue}`, repairTypeId: ticket.repairTypeId,
       quotedPrice: withinWarranty ? 0 : ticket.quotedPrice, deposit: 0,
-      parts: [], finalPrice: null, warrantyDays: 90, warrantyOf: ticket.id,
+      parts: [], finalPrice: null, warrantyDays: 180, warrantyOf: ticket.id,
       staffHandled: staffName || "unattributed", notifiedAt: null, completedAt: null,
       statusLog: [{ status: "diagnosing", at: new Date().toISOString(), by: staffName || "unattributed" }],
     };

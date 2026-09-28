@@ -30,11 +30,11 @@ const FAQS = [
   },
   {
     q: "Is the refurbished stock actually tested?",
-    a: "Every device is graded (A, B, or C) based on a real inspection before it's listed, and comes with a 12-month warranty — the same warranty whether you're buying a phone or getting one repaired.",
+    a: "Every device is graded (A, B, or C) based on a real inspection before it's listed, and comes with a 3-month warranty. Repairs, parts and accessories are covered for 6 months.",
   },
   {
     q: "What if I'm not happy with a repair or a device I bought?",
-    a: "Every repair and every device we sell carries a 12-month warranty. If something's genuinely wrong, bring it back.",
+    a: "Devices we sell carry a 3-month warranty, and repairs, parts and accessories carry 6 months — as long as there's no physical or liquid damage. If something's genuinely wrong, bring it back.",
   },
 ];
 

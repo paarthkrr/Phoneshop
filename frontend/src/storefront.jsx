@@ -54,7 +54,7 @@ async function saveJSON(key, value, shared) {
   try { await window.storage.set(key, JSON.stringify(value), shared); return true; } catch (e) { return false; }
 }
 const genOrderId = () => "WEB-" + Math.floor(100000 + Math.random() * 900000);
-const WARRANTY_MONTHS = 12;
+const WARRANTY_MONTHS = 3; // refurbished devices; parts, accessories & repairs are 6 months
 
 const GRADE_LABELS = {
   A: { label: "Excellent", desc: "Looks and works like new — no visible wear." },

@@ -21,14 +21,14 @@ const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
 // with their core actions rather than burying them.
 const ACTIONS = [
   { href: "/quote", icon: "💰", title: "Sell your device", desc: "Instant quote in under a minute. No obligation.", cta: "Get a quote" },
-  { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, and backed by a 12-month warranty.", cta: "Shop now" },
+  { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, and backed by a 3-month warranty.", cta: "Shop now" },
   { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Genuine parts, honest diagnosis, most done same day.", cta: "Book a repair" },
 ];
 
 const TRUST = [
   { title: "Genuine parts only", desc: "Never unmarked aftermarket substitutes." },
   { title: "Price match guarantee", desc: "Found it cheaper? We'll match it." },
-  { title: "12-month warranty", desc: "On every repair and every device we sell." },
+  { title: "Warranty included", desc: "3 months on devices, 6 months on repairs, parts and accessories." },
   { title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
 ];
 

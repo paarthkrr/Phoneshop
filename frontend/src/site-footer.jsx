@@ -14,7 +14,6 @@ async function loadJSON(key, shared) {
 }
 
 const muted = "#6B6560", brass = "#2150C8", line = "#201C18";
-const WARRANTY_MONTHS = 12;
 
 // One shared footer for every customer-facing page — previously each page
 // either had its own duplicated copy (storefront, calculator) or none at
@@ -64,7 +63,8 @@ export default function SiteFooter() {
         <div style={{ color: muted, lineHeight: 1.9 }}>
           ✓ Genuine parts only<br />
           ✓ Price match guarantee<br />
-          ✓ {WARRANTY_MONTHS}-month warranty<br />
+          ✓ 3-month warranty on devices<br />
+          ✓ 6-month warranty on repairs, parts &amp; accessories<br />
           ✓ Phones, tablets, laptops &amp; watches
         </div>
       </div>
