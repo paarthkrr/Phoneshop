@@ -38,6 +38,8 @@ export default function SiteFooter() {
           {businessSettings?.address || "Address on file at checkout"}<br />
           {businessSettings?.phone && <>{businessSettings.phone}<br /></>}
           {businessSettings?.email || "Contact us through the site"}
+          {businessSettings?.hours && <><br /><span style={{ whiteSpace: "pre-line" }}>{businessSettings.hours}</span></>}
+          {businessSettings?.abn && <><br />ABN {businessSettings.abn}</>}
         </div>
       </div>
       <div>
@@ -53,6 +55,8 @@ export default function SiteFooter() {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <a href="/help" style={{ color: muted, textDecoration: "none" }}>Help / Ask a question</a>
           <a href="/contact" style={{ color: muted, textDecoration: "none" }}>Contact us</a>
+          <a href="/terms" style={{ color: muted, textDecoration: "none" }}>Terms &amp; warranty</a>
+          <a href="/privacy" style={{ color: muted, textDecoration: "none" }}>Privacy policy</a>
         </div>
       </div>
       <div>

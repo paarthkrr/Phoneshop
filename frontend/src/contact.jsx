@@ -70,6 +70,13 @@ export default function ContactUs() {
               <div style={{ color: muted, fontSize: 14 }}>Address coming soon — check back shortly.</div>
             )}
           </div>
+
+          {businessSettings?.hours && (
+            <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: muted, marginBottom: 6 }}>OPENING HOURS</div>
+              <div style={{ fontSize: 15, lineHeight: 1.6, whiteSpace: "pre-line" }}>{businessSettings.hours}</div>
+            </div>
+          )}
         </div>
 
         <div style={{ borderTop: `2px solid ${line}`, paddingTop: 24 }}>

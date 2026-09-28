@@ -1588,6 +1588,9 @@ export default function QuoteCalculator() {
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             )}
 
+            <div style={{ fontSize: 11.5, color: muted, marginBottom: 10 }}>
+              By continuing you agree to our <a href="/terms" target="_blank" rel="noopener" style={{ color: brass }}>Terms</a> and <a href="/privacy" target="_blank" rel="noopener" style={{ color: brass }}>Privacy Policy</a>. Your details are only used to process this order and pay you.
+            </div>
             <div style={{ fontSize: 11.5, color: muted, marginBottom: 14 }}>
               This quote is locked for 14 days from today. If your device doesn't match what you told us, we'll always send a revised offer for you to accept or decline — never an automatic reduced payment.
             </div>

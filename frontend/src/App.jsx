@@ -12,6 +12,7 @@ import Repairs from "./repairs.jsx";
 import Parts from "./parts.jsx";
 import Blog from "./blog.jsx";
 import Home from "./home.jsx";
+import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
 import DailyDashboard from "./daily-dashboard.jsx";
 import AdminPricingConsole from "./admin-pricing-console.jsx";
@@ -345,6 +346,8 @@ function AnimatedRoutes() {
         <Route path="/faq" element={<FAQ />} />
         <Route path="/help" element={<Help />} />
         <Route path="/contact" element={<ContactUs />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/portal" element={<StaffGate><DailyDashboard /></StaffGate>} />
         <Route path="/portal/pricing" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
         <Route path="/portal/inspect" element={<StaffGate><StaffInspectionConsole /></StaffGate>} />

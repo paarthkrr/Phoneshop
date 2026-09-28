@@ -56,7 +56,7 @@ function legacyEntryForwarders() {
 // depending on the dashboard rewrite rule at all — that rule was returning
 // an empty page for every address except the homepage.
 const ROUTES = [
-  "quote", "sell", "shop", "repairs", "parts", "about", "faq", "help", "contact", "blog",
+  "quote", "sell", "shop", "repairs", "parts", "about", "faq", "help", "contact", "blog", "privacy", "terms",
   "blog/charging-port-dust-or-real-fault", "blog/refurbished-grades-explained", "blog/how-much-is-my-old-phone-worth",
   "portal", "portal/pricing", "portal/inspect", "portal/pos", "portal/repairs", "portal/till", "portal/crm",
   "staff", "staff/admin", "staff/inspect", "staff/pos", "staff/repairs", "staff/till", "staff/crm",

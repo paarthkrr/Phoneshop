@@ -429,6 +429,9 @@ export default function Storefront() {
               No card payments are processed on this device yet — you'll get {paymentMethod === "bank_transfer" ? "our bank details" : "pickup instructions"} on the confirmation screen.
             </div>
 
+            <div style={{ fontSize: 11.5, color: muted, margin: "4px 0 10px" }}>
+              By placing an order you agree to our <a href="/terms" target="_blank" rel="noopener" style={{ color: brass }}>Terms</a> and <a href="/privacy" target="_blank" rel="noopener" style={{ color: brass }}>Privacy Policy</a>.
+            </div>
             <button className="cs-btn" disabled={!customer.name || !customer.email || !customer.address || submitting} onClick={handleCheckout}
               style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 background: customer.name && customer.email && customer.address ? brass : line, color: customer.name && customer.email && customer.address ? "#1a1408" : muted,

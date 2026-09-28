@@ -418,10 +418,11 @@ export default function AdminPricingConsole() {
             {[
               { key: "shopName", label: "Shop name" }, { key: "abn", label: "ABN (or local business number)" },
               { key: "address", label: "Business address" }, { key: "phone", label: "Phone" }, { key: "email", label: "Email" },
+              { key: "hours", label: "Opening hours (e.g. Mon–Fri 9am–6pm, Sat 10am–4pm)" },
             ].map((f) => (
               <div key={f.key} style={{ marginBottom: 10 }}>
                 <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }}>{f.label}</label>
-                <input value={draft.businessSettings[f.key]} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, [f.key]: e.target.value } })}
+                <input value={draft.businessSettings[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, [f.key]: e.target.value } })}
                   style={{ width: "100%", padding: "9px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
               </div>
             ))}
