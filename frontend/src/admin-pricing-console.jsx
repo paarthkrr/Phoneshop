@@ -33,9 +33,9 @@ const DEFAULT_CONFIG = {
     AE: { label: "UAE", currency: "AED", symbol: "AED ", mult: 2.35 },
   },
   retentionPoints: [
-    { m: 0, r: 0.80 }, { m: 12, r: 0.68 }, { m: 24, r: 0.63 },
-    { m: 36, r: 0.566 }, { m: 48, r: 0.44 }, { m: 60, r: 0.311 },
-    { m: 72, r: 0.22 }, { m: 84, r: 0.15 }, { m: 96, r: 0.10 }, { m: 120, r: 0.06 },
+    { m: 0, r: 0.8 }, { m: 12, r: 0.68 }, { m: 24, r: 0.51 },
+    { m: 36, r: 0.37 }, { m: 48, r: 0.33 }, { m: 60, r: 0.233 },
+    { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 }, { m: 120, r: 0.045 },
   ],
   brandFactors: {
     Apple: 1.00, Samsung: 0.88, Google: 0.80, OnePlus: 0.72,

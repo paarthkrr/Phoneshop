@@ -27,11 +27,11 @@ const useEffect = React.useEffect;
 ================================================================= */
 
 const DEFAULT_RETENTION_POINTS = [
-  { m: 0, r: 0.80 }, { m: 12, r: 0.68 }, { m: 24, r: 0.63 },
-  { m: 36, r: 0.566 },  // ← confirmed live: Mobile Monster iPhone 15 Pro Max 256GB Brand New = $1,245 / $2,199 retail
-  { m: 48, r: 0.44 }, { m: 60, r: 0.311 },  // ← confirmed live: iPhone 13 128GB Brand New = $420 / $1,349 retail
-  { m: 72, r: 0.22 }, { m: 84, r: 0.15 }, { m: 96, r: 0.10 },
-  { m: 120, r: 0.06 },
+  { m: 0, r: 0.8 }, { m: 12, r: 0.68 }, { m: 24, r: 0.51 },
+  { m: 36, r: 0.37 },  // recalibrated 28 Sep 2026 vs live Mobile Monster Brand New prices: 16 Pro 910/1799, 15 Pro 670/1849, 14 460/1399
+  { m: 48, r: 0.33 }, { m: 60, r: 0.233 },  // older ages scaled by the same ~0.75 the 4-yr point moved
+  { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 },
+  { m: 120, r: 0.045 },
 ];
 
 function retentionAt(months, points) {
