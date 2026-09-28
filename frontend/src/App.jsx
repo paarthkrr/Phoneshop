@@ -39,6 +39,15 @@ import CRMDashboard from "./crm-dashboard.jsx";
 const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
   brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#201C18";
 
+// The staff area lives at /portal. It used to be /staff, but Render's CDN
+// kept a broken saved copy of /staff that can't be cleared from code, so
+// the area moved to an address the CDN had never seen. /staff still works
+// as an alias for whenever that saved copy expires.
+const STAFF_BASES = ["/portal", "/staff"];
+function isStaffPath(p) {
+  return STAFF_BASES.some((b) => p === b || p.startsWith(b + "/"));
+}
+
 const CUSTOMER_LINKS = [
   { to: "/quote", label: "Get a Quote" },
   { to: "/shop", label: "Shop refurbished" },
@@ -47,18 +56,18 @@ const CUSTOMER_LINKS = [
 ];
 
 const STAFF_LINKS = [
-  { to: "/staff", label: "Today" },
-  { to: "/staff/inspect", label: "Inspection" },
-  { to: "/staff/pos", label: "Register" },
-  { to: "/staff/repairs", label: "Repair Bench" },
-  { to: "/staff/till", label: "Till" },
-  { to: "/staff/crm", label: "Customers & Reports" },
-  { to: "/staff/admin", label: "Pricing Console" },
+  { to: "/portal", label: "Today" },
+  { to: "/portal/inspect", label: "Inspection" },
+  { to: "/portal/pos", label: "Register" },
+  { to: "/portal/repairs", label: "Repair Bench" },
+  { to: "/portal/till", label: "Till" },
+  { to: "/portal/crm", label: "Customers & Reports" },
+  { to: "/portal/pricing", label: "Pricing Console" },
 ];
 
 function Nav() {
   const location = useLocation();
-  const isStaff = location.pathname.startsWith("/staff");
+  const isStaff = isStaffPath(location.pathname);
   const links = isStaff ? STAFF_LINKS : CUSTOMER_LINKS;
   const [menuOpen, setMenuOpen] = useState(false);
   // Close the mobile menu whenever the page changes, so tapping a link
@@ -119,7 +128,7 @@ function Nav() {
       `}</style>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-          <Link to={isStaff ? "/staff" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
+          <Link to={isStaff ? "/portal" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
             MOBILE<span style={{ color: brass }}>VAULT</span>{isStaff && <span style={{ fontSize: 11, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
           </Link>
           <div className="cs-nav-links" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -138,7 +147,7 @@ function Nav() {
           </div>
         </div>
         {!isStaff ? (
-          <Link to="/staff" className="cs-nav-aside" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
+          <Link to="/portal" className="cs-nav-aside" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
         ) : (
           <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 14 }}>
             {window.shopAuth && window.shopAuth.currentUser() && (
@@ -167,7 +176,7 @@ function Nav() {
           );
         })}
         {!isStaff ? (
-          <Link to="/staff" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>Staff login →</Link>
+          <Link to="/portal" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>Staff login →</Link>
         ) : (
           <>
             {window.shopAuth && window.shopAuth.currentUser() && (
@@ -313,7 +322,7 @@ export default function App() {
 
 function AnimatedRoutes() {
   const location = useLocation();
-  const isStaff = location.pathname.startsWith("/staff");
+  const isStaff = isStaffPath(location.pathname);
   return (
     <main key={location.pathname} className="cs-page-enter">
       <Routes>
@@ -329,6 +338,14 @@ function AnimatedRoutes() {
         <Route path="/faq" element={<FAQ />} />
         <Route path="/help" element={<Help />} />
         <Route path="/contact" element={<ContactUs />} />
+        <Route path="/portal" element={<StaffGate><DailyDashboard /></StaffGate>} />
+        <Route path="/portal/pricing" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
+        <Route path="/portal/inspect" element={<StaffGate><StaffInspectionConsole /></StaffGate>} />
+        <Route path="/portal/pos" element={<StaffGate><POSInventory /></StaffGate>} />
+        <Route path="/portal/repairs" element={<StaffGate><RepairTickets /></StaffGate>} />
+        <Route path="/portal/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
+        <Route path="/portal/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
+        {/* Legacy /staff addresses — same pages */}
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
         <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
         <Route path="/staff/inspect" element={<StaffGate><StaffInspectionConsole /></StaffGate>} />
