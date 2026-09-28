@@ -1,3 +1,4 @@
+import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import React, { useState, useEffect, useMemo } from "react";
 
 /* =================================================================
@@ -253,6 +254,9 @@ export default function Storefront() {
                   {featured.map((item) => (
                     <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
                       style={{ textAlign: "left", padding: "16px", border: `2px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
+                      <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", background: "#F7F4EC", borderRadius: 3, marginBottom: 10 }}>
+                        <DeviceArt type={inferDeviceType(item.model, item.category)} size={56} />
+                      </div>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: brass, marginBottom: 6 }}>FEATURED</div>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>{item.brand} {item.model}</div>
                       <div style={{ fontSize: 11.5, color: muted, marginBottom: 8 }}>{item.storage} · Grade {item.gradeId}</div>
@@ -287,8 +291,11 @@ export default function Storefront() {
             {filtered.map((item) => (
               <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
                 style={{ display: "block", width: "100%", textAlign: "left", padding: "14px", marginBottom: 10, borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, cursor: "pointer" }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 14 }}>{item.brand} {item.model}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <DeviceArt type={inferDeviceType(item.model, item.category)} size={34} />
+                    <span style={{ fontSize: 14 }}>{item.brand} {item.model}</span>
+                  </span>
                   <span style={{ fontSize: 16, color: brass, fontFamily: "'Archivo Black', sans-serif" }}>{fmt(item.listedPrice, item.currency)}</span>
                 </div>
                 <div style={{ fontSize: 12, color: muted, marginTop: 3 }}>
@@ -365,6 +372,9 @@ export default function Storefront() {
             })}</script>
             <button onClick={() => setView("browse")} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to browsing</button>
             <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 20 }}>
+              <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "#F7F4EC", borderRadius: 3, marginBottom: 16 }}>
+                <DeviceArt type={inferDeviceType(selectedItem.model, selectedItem.category)} size={110} label={`${selectedItem.brand} ${selectedItem.model}`} />
+              </div>
               <div style={{ fontSize: 20, marginBottom: 4 }}>{selectedItem.brand} {selectedItem.model}</div>
               <div style={{ fontSize: 13, color: muted, marginBottom: 16 }}>{selectedItem.storage}</div>
 
