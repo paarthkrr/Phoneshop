@@ -1,3 +1,4 @@
+import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import React, { useState, useMemo } from "react";
 const useEffect = React.useEffect;
 
@@ -994,7 +995,11 @@ export default function QuoteCalculator() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
+        @keyframes mv-pop { 0% { transform: scale(0.82); opacity: 0.4; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+        .mv-pop { display: inline-block; animation: mv-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: right center; }
+        @media (prefers-reduced-motion: reduce) { .mv-pop { animation: none; } }
+      `}</style>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 130px" }}>
 
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.01em', marginBottom: 4 }}>
@@ -1265,8 +1270,28 @@ export default function QuoteCalculator() {
         </div>
 
         <div style={{ fontSize: 12, color: muted, marginBottom: 22 }}>
-          Prices shown in AUD — this is the only region customers see. Staff can compare worldwide pricing in the reference panel below once a quote is calculated.
+          All prices in AUD. Your quote updates instantly as you answer — no sign-up needed.
         </div>
+
+        {!bulkMode && (() => {
+          const stepsList = ["Device", "Condition", "Your details", "Done"];
+          const current = submittedOrder ? 3 : checkout ? 2 : selected ? 1 : 0;
+          return (
+            <ol aria-label="Quote progress" style={{ display: "flex", listStyle: "none", padding: 0, margin: "0 0 24px", gap: 6 }}>
+              {stepsList.map((label, i) => {
+                const doneStep = i < current, active = i === current;
+                return (
+                  <li key={label} aria-current={active ? "step" : undefined} style={{ flex: 1, textAlign: "center" }}>
+                    <div style={{ height: 5, borderRadius: 3, background: doneStep || active ? brass : "#E4DED2", transition: "background-color 0.35s ease", marginBottom: 6 }} />
+                    <div style={{ fontSize: 11.5, fontWeight: active ? 700 : 500, color: active ? brass : doneStep ? paper : muted }}>
+                      {doneStep ? "✓ " : ""}{label}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          );
+        })()}
 
         {!selected && (
           <>
@@ -1298,7 +1323,7 @@ export default function QuoteCalculator() {
               {filtered.slice(0, 12).map((d, di) => (
                 <div key={d.brand + d.model}>
                   <div style={{ padding: "10px 14px 4px", fontSize: 11, color: muted, borderTop: di === 0 ? "none" : `1px solid ${line}`, display: "flex", alignItems: "center", gap: 6 }}>
-                    <span>{d.icon}</span>{d.brand} — {d.model}
+                    <DeviceArt type={inferDeviceType(d.model, d.category)} size={20} />{d.brand} — {d.model}
                     <span style={{ marginLeft: "auto", color: "#5c6472" }}>{Math.round(ageMonths(d.release))}mo old</span>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "4px 14px 10px" }}>
@@ -1319,7 +1344,7 @@ export default function QuoteCalculator() {
         {selected && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${line}`, borderRadius: 3, padding: "12px 14px", marginBottom: 22, background: panel }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 20 }}>{selected.icon}</span>
+              <DeviceArt type={inferDeviceType(selected.model, selected.category)} size={40} label={`${selected.brand} ${selected.model}`} />
               <div>
                 <div style={{ fontSize: 15 }}>{selected.brand} {selected.model}</div>
                 <div style={{ fontSize: 13, color: muted }}>{selected.storage} · {Math.round(ageMonths(selected.release))} months since launch</div>
@@ -1408,7 +1433,7 @@ export default function QuoteCalculator() {
         )}
 
         {calc && !checkout && !submittedOrder && (
-          <div style={{ position: "sticky", bottom: 12, background: panel, border: `1px solid ${brass}`, boxShadow: "0 8px 24px rgba(0,0,0,0.35)", borderRadius: 4, padding: 18, marginTop: 20 }}>
+          <div style={{ position: "sticky", bottom: 12, background: panel, border: `1px solid ${brass}`, boxShadow: "0 8px 28px rgba(32,28,24,0.16)", borderRadius: 4, padding: 18, marginTop: 20 }}>
             {calc.blocked ? (
               <div>
                 <div style={{ color: red, fontSize: 15, marginBottom: 4 }}>Quote unavailable</div>
@@ -1421,7 +1446,7 @@ export default function QuoteCalculator() {
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
                   <div style={{ fontSize: 13, color: muted }}>Your quote</div>
-                  <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 36, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
+                  <div key={Math.round(calc.total)} className="mv-pop" aria-live="polite" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 36, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
                 </div>
                 <div style={{ borderTop: `1px solid ${line}`, paddingTop: 10, fontSize: 12.5, color: muted }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
