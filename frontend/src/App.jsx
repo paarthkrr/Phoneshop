@@ -60,15 +60,28 @@ function Nav() {
   const location = useLocation();
   const isStaff = location.pathname.startsWith("/staff");
   const links = isStaff ? STAFF_LINKS : CUSTOMER_LINKS;
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Close the mobile menu whenever the page changes, so tapping a link
+  // doesn't leave the menu hanging open over the new page.
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   return (
-    <nav style={{ borderBottom: `3px solid ${line}`, background: panel }} aria-label="Main navigation">
+    <nav style={{ borderBottom: `3px solid ${line}`, background: panel, position: "sticky", top: 0, zIndex: 50 }} aria-label="Main navigation">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
 
         /* ---- Global interaction system — loaded once via Nav, applies site-wide ---- */
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
+
+        /* ---- Mobile menu: desktop links collapse into a menu button under 720px ---- */
+        .cs-menu-btn { display: none; background: none; border: 2px solid #201C18; border-radius: 3px; padding: 5px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: #201C18; }
+        .cs-mobile-menu { display: none; }
+        @media (max-width: 720px) {
+          .cs-nav-links, .cs-nav-aside { display: none !important; }
+          .cs-menu-btn { display: inline-block; }
+          .cs-mobile-menu.open { display: flex; }
+        }
 
         @keyframes cs-fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes cs-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -98,7 +111,7 @@ function Nav() {
         .cs-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: cs-spin 0.6s linear infinite; }
 
         input, textarea, select { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-        input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(190, 63, 41, 0.18); }
+        input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(33, 80, 200, 0.22); }
 
         @media (prefers-reduced-motion: reduce) {
           .cs-page-enter, .cs-fade, .cs-btn, .cs-card, .cs-nav-link, .cs-tile, .cs-spinner { animation: none !important; transition: none !important; }
@@ -109,7 +122,7 @@ function Nav() {
           <Link to={isStaff ? "/staff" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
             MOBILE<span style={{ color: brass }}>VAULT</span>{isStaff && <span style={{ fontSize: 11, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
           </Link>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <div className="cs-nav-links" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {links.map((l) => {
               const active = location.pathname === l.to;
               return (
@@ -125,9 +138,9 @@ function Nav() {
           </div>
         </div>
         {!isStaff ? (
-          <Link to="/staff" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
+          <Link to="/staff" className="cs-nav-aside" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 14 }}>
             {window.shopAuth && window.shopAuth.currentUser() && (
               <span style={{ fontSize: 12.5, color: muted }}>
                 {window.shopAuth.currentUser().username}
@@ -137,6 +150,32 @@ function Nav() {
             )}
             <Link to="/" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>← Exit to public site</Link>
           </div>
+        )}
+        <button className="cs-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen} aria-controls="cs-mobile-menu" aria-label={menuOpen ? "Close menu" : "Open menu"}>
+          {menuOpen ? "✕" : "☰"}
+        </button>
+      </div>
+      <div id="cs-mobile-menu" className={`cs-mobile-menu${menuOpen ? " open" : ""}`}
+        style={{ flexDirection: "column", borderTop: `1px solid ${line}`, padding: "8px 16px 14px", fontFamily: "'Archivo', system-ui, sans-serif" }}>
+        {links.map((l) => {
+          const active = location.pathname === l.to;
+          return (
+            <Link key={l.to} to={l.to} aria-current={active ? "page" : undefined}
+              style={{ padding: "12px 4px", fontSize: 16, fontWeight: active ? 700 : 500, color: active ? brass : paper, textDecoration: "none", borderBottom: "1px solid #F0EBE0" }}>
+              {l.label}
+            </Link>
+          );
+        })}
+        {!isStaff ? (
+          <Link to="/staff" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>Staff login →</Link>
+        ) : (
+          <>
+            {window.shopAuth && window.shopAuth.currentUser() && (
+              <a href="#" onClick={(e) => { e.preventDefault(); window.shopAuth.logout(window.SHOP_API_BASE_URL); window.location.reload(); }}
+                style={{ padding: "12px 4px", fontSize: 14, color: muted }}>Log out ({window.shopAuth.currentUser().username})</a>
+            )}
+            <Link to="/" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>← Exit to public site</Link>
+          </>
         )}
       </div>
     </nav>
