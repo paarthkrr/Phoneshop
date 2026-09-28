@@ -33,7 +33,7 @@ const DEFAULT_CONFIG = {
     AE: { label: "UAE", currency: "AED", symbol: "AED ", mult: 2.35 },
   },
   retentionPoints: [
-    { m: 0, r: 0.8 }, { m: 12, r: 0.68 }, { m: 24, r: 0.51 },
+    { m: 0, r: 0.8 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
     { m: 36, r: 0.37 }, { m: 48, r: 0.33 }, { m: 60, r: 0.233 },
     { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 }, { m: 120, r: 0.045 },
   ],
@@ -312,6 +312,8 @@ export default function AdminPricingConsole() {
         Object.keys(d.retail).forEach((s) => {
           if (old.retail[s] !== d.retail[s]) notes.push(`${d.brand} ${d.model} ${s}: $${old.retail[s]} → $${d.retail[s]}`);
         });
+        if ((old.marketAdjPct || 0) !== (d.marketAdjPct || 0)) notes.push(`${d.brand} ${d.model} market adjustment: ${old.marketAdjPct || 0}% → ${d.marketAdjPct || 0}%`);
+        if (old.marketCheckedAt !== d.marketCheckedAt && d.marketCheckedAt) notes.push(`${d.brand} ${d.model} market-checked ${d.marketCheckedAt}`);
       });
     } else if (section === "retentionPoints") {
       newC.retentionPoints.forEach((p, i) => {
@@ -456,6 +458,15 @@ export default function AdminPricingConsole() {
 
         {tab === "Catalog" && (
           <Section title="Device retail prices (AUD)" onSave={() => handleSave("catalog")} onDiscard={discardSection} dirty={dirty} status={status} line={line} muted={muted}>
+            {(() => {
+              const stale = draft.catalog.filter((d) => !d.marketCheckedAt || (Date.now() - new Date(d.marketCheckedAt)) / 86400000 > 30).length;
+              return (
+                <div style={{ fontSize: 12.5, color: muted, lineHeight: 1.6, marginBottom: 12, padding: 10, border: `1px dashed ${line}`, borderRadius: 3 }}>
+                  <strong style={{ color: stale ? red : green }}>{stale} of {draft.catalog.length} models not market-checked in the last 30 days.</strong><br />
+                  Weekly routine: compare your best sellers against 2–3 other buyers. If a model is too high or low, set its <em>market adj %</em> (e.g. −8 to pay 8% less), tick "Checked today", then Save.
+                </div>
+              );
+            })()}
             {draft.catalog.map((d, di) => (
               <div key={d.brand + d.model} style={{ padding: "10px 0", borderTop: di === 0 ? "none" : `1px solid ${line}` }}>
                 <div style={{ fontSize: 13, marginBottom: 6 }}>{d.brand} {d.model} <span style={{ color: muted }}>· released {d.release}</span></div>
@@ -472,6 +483,23 @@ export default function AdminPricingConsole() {
                     </label>
                   ))}
                 </div>
+                {(() => {
+                  const days = d.marketCheckedAt ? Math.floor((Date.now() - new Date(d.marketCheckedAt)) / 86400000) : null;
+                  const upd = (patch) => { const next = { ...draft }; next.catalog = [...next.catalog]; next.catalog[di] = { ...d, ...patch }; setDraft(next); };
+                  return (
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 8, fontSize: 12, color: muted }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        market adj %
+                        {numInput(d.marketAdjPct ?? 0, (v) => upd({ marketAdjPct: Math.max(-60, Math.min(30, Number(v) || 0)) }), { step: "1", width: 60 })}
+                      </label>
+                      <button onClick={() => upd({ marketCheckedAt: new Date().toISOString().slice(0, 10) })}
+                        style={{ padding: "4px 9px", fontSize: 11.5, border: `1px solid ${line}`, borderRadius: 3, background: "transparent", cursor: "pointer" }}>✓ Checked today</button>
+                      <span style={{ color: days === null || days > 30 ? red : green }}>
+                        {days === null ? "never market-checked" : days === 0 ? "checked today" : `checked ${days} day${days === 1 ? "" : "s"} ago`}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </Section>

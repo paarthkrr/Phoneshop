@@ -27,7 +27,7 @@ const useEffect = React.useEffect;
 ================================================================= */
 
 const DEFAULT_RETENTION_POINTS = [
-  { m: 0, r: 0.8 }, { m: 12, r: 0.68 }, { m: 24, r: 0.51 },
+  { m: 0, r: 0.8 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
   { m: 36, r: 0.37 },  // recalibrated 28 Sep 2026 vs live Mobile Monster Brand New prices: 16 Pro 910/1799, 15 Pro 670/1849, 14 460/1399
   { m: 48, r: 0.33 }, { m: 60, r: 0.233 },  // older ages scaled by the same ~0.75 the 4-yr point moved
   { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 },
@@ -393,7 +393,11 @@ function baseBuybackAUD(device, storage, retentionPoints, brandFactors) {
   const months = ageMonths(device.release);
   const brandF = (brandFactors || DEFAULT_BRAND_FACTOR)[device.brand] ?? 0.65;
   const categoryF = CATEGORY_FACTOR[device.category] ?? 1.00;
-  return retail * retentionAt(months, retentionPoints) * brandF * categoryF;
+  // Per-model market correction set by staff in the Pricing Console
+  // (e.g. -8 when a model trades below what its age predicts). Clamped so a
+  // typo can't produce a wildly wrong quote.
+  const adj = Math.max(-60, Math.min(30, Number(device.marketAdjPct) || 0));
+  return retail * retentionAt(months, retentionPoints) * brandF * categoryF * (1 + adj / 100);
 }
 
 const CONFIG_KEY = "pricing-config";
