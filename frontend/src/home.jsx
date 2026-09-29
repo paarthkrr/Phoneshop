@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import DeviceArt from "./device-art.jsx";
 
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
@@ -24,6 +25,8 @@ const ACTIONS = [
   { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, and backed by a 3-month warranty.", cta: "Shop now" },
   { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Genuine parts, honest diagnosis, most done same day.", cta: "Book a repair" },
 ];
+
+const POPULAR = ["iPhone 16 Pro", "iPhone 15 Pro", "iPhone 14", "Galaxy S24 Ultra", "Pixel 9 Pro", "iPhone 13"];
 
 const TRUST = [
   { title: "Genuine parts only", desc: "Never unmarked aftermarket substitutes." },
@@ -76,11 +79,22 @@ export default function Home() {
         .mv-action:hover { border-color: #2150C8 !important; }
         .mv-action:hover .mv-arrow { transform: translateX(5px); }
         .mv-arrow { display: inline-block; transition: transform 0.2s ease; }
-        @media (prefers-reduced-motion: reduce) { .mv-rise, .mv-hero::before { animation: none !important; } }
+        @keyframes mv-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+        .mv-float { animation: mv-float 4.5s ease-in-out infinite; }
+        .mv-chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #fff;
+          border: 1px solid rgba(32,28,24,0.16); color: #201C18; text-decoration: none; font-size: 14px; font-weight: 600;
+          transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease; }
+        .mv-chip:hover { border-color: #2150C8; color: #2150C8; transform: translateY(-1px); }
+        @media (prefers-reduced-motion: reduce) { .mv-rise, .mv-hero::before, .mv-float { animation: none !important; } }
       `}</style>
 
       {/* ---- Hero ---- */}
       <div className="mv-hero" style={{ ...section, textAlign: "center", padding: "56px 16px 34px" }}>
+        <div aria-hidden="true" style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 6, marginBottom: 18 }}>
+          {[["watch", 34, "0s"], ["phone", 52, "0.6s"], ["laptop", 70, "1.2s"], ["tablet", 50, "1.8s"]].map(([t, sz, d]) => (
+            <div key={t} className="mv-float" style={{ animationDelay: d }}><DeviceArt type={t} size={sz} /></div>
+          ))}
+        </div>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(30px, 6vw, 48px)", lineHeight: 1.05, letterSpacing: "-0.02em", marginBottom: 14 }}>
           Sell, buy, or fix your phone —<br /><span style={{ color: brass }}>honestly priced.</span>
         </div>
@@ -98,6 +112,18 @@ export default function Home() {
               <span style={{ color: brass, fontWeight: 700, fontSize: 14 }}>{a.cta} <span className="mv-arrow">→</span></span>
             </a>
           ))}
+        </div>
+
+        <div style={{ marginTop: 26 }}>
+          <div style={{ fontSize: 12.5, color: muted, marginBottom: 10, letterSpacing: "0.04em" }}>POPULAR RIGHT NOW — TAP FOR AN INSTANT QUOTE</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+            {POPULAR.map((m) => (
+              <a key={m} href={`/quote?q=${encodeURIComponent(m)}`} className="mv-chip">{m}</a>
+            ))}
+          </div>
+          <div style={{ fontSize: 12.5, color: muted, marginTop: 14 }}>
+            ✓ No sign-up &nbsp;·&nbsp; ✓ Price held 14 days &nbsp;·&nbsp; ✓ Paid by bank transfer or PayPal
+          </div>
         </div>
 
         {stats.length > 0 && (

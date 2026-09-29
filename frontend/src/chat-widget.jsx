@@ -64,6 +64,8 @@ export default function ChatWidget() {
         .cs-chat-panel { position: fixed; bottom: 88px; right: 20px; z-index: 1000; width: min(340px, calc(100vw - 32px)); max-height: 460px;
           background: ${panel}; border: 2px solid ${line}; border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;
           box-shadow: 0 8px 30px rgba(32,28,24,0.3); font-family: 'Archivo', system-ui, sans-serif; }
+        .has-mobile-cta .cs-chat-fab { bottom: 88px; } .has-mobile-cta .cs-chat-panel { bottom: 156px; }
+        @media (min-width: 721px) { .has-mobile-cta .cs-chat-fab { bottom: 20px; } .has-mobile-cta .cs-chat-panel { bottom: 88px; } }
         @media (prefers-reduced-motion: no-preference) { .cs-chat-panel { animation: cs-fade-up 0.2s ease both; } }
       `}</style>
 

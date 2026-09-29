@@ -658,7 +658,8 @@ export default function QuoteCalculator() {
   const [region, setRegion] = useState("AU");
   const [brandFilter, setBrandFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
-  const [search, setSearch] = useState("");
+  // Pre-filled from links like /quote?q=iPhone%2015%20Pro (homepage shortcuts)
+  const [search, setSearch] = useState(() => { try { return new URLSearchParams(window.location.search).get("q") || ""; } catch (e) { return ""; } });
   const [selected, setSelected] = useState(null);
   const [tierId, setTierId] = useState(null);
   const [faults, setFaults] = useState({});

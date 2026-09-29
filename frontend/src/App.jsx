@@ -111,7 +111,21 @@ function Nav() {
         .cs-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(32, 28, 24, 0.18); }
         .cs-btn:active { transform: translateY(0); box-shadow: 0 1px 4px rgba(32, 28, 24, 0.15); }
 
-        .cs-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+        .cs-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          border-radius: 14px !important; border-color: rgba(32,28,24,0.14) !important;
+          box-shadow: 0 1px 2px rgba(32,28,24,0.04), 0 6px 18px rgba(32,28,24,0.05); }
+        .cs-card:hover { border-color: rgba(33,80,200,0.45) !important; }
+        .cs-btn { border-radius: 10px !important; }
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        ::selection { background: rgba(33,80,200,0.18); }
+        .cs-mobile-cta { display: none; }
+        @media (max-width: 720px) {
+          .cs-mobile-cta { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; gap: 10px;
+            padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(255,255,255,0.94);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid rgba(32,28,24,0.12);
+            box-shadow: 0 -6px 20px rgba(32,28,24,0.08); }
+          .has-mobile-cta { padding-bottom: 76px; }
+        }
         .cs-card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px rgba(32, 28, 24, 0.12); }
 
         .cs-nav-link { position: relative; transition: color 0.15s ease; }
@@ -328,6 +342,40 @@ export default function App() {
   );
 }
 
+// Thumb-zone action bar for phones: the primary action stays reachable at
+// the bottom of the screen while scrolling (research: sticky bottom CTAs
+// lift mobile conversion). Hidden where the page already has its own sticky
+// action (the quote page) and on staff pages.
+function MobileCTA() {
+  const location = useLocation();
+  const path = normPath(location.pathname);
+  const hidden = isStaffPath(path) || path === "/quote" || path === "/sell";
+  const [phone, setPhone] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!window.storage) return;
+        const r = await window.storage.get("pricing-config", true);
+        setPhone(r ? (JSON.parse(r.value).businessSettings || {}).phone || null : null);
+      } catch (e) { /* no config yet */ }
+    })();
+  }, []);
+  useEffect(() => {
+    document.body.classList.toggle("has-mobile-cta", !hidden);
+    return () => document.body.classList.remove("has-mobile-cta");
+  }, [hidden]);
+  if (hidden) return null;
+  const btn = { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 48, borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none", fontFamily: "'Archivo', system-ui, sans-serif" };
+  return (
+    <div className="cs-mobile-cta" role="navigation" aria-label="Quick actions">
+      <a href="/quote" style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Get a quote</a>
+      {phone
+        ? <a href={`tel:${phone.replace(/\s/g, "")}`} style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>📞 Call us</a>
+        : <a href="/repairs" style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>Book a repair</a>}
+    </div>
+  );
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
   const isStaff = isStaffPath(normPath(location.pathname));
@@ -372,6 +420,7 @@ function AnimatedRoutes() {
       </Routes>
       {!isStaff && <SiteFooter />}
       {!isStaff && <ChatWidget />}
+      <MobileCTA />
     </main>
   );
 }
