@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import Photo from "./photo.jsx";
 
 // Same palette every other customer-facing page uses — kept as local
 // constants (not imported) to match the established pattern in this
@@ -13,6 +14,7 @@ export default function AboutUs() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 16px 80px" }}>
 
+        <Photo name="screwdriver" height={240} eager style={{ marginBottom: 26 }} />
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 32, lineHeight: 1.08, letterSpacing: "-0.01em", marginBottom: 24 }}>
           Why Mobile Vault exists
         </div>

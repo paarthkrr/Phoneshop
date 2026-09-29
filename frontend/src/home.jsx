@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import DeviceArt from "./device-art.jsx";
+import Photo from "./photo.jsx";
 
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
@@ -148,6 +149,17 @@ export default function Home() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ---- Photo feature band ---- */}
+      <div style={{ ...section, marginBottom: 50 }}>
+        <Photo name="workshop" height={320} overlay="linear-gradient(90deg, rgba(20,24,40,0.82) 0%, rgba(20,24,40,0.55) 55%, rgba(20,24,40,0.1) 100%)">
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%", padding: "0 clamp(20px, 5vw, 44px)", maxWidth: 480, color: "#fff" }}>
+            <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(22px, 4vw, 30px)", lineHeight: 1.15, marginBottom: 10 }}>Real technicians.<br />Genuine parts.</div>
+            <div style={{ fontSize: 14.5, lineHeight: 1.6, opacity: 0.92, marginBottom: 18 }}>We diagnose first and tell you honestly what's wrong, before quoting anything.</div>
+            <a href="/repairs" className="cs-btn" style={{ alignSelf: "flex-start", padding: "12px 22px", background: "#fff", color: "#201C18", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 10 }}>Book a repair →</a>
+          </div>
+        </Photo>
       </div>
 
       {/* ---- How selling works ---- */}

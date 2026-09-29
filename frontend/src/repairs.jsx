@@ -1,4 +1,5 @@
 import DeviceArt from "./device-art.jsx";
+import Photo from "./photo.jsx";
 import React, { useState } from "react";
 
 async function findPublicRecord(key, query, localList, fields = ["id", "email"]) {
@@ -149,6 +150,7 @@ export default function Repairs() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 16px 80px" }}>
 
+        <Photo name="microscope" height={220} eager style={{ marginBottom: 26 }} />
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 8 }}>Repairs — any gadget, genuine parts</div>
         <div style={{ color: muted, fontSize: 14, marginBottom: 8 }}>Phones, tablets, laptops, watches. Genuine parts only, every repair carries a 6-month warranty, and if you find it cheaper elsewhere, we'll match it.</div>
         <div style={{ color: muted, fontSize: 13, marginBottom: 20 }}>Prices below are a starting point — your exact quote depends on the model and what's actually wrong, which we'll tell you honestly before we start anything.</div>

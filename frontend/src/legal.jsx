@@ -62,7 +62,7 @@ export function PrivacyPolicy() {
 
       <h2>Where it's stored</h2>
       <p>Our website and database are hosted by Render (render.com) on servers in the <strong>United States</strong>. By using our services you consent to your information being stored there. Access is limited to our staff, each with their own password-protected login. Passwords are stored in hashed form, and ID photos are encrypted.</p>
-      <p>Our pages load fonts from Google Fonts, which means Google receives your device's IP address when you visit.</p>
+      <p>Our pages load fonts from Google Fonts and some photos from Pexels, which means those services receive your device's IP address when you visit.</p>
 
       <h2>Who we share it with</h2>
       <p>Only the service providers needed to run our business (such as our hosting provider), or where the law requires it — for example, a police request about stolen goods.</p>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Photo from "./photo.jsx";
 
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
@@ -41,6 +42,7 @@ export default function Parts() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 16px 80px" }}>
 
+        <Photo name="repairMat" height={200} eager style={{ marginBottom: 26 }} />
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 8 }}>Parts &amp; accessories</div>
         <div style={{ color: muted, fontSize: 14, marginBottom: 28 }}>Cases, chargers, cables, and genuine replacement parts — in stock, ready today, with a 6-month warranty.</div>
 
