@@ -229,7 +229,7 @@ const PUBLIC_READ_KEYS = ["inventory", "pricing-config", "accessories"];
 // merge-by-id (see the PUT handler) — an anonymous client's local view
 // of "existing records" is always empty, so this only ever adds their
 // own new submission, never overwrites anyone else's data.
-const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries", "repair_requests"];
+const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries", "repair_requests", "accessory_orders"];
 
 function scopeFor(shared, username) {
   if (shared === "true" || shared === true) return "shared";

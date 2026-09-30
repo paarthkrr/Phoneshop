@@ -197,7 +197,7 @@ function Code39Barcode({ value, height = 50, narrow = 2 }) {
 
 const TABS = ["Buy", "Receive Orders", "Inventory", "Accessories", "Web Orders", "Sell"];
 const ACCESSORIES_KEY = "accessories";
-const ACCESSORY_CATEGORIES = ["Case", "Cable", "Charger", "Screen protector", "Other"];
+const ACCESSORY_CATEGORIES = ["Cases & covers", "Screen protectors", "Chargers & cables", "DIY repair kits", "Audio", "Power banks", "Other"];
 
 const STAFF_KEY = "staff_on_shift";
 // If this page was deployed with real login (storage-shim.js's mountLoginGate),
@@ -225,11 +225,12 @@ export default function POSInventory() {
   const [loaded, setLoaded] = useState(false);
   const [accessories, setAccessories] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [accessoryOrders, setAccessoryOrders] = useState([]);
 
   useEffect(() => {
     (async () => {
-      const [c, o, inv, s, staff, acc, po] = await Promise.all([
-        loadJSON(CONFIG_KEY, true), loadJSON(ORDERS_KEY, true), loadJSON(INVENTORY_KEY, true), loadJSON(SALES_KEY, true), loadJSON(STAFF_KEY, false), loadJSON(ACCESSORIES_KEY, true), loadJSON("purchase_orders", true),
+      const [c, o, inv, s, staff, acc, po, ao] = await Promise.all([
+        loadJSON(CONFIG_KEY, true), loadJSON(ORDERS_KEY, true), loadJSON(INVENTORY_KEY, true), loadJSON(SALES_KEY, true), loadJSON(STAFF_KEY, false), loadJSON(ACCESSORIES_KEY, true), loadJSON("purchase_orders", true), loadJSON("accessory_orders", true),
       ]);
       setConfig(c); setOrders(o || []); setInventory(inv || []); setSales(s || []);
       const authed = getAuthedUser();
@@ -237,12 +238,29 @@ export default function POSInventory() {
       else if (staff) setStaffName(staff);
       setAccessories(acc || []);
       setPurchaseOrders(po || []);
+      setAccessoryOrders(ao || []);
       setLoaded(true);
     })();
   }, []);
   async function persistStaffName(name) { setStaffName(name); await saveJSON(STAFF_KEY, name, false); }
   async function persistAccessories(next) { await saveJSON(ACCESSORIES_KEY, next, true); setAccessories(next); }
   async function persistPurchaseOrders(next) { await saveJSON("purchase_orders", next, true); setPurchaseOrders(next); }
+  async function persistAccessoryOrders(next) { await saveJSON("accessory_orders", next, true); setAccessoryOrders(next); }
+  // Completing an online accessory order: take stock out and record one sale
+  // per line, in the same shape as a counter sale, so P&L and reports include it.
+  async function completeAccessoryOrder(order, payMethod) {
+    const byId = Object.fromEntries(order.items.map((i) => [i.id, i.qty]));
+    await persistAccessories(accessories.map((a) => byId[a.id] ? { ...a, qtyOnHand: Math.max(0, a.qtyOnHand - byId[a.id]) } : a));
+    const now = new Date().toISOString();
+    const newSales = order.items.map((i, n) => {
+      const item = accessories.find((a) => a.id === i.id) || {};
+      return { id: genId("SALE"), itemId: i.id, customerName: order.customer.name, brand: "Accessory", model: i.name, storage: i.category,
+        region: "AU", salePrice: i.price * i.qty, costBasis: (item.cost || 0) * i.qty, payMethod, soldAt: now, channel: "online", onlineOrderId: order.id,
+        staffHandled: staffName || "unattributed", ...(n === 0 && order.shipping ? { shippingCharged: order.shipping } : {}) };
+    });
+    await persistSales([...newSales, ...sales]);
+    await persistAccessoryOrders(accessoryOrders.map((o) => o.id === order.id ? { ...o, status: "completed", completedAt: now, payMethod } : o));
+  }
 
   const catalog = mergeCatalog(config?.catalog);
   const retentionPts = config?.retentionPoints || RETENTION_POINTS;
@@ -365,6 +383,12 @@ export default function POSInventory() {
             }} />
         )}
 
+        {tab === "Web Orders" && (
+          <AccessoryOrdersPanel colors={{ panel, paper, muted, brass, red, green, line }} orders={accessoryOrders}
+            onReady={(o) => persistAccessoryOrders(accessoryOrders.map((x) => x.id === o.id ? { ...x, status: "ready" } : x))}
+            onComplete={completeAccessoryOrder}
+            onCancel={(o) => persistAccessoryOrders(accessoryOrders.map((x) => x.id === o.id ? { ...x, status: "cancelled" } : x))} />
+        )}
         {tab === "Web Orders" && (
           <WebOrdersTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
             purchaseOrders={purchaseOrders} inventory={inventory}
@@ -585,6 +609,36 @@ function ReceiveOrdersTab({ colors, orders, regions, onReceive }) {
   );
 }
 
+function AccessoryOrdersPanel({ colors, orders, onReady, onComplete, onCancel }) {
+  const { paper, muted, brass, red, green, line } = colors;
+  const open = orders.filter((o) => o.status === "new" || o.status === "ready");
+  const money = (n) => "$" + Number(n || 0).toFixed(2);
+  const b = (c) => ({ padding: "6px 10px", fontSize: 12, border: `1px solid ${c}`, color: c, background: "transparent", borderRadius: 3, cursor: "pointer" });
+  return (
+    <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 14, marginBottom: 18, color: paper }}>
+      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Online accessory orders ({open.length} open)</div>
+      {open.length === 0 && <div style={{ fontSize: 13, color: muted }}>No open online orders.</div>}
+      {open.map((o) => (
+        <div key={o.id} style={{ borderTop: `1px solid ${line}`, padding: "10px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}><strong>{o.id} · {o.customer.name}</strong><span>{money(o.total)}</span></div>
+          <div style={{ fontSize: 12, color: muted, margin: "3px 0" }}>{o.customer.email}{o.customer.phone ? ` · ${o.customer.phone}` : ""}</div>
+          <div style={{ fontSize: 12.5, margin: "3px 0" }}>{o.items.map((i) => `${i.qty} × ${i.name}`).join(", ")}</div>
+          <div style={{ fontSize: 12, color: muted, marginBottom: 8 }}>
+            {o.fulfilment === "collect" ? "Click & collect — customer pays on pickup" : `Delivery to: ${o.customer.address} — send a payment link before posting`}
+            {o.status === "ready" ? " · ✓ marked ready/sent" : ""}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {o.status === "new" && <button onClick={() => onReady(o)} style={b(brass)}>{o.fulfilment === "collect" ? "Mark ready to collect" : "Mark sent"}</button>}
+            <button onClick={() => onComplete(o, "card")} style={b(green)}>Complete — paid by card</button>
+            <button onClick={() => onComplete(o, "cash")} style={b(green)}>Complete — paid cash</button>
+            <button onClick={() => onCancel(o)} style={b(red)}>Cancel</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplete, onCancel }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [filter, setFilter] = useState("open");
@@ -648,6 +702,7 @@ function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplet
 function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [name, setName] = useState(""); const [category, setCategory] = useState(ACCESSORY_CATEGORIES[0]);
+  const [compatibleWith, setCompatibleWith] = useState(""); const [imageUrl, setImageUrl] = useState(""); const [showOnline, setShowOnline] = useState(true);
   const [cost, setCost] = useState(""); const [sellPrice, setSellPrice] = useState(""); const [qty, setQty] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
   const [customerName, setCustomerName] = useState("");
@@ -675,9 +730,19 @@ function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
           <input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Starting qty" type="number"
             style={{ flex: 1, padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
         </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+          <input value={compatibleWith} onChange={(e) => setCompatibleWith(e.target.value)} placeholder="Fits (optional), e.g. iPhone 15, iPhone 15 Pro"
+            style={{ flex: 2, minWidth: 180, padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
+          <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Photo link (optional)"
+            style={{ flex: 1, minWidth: 140, padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: muted, marginBottom: 10 }}>
+          <input type="checkbox" checked={showOnline} onChange={(e) => setShowOnline(e.target.checked)} /> Show in the online shop
+        </label>
         <button disabled={!ready} onClick={() => {
-            onAdd({ name: name.trim(), category, cost: parseFloat(cost), sellPrice: parseFloat(sellPrice), qtyOnHand: parseInt(qty) });
-            setName(""); setCost(""); setSellPrice(""); setQty("");
+            onAdd({ name: name.trim(), category, cost: parseFloat(cost), sellPrice: parseFloat(sellPrice), qtyOnHand: parseInt(qty),
+              compatibleWith: compatibleWith.trim(), imageUrl: imageUrl.trim(), showOnline });
+            setName(""); setCost(""); setSellPrice(""); setQty(""); setCompatibleWith(""); setImageUrl(""); setShowOnline(true);
           }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: ready ? brass : line, color: ready ? "#1a1408" : muted, fontSize: 13, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
           Add to stock
         </button>

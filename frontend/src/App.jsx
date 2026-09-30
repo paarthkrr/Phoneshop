@@ -60,7 +60,7 @@ const CUSTOMER_LINKS = [
   { to: "/quote", label: "Get a Quote" },
   { to: "/shop", label: "Shop refurbished" },
   { to: "/repairs", label: "Repairs" },
-  { to: "/parts", label: "Parts" },
+  { to: "/accessories", label: "Accessories" },
 ];
 
 const STAFF_LINKS = [
@@ -388,6 +388,7 @@ function AnimatedRoutes() {
         <Route path="/shop" element={<Storefront />} />
         <Route path="/repairs" element={<Repairs />} />
         <Route path="/parts" element={<Parts />} />
+        <Route path="/accessories" element={<Parts />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
