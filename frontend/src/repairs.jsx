@@ -1,5 +1,11 @@
 import DeviceArt from "./device-art.jsx";
 import Photo from "./photo.jsx";
+// Friendly validation shared by the customer forms
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
+const digits = (v) => (v || "").replace(/[\s-]/g, "");
+const isBsb = (v) => /^\d{6}$/.test(digits(v));
+const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
+
 import React, { useState } from "react";
 
 async function findPublicRecord(key, query, localList, fields = ["id", "email"]) {
@@ -106,7 +112,7 @@ export default function Repairs() {
   }
 
   async function handleSubmit() {
-    if (!name.trim() || !email.trim() || !model.trim() || !issue.trim()) return;
+    if (!name.trim() || !isEmail(email) || !model.trim() || !issue.trim()) return;
     setSubmitting(true);
     setError("");
     try {
@@ -202,11 +208,12 @@ export default function Repairs() {
         <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 22, background: panel }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 16 }}>Request a repair</div>
 
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name"
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name" autoComplete="name"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" aria-label="Email address" type="email"
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" aria-label="Email address" type="email" autoComplete="email" inputMode="email"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number (optional)" aria-label="Phone number"
+          {email && !isEmail(email) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That email address doesn't look right — we need it to reply to you.</div>}
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number (optional)" aria-label="Phone number" type="tel" autoComplete="tel" inputMode="tel"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           <input value={model} onChange={(e) => setModel(e.target.value)} placeholder={`${deviceType} model, e.g. "iPhone 14 Pro"`} aria-label="Device model"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
@@ -215,10 +222,10 @@ export default function Repairs() {
 
           {error && <div style={{ color: red, fontSize: 13, marginBottom: 10 }}>{error}</div>}
 
-          <button className="cs-btn" onClick={handleSubmit} disabled={!name.trim() || !email.trim() || !model.trim() || !issue.trim() || submitting}
+          <button className="cs-btn" onClick={handleSubmit} disabled={!name.trim() || !isEmail(email) || !model.trim() || !issue.trim() || submitting}
             style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              background: name.trim() && email.trim() && model.trim() && issue.trim() ? brass : line, color: name.trim() && email.trim() && model.trim() && issue.trim() ? "#fff" : muted,
-              fontSize: 14, fontWeight: 600, cursor: name.trim() && email.trim() && model.trim() && issue.trim() ? "pointer" : "default" }}>
+              background: name.trim() && isEmail(email) && model.trim() && issue.trim() ? brass : line, color: name.trim() && isEmail(email) && model.trim() && issue.trim() ? "#fff" : muted,
+              fontSize: 14, fontWeight: 600, cursor: name.trim() && isEmail(email) && model.trim() && issue.trim() ? "pointer" : "default" }}>
             {submitting && <span className="cs-spinner"></span>}
             {submitting ? "Sending…" : "Request this repair"}
           </button>

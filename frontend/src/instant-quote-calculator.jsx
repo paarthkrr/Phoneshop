@@ -1,4 +1,10 @@
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
+// Friendly validation shared by the customer forms
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
+const digits = (v) => (v || "").replace(/[\s-]/g, "");
+const isBsb = (v) => /^\d{6}$/.test(digits(v));
+const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
+
 import React, { useState, useMemo } from "react";
 const useEffect = React.useEffect;
 
@@ -382,9 +388,15 @@ const ACCESSORY_BONUS_PCT = 0.02;
 const DEFAULT_HOLDING_COST_PCT = 0.02; // flat refurb/overhead cost — age is already priced in via the curve
 const STEPS = ["Device", "Storage", "Condition", "Quote"];
 
+// One rounding rule for both display and storage, so the amount saved on an
+// order is always exactly the amount the customer was shown.
+function roundMoney(n, region, regionsMap) {
+  const r = (regionsMap || DEFAULT_REGIONS)[region];
+  return r.round >= 10 ? Math.round(n / r.round) * r.round : Math.round(n);
+}
 function fmt(n, region, regionsMap) {
   const r = (regionsMap || DEFAULT_REGIONS)[region];
-  const val = r.round >= 10 ? Math.round(n / r.round) * r.round : Math.round(n);
+  const val = roundMoney(n, region, regionsMap);
   return `${r.symbol}${val.toLocaleString()}`;
 }
 
@@ -808,8 +820,8 @@ export default function QuoteCalculator() {
   }, [selected, tier, calc, region]);
 
   async function handleSubmitOrder() {
-    const payoutValid = customer.payoutMethod === "bank" ? (customer.bankBsb && customer.bankAccountNumber) : customer.paypalEmail;
-    if (!calc || calc.blocked || !customer.name || !customer.email || !customer.idOwnerName || !payoutValid) return;
+    const payoutValid = customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail);
+    if (!calc || calc.blocked || !customer.name || !isEmail(customer.email) || !customer.idOwnerName || !payoutValid) return;
     setSubmitting(true);
     const newCode = genReferralCode(customer.name);
     const order = {
@@ -821,7 +833,7 @@ export default function QuoteCalculator() {
       tierId: tier.id, tierLabel: tier.label,
       faultLabels: calc.lines.filter((l) => l.amt > 0).map((l) => l.label),
       hasAccessories,
-      quotedTotal: calc.total,
+      quotedTotal: roundMoney(calc.total, region, REGIONS_A),
       brandNewBase: calc.baseRegion,
       customer: { ...customer },
       fulfillment, address: fulfillment === "post" ? address : "",
@@ -919,7 +931,7 @@ export default function QuoteCalculator() {
       id: genPriceMatchId(),
       createdAt: new Date().toISOString(),
       device: selected ? { brand: selected.brand, model: selected.model, storage: selected.storage } : null,
-      ourQuote: calc.total, region, currency: REGIONS_A[region].currency,
+      ourQuote: roundMoney(calc.total, region, REGIONS_A), region, currency: REGIONS_A[region].currency,
       competitorName: pmCompetitor.trim(), competitorPrice: parseFloat(pmPrice), note: pmNote.trim(),
       customerEmail: customer.email || null,
       status: "pending", approvedPrice: null, staffNote: "",
@@ -941,7 +953,7 @@ export default function QuoteCalculator() {
     const lead = {
       id: "LEAD-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(),
       email: leadEmail.trim(), device: { brand: selected.brand, model: selected.model, storage: selected.storage },
-      tierLabel: tier.label, quotedTotal: calc.total, region, currency: REGIONS_A[region].currency,
+      tierLabel: tier.label, quotedTotal: roundMoney(calc.total, region, REGIONS_A), region, currency: REGIONS_A[region].currency,
       priceHeldUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), contacted: false,
     };
     await saveLead(lead);
@@ -1510,7 +1522,9 @@ export default function QuoteCalculator() {
                 onChange={(e) => setCustomer((c) => ({ ...c, [field]: e.target.value }))}
                 placeholder={field === "name" ? "Full name" : field === "email" ? "Email address" : "Phone number"}
                 aria-label={field === "name" ? "Full name" : field === "email" ? "Email address" : "Phone number"}
-                type={field === "email" ? "email" : "text"}
+                type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
+                autoComplete={field === "name" ? "name" : field === "email" ? "email" : "tel"}
+                inputMode={field === "email" ? "email" : field === "phone" ? "tel" : undefined}
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }}
               />
             ))}
@@ -1583,16 +1597,20 @@ export default function QuoteCalculator() {
             </div>
             {customer.payoutMethod === "bank" ? (
               <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                <input value={customer.bankBsb} onChange={(e) => setCustomer((c) => ({ ...c, bankBsb: e.target.value }))} placeholder="BSB" aria-label="Bank BSB"
+                <input value={customer.bankBsb} onChange={(e) => setCustomer((c) => ({ ...c, bankBsb: e.target.value }))} placeholder="BSB" aria-label="Bank BSB" inputMode="numeric" autoComplete="off" maxLength={7}
                   style={{ width: 90, padding: "12px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-                <input value={customer.bankAccountNumber} onChange={(e) => setCustomer((c) => ({ ...c, bankAccountNumber: e.target.value }))} placeholder="Account number" aria-label="Bank account number"
+                <input value={customer.bankAccountNumber} onChange={(e) => setCustomer((c) => ({ ...c, bankAccountNumber: e.target.value }))} placeholder="Account number" aria-label="Bank account number" inputMode="numeric" autoComplete="off" maxLength={12}
                   style={{ flex: 1, padding: "12px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
               </div>
             ) : (
-              <input value={customer.paypalEmail} onChange={(e) => setCustomer((c) => ({ ...c, paypalEmail: e.target.value }))} placeholder="PayPal email" aria-label="PayPal email" type="email"
+              <input value={customer.paypalEmail} onChange={(e) => setCustomer((c) => ({ ...c, paypalEmail: e.target.value }))} placeholder="PayPal email" aria-label="PayPal email" autoComplete="email" inputMode="email" type="email"
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             )}
 
+            {customer.email && !isEmail(customer.email) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That email address doesn't look right — we'll need it to send your confirmation.</div>}
+            {customer.payoutMethod === "bank" && customer.bankBsb && !isBsb(customer.bankBsb) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>A BSB is 6 digits, e.g. 062-000.</div>}
+            {customer.payoutMethod === "bank" && customer.bankAccountNumber && !isAccount(customer.bankAccountNumber) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>Account numbers are usually 6–10 digits.</div>}
+            {customer.payoutMethod === "paypal" && customer.paypalEmail && !isEmail(customer.paypalEmail) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That PayPal email doesn't look right.</div>}
             <div style={{ fontSize: 11.5, color: muted, marginBottom: 10 }}>
               By continuing you agree to our <a href="/terms" target="_blank" rel="noopener" style={{ color: brass }}>Terms</a> and <a href="/privacy" target="_blank" rel="noopener" style={{ color: brass }}>Privacy Policy</a>. Your details are only used to process this order and pay you.
             </div>
@@ -1605,8 +1623,8 @@ export default function QuoteCalculator() {
                 Back
               </button>
               {(() => {
-                const canSubmit = customer.name && customer.email && customer.idOwnerName &&
-                  (customer.payoutMethod === "bank" ? (customer.bankBsb && customer.bankAccountNumber) : customer.paypalEmail);
+                const canSubmit = customer.name && isEmail(customer.email) && customer.idOwnerName &&
+                  (customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail));
                 return (
                   <button className="cs-btn" onClick={handleSubmitOrder} disabled={!canSubmit || submitting}
                     style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,

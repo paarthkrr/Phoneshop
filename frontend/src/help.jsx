@@ -1,4 +1,10 @@
 import React, { useState } from "react";
+// Friendly validation shared by the customer forms
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
+const digits = (v) => (v || "").replace(/[\s-]/g, "");
+const isBsb = (v) => /^\d{6}$/.test(digits(v));
+const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
+
 
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
@@ -56,7 +62,7 @@ export default function Help() {
   const [error, setError] = useState("");
 
   async function handleSubmit() {
-    if (!name.trim() || !email.trim() || !message.trim()) return;
+    if (!name.trim() || !isEmail(email) || !message.trim()) return;
     setSubmitting(true);
     setError("");
     try {
@@ -101,10 +107,11 @@ export default function Help() {
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 8 }}>Ask us anything</div>
         <div style={{ color: muted, fontSize: 14, marginBottom: 28 }}>A real person reads every one of these — usually much faster than you'd expect.</div>
 
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name"
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name" autoComplete="name"
           style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" aria-label="Email address" type="email"
+        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" aria-label="Email address" type="email" autoComplete="email" inputMode="email"
           style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
+          {email && !isEmail(email) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That email address doesn't look right — we need it to reply to you.</div>}
 
         <div role="group" aria-label="What's this about" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
           {CATEGORIES.map((c) => (
@@ -121,10 +128,10 @@ export default function Help() {
 
         {error && <div style={{ color: red, fontSize: 13, marginBottom: 10 }}>{error}</div>}
 
-        <button className="cs-btn" onClick={handleSubmit} disabled={!name.trim() || !email.trim() || !message.trim() || submitting}
+        <button className="cs-btn" onClick={handleSubmit} disabled={!name.trim() || !isEmail(email) || !message.trim() || submitting}
           style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            background: name.trim() && email.trim() && message.trim() ? brass : line, color: name.trim() && email.trim() && message.trim() ? "#fff" : muted,
-            fontSize: 14, fontWeight: 600, cursor: name.trim() && email.trim() && message.trim() ? "pointer" : "default" }}>
+            background: name.trim() && isEmail(email) && message.trim() ? brass : line, color: name.trim() && isEmail(email) && message.trim() ? "#fff" : muted,
+            fontSize: 14, fontWeight: 600, cursor: name.trim() && isEmail(email) && message.trim() ? "pointer" : "default" }}>
           {submitting && <span className="cs-spinner"></span>}
           {submitting ? "Sending…" : "Send"}
         </button>

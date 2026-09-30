@@ -1,4 +1,10 @@
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
+// Friendly validation shared by the customer forms
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
+const digits = (v) => (v || "").replace(/[\s-]/g, "");
+const isBsb = (v) => /^\d{6}$/.test(digits(v));
+const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
+
 import React, { useState, useEffect, useMemo } from "react";
 
 /* =================================================================
@@ -125,7 +131,7 @@ export default function Storefront() {
   });
 
   async function handleCheckout() {
-    if (!selectedItem || !customer.name || !customer.email || !customer.address) return;
+    if (!selectedItem || !customer.name || !isEmail(customer.email) || !customer.address) return;
     setSubmitting(true);
     setSubmitError("");
     // Re-check against the LIVE inventory record, not the stale one held in
@@ -410,9 +416,12 @@ export default function Storefront() {
               <input key={field} value={customer[field]} onChange={(e) => setCustomer((c) => ({ ...c, [field]: e.target.value }))}
                 placeholder={field === "name" ? "Full name" : field === "email" ? "Email address" : "Phone number"}
                 aria-label={field === "name" ? "Full name" : field === "email" ? "Email address" : "Phone number"}
+                type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
+                autoComplete={field === "name" ? "name" : field === "email" ? "email" : "tel"}
+                inputMode={field === "email" ? "email" : field === "phone" ? "tel" : undefined}
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
             ))}
-            <textarea value={customer.address} onChange={(e) => setCustomer((c) => ({ ...c, address: e.target.value }))} placeholder="Shipping address" aria-label="Shipping address"
+            <textarea value={customer.address} onChange={(e) => setCustomer((c) => ({ ...c, address: e.target.value }))} placeholder="Shipping address" aria-label="Shipping address" autoComplete="street-address"
               style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, minHeight: 60, boxSizing: "border-box" }} />
 
             <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>How will you pay?</div>
@@ -429,10 +438,11 @@ export default function Storefront() {
               No card payments are processed on this device yet — you'll get {paymentMethod === "bank_transfer" ? "our bank details" : "pickup instructions"} on the confirmation screen.
             </div>
 
+            {customer.email && !isEmail(customer.email) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That email address doesn't look right — we'll need it for your order updates.</div>}
             <div style={{ fontSize: 11.5, color: muted, margin: "4px 0 10px" }}>
               By placing an order you agree to our <a href="/terms" target="_blank" rel="noopener" style={{ color: brass }}>Terms</a> and <a href="/privacy" target="_blank" rel="noopener" style={{ color: brass }}>Privacy Policy</a>.
             </div>
-            <button className="cs-btn" disabled={!customer.name || !customer.email || !customer.address || submitting} onClick={handleCheckout}
+            <button className="cs-btn" disabled={!customer.name || !isEmail(customer.email) || !customer.address || submitting} onClick={handleCheckout}
               style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 background: customer.name && customer.email && customer.address ? brass : line, color: customer.name && customer.email && customer.address ? "#1a1408" : muted,
                 fontSize: 14, fontWeight: 600, cursor: customer.name && customer.email && customer.address ? "pointer" : "default" }}>
