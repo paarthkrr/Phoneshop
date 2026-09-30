@@ -1,3 +1,4 @@
+import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import React, { useState, useEffect, useMemo } from "react";
 
 /* =================================================================
@@ -73,25 +74,7 @@ const HOLDING_COST_PCT = 0.02;
 // Fallback catalog, identical to the admin console's default so a counter
 // quote matches an online quote for the same phone even before the admin
 // console has ever been opened. Keep these two lists in sync.
-const DEFAULT_CATALOG = [
-  { brand: "Apple", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699 } },
-  { brand: "Apple", model: "iPhone 17 Pro Max", release: "2025-09-19", retail: { "256GB": 2199, "512GB": 2549 } },
-  { brand: "Apple", model: "iPhone 16 Pro Max", release: "2024-09-20", retail: { "256GB": 2149, "512GB": 2519 } },
-  { brand: "Apple", model: "iPhone 15 Pro Max", release: "2023-09-22", retail: { "256GB": 2199, "512GB": 2569, "1TB": 2939 } },
-  { brand: "Apple", model: "iPhone 15 Pro", release: "2023-09-22", retail: { "128GB": 1849, "256GB": 2049 } },
-  { brand: "Apple", model: "iPhone 15", release: "2023-09-22", retail: { "128GB": 1499, "256GB": 1699 } },
-  { brand: "Apple", model: "iPhone 14 Pro Max", release: "2022-09-16", retail: { "128GB": 1899, "256GB": 2069 } },
-  { brand: "Apple", model: "iPhone 14", release: "2022-09-16", retail: { "128GB": 1399, "256GB": 1569 } },
-  { brand: "Apple", model: "iPhone 13", release: "2021-09-24", retail: { "128GB": 1349, "256GB": 1519 } },
-  { brand: "Apple", model: "iPhone 12", release: "2020-10-23", retail: { "64GB": 1349, "128GB": 1429 } },
-  { brand: "Apple", model: "iPhone 11", release: "2019-09-20", retail: { "64GB": 1199, "128GB": 1279 } },
-  { brand: "Samsung", model: "Galaxy S25 Ultra", release: "2025-01-22", retail: { "256GB": 2049, "512GB": 2269 } },
-  { brand: "Samsung", model: "Galaxy S24 Ultra", release: "2024-01-24", retail: { "256GB": 1999, "512GB": 2199 } },
-  { brand: "Samsung", model: "Galaxy S23", release: "2023-02-17", retail: { "128GB": 1499 } },
-  { brand: "Samsung", model: "Galaxy Z Fold6", release: "2024-07-24", retail: { "256GB": 2599 } },
-  { brand: "Google", model: "Pixel 9 Pro", release: "2024-08-22", retail: { "128GB": 1699, "256GB": 1849 } },
-  { brand: "Google", model: "Pixel 8", release: "2023-10-12", retail: { "128GB": 1049 } },
-];
+// Device catalogue now lives in device-catalog.js (shared by every tool).
 const FAULT_GROUPS_DEFAULT = [
   { group: "Display", faults: [
     { id: "screen_crack", label: "Cracked / shattered screen", pct: 0.25 },
@@ -261,7 +244,7 @@ export default function POSInventory() {
   async function persistAccessories(next) { await saveJSON(ACCESSORIES_KEY, next, true); setAccessories(next); }
   async function persistPurchaseOrders(next) { await saveJSON("purchase_orders", next, true); setPurchaseOrders(next); }
 
-  const catalog = config?.catalog?.length ? config.catalog : DEFAULT_CATALOG;
+  const catalog = mergeCatalog(config?.catalog);
   const retentionPts = config?.retentionPoints || RETENTION_POINTS;
   const brandFactors = { ...BRAND_FACTOR, ...(config?.brandFactors || {}) };
   const tiers = TIERS.map((t) => ({ ...t, factor: config?.tiers?.find((x) => x.id === t.id)?.factor ?? t.factor }));
@@ -472,7 +455,8 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search device"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden" }}>
-            {filtered.slice(0, 10).map((d, i) => (
+            {filtered.length > 20 && <div style={{ fontSize: 12, color: "#6B6560", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
+            {filtered.slice(0, 20).map((d, i) => (
               <div key={d.brand + d.model} style={{ padding: "8px 14px", borderTop: i === 0 ? "none" : `1px solid ${line}` }}>
                 <div style={{ fontSize: 12, color: muted, marginBottom: 4 }}>{d.brand} {d.model}</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

@@ -1,3 +1,4 @@
+import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 // Friendly validation shared by the customer forms
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
@@ -68,112 +69,7 @@ function ageMonths(releaseDate) {
    This is the only thing that needs updating when a new phone
    launches; the buyback price is computed, never typed by hand.
 ================================================================= */
-const DEFAULT_CATALOG = [
-  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro", release: "2026-09-18", retail: { "256GB": 2099, "512GB": 2499 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro Max", release: "2025-09-19", retail: { "256GB": 2199, "512GB": 2549 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro", release: "2025-09-19", retail: { "128GB": 1999, "256GB": 2199 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 17", release: "2025-09-19", retail: { "128GB": 1399, "256GB": 1649 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro Max", release: "2024-09-20", retail: { "256GB": 2149, "512GB": 2519 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro", release: "2024-09-20", retail: { "128GB": 1799, "256GB": 1999 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 16 Plus", release: "2024-09-20", retail: { "128GB": 1599, "256GB": 1799 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 16", release: "2024-09-20", retail: { "128GB": 1399, "256GB": 1649 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro Max", release: "2023-09-22", retail: { "256GB": 2199, "512GB": 2569, "1TB": 2939 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro", release: "2023-09-22", retail: { "128GB": 1849, "256GB": 2049 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 15 Plus", release: "2023-09-22", retail: { "128GB": 1649, "256GB": 1849 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 15", release: "2023-09-22", retail: { "128GB": 1499, "256GB": 1699, "512GB": 2099 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro Max", release: "2022-09-16", retail: { "128GB": 1899, "256GB": 2069, "512GB": 2409 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro", release: "2022-09-16", retail: { "128GB": 1749, "256GB": 1919, "512GB": 2259 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 14 Plus", release: "2022-09-16", retail: { "128GB": 1579, "256GB": 1749 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 14", release: "2022-09-16", retail: { "128GB": 1399, "256GB": 1569 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 13 Pro Max", release: "2021-09-24", retail: { "128GB": 1849, "256GB": 2019 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 13", release: "2021-09-24", retail: { "128GB": 1349, "256GB": 1519 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 12", release: "2020-10-23", retail: { "64GB": 1349, "128GB": 1429, "256GB": 1579 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone SE (2022)", release: "2022-03-18", retail: { "64GB": 719, "128GB": 789 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 11", release: "2019-09-20", retail: { "64GB": 1199, "128GB": 1279 }, category: "phone" },
-
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S26 Ultra", release: "2026-02-01", retail: { "256GB": 2199, "512GB": 2419 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S26+", release: "2026-02-01", retail: { "256GB": 1799, "512GB": 1999 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S26", release: "2026-02-01", retail: { "128GB": 1499, "256GB": 1599 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S25 Ultra", release: "2025-01-22", retail: { "256GB": 2049, "512GB": 2269 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S25", release: "2025-01-22", retail: { "128GB": 1399, "256GB": 1499 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S24 Ultra", release: "2024-01-24", retail: { "256GB": 1999, "512GB": 2199 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S24", release: "2024-01-24", retail: { "128GB": 1399 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S23 Ultra", release: "2023-02-17", retail: { "256GB": 1949 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S23", release: "2023-02-17", retail: { "128GB": 1499 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S22 Ultra", release: "2022-02-25", retail: { "256GB": 1849 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S22", release: "2022-02-25", retail: { "128GB": 1349 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy Z Fold8 Ultra", release: "2026-08-14", retail: { "256GB": 2999, "512GB": 3299, "1TB": 3899 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy Z Fold8", release: "2026-08-14", retail: { "256GB": 2699, "512GB": 2999, "1TB": 3599 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy Z Flip8", release: "2026-08-14", retail: { "256GB": 1949, "512GB": 2249 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy Z Fold7", release: "2025-07-25", retail: { "256GB": 2799, "512GB": 2999 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy Z Fold6", release: "2024-07-24", retail: { "256GB": 2599 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy Z Flip7", release: "2025-07-25", retail: { "256GB": 1799 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy Z Flip6", release: "2024-07-24", retail: { "256GB": 1649 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy Z Flip5", release: "2023-07-26", retail: { "256GB": 1499 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy A56", release: "2025-03-06", retail: { "128GB": 699, "256GB": 799 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy A17", release: "2025-09-01", retail: { "128GB": 399 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy A16", release: "2025-01-08", retail: { "128GB": 349 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy A55", release: "2024-03-11", retail: { "128GB": 699 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy A54", release: "2023-03-24", retail: { "128GB": 699 }, category: "phone" },
-
-  { brand: "Google", icon: "🟡", model: "Pixel 10 Pro Fold", release: "2025-10-09", retail: { "256GB": 2699, "512GB": 2999 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 10 Pro XL", release: "2025-08-28", retail: { "256GB": 1799, "512GB": 1999, "1TB": 2299 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 10 Pro", release: "2025-08-28", retail: { "128GB": 1499, "256GB": 1699, "512GB": 1899 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 10", release: "2025-08-28", retail: { "128GB": 1199, "256GB": 1399 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 9a", release: "2025-04-10", retail: { "128GB": 849, "256GB": 949 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 9 Pro", release: "2024-08-22", retail: { "128GB": 1699, "256GB": 1849 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 9", release: "2024-08-22", retail: { "128GB": 1199 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 8 Pro", release: "2023-10-12", retail: { "128GB": 1299, "256GB": 1449 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 8", release: "2023-10-12", retail: { "128GB": 999 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 8a", release: "2024-05-14", retail: { "128GB": 749, "256GB": 849 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 7", release: "2022-10-13", retail: { "128GB": 999 }, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 6a", release: "2022-07-28", retail: { "128GB": 749 }, category: "phone" },
-
-  { brand: "OnePlus", icon: "🔴", model: "OnePlus 13", release: "2025-01-07", retail: { "256GB": 1499 }, category: "phone" },
-  { brand: "OnePlus", icon: "🔴", model: "OnePlus 12", release: "2024-01-23", retail: { "256GB": 1399 }, category: "phone" },
-  { brand: "OnePlus", icon: "🔴", model: "OnePlus 11", release: "2023-02-07", retail: { "128GB": 1099 }, category: "phone" },
-
-  { brand: "Xiaomi", icon: "🟠", model: "Xiaomi 14", release: "2023-10-26", retail: { "256GB": 1299 }, category: "phone" },
-  { brand: "Xiaomi", icon: "🟠", model: "Redmi Note 13 Pro", release: "2024-01-04", retail: { "128GB": 499 }, category: "phone" },
-  { brand: "Xiaomi", icon: "🟠", model: "Mi 11", release: "2021-02-08", retail: { "128GB": 999 }, category: "phone" },
-
-  { brand: "Oppo", icon: "🟢", model: "Find X7 Ultra", release: "2024-03-01", retail: { "256GB": 1899 }, category: "phone" },
-  { brand: "Oppo", icon: "🟢", model: "Reno 11", release: "2023-11-01", retail: { "256GB": 799 }, category: "phone" },
-
-  { brand: "Vivo", icon: "🟣", model: "X100 Pro", release: "2023-12-01", retail: { "256GB": 1699 }, category: "phone" },
-  { brand: "Vivo", icon: "🟣", model: "V29", release: "2023-08-01", retail: { "128GB": 799 }, category: "phone" },
-
-
-  { brand: "Motorola", icon: "🔵", model: "Edge 50 Pro", release: "2024-04-25", retail: { "256GB": 999 }, category: "phone" },
-  { brand: "Motorola", icon: "🔵", model: "Razr 50", release: "2024-07-25", retail: { "256GB": 1399 }, category: "phone" },
-
-
-  { brand: "Nothing", icon: "🔘", model: "Nothing Phone (3)", release: "2025-07-04", retail: { "256GB": 999, "512GB": 1149 }, category: "phone" },
-  { brand: "Nothing", icon: "🔘", model: "Nothing Phone (3a) Pro", release: "2025-03-11", retail: { "128GB": 649 }, category: "phone" },
-  { brand: "Nothing", icon: "🔘", model: "Nothing Phone (2a)", release: "2024-03-05", retail: { "128GB": 449 }, category: "phone" },
-
-  { brand: "Apple", icon: "⌚", model: "Apple Watch Ultra 3", release: "2025-09-19", retail: { "49mm": 1099 }, category: "watch" },
-  { brand: "Apple", icon: "⌚", model: "Apple Watch Series 11", release: "2025-09-19", retail: { "42mm": 429, "46mm": 459 }, category: "watch" },
-  { brand: "Apple", icon: "⌚", model: "Apple Watch SE 3", release: "2025-09-19", retail: { "40mm": 329, "44mm": 359 }, category: "watch" },
-  { brand: "Samsung", icon: "⌚", model: "Galaxy Watch Ultra 2", release: "2026-08-14", retail: { "47mm": 949 }, category: "watch" },
-  { brand: "Samsung", icon: "⌚", model: "Galaxy Watch9", release: "2026-08-14", retail: { "BT": 649, "LTE": 749 }, category: "watch" },
-  { brand: "Samsung", icon: "⌚", model: "Galaxy Watch7", release: "2024-07-24", retail: { "40mm": 499, "44mm": 549 }, category: "watch" },
-
-  { brand: "Apple", icon: "📱", model: "iPad Pro 13 (M4)", release: "2024-05-15", retail: { "256GB": 2199, "512GB": 2499 }, category: "tablet" },
-  { brand: "Apple", icon: "📱", model: "iPad Pro 11 (M4)", release: "2024-05-15", retail: { "256GB": 1699, "512GB": 1999 }, category: "tablet" },
-  { brand: "Apple", icon: "📱", model: "iPad Air 13 (M3)", release: "2025-03-12", retail: { "128GB": 1299, "256GB": 1449 }, category: "tablet" },
-  { brand: "Apple", icon: "📱", model: "iPad Air 11 (M3)", release: "2025-03-12", retail: { "128GB": 999, "256GB": 1149 }, category: "tablet" },
-  { brand: "Apple", icon: "📱", model: "iPad mini (A17 Pro)", release: "2024-10-23", retail: { "128GB": 839, "256GB": 999 }, category: "tablet" },
-  { brand: "Apple", icon: "📱", model: "iPad (11th gen, A16)", release: "2025-03-12", retail: { "128GB": 749, "256GB": 899 }, category: "tablet" },
-  { brand: "Samsung", icon: "📱", model: "Galaxy Tab S10 Ultra", release: "2024-09-25", retail: { "256GB": 2199 }, category: "tablet" },
-  { brand: "Samsung", icon: "📱", model: "Galaxy Tab A9+", release: "2023-10-17", retail: { "64GB": 399 }, category: "tablet" },
-
-  { brand: "Apple", icon: "💻", model: "MacBook Pro 14 (M4)", release: "2024-11-08", retail: { "512GB": 3199 }, category: "laptop" },
-  { brand: "Apple", icon: "💻", model: "MacBook Air 15 (M4)", release: "2025-03-12", retail: { "256GB": 2399 }, category: "laptop" },
-  { brand: "Apple", icon: "💻", model: "MacBook Air 13 (M4)", release: "2025-03-12", retail: { "256GB": 2099 }, category: "laptop" },
-  { brand: "Apple", icon: "💻", model: "MacBook Neo", release: "2026-06-01", retail: { "256GB": 1049 }, category: "laptop" },
-];
+// Device catalogue now lives in device-catalog.js (shared by every tool).
 
 /* Category factor — different product types hold value differently.
    Phones are the calibrated baseline (1.00). MacBooks are famous for
@@ -726,7 +622,7 @@ export default function QuoteCalculator() {
   // Merge live admin-console data over the built-in defaults. Anything the
   // console hasn't touched (or that isn't available in it, like an older
   // console version's shorter catalog) falls back to the default silently.
-  const CATALOG_A = live?.catalog || DEFAULT_CATALOG;
+  const CATALOG_A = mergeCatalog(live?.catalog);
   const REGIONS_A = useMemo(() => {
     const merged = {};
     Object.keys(DEFAULT_REGIONS).forEach((code) => {
@@ -1337,7 +1233,8 @@ export default function QuoteCalculator() {
               style={{ width: "100%", padding: "13px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper,
                 fontSize: 15, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden" }}>
-              {filtered.slice(0, 12).map((d, di) => (
+              {filtered.length > 20 && <div style={{ fontSize: 12, color: "#6B6560", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
+              {filtered.slice(0, 20).map((d, di) => (
                 <div key={d.brand + d.model}>
                   <div style={{ padding: "10px 14px 4px", fontSize: 11, color: muted, borderTop: di === 0 ? "none" : `1px solid ${line}`, display: "flex", alignItems: "center", gap: 6 }}>
                     <DeviceArt type={inferDeviceType(d.model, d.category)} size={20} />{d.brand} — {d.model}
