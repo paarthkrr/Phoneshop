@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
 
 import QuoteCalculator from "./instant-quote-calculator.jsx";
 import Storefront from "./storefront.jsx";
@@ -336,6 +336,7 @@ export default function App() {
     <BrowserRouter>
       <div style={{ background: ink, minHeight: "100vh" }}>
         <Nav />
+        <LinkInterceptor />
         <AnimatedRoutes />
       </div>
     </BrowserRouter>
@@ -374,6 +375,35 @@ function MobileCTA() {
         : <a href="/repairs" style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>Book a repair</a>}
     </div>
   );
+}
+
+// Every internal link switches pages INSIDE the app instead of asking the
+// host for a new page. The host's dashboard rewrite rule returns an empty
+// page for any address except "/", so a normal link to /quote went blank;
+// in-app navigation never hits the host, so it always works. Covers every
+// plain <a href="/..."> on the site (buttons, cards, chips, footer), current
+// and future. External links, tel:/mailto:, new-tab links, same-page #anchors
+// and modifier-clicks are left to the browser as normal.
+function LinkInterceptor() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    function onClick(e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest && e.target.closest("a[href]");
+      if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+      let url;
+      try { url = new URL(a.getAttribute("href"), window.location.href); } catch (err) { return; }
+      if (url.origin !== window.location.origin) return;
+      if (/\.(?!html$)[a-z0-9]+$/i.test(url.pathname)) return; // real files (images, pdf, xml...)
+      if (url.pathname === window.location.pathname && url.hash) return; // same-page anchor
+      e.preventDefault();
+      navigate(url.pathname + url.search + url.hash);
+      window.scrollTo(0, 0);
+    }
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [navigate]);
+  return null;
 }
 
 function AnimatedRoutes() {
