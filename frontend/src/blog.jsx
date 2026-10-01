@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 
 const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
@@ -51,6 +51,7 @@ const POSTS = [
 export default function Blog() {
   const { slug } = useParams();
   const post = POSTS.find((p) => p.slug === slug);
+  useEffect(() => { if (post) document.title = `${post.title} | Mobile Vault`; }, [post]);
 
   if (slug && !post) {
     return (

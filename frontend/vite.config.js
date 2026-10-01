@@ -74,8 +74,26 @@ function pagePerRoute() {
   };
 }
 
+// Domain switch in one place: set SITE_URL on the host (e.g.
+// https://www.mobilevault.com.au) and the sitemap and robots file are
+// rewritten to it at build time. Unset = keep the current address.
+const CURRENT_URL = "https://phoneshop-frontend-51tg.onrender.com";
+function siteUrl() {
+  return {
+    name: "site-url",
+    writeBundle(options) {
+      const target = (process.env.SITE_URL || "").replace(/\/$/, "");
+      if (!target) return;
+      for (const f of ["sitemap.xml", "robots.txt"]) {
+        const p = path.join(options.dir, f);
+        if (fs.existsSync(p)) fs.writeFileSync(p, fs.readFileSync(p, "utf8").split(CURRENT_URL).join(target));
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), legacyEntryForwarders(), pagePerRoute()],
+  plugins: [react(), legacyEntryForwarders(), pagePerRoute(), siteUrl()],
   build: {
     outDir: "dist",
     rollupOptions: {

@@ -328,6 +328,12 @@ export default function App() {
     } catch (e) {
       console.error("Storage setup failed, continuing without it:", e);
     }
+    // Wake the backend the moment someone arrives. On a free host it sleeps
+    // when idle and takes 30-50s to start; pinging now means it's usually
+    // awake by the time the visitor submits anything.
+    if (window.SHOP_API_BASE_URL) {
+      try { fetch(`${window.SHOP_API_BASE_URL}/health`, { cache: "no-store" }).catch(() => {}); } catch (e) {}
+    }
     setStorageReady(true);
   }, []);
 
@@ -338,6 +344,7 @@ export default function App() {
       <div style={{ background: ink, minHeight: "100vh" }}>
         <Nav />
         <LinkInterceptor />
+        <PageMeta />
         <AnimatedRoutes />
       </div>
     </BrowserRouter>
@@ -385,6 +392,49 @@ function MobileCTA() {
 // plain <a href="/..."> on the site (buttons, cards, chips, footer), current
 // and future. External links, tel:/mailto:, new-tab links, same-page #anchors
 // and modifier-clicks are left to the browser as normal.
+// Each page gets its own browser-tab/Google title, description, and
+// canonical link (previously every page shared the homepage's title).
+const SITE = "Mobile Vault";
+const PAGE_META = {
+  "/": ["Mobile Vault — Sell, Buy & Repair Phones | Genuine Parts, Price Match", "Instant trade-in quotes, graded refurbished phones, and same-day repairs with genuine parts and a price match guarantee."],
+  "/quote": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days, paid by bank transfer or PayPal."],
+  "/sell": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days."],
+  "/shop": ["Refurbished Phones — Graded & Tested", "Buy graded, tested refurbished iPhones and Android phones with a 3-month warranty."],
+  "/repairs": ["Phone, Tablet & Laptop Repairs — Genuine Parts", "Screen, battery and charging port repairs with genuine parts, a 6-month warranty, and a price match guarantee."],
+  "/accessories": ["Phone Accessories, Parts & DIY Kits", "Cases, screen protectors, chargers and DIY repair kits. Free click & collect or fast delivery."],
+  "/parts": ["Phone Accessories, Parts & DIY Kits", "Cases, screen protectors, chargers and DIY repair kits. Free click & collect or fast delivery."],
+  "/tutorials": ["Phone Repair Tutorials — Screen & Back Glass", "Step-by-step videos for iPhone screen and back glass repair, with safety tips before you start."],
+  "/blog": ["Guides — Phone Repair & Trade-in Advice", "Straight answers on repairs, trade-ins and buying refurbished phones."],
+  "/about": ["About Us", "Why we started an honest phone repair and trade-in shop."],
+  "/faq": ["FAQ", "Answers about our price match guarantee, genuine parts, warranty, and how selling works."],
+  "/help": ["Help — Ask Us Anything", "Send us a question about a repair, order or trade-in."],
+  "/contact": ["Contact Us", "Phone, email, address and opening hours."],
+  "/privacy": ["Privacy Policy", "How we collect, use and protect your personal information."],
+  "/terms": ["Terms & Warranty", "Trade-in terms, price match guarantee, warranty and your Australian Consumer Law rights."],
+};
+function PageMeta() {
+  const location = useLocation();
+  useEffect(() => {
+    const path = normPath(location.pathname);
+    const staff = isStaffPath(path);
+    const [title, desc] = PAGE_META[path] || (path.startsWith("/blog/") ? [null, null] : [null, null]);
+    if (staff) document.title = `Staff — ${SITE}`;
+    else if (title) document.title = path === "/" ? title : `${title} | ${SITE}`;
+    if (desc) {
+      let m = document.querySelector('meta[name="description"]');
+      if (!m) { m = document.createElement("meta"); m.setAttribute("name", "description"); document.head.appendChild(m); }
+      m.setAttribute("content", desc);
+    }
+    let c = document.querySelector('link[rel="canonical"]');
+    if (!c) { c = document.createElement("link"); c.setAttribute("rel", "canonical"); document.head.appendChild(c); }
+    c.setAttribute("href", window.location.origin + (path === "/parts" ? "/accessories" : path));
+    let r = document.querySelector('meta[name="robots"]');
+    if (staff) { if (!r) { r = document.createElement("meta"); r.setAttribute("name", "robots"); document.head.appendChild(r); } r.setAttribute("content", "noindex"); }
+    else if (r) r.remove();
+  }, [location.pathname]);
+  return null;
+}
+
 function LinkInterceptor() {
   const navigate = useNavigate();
   useEffect(() => {
