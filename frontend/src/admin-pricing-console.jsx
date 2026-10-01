@@ -151,6 +151,13 @@ export default function AdminPricingConsole() {
       let isNew = false;
       let migrated = false;
       if (!c) { c = DEFAULT_CONFIG; isNew = true; }
+      else {
+        // Fill any missing section from the defaults first, so a partial saved
+        // config (e.g. only business details) can never crash the console.
+        const missing = Object.keys(DEFAULT_CONFIG).filter((k) => c[k] === undefined || (k === 'catalog' && !Array.isArray(c.catalog)));
+        if (missing.length) { c = { ...DEFAULT_CONFIG, ...c, catalog: Array.isArray(c.catalog) ? c.catalog : DEFAULT_CONFIG.catalog }; migrated = true; }
+      }
+      if (isNew) {}
       else if ((c.version || 1) < CONFIG_VERSION) {
         // Migration: earlier version only seeded 17 catalog entries.
         // Bring the catalog up to the full list without touching any

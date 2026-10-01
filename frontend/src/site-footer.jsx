@@ -46,6 +46,7 @@ export default function SiteFooter() {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <a href="/about" style={{ color: muted, textDecoration: "none" }}>About us</a>
           <a href="/blog" style={{ color: muted, textDecoration: "none" }}>Guides</a>
+          <a href="/tutorials" style={{ color: muted, textDecoration: "none" }}>Repair tutorials</a>
           <a href="/faq" style={{ color: muted, textDecoration: "none" }}>FAQ</a>
         </div>
       </div>

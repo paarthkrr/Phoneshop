@@ -456,6 +456,44 @@ app.get("/storage/:key", tryAuth, async (req, res) => {
   }
 });
 
+// ---- Safe concurrent saves ----
+// Every write to a list runs inside a transaction holding a per-list lock, so
+// two saves can never read-modify-write over each other. Without this, 100
+// customers ordering at once while staff updated one order lost ALL 100.
+async function withListLock(scope, key, fn) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [scope + ":" + key]);
+    const r = await client.query("SELECT value FROM storage WHERE scope = $1 AND key = $2", [scope, key]);
+    const write = (value, by) => client.query(
+      `INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ($1, $2, $3, NOW(), $4)
+       ON CONFLICT (scope, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+      [scope, key, value, by]);
+    const out = await fn(r.rows[0] ? r.rows[0].value : null, write);
+    await client.query("COMMIT");
+    return out;
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+// Lists where staff genuinely delete records by saving a shorter list.
+// Every other shared list is merged, so a stale staff copy can't erase
+// records (customer orders, another till's sales) that arrived meanwhile.
+const DELETE_BY_OMISSION_KEYS = ["expenses"];
+function mergeKeepingNewer(incomingJson, existingJson) {
+  let incoming, existing;
+  try { incoming = JSON.parse(incomingJson); existing = existingJson ? JSON.parse(existingJson) : null; } catch (e) { return incomingJson; }
+  if (!Array.isArray(incoming) || !Array.isArray(existing)) return incomingJson;
+  if (!incoming.every((r) => r && typeof r === "object" && r.id) || !existing.every((r) => r && typeof r === "object" && r.id)) return incomingJson;
+  const have = new Set(incoming.map((r) => r.id));
+  const missing = existing.filter((r) => !have.has(r.id));
+  return missing.length ? JSON.stringify([...missing, ...incoming]) : incomingJson;
+}
+
 app.put("/storage/:key", tryAuth, async (req, res) => {
   try {
     const { value, shared } = req.body;
@@ -472,28 +510,25 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
       // their local view of "existing records" is always empty (they
       // can't read this key back), so this only ever adds their genuinely
       // new submission(s), never overwrites or exposes anyone else's data.
-      const existingResult = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = $1", [req.params.key]);
-      const existingRow = existingResult.rows[0];
-      const existing = existingRow ? JSON.parse(existingRow.value) : [];
-      const existingIds = new Set(existing.map((r) => r && r.id));
-      const newOnes = incoming.filter((r) => r && r.id && !existingIds.has(r.id));
-      const merged = [...newOnes, ...existing];
-      await pool.query(
-        `INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ('shared', $1, $2, NOW(), 'public')
-         ON CONFLICT (scope, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
-        [req.params.key, JSON.stringify(merged)]
-      );
+      const newOnes = await withListLock("shared", req.params.key, async (existingValue, write) => {
+        const existing = existingValue ? JSON.parse(existingValue) : [];
+        const existingIds = new Set(existing.map((r) => r && r.id));
+        const fresh = incoming.filter((r) => r && r.id && !existingIds.has(r.id));
+        await write(JSON.stringify([...fresh, ...existing]), "public");
+        return fresh;
+      });
       // Never return the merged collection to an anonymous caller — only confirm what THEY submitted.
       return res.json({ key: req.params.key, submitted: newOnes.length });
     }
 
     const scope = scopeFor(shared, req.user.username);
-    await pool.query(
-      `INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ($1, $2, $3, NOW(), $4)
-       ON CONFLICT (scope, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
-      [scope, req.params.key, value, req.user.username]
-    );
-    res.json({ key: req.params.key, value, shared: scope === "shared" });
+    const saved = await withListLock(scope, req.params.key, async (existingValue, write) => {
+      const finalValue = scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)
+        ? mergeKeepingNewer(value, existingValue) : value;
+      await write(finalValue, req.user.username);
+      return finalValue;
+    });
+    res.json({ key: req.params.key, value: saved, shared: scope === "shared" });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -556,33 +591,24 @@ app.post("/public/orders/:orderId/respond", async (req, res) => {
     if (!email || (decision !== "accept" && decision !== "decline")) {
       return res.status(400).json({ error: "email and decision ('accept' or 'decline') are required" });
     }
-    const result = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = 'orders'");
-    const row = result.rows[0];
-    const list = row ? JSON.parse(row.value) : [];
-    const idx = list.findIndex((o) => o.id === req.params.orderId);
-    if (idx === -1) return res.status(404).json({ error: "not_found" });
-    const order = list[idx];
-    if ((order.customer?.email || "").toLowerCase() !== email.toLowerCase()) {
-      return res.status(403).json({ error: "email does not match this order" });
-    }
-    if (order.status !== "revised_pending_customer") {
-      return res.status(409).json({ error: "this order isn't currently awaiting a response" });
-    }
-    const updated = {
-      ...order,
-      status: decision === "accept" ? "approved_paid" : "returned",
-      inspection: { ...order.inspection, customerRespondedAt: new Date().toISOString(), customerDecision: decision },
-    };
-    list[idx] = updated;
-    await pool.query(
-      `INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ('shared', 'orders', $1, NOW(), 'public')
-       ON CONFLICT (scope, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
-      [JSON.stringify(list)]
-    );
-    // Never return the full order list to an anonymous caller — only
-    // confirm the outcome of THEIR action, same privacy posture as
-    // every other public endpoint in this file.
-    res.json({ id: updated.id, status: updated.status });
+    const out = await withListLock("shared", "orders", async (existingValue, write) => {
+      const list = existingValue ? JSON.parse(existingValue) : [];
+      const idx = list.findIndex((o) => o.id === req.params.orderId);
+      if (idx === -1) return { status: 404, body: { error: "not_found" } };
+      const order = list[idx];
+      if ((order.customer?.email || "").toLowerCase() !== email.toLowerCase()) return { status: 403, body: { error: "email does not match this order" } };
+      if (order.status !== "revised_pending_customer") return { status: 409, body: { error: "this order isn't currently awaiting a response" } };
+      const updated = {
+        ...order,
+        status: decision === "accept" ? "approved_paid" : "returned",
+        inspection: { ...order.inspection, customerRespondedAt: new Date().toISOString(), customerDecision: decision },
+      };
+      list[idx] = updated;
+      await write(JSON.stringify(list), "public");
+      // Only confirm the outcome of THEIR action — never the list.
+      return { status: 200, body: { id: updated.id, status: updated.status } };
+    });
+    res.status(out.status).json(out.body);
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
