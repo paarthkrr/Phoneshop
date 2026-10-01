@@ -251,7 +251,10 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "";
 if (!CORS_ORIGIN) {
   console.warn("CORS_ORIGIN not set — accepting requests from ANY origin. Set this to your real frontend URL (e.g. https://yourshop.com) before going live.");
 }
-app.use(cors({ origin: CORS_ORIGIN || true }));
+// CORS_ORIGIN may list several addresses separated by commas (e.g. the
+// onrender.com address plus your own domain while switching over).
+const CORS_ORIGINS = CORS_ORIGIN.split(",").map((o) => o.trim().replace(/\/$/, "")).filter(Boolean);
+app.use(cors({ origin: CORS_ORIGINS.length ? CORS_ORIGINS : true }));
 app.use(express.json({ limit: "10mb" }));
 app.use((req, res, next) => {
   // A few no-dependency security headers. HSTS is deliberately left to
