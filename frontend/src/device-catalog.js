@@ -50,7 +50,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Samsung", icon: "🔷", model: "Galaxy A55", release: "2024-03-11", retail: { "128GB": 699 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A54", release: "2023-03-24", retail: { "128GB": 699 }, category: "phone" },
 
-  { brand: "Google", icon: "🟡", model: "Pixel 10 Pro Fold", release: "2025-10-09", retail: { "256GB": 2699, "512GB": 2999 }, category: "phone" },
+  { brand: "Google", icon: "🟡", model: "Pixel 10 Pro Fold", release: "2025-10-09", retail: { "256GB": 2699, "512GB": 2999 }, category: "phone", marketAdjPct: -20 },
   { brand: "Google", icon: "🟡", model: "Pixel 10 Pro XL", release: "2025-08-28", retail: { "256GB": 1799, "512GB": 1999, "1TB": 2299 }, category: "phone" },
   { brand: "Google", icon: "🟡", model: "Pixel 10 Pro", release: "2025-08-28", retail: { "128GB": 1499, "256GB": 1699, "512GB": 1899 }, category: "phone" },
   { brand: "Google", icon: "🟡", model: "Pixel 10", release: "2025-08-28", retail: { "128GB": 1199, "256GB": 1399 }, category: "phone" },
@@ -141,7 +141,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Samsung", icon: "🔷", model: "Galaxy A14", release: "2023-02-01", retail: {"64GB":  299}, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A06", release: "2024-09-01", retail: {"64GB":  199}, category: "phone" },
   { brand: "Google", icon: "🟡", model: "Pixel 9 Pro XL", release: "2024-08-22", retail: {"128GB":  1849, "256GB":  2049}, category: "phone" },
-  { brand: "Google", icon: "🟡", model: "Pixel 9 Pro Fold", release: "2024-09-04", retail: {"256GB":  2699}, category: "phone" },
+  { brand: "Google", icon: "🟡", model: "Pixel 9 Pro Fold", release: "2024-09-04", retail: {"256GB":  2699}, category: "phone", marketAdjPct: -20 },
   { brand: "Google", icon: "🟡", model: "Pixel 7a", release: "2023-05-11", retail: {"128GB":  749}, category: "phone" },
   { brand: "Google", icon: "🟡", model: "Pixel 7 Pro", release: "2022-10-13", retail: {"128GB":  1299, "256GB":  1449}, category: "phone" },
   { brand: "Google", icon: "🟡", model: "Pixel 6 Pro", release: "2021-10-28", retail: {"128GB":  1299}, category: "phone" },

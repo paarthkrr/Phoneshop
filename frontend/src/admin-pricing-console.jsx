@@ -34,7 +34,7 @@ const DEFAULT_CONFIG = {
     AE: { label: "UAE", currency: "AED", symbol: "AED ", mult: 2.35 },
   },
   retentionPoints: [
-    { m: 0, r: 0.8 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
+    { m: 0, r: 0.66 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
     { m: 36, r: 0.37 }, { m: 48, r: 0.33 }, { m: 60, r: 0.233 },
     { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 }, { m: 120, r: 0.045 },
   ],
@@ -330,6 +330,7 @@ export default function AdminPricingConsole() {
               { key: "shopName", label: "Shop name" }, { key: "abn", label: "ABN (or local business number)" },
               { key: "address", label: "Business address" }, { key: "phone", label: "Phone" }, { key: "email", label: "Email" },
               { key: "hours", label: "Opening hours (e.g. Mon–Fri 9am–6pm, Sat 10am–4pm)" },
+              { key: "dealerLicence", label: "Second-hand dealer licence no. (shown on the site only if entered)" },
             ].map((f) => (
               <div key={f.key} style={{ marginBottom: 10 }}>
                 <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }}>{f.label}</label>

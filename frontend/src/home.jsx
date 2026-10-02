@@ -34,6 +34,8 @@ const TRUST = [
   { title: "Price match guarantee", desc: "Found it cheaper? We'll match it." },
   { title: "Warranty included", desc: "3 months on devices, 6 months on repairs, parts and accessories." },
   { title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
+  { title: "Any condition", desc: "Cracked, dead or water-damaged — we still make an offer." },
+  { title: "Data wiped securely", desc: "Every device is fully erased before it's resold." },
 ];
 
 const STEPS = [
@@ -50,11 +52,13 @@ const GUIDES = [
 
 export default function Home() {
   const [stats, setStats] = useState([]);
+  const [biz, setBiz] = useState({});
 
   useEffect(() => {
     (async () => {
       const cfg = await loadJSON("pricing-config", true);
       const b = (cfg && cfg.businessSettings) || {};
+      setBiz(b);
       // Only show numbers the owner has actually entered — never invented ones.
       const s = [];
       if (b.yearsInBusiness) s.push({ value: `${b.yearsInBusiness}+`, label: "years in business" });
@@ -123,7 +127,7 @@ export default function Home() {
             ))}
           </div>
           <div style={{ fontSize: 12.5, color: muted, marginTop: 14 }}>
-            ✓ No sign-up &nbsp;·&nbsp; ✓ Price held 14 days &nbsp;·&nbsp; ✓ Paid by bank transfer or PayPal
+            ✓ No sign-up &nbsp;·&nbsp; ✓ Any condition &nbsp;·&nbsp; ✓ Price held 14 days &nbsp;·&nbsp; ✓ Paid by bank transfer or PayPal
           </div>
         </div>
 
@@ -179,6 +183,39 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ---- Before you sell ---- */}
+      <div style={{ ...section, marginBottom: 50 }}>
+        <div style={heading}>Before you sell: 2 minutes of prep</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+          {[{"i": "💾", "t": "Back it up", "d": "iCloud, Google, or your computer."}, {"i": "🔓", "t": "Sign out & turn off Find My", "d": "Settings → your name → Find My (iPhone), or remove your Google/Samsung account (Android). Locked phones can't be accepted."}, {"i": "🧹", "t": "Erase it", "d": "Settings → General → Transfer or Reset → Erase All Content (iPhone), or Factory reset (Android)."}, {"i": "📶", "t": "Remove your SIM", "d": "And any memory card."}].map((c) => (
+            <div key={c.t} style={{ background: panel, border: "1px solid rgba(32,28,24,0.12)", borderRadius: 14, padding: 16 }}>
+              <div style={{ fontSize: 24, marginBottom: 6 }} aria-hidden="true">{c.i}</div>
+              <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 4 }}>{c.t}</div>
+              <div style={{ color: muted, fontSize: 13, lineHeight: 1.5 }}>{c.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ---- Repairs ---- */}
+      <div style={{ ...section, marginBottom: 50 }}>
+        <div style={heading}>Repairs, most done same day</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          {[["📱", "Screen replacement", "From $150", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $60", "Phone dying by lunchtime?"],
+            ["🔌", "Charging port", "From $80", "Often just dust — we check and clean first."], ["📷", "Camera repair", "From $90", "Blurry, cracked or not focusing."]].map(([i, t, p, d]) => (
+            <a key={t} href="/repairs" className="cs-card" style={{ display: "block", border: "2px solid #201C18", background: panel, padding: 16, color: paper, textDecoration: "none" }}>
+              <div style={{ fontSize: 24, marginBottom: 6 }} aria-hidden="true">{i}</div>
+              <div style={{ fontWeight: 700, fontSize: 14.5 }}>{t}</div>
+              <div style={{ color: brass, fontWeight: 700, fontSize: 14, margin: "3px 0 6px" }}>{p}</div>
+              <div style={{ color: muted, fontSize: 13 }}>{d}</div>
+            </a>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 16, fontSize: 13.5 }}>
+          Genuine parts · 6-month warranty · <a href="/repairs" style={{ color: brass, fontWeight: 700 }}>See all repairs →</a> · <a href="/tutorials" style={{ color: brass }}>DIY tutorials</a>
+        </div>
+      </div>
+
       {/* ---- Brands ---- */}
       <div style={{ ...section, marginBottom: 50, textAlign: "center" }}>
         <div style={{ color: muted, fontSize: 12.5, marginBottom: 12, letterSpacing: "0.04em" }}>WE BUY, SELL AND REPAIR</div>
@@ -199,6 +236,26 @@ export default function Home() {
           <a href="/about" style={{ color: brass, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Read our story →</a>
         </div>
       </div>
+
+      {/* ---- Visit us (only once the address is set in Business settings) ---- */}
+      {biz.address && (
+        <div style={{ ...section, marginBottom: 50 }}>
+          <div style={{ border: "2px solid #201C18", borderRadius: 14, background: panel, padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, alignItems: "center" }}>
+            <div>
+              <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 21, marginBottom: 8 }}>Visit us in store</div>
+              <div style={{ fontSize: 14.5, lineHeight: 1.6 }}>{biz.address}</div>
+              {biz.hours && <div style={{ color: muted, fontSize: 13.5, lineHeight: 1.6, marginTop: 4, whiteSpace: "pre-line" }}>{biz.hours}</div>}
+              <div style={{ color: muted, fontSize: 13, marginTop: 8 }}>Bring your phone in for a free check and an instant offer. Negotiation? We're listening.</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(biz.address)}`} target="_blank" rel="noopener" className="cs-btn"
+                style={{ padding: "13px 20px", background: brass, color: "#fff", fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📍 Get directions</a>
+              {biz.phone && <a href={`tel:${biz.phone.replace(/\s/g, "")}`} className="cs-btn"
+                style={{ padding: "13px 20px", border: "1.5px solid #201C18", color: paper, fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📞 Call {biz.phone}</a>}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ---- Guides ---- */}
       <div style={{ ...section, marginBottom: 50 }}>

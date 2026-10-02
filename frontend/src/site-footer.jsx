@@ -39,6 +39,7 @@ export default function SiteFooter() {
           {businessSettings?.email || "Contact us through the site"}
           {businessSettings?.hours && <><br /><span style={{ whiteSpace: "pre-line" }}>{businessSettings.hours}</span></>}
           {businessSettings?.abn && <><br />ABN {businessSettings.abn}</>}
+          {businessSettings?.dealerLicence && <><br />Licensed second-hand dealer · Licence {businessSettings.dealerLicence}</>}
         </div>
       </div>
       <div>

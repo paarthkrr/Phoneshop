@@ -34,7 +34,7 @@ const useEffect = React.useEffect;
 ================================================================= */
 
 const DEFAULT_RETENTION_POINTS = [
-  { m: 0, r: 0.8 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
+  { m: 0, r: 0.66 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
   { m: 36, r: 0.37 },  // recalibrated 28 Sep 2026 vs live Mobile Monster Brand New prices: 16 Pro 910/1799, 15 Pro 670/1849, 14 460/1399
   { m: 48, r: 0.33 }, { m: 60, r: 0.233 },  // older ages scaled by the same ~0.75 the 4-yr point moved
   { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 },
@@ -1561,6 +1561,15 @@ export default function QuoteCalculator() {
                 Share your code <strong>{myReferralCode}</strong> with a friend — you both get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)} when they sell to us.
               </div>
             )}
+            <div style={{ border: `1px solid ${line}`, borderRadius: 10, padding: 14, marginTop: 16, textAlign: "left" }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Before you send it — 2 minutes of prep</div>
+              <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: paper }}>
+                <li><strong>Back it up</strong> (iCloud, Google or your computer).</li>
+                <li><strong>Turn off Find My / sign out</strong> of your Apple, Google or Samsung account — locked phones can't be paid for.</li>
+                <li><strong>Erase it</strong> (Settings → General → Transfer or Reset on iPhone; Factory reset on Android).</li>
+                <li><strong>Remove your SIM</strong> and any memory card.</li>
+              </ol>
+            </div>
             <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idType: "license", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" }); setIdPhotoFile(null); setReferralCodeEntered(""); setMyReferralCode(null); }}
               style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 14, cursor: "pointer" }}>
               Start another quote

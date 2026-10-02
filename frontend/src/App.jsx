@@ -149,6 +149,11 @@ function Nav() {
           .cs-page-enter, .cs-fade, .cs-btn, .cs-card, .cs-nav-link, .cs-tile, .cs-spinner { animation: none !important; transition: none !important; }
         }
       `}</style>
+      {!isStaff && (
+        <div className="cs-announce" style={{ background: "#201C18", color: "#F7F4EC", fontSize: 12.5, textAlign: "center", padding: "7px 12px", lineHeight: 1.5, fontFamily: "'Archivo', system-ui, sans-serif" }}>
+          ✓ Price match guarantee &nbsp;·&nbsp; ✓ We buy phones in any condition &nbsp;·&nbsp; ✓ Free click &amp; collect
+        </div>
+      )}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
           <Link to={isStaff ? "/portal/index.html" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
