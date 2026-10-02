@@ -39,6 +39,14 @@
     </script>
 
     <script>
+      // The site moved to mobile-vault-web.onrender.com (the old address had a
+      // broken host setting). Anyone arriving at the old address is sent to the
+      // same page on the new one, so old links and bookmarks keep working.
+      if (location.hostname === "phoneshop-frontend-51tg.onrender.com") {
+        location.replace("https://mobile-vault-web.onrender.com" + location.pathname + location.search + location.hash);
+      }
+    </script>
+    <script>
       // Boot guard. Lives in the HTML itself, before the app's script, so it
       // works even when the app's JavaScript never arrives.
       //
