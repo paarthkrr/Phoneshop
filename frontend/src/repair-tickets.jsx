@@ -187,7 +187,7 @@ export default function RepairTickets() {
       device: { brand: data.brand, model: data.model },
       issue: data.issue, repairTypeId: data.repairTypeId,
       quotedPrice: data.quotedPrice, deposit: data.deposit || 0,
-      parts: [], finalPrice: null, warrantyDays: 180, warrantyOf: null,
+      parts: [], finalPrice: null, warrantyDays: 90, warrantyOf: null,
       staffHandled: staffName || "unattributed", notifiedAt: null, completedAt: null,
       statusLog: [{ status: "dropped_off", at: new Date().toISOString(), by: staffName || "unattributed" }],
     };
@@ -214,7 +214,7 @@ export default function RepairTickets() {
       customer: ticket.customer, device: ticket.device,
       issue: `Warranty claim on ${ticket.id}: ${ticket.issue}`, repairTypeId: ticket.repairTypeId,
       quotedPrice: withinWarranty ? 0 : ticket.quotedPrice, deposit: 0,
-      parts: [], finalPrice: null, warrantyDays: 180, warrantyOf: ticket.id,
+      parts: [], finalPrice: null, warrantyDays: 90, warrantyOf: ticket.id,
       staffHandled: staffName || "unattributed", notifiedAt: null, completedAt: null,
       statusLog: [{ status: "diagnosing", at: new Date().toISOString(), by: staffName || "unattributed" }],
     };
@@ -271,7 +271,7 @@ export default function RepairTickets() {
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{r.name} — {r.deviceType}: {r.model}</span>
                       <span style={{ fontSize: 11, color: muted }}>{r.id}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{r.email}{r.phone && ` · ${r.phone}`}</div>
+                    <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{r.email}{r.phone && ` · ${r.phone}`}{` · ${r.method === "mailin" ? "📮 Mail-in" : "🏪 In store"}`}</div>
                     <div style={{ fontSize: 13, marginBottom: 8 }}>{r.issue}</div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={() => setView("intake")} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>

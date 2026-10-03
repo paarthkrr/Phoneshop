@@ -31,8 +31,8 @@ const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
 // with their core actions rather than burying them.
 const ACTIONS = [
   { href: "/quote", icon: "💰", title: "Sell your device", desc: "Instant quote in under a minute. No obligation.", cta: "Get a quote" },
-  { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, and backed by a 3-month warranty.", cta: "Shop now" },
-  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Genuine parts, honest diagnosis, turnaround confirmed before we start.", cta: "Book a repair" },
+  { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, 1-year warranty and free express shipping.", cta: "Shop now" },
+  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Cheapest prices, genuine parts, done same day in store.", cta: "Book a repair" },
 ];
 
 const POPULAR = ["iPhone 16 Pro", "iPhone 15 Pro", "iPhone 14", "Galaxy S24 Ultra", "Pixel 9 Pro", "iPhone 13"];
@@ -40,7 +40,7 @@ const POPULAR = ["iPhone 16 Pro", "iPhone 15 Pro", "iPhone 14", "Galaxy S24 Ultr
 const TRUST = [
   { title: "Genuine parts only", desc: "Never unmarked aftermarket substitutes." },
   { title: "Price match guarantee", desc: "Found it cheaper? We'll match it." },
-  { title: "Warranty included", desc: "3 months on devices, 6 months on repairs, parts and accessories." },
+  { title: "1-year warranty", desc: "On every device we sell. Repairs 90 days, parts & accessories 6 months." },
   { title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
   { title: "Any condition", desc: "Cracked, dead or water-damaged — we still make an offer." },
   { title: "Data wiped securely", desc: "Every device is fully erased before it's resold." },
@@ -171,7 +171,7 @@ export default function Home() {
             <div style={{ flex: 1, minWidth: 180 }}>
               <div style={{ fontSize: 11.5, fontWeight: 800, color: brass, letterSpacing: "0.06em", marginBottom: 4 }}>FEATURED DEAL</div>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20 }}>{featured.brand} {featured.model}</div>
-              <div style={{ color: muted, fontSize: 13.5 }}>{featured.storage} · Graded, tested, 3-month warranty</div>
+              <div style={{ color: muted, fontSize: 13.5 }}>{featured.storage} · Graded, tested, 1-year warranty, free express shipping</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, color: brass }}>${Math.round(featured.listedPrice).toLocaleString()}</div>
@@ -253,7 +253,7 @@ export default function Home() {
 
       {/* ---- Repairs ---- */}
       <div style={{ ...section, marginBottom: 50 }}>
-        <div style={heading}>Repairs, done properly</div>
+        <div style={heading}>Cheapest repairs, done same day in store</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
           {[["📱", "Screen replacement", "From $85", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $59", "Phone dying by lunchtime?"],
             ["🔌", "Charging port", "From $55", "Often just dust — we check and clean first."], ["📷", "Camera repair", "From $75", "Blurry, cracked or not focusing."]].map(([i, t, p, d]) => (
@@ -266,7 +266,7 @@ export default function Home() {
           ))}
         </div>
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 13.5 }}>
-          Genuine parts · 6-month warranty (many shops give 90 days) · Final price confirmed before we start · <a href="/repairs" style={{ color: brass, fontWeight: 700 }}>See all repairs →</a> · <a href="/tutorials" style={{ color: brass }}>DIY tutorials</a>
+          Cheapest prices · Same day in store · Mail-in Australia-wide · 90-day warranty · <a href="/repairs" style={{ color: brass, fontWeight: 700 }}>See all repairs →</a> · <a href="/tutorials" style={{ color: brass }}>DIY tutorials</a>
         </div>
       </div>
 

@@ -152,7 +152,7 @@ function Nav() {
       `}</style>
       {!isStaff && (
         <div className="cs-announce" style={{ background: "#201C18", color: "#F7F4EC", fontSize: 12.5, textAlign: "center", padding: "7px 12px", lineHeight: 1.5, fontFamily: "'Archivo', system-ui, sans-serif" }}>
-          ✓ Price match guarantee &nbsp;·&nbsp; ✓ 30-day returns &nbsp;·&nbsp; ✓ Battery health 80%+ guaranteed &nbsp;·&nbsp; ✓ We buy any condition &nbsp;·&nbsp; <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>
+          ⚡ Free express shipping Australia-wide &nbsp;·&nbsp; ✓ 1-year warranty on every device &nbsp;·&nbsp; ✓ 30-day returns &nbsp;·&nbsp; ✓ Same-day repairs in store &nbsp;·&nbsp; <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>
         </div>
       )}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
@@ -403,11 +403,11 @@ function MobileCTA() {
 // canonical link (previously every page shared the homepage's title).
 const SITE = "Mobile Vault";
 const PAGE_META = {
-  "/": ["Mobile Vault — Sell, Buy & Repair Phones | Genuine Parts, Price Match", "Instant trade-in quotes, graded refurbished phones, and repairs with genuine parts and a price match guarantee."],
+  "/": ["Mobile Vault — Sell, Buy & Repair Phones | Genuine Parts, Price Match", "Same-day phone repairs in store at the cheapest prices, instant trade-in quotes, and refurbished phones with a 1-year warranty and free express shipping."],
   "/quote": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days, paid by bank transfer or PayPal."],
   "/sell": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days."],
-  "/shop": ["Refurbished Phones — Graded & Tested", "Buy graded, tested refurbished iPhones and Android phones with a 3-month warranty."],
-  "/repairs": ["Phone, Tablet & Laptop Repairs — Genuine Parts", "Screen, battery and charging port repairs with genuine parts, a 6-month warranty, and a price match guarantee."],
+  "/shop": ["Refurbished Phones — Graded & Tested", "Buy graded, tested refurbished iPhones and Android phones with a 1-year warranty and free express shipping."],
+  "/repairs": ["Phone, Tablet & Laptop Repairs — Genuine Parts", "Cheapest phone repairs, done same day in store. Genuine parts, a 90-day warranty, and a price match guarantee. Mail-in repairs Australia-wide."],
   "/accessories": ["Phone Accessories, Parts & DIY Kits", "Cases, screen protectors, chargers and DIY repair kits. Free click & collect or fast delivery."],
   "/parts": ["Phone Accessories, Parts & DIY Kits", "Cases, screen protectors, chargers and DIY repair kits. Free click & collect or fast delivery."],
   "/tutorials": ["Phone Repair Tutorials — Screen & Back Glass", "Step-by-step videos for iPhone screen and back glass repair, with safety tips before you start."],

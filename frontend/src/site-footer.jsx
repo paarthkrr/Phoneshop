@@ -75,8 +75,9 @@ export default function SiteFooter() {
         <div style={{ color: muted, lineHeight: 1.9 }}>
           ✓ Genuine parts only<br />
           ✓ Price match guarantee<br />
-          ✓ 3-month warranty on devices<br />
-          ✓ 6-month warranty on repairs, parts &amp; accessories<br />
+          ✓ 1-year warranty on devices<br />
+          ✓ Free express shipping<br />
+          ✓ Same-day repairs in store<br />
           ✓ Phones, tablets, laptops &amp; watches
         </div>
       </div>

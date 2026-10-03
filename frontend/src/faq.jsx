@@ -18,11 +18,11 @@ const FAQS = [
   },
   {
     q: "What devices do you repair?",
-    a: "Phones, tablets, laptops, and watches — not just one brand. Screens, batteries, charging ports, and more, with the turnaround confirmed before we start.",
+    a: "Phones, tablets, laptops, and watches — not just one brand. Screens, batteries, charging ports, and more, at the cheapest prices around (and we'll match any lower quote). Most repairs are done same day in store.",
   },
   {
     q: "How long does a repair take?",
-    a: "Simple repairs like screens, batteries and charging ports are often quick, but it depends on the model and whether the part is in stock — we'll confirm the turnaround before we start. Your exact quote and turnaround depends on the model and what's actually wrong, which we'll tell you honestly before we start.",
+    a: "In store, most repairs (screens, batteries, charging ports) are done the same day, often while you wait, as long as the part is in stock. Mail-in repairs are usually back with you within 3–5 business days of arriving, plus postage time. We'll confirm your exact quote and timing before we start.",
   },
   {
     q: "How does selling my old phone work?",
@@ -30,11 +30,11 @@ const FAQS = [
   },
   {
     q: "Is the refurbished stock actually tested?",
-    a: "Every device is graded (A, B, or C) based on a real inspection before it's listed, and comes with a 3-month warranty. Repairs, parts and accessories are covered for 6 months.",
+    a: "Every device is graded (A, B, or C) based on a real inspection before it's listed, and comes with a 1-year warranty. Repairs are covered for 90 days, and parts and accessories for 6 months.",
   },
   {
     q: "What if I'm not happy with a repair or a device I bought?",
-    a: "Devices we sell carry a 3-month warranty, and repairs, parts and accessories carry 6 months — as long as there's no physical or liquid damage. If something's genuinely wrong, bring it back.",
+    a: "Devices we sell carry a 1-year warranty, repairs carry 90 days, and parts and accessories 6 months — as long as there's no physical or liquid damage. If something's genuinely wrong, bring it back.",
   },
 ];
 

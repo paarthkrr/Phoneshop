@@ -19,8 +19,8 @@ function fmt(n) { return "$" + Number(n || 0).toFixed(2); }
 const genId = () => "ACC-" + Math.floor(100000 + Math.random() * 900000);
 
 // Delivery pricing — change these to suit your postage costs.
-const SHIPPING_FLAT = 9.95;
-const FREE_SHIPPING_OVER = 60;
+const SHIPPING_FLAT = 0; // free express shipping Australia-wide
+const FREE_SHIPPING_OVER = 0;
 const CART_KEY = "mv_cart";
 const ICONS = [[/case|cover/i, "📱"], [/protector|glass/i, "🛡️"], [/charg|cable|power/i, "🔌"], [/kit|diy|tool|part/i, "🧰"], [/audio|ear|head/i, "🎧"]];
 const iconFor = (cat) => (ICONS.find(([re]) => re.test(cat || "")) || [null, "✨"])[1];
@@ -98,7 +98,7 @@ export default function Parts() {
           <button className="cs-btn" onClick={() => setView("checkout")} style={primary()}>🛒 Cart ({count}) · {fmt(subtotal)} →</button>
         )}
       </div>
-      <div style={{ color: muted, fontSize: 14, marginBottom: 18 }}>Cases, screen protectors, chargers, and DIY repair kits — in stock, ready today, with a 6-month warranty. Free click &amp; collect, or delivery ({fmt(SHIPPING_FLAT)}, free over {fmt(FREE_SHIPPING_OVER)}). 30-day returns on unopened items — <a href="/terms#returns" target="_blank" rel="noopener" style={{ color: brass }}>conditions apply</a>.</div>
+      <div style={{ color: muted, fontSize: 14, marginBottom: 18 }}>Cases, screen protectors, chargers, and DIY repair kits — in stock, ready today, with a 6-month warranty. Free click &amp; collect, or free express shipping Australia-wide. 30-day returns on unopened items — <a href="/terms#returns" target="_blank" rel="noopener" style={{ color: brass }}>conditions apply</a>.</div>
     </>
   );
   const CrossLinks = (
@@ -154,7 +154,7 @@ export default function Parts() {
         </div>
 
         <div role="group" aria-label="Delivery method" style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          {[["collect", "Click & collect — free"], ["delivery", subtotal >= FREE_SHIPPING_OVER ? "Delivery — free" : `Delivery — ${fmt(SHIPPING_FLAT)}`]].map(([k, lbl]) => (
+          {[["collect", "Click & collect — free"], ["delivery", "Free express shipping"]].map(([k, lbl]) => (
             <button key={k} aria-pressed={fulfilment === k} onClick={() => setFulfilment(k)} style={{ flex: 1, padding: 12, borderRadius: 10, cursor: "pointer", fontSize: 13.5, fontWeight: 600,
               border: `1.5px solid ${fulfilment === k ? brass : line}`, background: fulfilment === k ? brassDim : "transparent", color: fulfilment === k ? brass : paper }}>{lbl}</button>
           ))}
@@ -168,7 +168,7 @@ export default function Parts() {
 
         <div style={{ background: panel, borderRadius: 14, padding: 16, margin: "8px 0 14px", fontSize: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: muted }}><span>{fulfilment === "collect" ? "Click & collect" : "Delivery"}</span><span>{shipping ? fmt(shipping) : "Free"}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: muted }}><span>{fulfilment === "collect" ? "Click & collect" : "Express shipping"}</span><span>{shipping ? fmt(shipping) : "Free"}</span></div>
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 17, borderTop: "1px solid rgba(32,28,24,0.1)", paddingTop: 8 }}><span>Total (incl. GST)</span><span>{fmt(total)}</span></div>
         </div>
         <div style={{ fontSize: 12, color: muted, marginBottom: 12, lineHeight: 1.5 }}>

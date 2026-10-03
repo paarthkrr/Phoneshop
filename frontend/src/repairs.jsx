@@ -96,6 +96,7 @@ export default function Repairs() {
   const [phone, setPhone] = useState("");
   const [model, setModel] = useState("");
   const [issue, setIssue] = useState("");
+  const [method, setMethod] = useState("instore");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [error, setError] = useState("");
@@ -120,7 +121,7 @@ export default function Repairs() {
       const entry = {
         id: genId(), createdAt: new Date().toISOString(), status: "new",
         name: name.trim(), email: email.trim(), phone: phone.trim(),
-        deviceType, model: model.trim(), issue: issue.trim(),
+        deviceType, model: model.trim(), issue: issue.trim(), method,
       };
       const ok = await saveJSON("repair_requests", [entry, ...list], true);
       if (!ok) throw new Error("Couldn't submit — check your connection and try again.");
@@ -144,7 +145,7 @@ export default function Repairs() {
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
         <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", textAlign: "center" }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, marginBottom: 10 }}>Got it — {submitted.id}</div>
-          <div style={{ color: muted, fontSize: 14, marginBottom: 24 }}>We'll reach out at {submitted.email} to confirm details and turnaround for your {submitted.deviceType.toLowerCase()}.</div>
+          <div style={{ color: muted, fontSize: 14, marginBottom: 24 }}>We'll reach out at {submitted.email} to confirm details for your {submitted.deviceType.toLowerCase()}. {submitted.method === "mailin" ? "We'll email you the postal address for your mail-in repair." : "Pop in any time during opening hours — most repairs are done the same day."}</div>
           <a href="/" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Back to homepage</a>
         </div>
       </div>
@@ -158,7 +159,7 @@ export default function Repairs() {
 
         <Photo name="microscope" height={220} eager style={{ marginBottom: 26 }} />
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 8 }}>Repairs — any gadget, genuine parts</div>
-        <div style={{ color: muted, fontSize: 14, marginBottom: 8 }}>Phones, tablets, laptops, watches. Genuine parts only, every repair carries a 6-month warranty — double the 90 days many shops give — and if you find it cheaper elsewhere, we'll match it. Prefer DIY? See our <a href="/tutorials" style={{ color: brass }}>repair tutorials</a>.</div>
+        <div style={{ color: muted, fontSize: 14, marginBottom: 8 }}>Phones, tablets, laptops, watches. Genuine parts only, the cheapest repairs around (found it cheaper? we'll match it), done <strong>same day in store</strong>, and every repair carries a 90-day warranty. Not nearby? Send it by post — usually back within 3–5 business days. Prefer DIY? See our <a href="/tutorials" style={{ color: brass }}>repair tutorials</a>.</div>
         <div style={{ color: muted, fontSize: 13, marginBottom: 20 }}>Prices below are a starting point — your exact quote depends on the model and what's actually wrong, which we'll tell you honestly before we start anything.</div>
 
         <button onClick={() => { setTrackOpen((o) => !o); setTrackResult(undefined); }} style={{ background: "none", border: "none", padding: 0, color: brass, cursor: "pointer", fontSize: 13, textDecoration: "underline", marginBottom: trackOpen ? 16 : 28, display: "block" }}>
@@ -207,6 +208,22 @@ export default function Repairs() {
 
         <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 22, background: panel }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 16 }}>Request a repair</div>
+
+          <div role="group" aria-label="Repair method" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+
+            {[["instore", "In store — same day"], ["mailin", "Mail-in — 3–5 business days"]].map(([k, lbl]) => (
+
+              <button key={k} type="button" onClick={() => setMethod(k)} aria-pressed={method === k}
+
+                style={{ flex: 1, padding: "11px 8px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer",
+
+                  border: `1.5px solid ${method === k ? brass : line}`, background: method === k ? brassDim : "transparent", color: method === k ? brass : paper }}>{lbl}</button>
+
+            ))}
+
+          </div>
+
+          {method === "mailin" && <div style={{ fontSize: 12.5, color: muted, marginBottom: 12, lineHeight: 1.5 }}>We'll email you our postal address and a reference number. Post it tracked from any Australia Post outlet; it's usually back with you within 3–5 business days of arriving.</div>}
 
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name" autoComplete="name"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />

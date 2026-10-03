@@ -61,7 +61,7 @@ async function saveJSON(key, value, shared) {
   try { await window.storage.set(key, JSON.stringify(value), shared); return true; } catch (e) { return false; }
 }
 const genOrderId = () => "WEB-" + Math.floor(100000 + Math.random() * 900000);
-const WARRANTY_MONTHS = 3; // refurbished devices; parts, accessories & repairs are 6 months
+const WARRANTY_MONTHS = 12; // refurbished devices; repairs 90 days; parts & accessories 6 months
 
 const GRADE_LABELS = {
   A: { label: "Excellent", desc: "Looks and works like new — no visible wear." },
@@ -327,7 +327,7 @@ export default function Storefront() {
               </div>
 
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 14 }}>Repairs — Any Gadget, Genuine Parts, Price Matched</div>
-              <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Phones, tablets, laptops, watches — screens, batteries, charging ports and more, turnaround confirmed before we start. Genuine parts only, and if you find it cheaper elsewhere, we'll match it. Prices below are a starting point; your exact quote depends on the model.</div>
+              <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Phones, tablets, laptops, watches — screens, batteries, charging ports and more, at the cheapest prices and done same day in store. Genuine parts only, and if you find it cheaper elsewhere, we'll match it. Prices below are a starting point; your exact quote depends on the model.</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 40 }}>
                 {REPAIR_PRICE_TEASERS.map((r) => (
                   <div key={r.name} style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14 }}>

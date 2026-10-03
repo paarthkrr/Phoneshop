@@ -111,7 +111,7 @@ export function Terms() {
 
       <h2 id="shipping">Shipping &amp; postage</h2>
       <ul>
-        <li><strong>Accessories orders:</strong> free click &amp; collect, or delivery Australia-wide by tracked post. Delivery is free on orders over $60.</li>
+        <li><strong>Accessories orders:</strong> free click &amp; collect, or free express shipping Australia-wide by tracked post.</li>
         <li><strong>Posting us a trade-in:</strong> pack it securely and drop it at any Australia Post outlet or Parcel Locker. Keep your tracking number until we confirm it's arrived. Devices travel at your risk until received, so we recommend tracked postage.</li>
       </ul>
 
@@ -125,6 +125,13 @@ export function Terms() {
       <h2 id="paylater">Pay later</h2>
       <p>Where shown on our site, pay-later options (such as Afterpay or Zip) are accepted for in-store purchases only, subject to the provider's approval and terms.</p>
 
+      <h2 id="repair-times">Repair times</h2>
+      <ul>
+        <li><strong>In store:</strong> most repairs are completed the same day, provided the part is in stock and the fault is as diagnosed. Complex faults (e.g. liquid or board damage) can take longer; we'll tell you before we start.</li>
+        <li><strong>Mail-in:</strong> usually returned within 3–5 business days of arriving, plus postage time.</li>
+        <li><strong>Cheapest price:</strong> if you find the same repair with the same part quality cheaper at another Australian business, we'll match it under our price match guarantee.</li>
+      </ul>
+
       <h2>Repairs</h2>
       <ul>
         <li>We diagnose first and quote before starting any work.</li>
@@ -133,8 +140,8 @@ export function Terms() {
 
       <h2 id="warranty">Our warranty</h2>
       <ul>
-        <li><strong>Refurbished devices: 3 months</strong> from the date of purchase.</li>
-        <li><strong>Repairs</strong> (the parts we fit and our workmanship): <strong>6 months</strong> from the date of repair.</li>
+        <li><strong>Refurbished devices: 1 year</strong> from the date of purchase (hardware faults).</li>
+        <li><strong>Repairs</strong> (the parts we fit and our workmanship): <strong>90 days</strong> from the date of repair.</li>
         <li><strong>Parts and accessories: 6 months</strong> from the date of purchase.</li>
       </ul>
       <p>The warranty covers defects only, and applies only if the item hasn't been damaged. It doesn't cover drops, cracked screens or glass, bent frames, liquid damage, misuse, or later repairs by anyone else.</p>

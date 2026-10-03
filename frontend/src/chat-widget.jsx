@@ -6,9 +6,9 @@ const KNOWLEDGE = [
   { keywords: ["price match", "cheaper", "match", "guarantee"], a: "Yes — find the same repair or device cheaper elsewhere and we'll match it. Submit a price match request through our quote tool and a real person reviews it." },
   { keywords: ["genuine", "parts", "fake", "aftermarket"], a: "Always genuine parts, never unmarked aftermarket substitutes. We built this business specifically because other shops were overcharging for simple fixes using cheap parts." },
   { keywords: ["what devices", "repair", "tablet", "laptop", "watch", "types"], a: "Phones, tablets, laptops, and watches — not just one brand." },
-  { keywords: ["how long", "turnaround", "wait", "same day", "quick", "fast"], a: "Simple repairs like screens, batteries and charging ports are often quick. It depends on the model and parts in stock, so we'll confirm your exact turnaround before we start." },
+  { keywords: ["how long", "turnaround", "wait", "same day", "quick", "fast"], a: "In store, most repairs are done the same day, often while you wait, if the part is in stock. Mail-in repairs are usually back with you within 3–5 business days of arriving, plus postage time." },
   { keywords: ["sell", "trade", "trade-in", "quote"], a: "Answer a few questions about your device, get an instant quote, and we inspect it once we receive it to confirm the price — no surprise deductions." },
-  { keywords: ["warranty", "guarantee period", "3 month", "6 month"], a: "Devices we sell have a 3-month warranty. Repairs, parts and accessories have 6 months. Physical or liquid damage isn't covered." },
+  { keywords: ["warranty", "guarantee period", "1 year", "90 day", "12 month"], a: "Devices we sell have a 1-year warranty. Repairs have 90 days, and parts and accessories 6 months. Physical or liquid damage isn't covered." },
   { keywords: ["tested", "graded", "condition", "refurbished"], a: "Every device is graded (A, B, or C) based on a real inspection before it's listed." },
   { keywords: ["track", "order", "status", "where is my"], a: "You can track your order yourself — tap 'Track an order' or 'Track a purchase' at the bottom of the homepage or shop page, no waiting on a reply." },
 ];

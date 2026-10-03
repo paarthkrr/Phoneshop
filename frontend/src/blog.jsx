@@ -30,7 +30,7 @@ const POSTS = [
       "Grading exists because 'refurbished' on its own tells you almost nothing — a phone with a hairline scratch and a phone with a cracked back panel could both technically be called refurbished. A grade is a shorthand for cosmetic condition, checked and assigned by a real person before the device is ever listed.",
       "Grade A means the device looks close to new — no visible scratches at typical viewing distance, screen and body both clean. Grade B means light, honest wear: small marks that don't affect the screen or function, the kind you'd expect from a phone that's had a case on it for a year. Grade C means more visible wear — noticeable scratches or small dings — but still fully functional and tested.",
       "What grading is never about is function. Every device we list, regardless of grade, has been tested the same way: battery health checked, all ports and buttons confirmed working, screen checked for dead pixels. Grade is purely cosmetic. A Grade C phone works exactly as well as a Grade A one — you're choosing how much cosmetic wear you're comfortable with, not how reliable the phone is.",
-      "Every grade also carries the same 3-month warranty. If you're comfortable with a bit of visible wear, a Grade C device is usually the best value in the shop.",
+      "Every grade also carries the same 1-year warranty. If you're comfortable with a bit of visible wear, a Grade C device is usually the best value in the shop.",
     ],
   },
   {

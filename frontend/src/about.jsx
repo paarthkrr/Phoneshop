@@ -38,7 +38,7 @@ export default function AboutUs() {
             ✓ Genuine parts only — never unmarked aftermarket substitutes<br />
             ✓ Price match guarantee — found it cheaper? We'll match it, no argument<br />
             ✓ Every gadget — phones, tablets, laptops, and watches, not just one brand<br />
-            ✓ 3-month warranty on every device we sell, 6 months on repairs, parts and accessories
+            ✓ 1-year warranty on every device we sell, 90 days on repairs, 6 months on parts and accessories
           </div>
         </div>
 
