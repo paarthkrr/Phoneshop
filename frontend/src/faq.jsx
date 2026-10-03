@@ -18,11 +18,11 @@ const FAQS = [
   },
   {
     q: "What devices do you repair?",
-    a: "Phones, tablets, laptops, and watches — not just one brand. Screens, batteries, charging ports, and more, most done same day.",
+    a: "Phones, tablets, laptops, and watches — not just one brand. Screens, batteries, charging ports, and more, with the turnaround confirmed before we start.",
   },
   {
     q: "How long does a repair take?",
-    a: "Most common repairs — screens, batteries, charging ports — are done same day. Your exact quote and turnaround depends on the model and what's actually wrong, which we'll tell you honestly before we start.",
+    a: "Simple repairs like screens, batteries and charging ports are often quick, but it depends on the model and whether the part is in stock — we'll confirm the turnaround before we start. Your exact quote and turnaround depends on the model and what's actually wrong, which we'll tell you honestly before we start.",
   },
   {
     q: "How does selling my old phone work?",

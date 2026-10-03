@@ -351,6 +351,7 @@ export default function App() {
         <Nav />
         <LinkInterceptor />
         <PageMeta />
+        <SiteSchema />
         <AnimatedRoutes />
       </div>
     </BrowserRouter>
@@ -402,7 +403,7 @@ function MobileCTA() {
 // canonical link (previously every page shared the homepage's title).
 const SITE = "Mobile Vault";
 const PAGE_META = {
-  "/": ["Mobile Vault — Sell, Buy & Repair Phones | Genuine Parts, Price Match", "Instant trade-in quotes, graded refurbished phones, and same-day repairs with genuine parts and a price match guarantee."],
+  "/": ["Mobile Vault — Sell, Buy & Repair Phones | Genuine Parts, Price Match", "Instant trade-in quotes, graded refurbished phones, and repairs with genuine parts and a price match guarantee."],
   "/quote": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days, paid by bank transfer or PayPal."],
   "/sell": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days."],
   "/shop": ["Refurbished Phones — Graded & Tested", "Buy graded, tested refurbished iPhones and Android phones with a 3-month warranty."],
@@ -418,6 +419,27 @@ const PAGE_META = {
   "/privacy": ["Privacy Policy", "How we collect, use and protect your personal information."],
   "/terms": ["Terms & Warranty", "Trade-in terms, price match guarantee, warranty and your Australian Consumer Law rights."],
 };
+// Adds the shop's real address and phone to Google's structured data once
+// they're entered in Business settings (never placeholders).
+function SiteSchema() {
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!window.storage) return;
+        const r = await window.storage.get("pricing-config", true);
+        const b = r ? (JSON.parse(r.value).businessSettings || {}) : {};
+        if (!b.address && !b.phone) return;
+        const data = { "@context": "https://schema.org", "@type": "ElectronicsStore", name: b.shopName || "Mobile Vault", url: window.location.origin,
+          ...(b.address ? { address: b.address } : {}), ...(b.phone ? { telephone: b.phone } : {}), ...(b.email ? { email: b.email } : {}) };
+        let el = document.getElementById("mv-localbusiness");
+        if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = "mv-localbusiness"; document.head.appendChild(el); }
+        el.textContent = JSON.stringify(data);
+      } catch (e) { /* settings not available */ }
+    })();
+  }, []);
+  return null;
+}
+
 function PageMeta() {
   const location = useLocation();
   useEffect(() => {

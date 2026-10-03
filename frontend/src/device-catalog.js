@@ -30,7 +30,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Samsung", icon: "🔷", model: "Galaxy S26 Ultra", release: "2026-02-01", retail: { "256GB": 2199, "512GB": 2419 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S26+", release: "2026-02-01", retail: { "256GB": 1799, "512GB": 1999 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S26", release: "2026-02-01", retail: { "128GB": 1499, "256GB": 1599 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S25 Ultra", release: "2025-01-22", retail: { "256GB": 2049, "512GB": 2269 }, category: "phone" },
+  { brand: "Samsung", icon: "🔷", model: "Galaxy S25 Ultra", release: "2025-01-22", retail: { "256GB": 2049, "512GB": 2269 }, category: "phone", imageUrl: "https://images.pexels.com/photos/30466736/pexels-photo-30466736.jpeg?auto=compress&cs=tinysrgb&w=600" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S25", release: "2025-01-22", retail: { "128GB": 1399, "256GB": 1499 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S24 Ultra", release: "2024-01-24", retail: { "256GB": 1999, "512GB": 2199 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S24", release: "2024-01-24", retail: { "128GB": 1399 }, category: "phone" },

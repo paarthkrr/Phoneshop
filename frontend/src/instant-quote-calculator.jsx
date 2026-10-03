@@ -1637,4 +1637,4 @@ export default function QuoteCalculator() {
 }
 
 // Shared with the Sell-by-brand pages so their "up to" figures use the exact same formula.
-export { baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT };
+export { baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT, PHONE_FAULT_GROUPS, BLOCKERS };

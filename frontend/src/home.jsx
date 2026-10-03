@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import DeviceArt from "./device-art.jsx";
 import Photo from "./photo.jsx";
+import DeviceArtCard, { inferDeviceType } from "./device-art.jsx";
+import { PHONE_FAULT_GROUPS, BLOCKERS } from "./instant-quote-calculator.jsx";
+import { mergeCatalog } from "./device-catalog.js";
+
+// The real inspection checklist used by staff — so the "N-point check" number
+// is always true, and updates itself if the checklist ever changes.
+const CHECK_GROUPS = PHONE_FAULT_GROUPS.map((g) => ({ name: g.group || g.title || g.name, n: g.faults.length }));
+const CHECK_COUNT = CHECK_GROUPS.reduce((n, g) => n + g.n, 0) + BLOCKERS.length;
 
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
@@ -24,7 +32,7 @@ const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
 const ACTIONS = [
   { href: "/quote", icon: "💰", title: "Sell your device", desc: "Instant quote in under a minute. No obligation.", cta: "Get a quote" },
   { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, and backed by a 3-month warranty.", cta: "Shop now" },
-  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Genuine parts, honest diagnosis, most done same day.", cta: "Book a repair" },
+  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Genuine parts, honest diagnosis, turnaround confirmed before we start.", cta: "Book a repair" },
 ];
 
 const POPULAR = ["iPhone 16 Pro", "iPhone 15 Pro", "iPhone 14", "Galaxy S24 Ultra", "Pixel 9 Pro", "iPhone 13"];
@@ -55,12 +63,21 @@ const GUIDES = [
 export default function Home() {
   const [stats, setStats] = useState([]);
   const [biz, setBiz] = useState({});
+  const [featured, setFeatured] = useState(null);
+  const [photos, setPhotos] = useState({});
 
   useEffect(() => {
     (async () => {
       const cfg = await loadJSON("pricing-config", true);
       const b = (cfg && cfg.businessSettings) || {};
       setBiz(b);
+      setPhotos(Object.fromEntries(mergeCatalog(cfg && cfg.catalog).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])));
+      // Featured deal: the highest-value device actually listed for sale right now.
+      try {
+        const r = window.storage && await window.storage.get("inventory", true);
+        const listed = r ? JSON.parse(r.value).filter((i) => i.status === "listed" && i.listedPrice > 0) : [];
+        setFeatured(listed.sort((a, x) => x.listedPrice - a.listedPrice)[0] || null);
+      } catch (e) { /* no stock yet */ }
       // Only show numbers the owner has actually entered — never invented ones.
       const s = [];
       if (b.yearsInBusiness) s.push({ value: `${b.yearsInBusiness}+`, label: "years in business" });
@@ -145,6 +162,25 @@ export default function Home() {
         )}
       </div>
 
+      {/* ---- Featured deal (only when stock is listed) ---- */}
+      {featured && (
+        <div style={{ ...section, marginBottom: 34 }}>
+          <a href="/shop" className="cs-card" style={{ display: "flex", alignItems: "center", gap: 18, border: "2px solid #2150C8", background: panel, padding: 18, color: paper, textDecoration: "none", flexWrap: "wrap" }}>
+            <DeviceArtCard type={inferDeviceType(featured.model, featured.category)} size={78} brand={featured.brand} model={featured.model}
+              imageUrl={featured.photoUrl || photos[`${featured.brand}|${featured.model}`]} label={`${featured.brand} ${featured.model}`} />
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, color: brass, letterSpacing: "0.06em", marginBottom: 4 }}>FEATURED DEAL</div>
+              <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20 }}>{featured.brand} {featured.model}</div>
+              <div style={{ color: muted, fontSize: 13.5 }}>{featured.storage} · Graded, tested, 3-month warranty</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, color: brass }}>${Math.round(featured.listedPrice).toLocaleString()}</div>
+              <div style={{ color: brass, fontWeight: 700, fontSize: 13.5 }}>Shop now →</div>
+            </div>
+          </a>
+        </div>
+      )}
+
       {/* ---- Trust strip ---- */}
       <div style={{ borderTop: `2px solid ${line}`, borderBottom: `2px solid ${line}`, background: panel, padding: "26px 16px", marginBottom: 50 }}>
         <div style={{ ...section, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
@@ -199,9 +235,25 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ---- Our inspection checklist ---- */}
+      <div style={{ ...section, marginBottom: 50 }}>
+        <div style={heading}>Every device passes our {CHECK_COUNT}-point check</div>
+        <div style={{ color: muted, fontSize: 14, textAlign: "center", maxWidth: 620, margin: "-8px auto 18px", lineHeight: 1.6 }}>
+          The same checklist we use to inspect every trade-in, so you know exactly what's been tested.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+          {[...CHECK_GROUPS, { name: "Security & lock checks", n: BLOCKERS.length }].map((g) => (
+            <div key={g.name} style={{ background: panel, border: "1px solid rgba(32,28,24,0.12)", borderRadius: 12, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{g.name}</span>
+              <span style={{ fontSize: 12.5, color: brass, fontWeight: 800, whiteSpace: "nowrap" }}>{g.n} checks</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* ---- Repairs ---- */}
       <div style={{ ...section, marginBottom: 50 }}>
-        <div style={heading}>Repairs, most done same day</div>
+        <div style={heading}>Repairs, done properly</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
           {[["📱", "Screen replacement", "From $85", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $59", "Phone dying by lunchtime?"],
             ["🔌", "Charging port", "From $55", "Often just dust — we check and clean first."], ["📷", "Camera repair", "From $75", "Blurry, cracked or not focusing."]].map(([i, t, p, d]) => (

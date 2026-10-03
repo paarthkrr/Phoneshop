@@ -6,7 +6,7 @@ const KNOWLEDGE = [
   { keywords: ["price match", "cheaper", "match", "guarantee"], a: "Yes — find the same repair or device cheaper elsewhere and we'll match it. Submit a price match request through our quote tool and a real person reviews it." },
   { keywords: ["genuine", "parts", "fake", "aftermarket"], a: "Always genuine parts, never unmarked aftermarket substitutes. We built this business specifically because other shops were overcharging for simple fixes using cheap parts." },
   { keywords: ["what devices", "repair", "tablet", "laptop", "watch", "types"], a: "Phones, tablets, laptops, and watches — not just one brand." },
-  { keywords: ["how long", "turnaround", "wait", "same day", "quick", "fast"], a: "Most common repairs — screens, batteries, charging ports — are done same day." },
+  { keywords: ["how long", "turnaround", "wait", "same day", "quick", "fast"], a: "Simple repairs like screens, batteries and charging ports are often quick. It depends on the model and parts in stock, so we'll confirm your exact turnaround before we start." },
   { keywords: ["sell", "trade", "trade-in", "quote"], a: "Answer a few questions about your device, get an instant quote, and we inspect it once we receive it to confirm the price — no surprise deductions." },
   { keywords: ["warranty", "guarantee period", "3 month", "6 month"], a: "Devices we sell have a 3-month warranty. Repairs, parts and accessories have 6 months. Physical or liquid damage isn't covered." },
   { keywords: ["tested", "graded", "condition", "refurbished"], a: "Every device is graded (A, B, or C) based on a real inspection before it's listed." },

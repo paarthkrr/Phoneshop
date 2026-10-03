@@ -426,7 +426,7 @@ export default function AdminPricingConsole() {
         {tab === "Age Curve" && (
           <Section title="Retention curve — % of retail retained by age" onSave={() => handleSave("retentionPoints")} onDiscard={discardSection} dirty={dirty} status={status} line={line} muted={muted}>
             <div style={{ fontSize: 12, color: muted, marginBottom: 10 }}>
-              Anchored: 36mo and 60mo are calibrated against real Mobile Monster prices. Edit the rest as you gather more data.
+              Calibrated 28 Sep–3 Oct 2026 against live Australian market prices (0–4 years). Re-check monthly, and use market adj % for individual models.
             </div>
             {draft.retentionPoints.map((p, i) => (
               <div key={p.m} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderTop: i === 0 ? "none" : `1px solid ${line}` }}>

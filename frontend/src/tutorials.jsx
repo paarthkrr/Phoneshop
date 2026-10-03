@@ -87,7 +87,7 @@ export default function Tutorials() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 30 }}>
           <a href="/repairs" className="cs-card" style={{ display: "block", border: `2px solid ${brass}`, background: panel, padding: 20, textDecoration: "none", color: paper }}>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 6 }}>Rather we do it?</div>
-            <div style={{ color: muted, fontSize: 13.5, marginBottom: 10 }}>Genuine parts, 6-month warranty, most repairs same day.</div>
+            <div style={{ color: muted, fontSize: 13.5, marginBottom: 10 }}>Genuine parts, 6-month warranty, turnaround confirmed before we start.</div>
             <span style={{ color: brass, fontWeight: 700 }}>Book a repair →</span>
           </a>
           <a href="/accessories" className="cs-card" style={{ display: "block", border: `2px solid ${line}`, background: panel, padding: 20, textDecoration: "none", color: paper }}>
