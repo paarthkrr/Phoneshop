@@ -151,7 +151,7 @@ function Nav() {
       `}</style>
       {!isStaff && (
         <div className="cs-announce" style={{ background: "#201C18", color: "#F7F4EC", fontSize: 12.5, textAlign: "center", padding: "7px 12px", lineHeight: 1.5, fontFamily: "'Archivo', system-ui, sans-serif" }}>
-          ✓ Price match guarantee &nbsp;·&nbsp; ✓ We buy phones in any condition &nbsp;·&nbsp; ✓ Free click &amp; collect
+          ✓ Price match guarantee &nbsp;·&nbsp; ✓ 30-day returns &nbsp;·&nbsp; ✓ Battery health 80%+ guaranteed &nbsp;·&nbsp; ✓ We buy any condition &nbsp;·&nbsp; <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>
         </div>
       )}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>

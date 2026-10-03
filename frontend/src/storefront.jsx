@@ -388,6 +388,9 @@ export default function Storefront() {
                 <div style={{ fontSize: 36, color: brass, fontFamily: "'Archivo Black', sans-serif" }}>{fmt(selectedItem.listedPrice, selectedItem.currency)}</div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 13, color: green }}>{WARRANTY_MONTHS}-month warranty included</div>
+                  <div style={{ fontSize: 12.5, color: muted, marginTop: 4, lineHeight: 1.6 }}>
+                    ✓ Battery health 80%+ guaranteed · ✓ 30-day returns{businessSettings?.payLaterInStore ? <> · ✓ {businessSettings.payLaterInStore} accepted in store</> : null} · <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>
+                  </div>
                 </div>
               </div>
 

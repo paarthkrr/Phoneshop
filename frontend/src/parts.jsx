@@ -98,7 +98,7 @@ export default function Parts() {
           <button className="cs-btn" onClick={() => setView("checkout")} style={primary()}>🛒 Cart ({count}) · {fmt(subtotal)} →</button>
         )}
       </div>
-      <div style={{ color: muted, fontSize: 14, marginBottom: 18 }}>Cases, screen protectors, chargers, and DIY repair kits — in stock, ready today, with a 6-month warranty. Free click &amp; collect, or delivery ({fmt(SHIPPING_FLAT)}, free over {fmt(FREE_SHIPPING_OVER)}).</div>
+      <div style={{ color: muted, fontSize: 14, marginBottom: 18 }}>Cases, screen protectors, chargers, and DIY repair kits — in stock, ready today, with a 6-month warranty. Free click &amp; collect, or delivery ({fmt(SHIPPING_FLAT)}, free over {fmt(FREE_SHIPPING_OVER)}). 30-day returns on unopened items — <a href="/terms#returns" target="_blank" rel="noopener" style={{ color: brass }}>conditions apply</a>.</div>
     </>
   );
   const CrossLinks = (

@@ -732,7 +732,7 @@ export default function QuoteCalculator() {
       quotedTotal: roundMoney(calc.total, region, REGIONS_A),
       brandNewBase: calc.baseRegion,
       customer: { ...customer },
-      fulfillment, address: fulfillment === "post" ? address : "",
+      fulfillment, address: fulfillment === "post" ? "" : address,
       status: "awaiting_shipment",
       inspection: null,
       referralCode: newCode,
@@ -1039,9 +1039,10 @@ export default function QuoteCalculator() {
         )}
 
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: muted, marginBottom: 18 }}>
-          <span>✓ Licensed dealer</span>
-          <span>✓ Same-day payment</span>
-          <span>✓ Free shipping</span>
+          {live?.businessSettings?.dealerLicence && <span>✓ Licensed dealer</span>}
+          <span>✓ Any condition</span>
+          <span>✓ Price held 14 days</span>
+          <span>✓ Paid by bank transfer or PayPal</span>
           <button onClick={() => setPmOpen((s) => !s)} style={{ background: "none", border: "none", padding: 0, color: green, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
             ✓ Price match guarantee
           </button>
@@ -1463,7 +1464,7 @@ export default function QuoteCalculator() {
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>How will you send it?</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              {[{ id: "post", label: "Post it (free)" }, { id: "dropoff", label: "Drop it off" }].map((opt) => (
+              {[{ id: "post", label: "Post it to us" }, { id: "dropoff", label: "Drop it off in store" }, ...(live?.businessSettings?.pickupArea ? [{ id: "pickup", label: "Doorstep pickup" }] : [])].map((opt) => (
                 <button key={opt.id} onClick={() => setFulfillment(opt.id)}
                   style={{ flex: 1, padding: "10px", borderRadius: 3, fontSize: 13, cursor: "pointer",
                     border: `1px solid ${fulfillment === opt.id ? brass : line}`, background: fulfillment === opt.id ? brassDim : "transparent",
@@ -1472,13 +1473,29 @@ export default function QuoteCalculator() {
                 </button>
               ))}
             </div>
-            {fulfillment === "post" ? (
+            {fulfillment === "post" && (
               <div style={{ fontSize: 12.5, color: muted, border: `1px solid ${line}`, borderRadius: 3, padding: 12, marginBottom: 14 }}>
-                We'll email you a free reply-paid postage address once you submit. Pack the device securely — we recommend keeping tracking until it arrives.
+                {live?.businessSettings?.tradeInPostalAddress
+                  ? <>You'll post it to: <strong style={{ color: paper }}>{live.businessSettings.tradeInPostalAddress}</strong>. Pack it securely and keep your tracking number.</>
+                  : <>We'll email you the postage address and packing instructions within 1 business day. Pack it securely and keep your tracking number.</>}
+              </div>
+            )}
+            {fulfillment === "dropoff" && (live?.businessSettings?.address ? (
+              <div style={{ fontSize: 12.5, color: muted, border: `1px solid ${line}`, borderRadius: 3, padding: 12, marginBottom: 14 }}>
+                Drop it off at <strong style={{ color: paper }}>{live.businessSettings.address}</strong>{live.businessSettings.hours ? <> — {live.businessSettings.hours}</> : null}. Bring photo ID.
               </div>
             ) : (
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Preferred drop-off suburb (we'll confirm the nearest location)"
+              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Your suburb (we'll confirm the nearest drop-off point)" aria-label="Your suburb"
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
+            ))}
+            {fulfillment === "pickup" && (
+              <>
+                <div style={{ fontSize: 12.5, color: muted, border: `1px solid ${line}`, borderRadius: 3, padding: 12, marginBottom: 10 }}>
+                  Available in <strong style={{ color: paper }}>{live?.businessSettings?.pickupArea}</strong> only. We'll call or email to book a time, and check your photo ID at pickup. <a href="/terms#pickup" target="_blank" rel="noopener" style={{ color: brass }}>Conditions apply</a>.
+                </div>
+                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pickup address" aria-label="Pickup address" autoComplete="street-address"
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
+              </>
             )}
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }} id="payout-method-label">How should we pay you?</div>
@@ -1553,7 +1570,9 @@ export default function QuoteCalculator() {
             </div>
             {submittedOrder.fulfillment === "post" && (
               <div style={{ marginTop: 12, fontSize: 12.5, color: muted, border: `1px solid ${line}`, borderRadius: 3, padding: 12 }}>
-                Post to: REPLY PAID 91786, PRICING CONSOLE PTY LTD, PO BOX 24, YOUR CITY — write {submittedOrder.id} on the package.
+                {live?.businessSettings?.tradeInPostalAddress
+                  ? <>Post to: <strong>{live.businessSettings.tradeInPostalAddress}</strong> — write {submittedOrder.id} on the package.</>
+                  : <>We'll email you the postage address within 1 business day. Write {submittedOrder.id} on the package.</>}
               </div>
             )}
             {myReferralCode && (

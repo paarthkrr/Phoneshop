@@ -331,6 +331,9 @@ export default function AdminPricingConsole() {
               { key: "address", label: "Business address" }, { key: "phone", label: "Phone" }, { key: "email", label: "Email" },
               { key: "hours", label: "Opening hours (e.g. Mon–Fri 9am–6pm, Sat 10am–4pm)" },
               { key: "dealerLicence", label: "Second-hand dealer licence no. (shown on the site only if entered)" },
+              { key: "tradeInPostalAddress", label: "Postal address for trade-ins (shown to customers who choose to post)" },
+              { key: "pickupArea", label: "Doorstep pickup area, e.g. Chatswood & North Shore (leave blank to switch pickup off)" },
+              { key: "payLaterInStore", label: "Pay-later accepted in store, e.g. Afterpay, Zip (leave blank if none)" },
             ].map((f) => (
               <div key={f.key} style={{ marginBottom: 10 }}>
                 <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }}>{f.label}</label>

@@ -36,6 +36,8 @@ const TRUST = [
   { title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
   { title: "Any condition", desc: "Cracked, dead or water-damaged — we still make an offer." },
   { title: "Data wiped securely", desc: "Every device is fully erased before it's resold." },
+  { title: "30-day returns", desc: "Changed your mind? Return online purchases within 30 days. Conditions apply." },
+  { title: "Battery 80%+ guaranteed", desc: "Every refurbished phone we sell. Conditions apply." },
 ];
 
 const STEPS = [

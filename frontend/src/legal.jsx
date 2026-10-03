@@ -94,6 +94,31 @@ export function Terms() {
       <h2>Price match guarantee</h2>
       <p>If you find the same repair or the same device in the same condition advertised for less by an Australian business, show us the quote or listing and we'll match it. We may need to verify the offer is current and genuine. Private sellers, auction listings, and clearance stock are excluded.</p>
 
+      <h2 id="returns">30-day returns</h2>
+      <ul>
+        <li>Refurbished devices and accessories bought <strong>online</strong> can be returned within <strong>30 days</strong> of delivery or collection for a refund to the original payment method, if you change your mind.</li>
+        <li>Items must be returned in the condition you received them, with all accessories and packaging, and with your accounts removed (Find My / Google / Samsung account turned off) and data erased.</li>
+        <li>Change-of-mind returns don't apply to items that have been damaged, opened for repair, or used with a screen protector or skin applied (accessories must be unopened), or to repair services.</li>
+        <li>Return postage is paid by you unless the item is faulty. This doesn't affect your rights under the Australian Consumer Law if an item is faulty.</li>
+      </ul>
+
+      <h2 id="battery">Battery health guarantee</h2>
+      <ul>
+        <li>Every refurbished phone we sell has a battery health of <strong>at least 80%</strong> at the time of sale.</li>
+        <li>For phones that show battery health in Settings (e.g. iPhone), it's the figure shown there; for others, it's measured with our diagnostic tools before sale.</li>
+        <li>If a phone is below 80% when you receive it, tell us within 30 days and we'll replace the battery at no cost, or refund you.</li>
+      </ul>
+
+      <h2 id="pickup">Doorstep pickup for trade-ins</h2>
+      <ul>
+        <li>Available only in the area shown at checkout, and subject to booking availability.</li>
+        <li>Photo ID matching the seller's name is checked at pickup, as required for second-hand dealers.</li>
+        <li>The device is inspected in our workshop; if it differs from your description, you'll get a revised offer to accept or decline, as with any trade-in.</li>
+      </ul>
+
+      <h2 id="paylater">Pay later</h2>
+      <p>Where shown on our site, pay-later options (such as Afterpay or Zip) are accepted for in-store purchases only, subject to the provider's approval and terms.</p>
+
       <h2>Repairs</h2>
       <ul>
         <li>We diagnose first and quote before starting any work.</li>
