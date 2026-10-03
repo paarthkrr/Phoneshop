@@ -203,8 +203,8 @@ export default function Home() {
       <div style={{ ...section, marginBottom: 50 }}>
         <div style={heading}>Repairs, most done same day</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-          {[["📱", "Screen replacement", "From $150", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $60", "Phone dying by lunchtime?"],
-            ["🔌", "Charging port", "From $80", "Often just dust — we check and clean first."], ["📷", "Camera repair", "From $90", "Blurry, cracked or not focusing."]].map(([i, t, p, d]) => (
+          {[["📱", "Screen replacement", "From $85", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $59", "Phone dying by lunchtime?"],
+            ["🔌", "Charging port", "From $55", "Often just dust — we check and clean first."], ["📷", "Camera repair", "From $75", "Blurry, cracked or not focusing."]].map(([i, t, p, d]) => (
             <a key={t} href="/repairs" className="cs-card" style={{ display: "block", border: "2px solid #201C18", background: panel, padding: 16, color: paper, textDecoration: "none" }}>
               <div style={{ fontSize: 24, marginBottom: 6 }} aria-hidden="true">{i}</div>
               <div style={{ fontWeight: 700, fontSize: 14.5 }}>{t}</div>
@@ -214,7 +214,7 @@ export default function Home() {
           ))}
         </div>
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 13.5 }}>
-          Genuine parts · 6-month warranty · <a href="/repairs" style={{ color: brass, fontWeight: 700 }}>See all repairs →</a> · <a href="/tutorials" style={{ color: brass }}>DIY tutorials</a>
+          Genuine parts · 6-month warranty (many shops give 90 days) · Final price confirmed before we start · <a href="/repairs" style={{ color: brass, fontWeight: 700 }}>See all repairs →</a> · <a href="/tutorials" style={{ color: brass }}>DIY tutorials</a>
         </div>
       </div>
 
@@ -222,8 +222,8 @@ export default function Home() {
       <div style={{ ...section, marginBottom: 50, textAlign: "center" }}>
         <div style={{ color: muted, fontSize: 12.5, marginBottom: 12, letterSpacing: "0.04em" }}>WE BUY, SELL AND REPAIR</div>
         <div style={{ display: "flex", justifyContent: "center", gap: "clamp(18px, 5vw, 44px)", flexWrap: "wrap" }}>
-          {["Apple", "Samsung", "Google", "OnePlus", "Xiaomi"].map((b) => (
-            <span key={b} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 17, color: muted }}>{b}</span>
+          {[["Apple", "apple"], ["Samsung", "samsung"], ["Google", "google"], ["OPPO", "oppo"], ["Motorola", "motorola"], ["Xiaomi", "xiaomi"]].map(([b, slug]) => (
+            <a key={b} href={`/sell/${slug}`} title={`Sell your ${b === "Apple" ? "iPhone" : b}`} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 17, color: muted, textDecoration: "none" }}>{b}</a>
           ))}
         </div>
       </div>

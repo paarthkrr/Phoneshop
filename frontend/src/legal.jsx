@@ -109,6 +109,12 @@ export function Terms() {
         <li>If a phone is below 80% when you receive it, tell us within 30 days and we'll replace the battery at no cost, or refund you.</li>
       </ul>
 
+      <h2 id="shipping">Shipping &amp; postage</h2>
+      <ul>
+        <li><strong>Accessories orders:</strong> free click &amp; collect, or delivery Australia-wide by tracked post. Delivery is free on orders over $60.</li>
+        <li><strong>Posting us a trade-in:</strong> pack it securely and drop it at any Australia Post outlet or Parcel Locker. Keep your tracking number until we confirm it's arrived. Devices travel at your risk until received, so we recommend tracked postage.</li>
+      </ul>
+
       <h2 id="pickup">Doorstep pickup for trade-ins</h2>
       <ul>
         <li>Available only in the area shown at checkout, and subject to booking availability.</li>
@@ -125,7 +131,7 @@ export function Terms() {
         <li>Please back up your device before a repair. Some repairs can require a reset.</li>
       </ul>
 
-      <h2>Our warranty</h2>
+      <h2 id="warranty">Our warranty</h2>
       <ul>
         <li><strong>Refurbished devices: 3 months</strong> from the date of purchase.</li>
         <li><strong>Repairs</strong> (the parts we fit and our workmanship): <strong>6 months</strong> from the date of repair.</li>

@@ -52,11 +52,21 @@ export default function SiteFooter() {
         </div>
       </div>
       <div>
+        <div style={{ fontWeight: 700, marginBottom: 8 }}>Sell</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+          <a href="/sell/apple" style={{ color: muted, textDecoration: "none" }}>Sell iPhone</a>
+          <a href="/sell/samsung" style={{ color: muted, textDecoration: "none" }}>Sell Samsung</a>
+          <a href="/sell/google" style={{ color: muted, textDecoration: "none" }}>Sell Google Pixel</a>
+          <a href="/quote" style={{ color: muted, textDecoration: "none" }}>All devices</a>
+        </div>
         <div style={{ fontWeight: 700, marginBottom: 8 }}>Support</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <a href="/help" style={{ color: muted, textDecoration: "none" }}>Help / Ask a question</a>
           <a href="/contact" style={{ color: muted, textDecoration: "none" }}>Contact us</a>
-          <a href="/terms" style={{ color: muted, textDecoration: "none" }}>Terms &amp; warranty</a>
+          <a href="/terms#returns" style={{ color: muted, textDecoration: "none" }}>30-day returns</a>
+          <a href="/terms#warranty" style={{ color: muted, textDecoration: "none" }}>Warranty</a>
+          <a href="/terms#shipping" style={{ color: muted, textDecoration: "none" }}>Shipping &amp; postage</a>
+          <a href="/terms" style={{ color: muted, textDecoration: "none" }}>Terms</a>
           <a href="/privacy" style={{ color: muted, textDecoration: "none" }}>Privacy policy</a>
         </div>
       </div>

@@ -13,6 +13,7 @@ import Parts from "./parts.jsx";
 import Blog from "./blog.jsx";
 import Home from "./home.jsx";
 import Tutorials from "./tutorials.jsx";
+import SellBrand from "./sell-brand.jsx";
 import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
 import DailyDashboard from "./daily-dashboard.jsx";
@@ -471,6 +472,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/quote" element={<QuoteCalculator />} />
         <Route path="/sell" element={<QuoteCalculator />} />
+        <Route path="/sell/:brand" element={<SellBrand />} />
         <Route path="/shop" element={<Storefront />} />
         <Route path="/repairs" element={<Repairs />} />
         <Route path="/parts" element={<Parts />} />

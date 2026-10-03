@@ -1478,6 +1478,7 @@ export default function QuoteCalculator() {
                 {live?.businessSettings?.tradeInPostalAddress
                   ? <>You'll post it to: <strong style={{ color: paper }}>{live.businessSettings.tradeInPostalAddress}</strong>. Pack it securely and keep your tracking number.</>
                   : <>We'll email you the postage address and packing instructions within 1 business day. Pack it securely and keep your tracking number.</>}
+                <div style={{ marginTop: 8 }}>📮 Drop your parcel at any <strong style={{ color: paper }}>Australia Post</strong> outlet or Parcel Locker — <a href="https://auspost.com.au/locate" target="_blank" rel="noopener" style={{ color: brass }}>find one near you</a>.</div>
               </div>
             )}
             {fulfillment === "dropoff" && (live?.businessSettings?.address ? (
@@ -1634,3 +1635,6 @@ export default function QuoteCalculator() {
     </div>
   );
 }
+
+// Shared with the Sell-by-brand pages so their "up to" figures use the exact same formula.
+export { baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT };
