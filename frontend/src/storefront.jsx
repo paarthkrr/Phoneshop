@@ -100,6 +100,7 @@ function fmt(n, currency) {
 export default function Storefront() {
   const [inventory, setInventory] = useState(null);
   const [businessSettings, setBusinessSettings] = useState(null);
+  const [modelPhotos, setModelPhotos] = useState({});
   const [view, setView] = useState("browse"); // browse | detail | checkout | confirmed | track
   const [selectedItem, setSelectedItem] = useState(null);
   const [search, setSearch] = useState("");
@@ -117,6 +118,8 @@ export default function Storefront() {
       const [inv, cfg] = await Promise.all([loadJSON("inventory", true), loadJSON("pricing-config", true)]);
       setInventory(inv);
       setBusinessSettings((cfg && cfg.businessSettings) || null);
+      // Per-model photos staff set in the Pricing Console (brand|model -> url)
+      setModelPhotos(Object.fromEntries(((cfg && cfg.catalog) || []).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])));
     })();
   }, []);
 
@@ -261,7 +264,7 @@ export default function Storefront() {
                     <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
                       style={{ textAlign: "left", padding: "16px", border: `2px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
                       <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", background: "#F7F4EC", borderRadius: 3, marginBottom: 10 }}>
-                        <DeviceArt type={inferDeviceType(item.model, item.category)} size={56} />
+                        <DeviceArt type={inferDeviceType(item.model, item.category)} size={56} brand={item.brand} model={item.model} imageUrl={item.photoUrl || modelPhotos[`${item.brand}|${item.model}`]} label={`${item.brand} ${item.model}`} />
                       </div>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: brass, marginBottom: 6 }}>FEATURED</div>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>{item.brand} {item.model}</div>
@@ -299,7 +302,7 @@ export default function Storefront() {
                 style={{ display: "block", width: "100%", textAlign: "left", padding: "14px", marginBottom: 10, borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, cursor: "pointer" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <DeviceArt type={inferDeviceType(item.model, item.category)} size={34} />
+                    <DeviceArt type={inferDeviceType(item.model, item.category)} size={34} brand={item.brand} model={item.model} imageUrl={item.photoUrl || modelPhotos[`${item.brand}|${item.model}`]} />
                     <span style={{ fontSize: 14 }}>{item.brand} {item.model}</span>
                   </span>
                   <span style={{ fontSize: 16, color: brass, fontFamily: "'Archivo Black', sans-serif" }}>{fmt(item.listedPrice, item.currency)}</span>
@@ -379,7 +382,7 @@ export default function Storefront() {
             <button onClick={() => setView("browse")} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to browsing</button>
             <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "#F7F4EC", borderRadius: 3, marginBottom: 16 }}>
-                <DeviceArt type={inferDeviceType(selectedItem.model, selectedItem.category)} size={110} label={`${selectedItem.brand} ${selectedItem.model}`} />
+                <DeviceArt type={inferDeviceType(selectedItem.model, selectedItem.category)} size={110} brand={selectedItem.brand} model={selectedItem.model} imageUrl={selectedItem.photoUrl || modelPhotos[`${selectedItem.brand}|${selectedItem.model}`]} label={`${selectedItem.brand} ${selectedItem.model}`} />
               </div>
               <div style={{ fontSize: 20, marginBottom: 4 }}>{selectedItem.brand} {selectedItem.model}</div>
               <div style={{ fontSize: 13, color: muted, marginBottom: 16 }}>{selectedItem.storage}</div>

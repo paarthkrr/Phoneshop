@@ -405,6 +405,11 @@ export default function AdminPricingConsole() {
                         market adj %
                         {numInput(d.marketAdjPct ?? 0, (v) => upd({ marketAdjPct: Math.max(-60, Math.min(30, Number(v) || 0)) }), { step: "1", width: 60 })}
                       </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        photo link
+                        <input value={d.imageUrl || ""} onChange={(e) => upd({ imageUrl: e.target.value.trim() })} placeholder="https://… (optional)"
+                          style={{ width: 170, padding: "4px 6px", fontSize: 12, border: `1px solid ${line}`, borderRadius: 3 }} />
+                      </label>
                       <button onClick={() => upd({ marketCheckedAt: new Date().toISOString().slice(0, 10) })}
                         style={{ padding: "4px 9px", fontSize: 11.5, border: `1px solid ${line}`, borderRadius: 3, background: "transparent", cursor: "pointer" }}>✓ Checked today</button>
                       <span style={{ color: days === null || days > 30 ? red : green }}>

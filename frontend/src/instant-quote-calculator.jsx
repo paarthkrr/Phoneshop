@@ -1238,7 +1238,7 @@ export default function QuoteCalculator() {
               {filtered.slice(0, 20).map((d, di) => (
                 <div key={d.brand + d.model}>
                   <div style={{ padding: "10px 14px 4px", fontSize: 11, color: muted, borderTop: di === 0 ? "none" : `1px solid ${line}`, display: "flex", alignItems: "center", gap: 6 }}>
-                    <DeviceArt type={inferDeviceType(d.model, d.category)} size={20} />{d.brand} — {d.model}
+                    <DeviceArt type={inferDeviceType(d.model, d.category)} size={20} brand={d.brand} model={d.model} imageUrl={d.imageUrl} />{d.brand} — {d.model}
                     <span style={{ marginLeft: "auto", color: "#5c6472" }}>{Math.round(ageMonths(d.release))}mo old</span>
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "4px 14px 10px" }}>
@@ -1259,7 +1259,7 @@ export default function QuoteCalculator() {
         {selected && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${line}`, borderRadius: 3, padding: "12px 14px", marginBottom: 22, background: panel }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <DeviceArt type={inferDeviceType(selected.model, selected.category)} size={40} label={`${selected.brand} ${selected.model}`} />
+              <DeviceArt type={inferDeviceType(selected.model, selected.category)} size={40} brand={selected.brand} model={selected.model} imageUrl={selected.imageUrl} label={`${selected.brand} ${selected.model}`} />
               <div>
                 <div style={{ fontSize: 15 }}>{selected.brand} {selected.model}</div>
                 <div style={{ fontSize: 13, color: muted }}>{selected.storage} · {Math.round(ageMonths(selected.release))} months since launch</div>

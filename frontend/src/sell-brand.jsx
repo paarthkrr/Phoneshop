@@ -68,7 +68,7 @@ export default function SellBrand() {
             {shown.map((d) => (
               <a key={d.model} href={`/quote?q=${encodeURIComponent(d.model)}`} className="cs-card"
                 style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", border: "2px solid #201C18", background: panel, padding: "18px 12px", color: paper, textDecoration: "none" }}>
-                <DeviceArt type={inferDeviceType(d.model, d.category)} size={58} />
+                <DeviceArt type={inferDeviceType(d.model, d.category)} size={58} brand={d.brand} model={d.model} imageUrl={d.imageUrl} label={`${d.brand} ${d.model}`} />
                 <div style={{ fontWeight: 700, fontSize: 14.5, margin: "12px 0 4px" }}>{d.model}</div>
                 <div style={{ fontSize: 12.5, color: muted }}>Get up to</div>
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, color: brass }}>${d.upTo.toLocaleString()}</div>
