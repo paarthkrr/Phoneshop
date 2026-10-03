@@ -1,27 +1,28 @@
-// Sample photos (imageUrl) are free Pexels images (pexels.com/license) matched only
+// iPhone 13–18 Pro Max photos are cropped from the shop's own flyer (public/photos/).
+// Other sample photos (imageUrl) are free Pexels images (pexels.com/license) matched only
 // where the photo's own title names that exact model. Replace any in the Pricing Console.
 // ONE shared device catalogue for the quote calculator, Register (POS), and
 // Pricing Console. Previously each kept its own copy and they drifted apart —
 // the Register only knew 17 models while the calculator had 91.
 export const DEFAULT_CATALOG = [
-  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699 }, category: "phone", imageUrl: "/photos/iphone-18-pro-max.jpg" },
   { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro", release: "2026-09-18", retail: { "256GB": 2099, "512GB": 2499 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro Max", release: "2025-09-19", retail: { "256GB": 2199, "512GB": 2549 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro Max", release: "2025-09-19", retail: { "256GB": 2199, "512GB": 2549 }, category: "phone", imageUrl: "/photos/iphone-17-pro-max.jpg" },
   { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro", release: "2025-09-19", retail: { "128GB": 1999, "256GB": 2199 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 17", release: "2025-09-19", retail: { "256GB": 1399, "512GB": 1799 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro Max", release: "2024-09-20", retail: { "256GB": 2149, "512GB": 2519 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro Max", release: "2024-09-20", retail: { "256GB": 2149, "512GB": 2519 }, category: "phone", imageUrl: "/photos/iphone-16-pro-max.jpg" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro", release: "2024-09-20", retail: { "128GB": 1799, "256GB": 1999 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16 Plus", release: "2024-09-20", retail: { "128GB": 1599, "256GB": 1799 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16", release: "2024-09-20", retail: { "128GB": 1399, "256GB": 1649 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro Max", release: "2023-09-22", retail: { "256GB": 2199, "512GB": 2569, "1TB": 2939 }, category: "phone", imageUrl: "https://images.pexels.com/photos/18525573/pexels-photo-18525573.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro Max", release: "2023-09-22", retail: { "256GB": 2199, "512GB": 2569, "1TB": 2939 }, category: "phone", imageUrl: "/photos/iphone-15-pro-max.jpg" },
   { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro", release: "2023-09-22", retail: { "128GB": 1849, "256GB": 2049 }, category: "phone", imageUrl: "https://images.pexels.com/photos/19060954/pexels-photo-19060954.jpeg?auto=compress&cs=tinysrgb&w=600" },
   { brand: "Apple", icon: "🍎", model: "iPhone 15 Plus", release: "2023-09-22", retail: { "128GB": 1649, "256GB": 1849 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 15", release: "2023-09-22", retail: { "128GB": 1499, "256GB": 1699, "512GB": 2099 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro Max", release: "2022-09-16", retail: { "128GB": 1899, "256GB": 2069, "512GB": 2409 }, category: "phone", imageUrl: "https://images.pexels.com/photos/16004744/pexels-photo-16004744.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro Max", release: "2022-09-16", retail: { "128GB": 1899, "256GB": 2069, "512GB": 2409 }, category: "phone", imageUrl: "/photos/iphone-14-pro-max.jpg" },
   { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro", release: "2022-09-16", retail: { "128GB": 1749, "256GB": 1919, "512GB": 2259 }, category: "phone", imageUrl: "https://images.pexels.com/photos/13341771/pexels-photo-13341771.jpeg?auto=compress&cs=tinysrgb&w=600" },
   { brand: "Apple", icon: "🍎", model: "iPhone 14 Plus", release: "2022-09-16", retail: { "128GB": 1579, "256GB": 1749 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 14", release: "2022-09-16", retail: { "128GB": 1399, "256GB": 1569 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 13 Pro Max", release: "2021-09-24", retail: { "128GB": 1849, "256GB": 2019 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 13 Pro Max", release: "2021-09-24", retail: { "128GB": 1849, "256GB": 2019 }, category: "phone", imageUrl: "/photos/iphone-13-pro-max.jpg" },
   { brand: "Apple", icon: "🍎", model: "iPhone 13", release: "2021-09-24", retail: { "128GB": 1349, "256GB": 1519 }, category: "phone", imageUrl: "https://images.pexels.com/photos/14666032/pexels-photo-14666032.jpeg?auto=compress&cs=tinysrgb&w=600" },
   { brand: "Apple", icon: "🍎", model: "iPhone 12", release: "2020-10-23", retail: { "64GB": 1349, "128GB": 1429, "256GB": 1579 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone SE (2022)", release: "2022-03-18", retail: { "64GB": 719, "128GB": 789 }, category: "phone" },
