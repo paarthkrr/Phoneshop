@@ -39,12 +39,13 @@ const HERO_CSS = `
 .mvx-cta2{color:#fff;font-weight:700;padding:15px 18px;border-radius:12px;border:1.5px solid rgba(255,255,255,.55);text-decoration:none;font-size:16px}
 .mvx-phones{position:relative;height:400px;display:flex;justify-content:center;align-items:center}
 .mvx-glow{position:absolute;inset:12% 8%;background:radial-gradient(closest-side,rgba(147,197,253,.6),transparent);filter:blur(30px)}
-.mvx-phone{position:relative;width:40%;max-width:220px;filter:drop-shadow(0 26px 30px rgba(0,0,0,.45));margin:0 -7%;transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
+.mvx-phone{position:relative;filter:drop-shadow(0 26px 30px rgba(0,0,0,.45));transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
+.mvx-dev-tab{width:38%;max-width:210px;margin-right:-9%}.mvx-dev-phone{width:44%;max-width:240px}.mvx-dev-watch{width:24%;max-width:130px;margin-left:-5%;align-self:flex-end;margin-bottom:6%}
 @keyframes mvx-float{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-16px)}}
 .mvx-marquee{border-top:1px solid rgba(255,255,255,.16);overflow:hidden;white-space:nowrap;padding:13px 0;font-weight:800;letter-spacing:.08em;font-size:13px;opacity:.85}
 .mvx-track{display:inline-flex;gap:44px;padding-left:44px;animation:mvx-marq 30s linear infinite}
 @keyframes mvx-marq{to{transform:translateX(-50%)}}
-@media(max-width:820px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 20px;text-align:center}.mvx-pills,.mvx-ctas{justify-content:center}.mvx-sub{margin:0 auto 20px}.mvx-phones{height:250px;order:-1}.mvx-phone{max-width:140px}}
+@media(max-width:820px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 20px;text-align:center}.mvx-pills,.mvx-ctas{justify-content:center}.mvx-sub{margin:0 auto 20px}.mvx-phones{height:250px;order:-1}.mvx-dev-tab{max-width:130px}.mvx-dev-phone{max-width:150px}.mvx-dev-watch{max-width:80px}}
 @media(prefers-reduced-motion:reduce){.mvx-hero,.mvx-phone,.mvx-track,.mvx-shine::after{animation:none}.mvx-word,.mvx-in{animation:mvx-fade .6s ease forwards;transform:none}.mvx-price,.mvx-model{animation:mvx-fade .4s ease}}
 @keyframes mvx-fade{from{opacity:0}to{opacity:1}}
 `;
@@ -81,8 +82,9 @@ function Hero({ ticker }) {
         </div>
         <div className="mvx-phones" aria-hidden="true">
           <div className="mvx-glow" />
-          {[["iphone-13-pro-max", -10, "0s"], ["iphone-18-pro-max", 0, "0.9s"], ["iphone-14-pro-max", 10, "1.8s"]].map(([f, r, d], n) => (
-            <img key={f} src={`/photos/${f}.png`} alt="" className="mvx-phone" style={{ "--r": `${r}deg`, animationDelay: d, zIndex: n === 1 ? 2 : 1 }} />
+          {/* A mix of gadgets: iPad, iPhone (the shop's own photo), Apple Watch */}
+          {[["/photos/hero-ipad.svg", -8, "0s", "mvx-dev-tab"], ["/photos/iphone-18-pro-max.png", 0, "0.9s", "mvx-dev-phone"], ["/photos/hero-watch.svg", 10, "1.8s", "mvx-dev-watch"]].map(([src, r, d, cls], n) => (
+            <img key={src} src={src} alt="" className={"mvx-phone " + cls} style={{ "--r": `${r}deg`, animationDelay: d, zIndex: n === 1 ? 2 : 1 }} />
           ))}
         </div>
       </div>

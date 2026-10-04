@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 260">
+  <defs>
+    <linearGradient id="band" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1F2937"/><stop offset=".5" stop-color="#374151"/><stop offset="1" stop-color="#111827"/></linearGradient>
+    <linearGradient id="case" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3F4F6"/><stop offset=".5" stop-color="#B8BEC8"/><stop offset="1" stop-color="#7B8390"/></linearGradient>
+    <linearGradient id="gl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <path d="M40 0 H120 L114 62 H46 Z" fill="url(#band)"/>
+  <path d="M46 198 H114 L120 260 H40 Z" fill="url(#band)"/>
+  <rect x="22" y="52" width="116" height="156" rx="34" fill="url(#case)"/>
+  <rect x="140" y="98" width="8" height="26" rx="4" fill="#9AA1AC"/>
+  <rect x="140" y="132" width="5" height="16" rx="2.5" fill="#9AA1AC"/>
+  <rect x="29" y="59" width="102" height="142" rx="28" fill="#000"/>
+  <text x="80" y="128" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="34" fill="#fff">10:09</text>
+  <text x="80" y="148" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#93C5FD">SYDNEY · 24°</text>
+  <circle cx="54" cy="176" r="11" fill="none" stroke="#F43F5E" stroke-width="4" stroke-dasharray="52 70" transform="rotate(-90 54 176)"/>
+  <circle cx="80" cy="176" r="11" fill="none" stroke="#A3E635" stroke-width="4" stroke-dasharray="40 70" transform="rotate(-90 80 176)"/>
+  <circle cx="106" cy="176" r="11" fill="none" stroke="#22D3EE" stroke-width="4" stroke-dasharray="60 70" transform="rotate(-90 106 176)"/>
+  <rect x="22" y="52" width="116" height="156" rx="34" fill="url(#gl)"/>
+</svg>
