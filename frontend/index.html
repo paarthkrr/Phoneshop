@@ -43,11 +43,18 @@
       // broken host setting). Anyone arriving at the old address is sent to the
       // same page on the new one, so old links and bookmarks keep working.
       // Everything now lives at https://mobilerecellr.com.au. Old addresses (and www)
-      // send visitors to the same page on the main domain, so old links keep working
-      // and Google sees one site.
-      if (["phoneshop-frontend-51tg.onrender.com", "mobile-vault-web.onrender.com", "www.mobilerecellr.com.au", "mobile-recellr.com", "www.mobile-recellr.com"].indexOf(location.hostname) !== -1) {
-        location.replace("https://mobilerecellr.com.au" + location.pathname + location.search + location.hash);
-      }
+      // send visitors to the same page there, BUT only after checking the main domain
+      // actually answers over https. If it doesn't (DNS still spreading, certificate
+      // not issued yet), the visitor simply stays where they are and the site works.
+      (function () {
+        var OLD = ["phoneshop-frontend-51tg.onrender.com", "mobile-vault-web.onrender.com", "www.mobilerecellr.com.au", "mobile-recellr.com", "www.mobile-recellr.com"];
+        if (OLD.indexOf(location.hostname) === -1 || !window.fetch) return;
+        var target = "https://mobilerecellr.com.au" + location.pathname + location.search + location.hash;
+        var done = false, timer = setTimeout(function () { done = true; }, 2500);
+        fetch("https://mobilerecellr.com.au/favicon.svg?ping=" + Date.now(), { mode: "no-cors", cache: "no-store" })
+          .then(function () { if (!done) { clearTimeout(timer); location.replace(target); } })
+          .catch(function () { clearTimeout(timer); /* main domain not ready: stay here */ });
+      })();
     </script>
     <script>
       // Boot guard. Lives in the HTML itself, before the app's script, so it
