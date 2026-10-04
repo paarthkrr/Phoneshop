@@ -260,7 +260,7 @@ export default function Storefront() {
                   Nothing listed yet — new stock goes up as devices are graded. Check back soon, or get an instant quote on your own device below.
                 </div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
+                <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
                   {featured.map((item) => (
                     <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
                       style={{ textAlign: "left", padding: "16px", border: `1px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
@@ -317,7 +317,7 @@ export default function Storefront() {
 
             <div style={{ marginTop: 50, paddingTop: 40, borderTop: `1px solid ${line}` }}>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 14 }}>Our Grading, Explained</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 40 }}>
+              <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 40 }}>
                 {Object.entries(GRADE_LABELS).filter(([id]) => id !== "parts").map(([id, g]) => (
                   <div key={id} style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14 }}>
                     <div style={{ fontWeight: 700, marginBottom: 4 }}>Grade {id} — {g.label}</div>
@@ -328,7 +328,7 @@ export default function Storefront() {
 
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 14 }}>Repairs — Any Gadget, Genuine Parts, Price Matched</div>
               <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Phones, tablets, laptops, watches — screens, batteries, charging ports and more, at the cheapest prices and done same day in store. Genuine parts only, and if you find it cheaper elsewhere, we'll match it. Prices below are a starting point; your exact quote depends on the model.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 40 }}>
+              <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 40 }}>
                 {REPAIR_PRICE_TEASERS.map((r) => (
                   <div key={r.name} style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14 }}>
                     <div style={{ fontWeight: 700, marginBottom: 4 }}>{r.name}</div>

@@ -100,7 +100,7 @@ export default function DeviceArt({ type = "phone", size = 64, label, brand, mod
   const [uid] = useState(() => ++uidCounter);
   if (imageUrl && !failed) {
     return <img src={imageUrl} alt={label || ""} width={size} height={Math.round(size * 1.1)} loading="lazy" onError={() => setFailed(true)}
-      style={{ display: "block", width: size, height: size * 1.1, objectFit: "cover", borderRadius: Math.max(6, size / 9) }} />;
+      style={{ display: "block", width: size, height: size * 1.1, objectFit: /\.png($|\?)/.test(imageUrl) ? "contain" : "cover", borderRadius: /\.png($|\?)/.test(imageUrl) ? 0 : Math.max(6, size / 9) }} />;
   }
   const family = type === "phone" ? phoneFamily(brand, model) : type;
   return (

@@ -125,6 +125,20 @@ function Nav() {
         .cs-btn:active { transform: scale(0.97); }
         @keyframes cs-bump { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
         .cs-bump { animation: cs-bump 0.35s ease; }
+        /* Grids of cards cascade in one after another. */
+        .mv-stagger > * { animation: cs-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .mv-stagger > *:nth-child(2) { animation-delay: 0.045s; }
+        .mv-stagger > *:nth-child(3) { animation-delay: 0.090s; }
+        .mv-stagger > *:nth-child(4) { animation-delay: 0.135s; }
+        .mv-stagger > *:nth-child(5) { animation-delay: 0.180s; }
+        .mv-stagger > *:nth-child(6) { animation-delay: 0.225s; }
+        .mv-stagger > *:nth-child(7) { animation-delay: 0.270s; }
+        .mv-stagger > *:nth-child(8) { animation-delay: 0.315s; }
+        .mv-stagger > *:nth-child(9) { animation-delay: 0.360s; }
+        .mv-stagger > *:nth-child(10) { animation-delay: 0.405s; }
+        .mv-stagger > *:nth-child(11) { animation-delay: 0.450s; }
+        .mv-stagger > *:nth-child(12) { animation-delay: 0.495s; }
+        .mv-stagger > *:nth-child(n+13) { animation-delay: 0.5s; }
         .cs-fade { animation: cs-fade-in 0.3s ease both; }
 
         .cs-btn { transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, opacity 0.15s ease; }
@@ -176,6 +190,7 @@ function Nav() {
           /* Reduce Motion: no sliding, but pages still fade in so the site doesn't feel static. */
           .cs-page-enter, .cs-page-enter.cs-slide-fwd, .cs-page-enter.cs-slide-back { animation: cs-fade-in 0.35s ease both !important; }
           .mv-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+          .mv-stagger > * { animation: cs-fade-in 0.4s ease both !important; }
         }
       `}</style>
       {!isStaff && (
@@ -539,6 +554,8 @@ function AnimatedRoutes() {
   const navType = useNavigationType();
   const slide = firstPage ? "" : navType === "POP" ? " cs-slide-back" : " cs-slide-fwd";
   useEffect(() => { firstPage = false; }, []);
+  // New page (any link, incl. the menu) starts at the top; Back keeps the browser's spot.
+  useEffect(() => { if (navType !== "POP") window.scrollTo(0, 0); }, [location.pathname]);
   const isStaff = isStaffPath(normPath(location.pathname));
   return (
     <main key={location.pathname} className={"cs-page-enter" + slide}>

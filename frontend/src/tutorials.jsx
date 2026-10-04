@@ -78,7 +78,7 @@ export default function Tutorials() {
           <div key={s.title} style={{ marginBottom: 36 }}>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 21, marginBottom: 4 }}>{s.title}</div>
             <div style={{ color: muted, fontSize: 14, marginBottom: 14 }}>{s.blurb}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
+            <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
               {s.videos.map((v) => <Video key={v.id} v={v} />)}
             </div>
           </div>

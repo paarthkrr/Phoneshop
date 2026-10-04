@@ -64,7 +64,7 @@ export default function SellBrand() {
       </div>
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "28px 16px 70px" }}>
         {cfg === undefined ? <div style={{ color: muted }}>Loading models…</div> : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 14 }}>
+          <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 14 }}>
             {shown.map((d) => (
               <a key={d.model} href={`/quote?q=${encodeURIComponent(d.model)}`} className="cs-card"
                 style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", border: "1px solid #E2E6EC", background: panel, padding: "18px 12px", color: paper, textDecoration: "none" }}>

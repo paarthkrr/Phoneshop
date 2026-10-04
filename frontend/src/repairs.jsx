@@ -196,7 +196,7 @@ export default function Repairs() {
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 32 }}>
+        <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 32 }}>
           {REPAIRS_BY_DEVICE[deviceType].map((r) => (
             <div key={r.name} className="cs-card" style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, background: panel }}>
               <div style={{ marginBottom: 8 }}><DeviceArt type={deviceType.toLowerCase()} size={36} /></div>

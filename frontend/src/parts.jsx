@@ -75,6 +75,8 @@ export default function Parts() {
   const setUrl = (key, val) => { try { const u = new URL(window.location.href); if (val) u.searchParams.set(key, val); else u.searchParams.delete(key); window.history.replaceState(window.history.state, "", u.pathname + u.search); } catch (e) {} };
   const openProduct = (id) => { setProductId(id); try { const u = new URL(window.location.href); u.searchParams.set("p", id); window.history.pushState(window.history.state, "", u.pathname + u.search); } catch (e) {} window.scrollTo(0, 0); };
   const closeProduct = () => { setProductId(""); setUrl("p", ""); };
+  // After changing department/category/phone, bring the filters back into view if scrolled past them.
+  useEffect(() => { const el = document.getElementById("mv-filters"); if (el && el.getBoundingClientRect().top < 0) window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - 90, behavior: "smooth" }); }, [dept, categoryFilter, modelFilter]);
   const pct = (a) => (a.compareAtPrice > a.sellPrice ? Math.round((1 - a.sellPrice / a.compareAtPrice) * 100) : 0);
 
   // Cart lines always re-read live stock and price, so a stale cart can't oversell or undercharge.
@@ -279,6 +281,7 @@ export default function Parts() {
         {modelFilter && <div style={{ fontSize: 13.5, marginTop: 8 }}>Showing accessories for <strong>{modelFilter}</strong> · <button onClick={() => { setModelFilter(""); setPhoneBrand(""); setUrl("model", ""); }} style={{ border: "none", background: "none", color: brass, cursor: "pointer", padding: 0, fontSize: 13.5 }}>show all</button></div>}
       </div>
       <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search, or type your phone (e.g. iPhone 15) to see what fits" aria-label="Search accessories or your phone model" style={input} />
+      <div id="mv-filters" />
       <div role="tablist" aria-label="Department" style={{ display: "flex", gap: 6, margin: "6px 0 10px", background: "#F4F6F9", borderRadius: 12, padding: 4 }}>
         {[["all", "All"], ["accessories", "📱 Accessories"], ["parts", "🔧 Repair parts"]].map(([k, l]) => (
           <button key={k} role="tab" aria-selected={dept === k} onClick={() => { setDept(k); setCategoryFilter("All"); setVisible(24); setUrl("dept", k === "all" ? "" : k); }}
@@ -302,7 +305,7 @@ export default function Parts() {
         </select>
       </div>
       {filtered.length === 0 && <div style={{ color: muted, fontSize: 14, marginBottom: 20 }}>No matches. Try a different search, or <a href="/help" style={{ color: brass }}>ask us</a> — we may have it in store.</div>}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
+      <div className="mv-stagger" key={`${dept}|${categoryFilter}|${modelFilter}|${sort}`} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
         {filtered.slice(0, visible).map((a) => {
           const low = a.qtyOnHand <= 2, inCart = qtyInCart(a.id);
           return (
