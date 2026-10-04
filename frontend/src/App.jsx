@@ -12,6 +12,7 @@ import Repairs from "./repairs.jsx";
 import Parts from "./parts.jsx";
 import Blog from "./blog.jsx";
 import Home from "./home.jsx";
+import { metaFor } from "./seo-meta.js";
 import Tutorials from "./tutorials.jsx";
 import SellBrand from "./sell-brand.jsx";
 import { PrivacyPolicy, Terms } from "./legal.jsx";
@@ -401,24 +402,7 @@ function MobileCTA() {
 // and modifier-clicks are left to the browser as normal.
 // Each page gets its own browser-tab/Google title, description, and
 // canonical link (previously every page shared the homepage's title).
-const SITE = "Mobile Vault";
-const PAGE_META = {
-  "/": ["Mobile Vault — Sell, Buy & Repair Phones | Genuine Parts, Price Match", "Same-day phone repairs in store at the cheapest prices, instant trade-in quotes, and refurbished phones with a 1-year warranty and free express shipping."],
-  "/quote": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days, paid by bank transfer or PayPal."],
-  "/sell": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days."],
-  "/shop": ["Refurbished Phones — Graded & Tested", "Buy graded, tested refurbished iPhones and Android phones with a 1-year warranty and free express shipping."],
-  "/repairs": ["Phone, Tablet & Laptop Repairs — Genuine Parts", "Cheapest phone repairs, done same day in store. Genuine parts, a 90-day warranty, and a price match guarantee. Mail-in repairs Australia-wide."],
-  "/accessories": ["Phone Accessories, Parts & DIY Kits", "Cases, screen protectors, chargers and DIY repair kits. Free click & collect or fast delivery."],
-  "/parts": ["Phone Accessories, Parts & DIY Kits", "Cases, screen protectors, chargers and DIY repair kits. Free click & collect or fast delivery."],
-  "/tutorials": ["Phone Repair Tutorials — Screen & Back Glass", "Step-by-step videos for iPhone screen and back glass repair, with safety tips before you start."],
-  "/blog": ["Guides — Phone Repair & Trade-in Advice", "Straight answers on repairs, trade-ins and buying refurbished phones."],
-  "/about": ["About Us", "Why we started an honest phone repair and trade-in shop."],
-  "/faq": ["FAQ", "Answers about our price match guarantee, genuine parts, warranty, and how selling works."],
-  "/help": ["Help — Ask Us Anything", "Send us a question about a repair, order or trade-in."],
-  "/contact": ["Contact Us", "Phone, email, address and opening hours."],
-  "/privacy": ["Privacy Policy", "How we collect, use and protect your personal information."],
-  "/terms": ["Terms & Warranty", "Trade-in terms, price match guarantee, warranty and your Australian Consumer Law rights."],
-};
+
 // Adds the shop's real address and phone to Google's structured data once
 // they're entered in Business settings (never placeholders).
 function SiteSchema() {
@@ -445,9 +429,10 @@ function PageMeta() {
   useEffect(() => {
     const path = normPath(location.pathname);
     const staff = isStaffPath(path);
-    const [title, desc] = PAGE_META[path] || (path.startsWith("/blog/") ? [null, null] : [null, null]);
-    if (staff) document.title = `Staff — ${SITE}`;
-    else if (title) document.title = path === "/" ? title : `${title} | ${SITE}`;
+    const meta = metaFor(path);
+    const title = meta && meta.title, desc = meta && meta.desc;
+    if (staff) document.title = "Staff — Mobile Vault";
+    else if (title) document.title = title;
     if (desc) {
       let m = document.querySelector('meta[name="description"]');
       if (!m) { m = document.createElement("meta"); m.setAttribute("name", "description"); document.head.appendChild(m); }

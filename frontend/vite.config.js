@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
+import { POSTS } from "./src/blog-posts.js";
+import { metaFor, SELL_BRAND_NAMES } from "./src/seo-meta.js";
 
 // Why the app file has a FIXED name (assets/app.js) instead of Vite's usual
 // random-per-build name:
@@ -55,21 +57,50 @@ function legacyEntryForwarders() {
 // deep links like /portal or /repairs work on a fresh load without
 // depending on the dashboard rewrite rule at all — that rule was returning
 // an empty page for every address except the homepage.
-const ROUTES = [
-  "quote", "sell", "shop", "repairs", "parts", "accessories", "about", "faq", "help", "contact", "blog", "tutorials", "privacy", "terms", "sell/apple", "sell/samsung", "sell/google", "sell/oppo", "sell/motorola", "sell/xiaomi", "sell/oneplus", "sell/nothing", "sell/vivo",
-  "blog/charging-port-dust-or-real-fault", "blog/refurbished-grades-explained", "blog/how-much-is-my-old-phone-worth",
+const STATIC_ROUTES = [
+  "quote", "sell", "shop", "repairs", "parts", "accessories", "about", "faq", "help", "contact", "blog", "tutorials", "privacy", "terms",
   "portal", "portal/pricing", "portal/inspect", "portal/pos", "portal/repairs", "portal/till", "portal/crm",
   "staff", "staff/admin", "staff/inspect", "staff/pos", "staff/repairs", "staff/till", "staff/crm",
 ];
+// Guides and sell-by-brand pages come straight from their source lists, so a
+// new guide or brand gets its page file, SEO tags and sitemap entry automatically.
+const ROUTES = [...STATIC_ROUTES, ...POSTS.map((p) => `blog/${p.slug}`), ...Object.keys(SELL_BRAND_NAMES).map((b) => `sell/${b}`)];
+// Pages Google should index (not staff tools or duplicate aliases).
+const SITEMAP_EXCLUDE = new Set(["sell", "parts", "help"]);
+const isStaffRoute = (r) => /^(portal|staff)(\/|$)/.test(r);
+const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+function withMeta(html, route, base) {
+  const url = base + (route ? "/" + route : "/");
+  const meta = metaFor(route ? "/" + route : "/");
+  let out = html;
+  if (meta) {
+    out = out.replace(/<title>[^<]*<\/title>/, `<title>${esc(meta.title)}</title>`)
+      .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(meta.desc)}$2`)
+      .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(meta.title)}$2`)
+      .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(meta.desc)}$2`)
+      .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${esc(meta.title)}$2`)
+      .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${esc(meta.desc)}$2`);
+  }
+  const extra = isStaffRoute(route) ? `<meta name="robots" content="noindex" />` : `<link rel="canonical" href="${url === base + "/parts" ? base + "/accessories" : url}" />\n    <meta property="og:url" content="${url}" />`;
+  return out.replace("</head>", `    ${extra}\n  </head>`);
+}
 function pagePerRoute() {
   return {
     name: "page-per-route",
     writeBundle(options) {
-      const html = fs.readFileSync(path.join(options.dir, "index.html"));
+      const base = (process.env.SITE_URL || CURRENT_URL).replace(/\/$/, "");
+      const html = fs.readFileSync(path.join(options.dir, "index.html"), "utf8");
       for (const r of ROUTES) {
         fs.mkdirSync(path.join(options.dir, r), { recursive: true });
-        fs.writeFileSync(path.join(options.dir, r, "index.html"), html);
+        fs.writeFileSync(path.join(options.dir, r, "index.html"), withMeta(html, r, base));
       }
+      fs.writeFileSync(path.join(options.dir, "index.html"), withMeta(html, "", base));
+      const today = new Date().toISOString().slice(0, 10);
+      const urls = ["", ...ROUTES.filter((r) => !isStaffRoute(r) && !SITEMAP_EXCLUDE.has(r))];
+      const pri = (r) => r === "" ? "1.0" : ["quote", "repairs", "shop", "accessories"].includes(r) || r.startsWith("sell/") ? "0.8" : r.startsWith("blog") ? "0.6" : "0.4";
+      fs.writeFileSync(path.join(options.dir, "sitemap.xml"),
+        `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+        urls.map((r) => `  <url><loc>${base}/${r}</loc><lastmod>${today}</lastmod><priority>${pri(r)}</priority></url>`).join("\n") + "\n</urlset>\n");
     },
   };
 }
