@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 
 import QuoteCalculator from "./instant-quote-calculator.jsx";
 import Storefront from "./storefront.jsx";
@@ -112,7 +112,19 @@ function Nav() {
         @keyframes cs-fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes cs-spin { to { transform: rotate(360deg); } }
 
-        .cs-page-enter { animation: cs-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .cs-page-enter { animation: cs-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; overflow-x: clip; }
+        /* App-like page changes: forward slides in from the right, Back from the left. */
+        @keyframes cs-slide-fwd { from { opacity: 0; transform: translateX(36px); } to { opacity: 1; transform: none; } }
+        @keyframes cs-slide-back { from { opacity: 0; transform: translateX(-36px); } to { opacity: 1; transform: none; } }
+        .cs-page-enter.cs-slide-fwd { animation: cs-slide-fwd 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .cs-page-enter.cs-slide-back { animation: cs-slide-back 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        /* Sections below the fold rise in gently as you scroll. */
+        .mv-reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
+        .mv-reveal.mv-in { opacity: 1; transform: none; }
+        /* Tactile press on buttons, and a little bump when the cart changes. */
+        .cs-btn:active { transform: scale(0.97); }
+        @keyframes cs-bump { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .cs-bump { animation: cs-bump 0.35s ease; }
         .cs-fade { animation: cs-fade-in 0.3s ease both; }
 
         .cs-btn { transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, opacity 0.15s ease; }
@@ -160,7 +172,8 @@ function Nav() {
         input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(33, 80, 200, 0.22); }
 
         @media (prefers-reduced-motion: reduce) {
-          .cs-page-enter, .cs-fade, .cs-btn, .cs-card, .cs-nav-link, .cs-tile, .cs-spinner { animation: none !important; transition: none !important; }
+          .cs-page-enter, .cs-fade, .cs-btn, .cs-card, .cs-nav-link, .cs-tile, .cs-spinner, .cs-bump { animation: none !important; transition: none !important; }
+          .mv-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
         }
       `}</style>
       {!isStaff && (
@@ -381,6 +394,7 @@ export default function App() {
         <Nav />
         <LinkInterceptor />
         <PageMeta />
+        <ScrollReveal />
         <SiteSchema />
         <AnimatedRoutes />
       </div>
@@ -499,11 +513,33 @@ function LinkInterceptor() {
   return null;
 }
 
+// Reveal cards below the fold as they scroll into view. Cards already on
+// screen are never hidden (no flash), and nothing happens without
+// IntersectionObserver or when the visitor prefers reduced motion.
+function ScrollReveal() {
+  const location = useLocation();
+  useEffect(() => {
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const io = new window.IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("mv-in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -40px 0px" });
+    const scan = () => document.querySelectorAll("main .cs-card:not(.mv-reveal)").forEach((el) => {
+      if (el.getBoundingClientRect().top > window.innerHeight) { el.classList.add("mv-reveal"); io.observe(el); }
+    });
+    const t1 = setTimeout(scan, 60), t2 = setTimeout(scan, 700); // again after data loads
+    return () => { clearTimeout(t1); clearTimeout(t2); io.disconnect(); };
+  }, [location.pathname]);
+  return null;
+}
+
+let firstPage = true;
 function AnimatedRoutes() {
   const location = useLocation();
+  const navType = useNavigationType();
+  const slide = firstPage ? "" : navType === "POP" ? " cs-slide-back" : " cs-slide-fwd";
+  useEffect(() => { firstPage = false; }, []);
   const isStaff = isStaffPath(normPath(location.pathname));
   return (
-    <main key={location.pathname} className="cs-page-enter">
+    <main key={location.pathname} className={"cs-page-enter" + slide}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />
         <Route path="/quote" element={<QuoteCalculator />} />

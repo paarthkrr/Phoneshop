@@ -342,7 +342,7 @@ export default function Parts() {
       )}
       {count > 0 && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 950, padding: "10px 14px calc(10px + env(safe-area-inset-bottom, 0px))", background: "rgba(255,255,255,0.96)", borderTop: `1px solid ${line}`, boxShadow: "0 -6px 20px rgba(17,24,39,0.08)", backdropFilter: "blur(8px)" }}>
-          <button className="cs-btn" onClick={() => setView("checkout")} style={{ ...primary(), width: "100%", maxWidth: 520, margin: "0 auto", display: "block", padding: 14, fontSize: 15.5 }}>
+          <button key={count} className="cs-btn cs-bump" onClick={() => setView("checkout")} style={{ ...primary(), width: "100%", maxWidth: 520, margin: "0 auto", display: "block", padding: 14, fontSize: 15.5 }}>
             🛒 Checkout · {count} item{count === 1 ? "" : "s"} · {fmt(subtotal)}
           </button>
         </div>
