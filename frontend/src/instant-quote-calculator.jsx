@@ -1050,10 +1050,9 @@ export default function QuoteCalculator() {
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: muted, marginBottom: 18 }}>
           {live?.businessSettings?.dealerLicence && <span>✓ Licensed dealer</span>}
           <span>✓ Home collection across Sydney</span>
-          <span>✓ Paid in cash</span>
           <span>✓ 49-point check</span>
           <span>✓ Price held 14 days</span>
-          <span>✓ Paid by bank transfer or PayPal</span>
+          <span>✓ Paid in cash, bank transfer or PayPal</span>
           <button onClick={() => setPmOpen((s) => !s)} style={{ background: "none", border: "none", padding: 0, color: green, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
             ✓ Price match guarantee
           </button>
