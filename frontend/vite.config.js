@@ -108,7 +108,7 @@ function pagePerRoute() {
 // Domain switch in one place: set SITE_URL on the host (e.g.
 // https://www.mobilevault.com.au) and the sitemap and robots file are
 // rewritten to it at build time. Unset = keep the current address.
-const CURRENT_URL = "https://mobile-vault-web.onrender.com";
+const CURRENT_URL = "https://mobilerecellr.com.au";
 function siteUrl() {
   return {
     name: "site-url",
