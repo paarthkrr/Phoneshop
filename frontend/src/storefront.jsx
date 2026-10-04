@@ -179,8 +179,8 @@ export default function Storefront() {
     setTrackResult(found || null);
   }
 
-  const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
+    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 
   if (inventory === null) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading available devices…</div>;
 
@@ -215,7 +215,7 @@ export default function Storefront() {
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
                 <a href="#browse" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Shop Refurbished</a>
-                <a href="/quote" className="cs-btn" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</a>
+                <a href="/quote" className="cs-btn" style={{ padding: "12px 22px", border: `1px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</a>
               </div>
               {stats.length > 0 && (
                 <div style={{ display: "flex", gap: 28, justifyContent: "center", flexWrap: "wrap", marginTop: 30 }}>
@@ -245,7 +245,7 @@ export default function Storefront() {
                 <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(categoryTiles.length, 4)}, 1fr)`, gap: 10 }}>
                   {categoryTiles.map((b) => (
                     <button key={b} className="cs-tile" onClick={() => { setBrandFilter(b); document.getElementById("browse")?.scrollIntoView?.({ behavior: "smooth" }); }}
-                      style={{ padding: "18px 10px", textAlign: "center", border: `2px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer", fontWeight: 700, fontSize: 13.5 }}>
+                      style={{ padding: "18px 10px", textAlign: "center", border: `1px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer", fontWeight: 700, fontSize: 13.5 }}>
                       {b}
                     </button>
                   ))}
@@ -263,8 +263,8 @@ export default function Storefront() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
                   {featured.map((item) => (
                     <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
-                      style={{ textAlign: "left", padding: "16px", border: `2px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
-                      <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", background: "#F7F4EC", borderRadius: 3, marginBottom: 10 }}>
+                      style={{ textAlign: "left", padding: "16px", border: `1px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
+                      <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", background: "#FFFFFF", borderRadius: 3, marginBottom: 10 }}>
                         <DeviceArt type={inferDeviceType(item.model, item.category)} size={56} brand={item.brand} model={item.model} imageUrl={item.photoUrl || modelPhotos[`${item.brand}|${item.model}`]} label={`${item.brand} ${item.model}`} />
                       </div>
                       <div style={{ fontSize: 10.5, fontWeight: 700, color: brass, marginBottom: 6 }}>FEATURED</div>
@@ -315,7 +315,7 @@ export default function Storefront() {
             ))}
             </div>
 
-            <div style={{ marginTop: 50, paddingTop: 40, borderTop: `2px solid ${line}` }}>
+            <div style={{ marginTop: 50, paddingTop: 40, borderTop: `1px solid ${line}` }}>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 14 }}>Our Grading, Explained</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 40 }}>
                 {Object.entries(GRADE_LABELS).filter(([id]) => id !== "parts").map(([id, g]) => (
@@ -346,11 +346,11 @@ export default function Storefront() {
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <a href="/repairs" style={{ flex: 1, minWidth: 200, border: `2px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
+              <a href="/repairs" style={{ flex: 1, minWidth: 200, border: `1px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Broken screen or battery?</div>
                 <div style={{ fontSize: 12.5, color: muted }}>Book a repair instead →</div>
               </a>
-              <a href="/parts" style={{ flex: 1, minWidth: 200, border: `2px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
+              <a href="/parts" style={{ flex: 1, minWidth: 200, border: `1px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
                 <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Just need a case or charger?</div>
                 <div style={{ fontSize: 12.5, color: muted }}>Check parts &amp; accessories →</div>
               </a>
@@ -382,7 +382,7 @@ export default function Storefront() {
             })}</script>
             <button onClick={() => setView("browse")} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to browsing</button>
             <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "#F7F4EC", borderRadius: 3, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "#FFFFFF", borderRadius: 3, marginBottom: 16 }}>
                 <DeviceArt type={inferDeviceType(selectedItem.model, selectedItem.category)} size={110} brand={selectedItem.brand} model={selectedItem.model} imageUrl={selectedItem.photoUrl || modelPhotos[`${selectedItem.brand}|${selectedItem.model}`]} label={`${selectedItem.brand} ${selectedItem.model}`} />
               </div>
               {!selectedItem.photoUrl && modelPhotos[`${selectedItem.brand}|${selectedItem.model}`] && <div style={{ fontSize: 11.5, color: muted, textAlign: "center", margin: "-10px 0 14px" }}>Stock photo of this model — condition matches the grade shown.</div>}

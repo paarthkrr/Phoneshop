@@ -294,8 +294,8 @@ export default function POSInventory() {
   async function persistOrders(next) { await saveJSON(ORDERS_KEY, next, true); setOrders(next); }
   async function persistSales(next) { await saveJSON(SALES_KEY, next, true); setSales(next); }
 
-  const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
+    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 
   if (!loaded) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading POS…</div>;
 
@@ -479,7 +479,7 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search device"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden" }}>
-            {filtered.length > 20 && <div style={{ fontSize: 12, color: "#6B6560", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
+            {filtered.length > 20 && <div style={{ fontSize: 12, color: "#5B6472", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
             {filtered.slice(0, 20).map((d, i) => (
               <div key={d.brand + d.model} style={{ padding: "8px 14px", borderTop: i === 0 ? "none" : `1px solid ${line}` }}>
                 <div style={{ fontSize: 12, color: muted, marginBottom: 4 }}>{d.brand} {d.model}</div>

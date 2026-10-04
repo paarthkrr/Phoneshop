@@ -8,14 +8,14 @@ async function loadJSON(key, shared) {
   try { const r = await window.storage.get(key, shared); return r ? JSON.parse(r.value) : null; } catch (e) { return null; }
 }
 
-const ink = "#F7F4EC", paper = "#201C18", muted = "#6B6560", brass = "#2150C8", line = "#201C18";
+const ink = "#FFFFFF", paper = "#111827", muted = "#5B6472", brass = "#2150C8", line = "#E2E6EC";
 const UPDATED = "28 September 2026";
 
 function useBusiness() {
   const [b, setB] = useState({});
   useEffect(() => { (async () => { const cfg = await loadJSON("pricing-config", true); setB((cfg && cfg.businessSettings) || {}); })(); }, []);
   return {
-    name: b.shopName || "Mobile Vault",
+    name: b.shopName || "Mobile Recellr",
     abn: b.abn, address: b.address, phone: b.phone, email: b.email,
   };
 }
@@ -149,7 +149,7 @@ export function Terms() {
       <p>This warranty is in addition to your rights under the Australian Consumer Law.</p>
 
       <h2>Your rights under the Australian Consumer Law</h2>
-      <p style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 16, background: "#fff" }}>
+      <p style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 16, background: "#fff" }}>
         Our goods and services come with guarantees that cannot be excluded under the Australian Consumer Law. For major failures with the service, you are entitled to cancel your service contract with us and to a refund for the unused portion, or to compensation for its reduced value. You are also entitled to choose a replacement or refund for major failures with goods. If a failure with the goods or a service does not amount to a major failure, you are entitled to have the failure rectified in a reasonable time. If this is not done you are entitled to a refund for the goods and to cancel the contract for the service and obtain a refund of any unused portion. You are also entitled to be compensated for any other reasonably foreseeable loss or damage from a failure in the goods or service.
       </p>
 

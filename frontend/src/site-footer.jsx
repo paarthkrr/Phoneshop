@@ -13,7 +13,7 @@ async function loadJSON(key, shared) {
   }
 }
 
-const muted = "#6B6560", brass = "#2150C8", line = "#201C18";
+const muted = "#5B6472", brass = "#2150C8", line = "#E2E6EC";
 
 // One shared footer for every customer-facing page — previously each page
 // either had its own duplicated copy (storefront, calculator) or none at
@@ -30,9 +30,9 @@ export default function SiteFooter() {
   }, []);
 
   return (
-    <footer style={{ marginTop: 50, paddingTop: 30, borderTop: `2px solid ${line}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 24, fontSize: 13, maxWidth: 720, marginLeft: "auto", marginRight: "auto", padding: "30px 16px 40px" }}>
+    <footer style={{ marginTop: 50, paddingTop: 30, borderTop: `1px solid ${line}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 24, fontSize: 13, maxWidth: 720, marginLeft: "auto", marginRight: "auto", padding: "30px 16px 40px" }}>
       <div>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8 }}>Mobile Vault</div>
+        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8 }}>Mobile Recellr</div>
         <div style={{ color: muted, lineHeight: 1.7 }}>
           {businessSettings?.address || "Address on file at checkout"}<br />
           {businessSettings?.phone && <>{businessSettings.phone}<br /></>}
@@ -71,7 +71,7 @@ export default function SiteFooter() {
         </div>
       </div>
       <div>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Why Mobile Vault</div>
+        <div style={{ fontWeight: 700, marginBottom: 8 }}>Why Mobile Recellr</div>
         <div style={{ color: muted, lineHeight: 1.9 }}>
           ✓ Genuine parts only<br />
           ✓ Price match guarantee<br />

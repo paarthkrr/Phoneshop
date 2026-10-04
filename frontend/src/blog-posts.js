@@ -10,7 +10,7 @@ export const POSTS = [
       "The biggest factor is the model. Newer and larger iPhones use more expensive displays, and Pro models use higher-end OLED panels than older LCD models. That's why a screen for an older iPhone can cost a fraction of one for a current Pro Max.",
       "The second factor is part quality. A genuine or high-quality OLED replacement costs more than a cheap aftermarket LCD, but cheap screens often look dimmer, use more battery, and can respond poorly to touch. If a quote looks too good to be true, ask exactly what screen is being fitted.",
       "Third: is it really the screen? Sometimes only the outer glass is cracked and the display underneath works perfectly; other times there's damage to the frame or a cable as well. A proper diagnosis before quoting stops you paying for the wrong repair.",
-      "At Mobile Vault, screen repairs start from $85, most are done the same day in store, and every repair comes with a 90-day warranty. Found a lower quote for the same repair and part quality? Show us and we'll match it.",
+      "At Mobile Recellr, screen repairs start from $85, most are done the same day in store, and every repair comes with a 90-day warranty. Found a lower quote for the same repair and part quality? Show us and we'll match it.",
     ],
   },
   {

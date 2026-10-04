@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
-const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-  brass = "#2150C8", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
+  brass = "#2150C8", line = "#E2E6EC";
 
 // Real questions a phone repair/trade-in customer actually has, answered
 // honestly against what this system actually does — not generic filler.
@@ -63,7 +63,7 @@ export default function FAQ() {
           {FAQS.map((f, i) => {
             const open = openIndex === i;
             return (
-              <div key={i} style={{ border: `2px solid ${line}`, borderRadius: 3, background: panel, overflow: "hidden" }}>
+              <div key={i} style={{ border: `1px solid ${line}`, borderRadius: 3, background: panel, overflow: "hidden" }}>
                 <button onClick={() => setOpenIndex(open ? null : i)} aria-expanded={open}
                   style={{ width: "100%", textAlign: "left", padding: "16px 18px", background: "none", border: "none", cursor: "pointer",
                     display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, fontSize: 15, fontWeight: 700, color: paper }}>
@@ -80,12 +80,12 @@ export default function FAQ() {
           })}
         </div>
 
-        <div style={{ marginTop: 40, borderTop: `2px solid ${line}`, paddingTop: 24, textAlign: "center" }}>
+        <div style={{ marginTop: 40, borderTop: `1px solid ${line}`, paddingTop: 24, textAlign: "center" }}>
           <div style={{ color: muted, fontSize: 14, marginBottom: 14 }}>Still have a question?</div>
           <a href="/contact" className="cs-btn" style={{ padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Contact Us</a>
         </div>
 
-        <div style={{ marginTop: 20, border: `2px solid ${line}`, borderRadius: 3, padding: 22, textAlign: "center", background: panel }}>
+        <div style={{ marginTop: 20, border: `1px solid ${line}`, borderRadius: 3, padding: 22, textAlign: "center", background: panel }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 6 }}>Ready to sell your old device?</div>
           <div style={{ color: muted, fontSize: 13, marginBottom: 14 }}>Get an instant quote — no obligation to sell.</div>
           <a href="/quote" className="cs-btn" style={{ padding: "11px 20px", background: brass, color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</a>

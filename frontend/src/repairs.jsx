@@ -59,8 +59,8 @@ async function queueNotification(entry) {
 }
 const genId = () => "RPR-" + Math.floor(100000 + Math.random() * 900000);
 
-const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
-  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
+  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 
 const DEVICE_TYPES = ["Phone", "Tablet", "Laptop", "Watch"];
 
@@ -167,7 +167,7 @@ export default function Repairs() {
         </button>
 
         {trackOpen ? (
-          <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 20, background: panel, marginBottom: 28 }}>
+          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 20, background: panel, marginBottom: 28 }}>
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Request number or email" aria-label="Request number or email to track your repair"
                 style={{ flex: 1, padding: "11px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
@@ -198,7 +198,7 @@ export default function Repairs() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 32 }}>
           {REPAIRS_BY_DEVICE[deviceType].map((r) => (
-            <div key={r.name} className="cs-card" style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 14, background: panel }}>
+            <div key={r.name} className="cs-card" style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, background: panel }}>
               <div style={{ marginBottom: 8 }}><DeviceArt type={deviceType.toLowerCase()} size={36} /></div>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{r.name}</div>
               <div style={{ fontSize: 12, color: muted }}>From ${r.from}</div>
@@ -206,7 +206,7 @@ export default function Repairs() {
           ))}
         </div>
 
-        <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 22, background: panel }}>
+        <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 22, background: panel }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 16 }}>Request a repair</div>
 
           <div role="group" aria-label="Repair method" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -249,11 +249,11 @@ export default function Repairs() {
         </div>
 
         <div style={{ marginTop: 30, display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <a href="/shop" style={{ flex: 1, minWidth: 200, border: `2px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
+          <a href="/shop" style={{ flex: 1, minWidth: 200, border: `1px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Need a whole new device instead?</div>
             <div style={{ fontSize: 12.5, color: muted }}>Browse graded refurbished stock →</div>
           </a>
-          <a href="/parts" style={{ flex: 1, minWidth: 200, border: `2px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
+          <a href="/parts" style={{ flex: 1, minWidth: 200, border: `1px solid ${line}`, borderRadius: 3, padding: 16, textDecoration: "none", color: paper, background: panel }} className="cs-card">
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>DIY fix?</div>
             <div style={{ fontSize: 12.5, color: muted }}>Check parts &amp; accessories in stock →</div>
           </a>

@@ -23,8 +23,8 @@ async function loadJSON(key, shared) {
   }
 }
 
-const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
+  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#E2E6EC";
 
 // The three things people actually come here to do — each gets equal,
 // prominent billing up top, the way PhoneExchange and Mobile Monster lead
@@ -106,7 +106,7 @@ export default function Home() {
         @keyframes mv-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
         .mv-float { animation: mv-float 4.5s ease-in-out infinite; }
         .mv-chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #fff;
-          border: 1px solid rgba(32,28,24,0.16); color: #201C18; text-decoration: none; font-size: 14px; font-weight: 600;
+          border: 1px solid rgba(32,28,24,0.16); color: #111827; text-decoration: none; font-size: 14px; font-weight: 600;
           transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease; }
         .mv-chip:hover { border-color: #2150C8; color: #2150C8; transform: translateY(-1px); }
         @media (prefers-reduced-motion: reduce) { .mv-rise, .mv-hero::before, .mv-float { animation: none !important; } }
@@ -129,7 +129,7 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, textAlign: "left" }}>
           {ACTIONS.map((a, i) => (
             <a key={a.href} href={a.href} className="cs-card mv-action mv-rise"
-              style={{ animationDelay: `${0.15 + i * 0.1}s`, display: "block", border: `2px solid ${line}`, borderRadius: 4, padding: 22, background: panel, color: paper, textDecoration: "none" }}>
+              style={{ animationDelay: `${0.15 + i * 0.1}s`, display: "block", border: `1px solid ${line}`, borderRadius: 4, padding: 22, background: panel, color: paper, textDecoration: "none" }}>
               <div style={{ fontSize: 30, marginBottom: 10 }} aria-hidden="true">{a.icon}</div>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 19, marginBottom: 6 }}>{a.title}</div>
               <div style={{ color: muted, fontSize: 13.5, marginBottom: 16, lineHeight: 1.5 }}>{a.desc}</div>
@@ -182,7 +182,7 @@ export default function Home() {
       )}
 
       {/* ---- Trust strip ---- */}
-      <div style={{ borderTop: `2px solid ${line}`, borderBottom: `2px solid ${line}`, background: panel, padding: "26px 16px", marginBottom: 50 }}>
+      <div style={{ borderTop: `1px solid ${line}`, borderBottom: `1px solid ${line}`, background: panel, padding: "26px 16px", marginBottom: 50 }}>
         <div style={{ ...section, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
           {TRUST.map((t, i) => (
             <div key={t.title} className="mv-rise" style={{ animationDelay: `${0.45 + i * 0.08}s` }}>
@@ -199,7 +199,7 @@ export default function Home() {
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%", padding: "0 clamp(20px, 5vw, 44px)", maxWidth: 480, color: "#fff" }}>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(22px, 4vw, 30px)", lineHeight: 1.15, marginBottom: 10 }}>Real technicians.<br />Genuine parts.</div>
             <div style={{ fontSize: 14.5, lineHeight: 1.6, opacity: 0.92, marginBottom: 18 }}>We diagnose first and tell you honestly what's wrong, before quoting anything.</div>
-            <a href="/repairs" className="cs-btn" style={{ alignSelf: "flex-start", padding: "12px 22px", background: "#fff", color: "#201C18", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 10 }}>Book a repair →</a>
+            <a href="/repairs" className="cs-btn" style={{ alignSelf: "flex-start", padding: "12px 22px", background: "#fff", color: "#111827", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 10 }}>Book a repair →</a>
           </div>
         </Photo>
       </div>
@@ -209,7 +209,7 @@ export default function Home() {
         <div style={heading}>Selling your phone takes three steps</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
           {STEPS.map((s, i) => (
-            <div key={s.n} className="mv-rise" style={{ animationDelay: `${0.1 + i * 0.1}s`, border: `2px solid ${line}`, borderRadius: 4, padding: 20, background: panel }}>
+            <div key={s.n} className="mv-rise" style={{ animationDelay: `${0.1 + i * 0.1}s`, border: `1px solid ${line}`, borderRadius: 4, padding: 20, background: panel }}>
               <div style={{ width: 34, height: 34, borderRadius: "50%", background: brass, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, marginBottom: 12 }}>{s.n}</div>
               <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{s.title}</div>
               <div style={{ color: muted, fontSize: 13.5, lineHeight: 1.55 }}>{s.desc}</div>
@@ -257,7 +257,7 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
           {[["📱", "Screen replacement", "From $85", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $59", "Phone dying by lunchtime?"],
             ["🔌", "Charging port", "From $55", "Often just dust — we check and clean first."], ["📷", "Camera repair", "From $75", "Blurry, cracked or not focusing."]].map(([i, t, p, d]) => (
-            <a key={t} href="/repairs" className="cs-card" style={{ display: "block", border: "2px solid #201C18", background: panel, padding: 16, color: paper, textDecoration: "none" }}>
+            <a key={t} href="/repairs" className="cs-card" style={{ display: "block", border: "1px solid #E2E6EC", background: panel, padding: 16, color: paper, textDecoration: "none" }}>
               <div style={{ fontSize: 24, marginBottom: 6 }} aria-hidden="true">{i}</div>
               <div style={{ fontWeight: 700, fontSize: 14.5 }}>{t}</div>
               <div style={{ color: brass, fontWeight: 700, fontSize: 14, margin: "3px 0 6px" }}>{p}</div>
@@ -282,7 +282,7 @@ export default function Home() {
 
       {/* ---- Why we exist ---- */}
       <div style={{ ...section, marginBottom: 50 }}>
-        <div style={{ border: `2px solid ${line}`, borderRadius: 4, padding: 28, background: brassDim }}>
+        <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 28, background: brassDim }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 21, marginBottom: 10 }}>Why we started this</div>
           <div style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 14, maxWidth: 700 }}>
             We kept seeing people charged $150 for a "broken" charging port that was really just full of dust. So we built a shop that checks the simple explanation first — and only charges for a real repair when one's actually needed.
@@ -294,7 +294,7 @@ export default function Home() {
       {/* ---- Visit us (only once the address is set in Business settings) ---- */}
       {biz.address && (
         <div style={{ ...section, marginBottom: 50 }}>
-          <div style={{ border: "2px solid #201C18", borderRadius: 14, background: panel, padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, alignItems: "center" }}>
+          <div style={{ border: "1px solid #E2E6EC", borderRadius: 14, background: panel, padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, alignItems: "center" }}>
             <div>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 21, marginBottom: 8 }}>Visit us in store</div>
               <div style={{ fontSize: 14.5, lineHeight: 1.6 }}>{biz.address}</div>
@@ -305,7 +305,7 @@ export default function Home() {
               <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(biz.address)}`} target="_blank" rel="noopener" className="cs-btn"
                 style={{ padding: "13px 20px", background: brass, color: "#fff", fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📍 Get directions</a>
               {biz.phone && <a href={`tel:${biz.phone.replace(/\s/g, "")}`} className="cs-btn"
-                style={{ padding: "13px 20px", border: "1.5px solid #201C18", color: paper, fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📞 Call {biz.phone}</a>}
+                style={{ padding: "13px 20px", border: "1.5px solid #E2E6EC", color: paper, fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📞 Call {biz.phone}</a>}
             </div>
           </div>
         </div>
@@ -317,7 +317,7 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
           {GUIDES.map((g) => (
             <a key={g.href} href={g.href} className="cs-card"
-              style={{ display: "block", border: `2px solid ${line}`, borderRadius: 4, padding: 18, background: panel, color: paper, textDecoration: "none", fontWeight: 600, fontSize: 14.5, lineHeight: 1.4 }}>
+              style={{ display: "block", border: `1px solid ${line}`, borderRadius: 4, padding: 18, background: panel, color: paper, textDecoration: "none", fontWeight: 600, fontSize: 14.5, lineHeight: 1.4 }}>
               {g.title} <span style={{ color: brass }}>→</span>
             </a>
           ))}

@@ -7,7 +7,7 @@ import React, { useState } from "react";
 // customers recognise their phone at a glance. All drawings are original —
 // no brand logos or copied product images.
 
-const INK = "#201C18", BLUE = "#2150C8", SCREEN = "rgba(33,80,200,0.12)";
+const INK = "#111827", BLUE = "#2150C8", SCREEN = "rgba(33,80,200,0.12)";
 
 export function inferDeviceType(model, category) {
   const c = (category || "").toLowerCase();

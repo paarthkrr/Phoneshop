@@ -41,8 +41,8 @@ import CRMDashboard from "./crm-dashboard.jsx";
    are separate concerns; this file only solves routing.
 ================================================================= */
 
-const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
+  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#E2E6EC";
 
 // The staff area lives at /portal. It used to be /staff, but Render's CDN
 // kept a broken saved copy of /staff that can't be cleared from code, so
@@ -89,7 +89,7 @@ function Nav() {
   useEffect(() => { document.body.classList.toggle("cs-staff-mode", isStaff); }, [isStaff]);
 
   return (
-    <nav style={{ borderBottom: `3px solid ${line}`, background: panel, position: "sticky", top: 0, zIndex: 50 }} aria-label="Main navigation">
+    <nav style={{ borderBottom: `1px solid ${line}`, background: panel, position: "sticky", top: 0, zIndex: 50 }} aria-label="Main navigation">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
 
@@ -98,7 +98,7 @@ function Nav() {
         html { scroll-behavior: smooth; }
 
         /* ---- Mobile menu: desktop links collapse into a menu button under 720px ---- */
-        .cs-menu-btn { display: none; background: none; border: 2px solid #201C18; border-radius: 3px; padding: 5px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: #201C18; }
+        .cs-menu-btn { display: none; background: none; border: 1px solid #E2E6EC; border-radius: 3px; padding: 5px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: #111827; }
         .cs-mobile-menu { display: none; }
         @media (max-width: 720px) {
           .cs-nav-links, .cs-nav-aside { display: none !important; }
@@ -162,14 +162,14 @@ function Nav() {
         }
       `}</style>
       {!isStaff && (
-        <div className="cs-announce" style={{ background: "#201C18", color: "#F7F4EC", fontSize: 12.5, textAlign: "center", padding: "7px 12px", lineHeight: 1.5, fontFamily: "'Archivo', system-ui, sans-serif" }}>
+        <div className="cs-announce" style={{ background: "#111827", color: "#FFFFFF", fontSize: 12.5, textAlign: "center", padding: "7px 12px", lineHeight: 1.5, fontFamily: "'Archivo', system-ui, sans-serif" }}>
           ⚡ Free express shipping Australia-wide &nbsp;·&nbsp; ✓ 1-year warranty on every device &nbsp;·&nbsp; ✓ 30-day returns &nbsp;·&nbsp; ✓ Same-day repairs in store &nbsp;·&nbsp; <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>
         </div>
       )}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
           <Link to={isStaff ? "/portal/index.html" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
-            MOBILE<span style={{ color: brass }}>VAULT</span>{isStaff && <span style={{ fontSize: 11, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
+            <span style={{ textTransform: "none", letterSpacing: "-0.02em" }}>re<span style={{ color: brass }}>cellr</span></span>{isStaff && <span style={{ fontSize: 11, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
           </Link>
           <div className="cs-nav-links" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {links.map((l) => {
@@ -210,7 +210,7 @@ function Nav() {
           const active = normPath(location.pathname) === l.to;
           return (
             <Link key={l.to} to={l.to} aria-current={active ? "page" : undefined}
-              style={{ padding: "12px 4px", fontSize: 16, fontWeight: active ? 700 : 500, color: active ? brass : paper, textDecoration: "none", borderBottom: "1px solid #F0EBE0" }}>
+              style={{ padding: "12px 4px", fontSize: 16, fontWeight: active ? 700 : 500, color: active ? brass : paper, textDecoration: "none", borderBottom: "1px solid #F4F6F9" }}>
               {l.label}
             </Link>
           );
@@ -302,12 +302,12 @@ function StaffGate({ children }) {
         {mode === "login" ? "Staff sign in" : "Create the first staff account"}
       </div>
       <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username"
-        style={{ width: "100%", padding: 10, marginBottom: 8, border: `2px solid ${line}`, fontSize: 14, boxSizing: "border-box" }} />
+        style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, fontSize: 14, boxSizing: "border-box" }} />
       <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" type="password"
-        style={{ width: "100%", padding: 10, marginBottom: 8, border: `2px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
+        style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
       {mode === "register" && (
         <input value={bootstrapToken} onChange={(e) => setBootstrapToken(e.target.value)} placeholder="Bootstrap token (if one was set)"
-          style={{ width: "100%", padding: 10, marginBottom: 8, border: `2px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
+          style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
       )}
       {error && <div style={{ color: "#8B2E2E", fontSize: 13, marginBottom: 8 }}>{error}</div>}
       {success && <div style={{ color: "#3F6B34", fontSize: 13, marginBottom: 8 }}>{success}</div>}
@@ -423,7 +423,7 @@ function SiteSchema() {
         const r = await window.storage.get("pricing-config", true);
         const b = r ? (JSON.parse(r.value).businessSettings || {}) : {};
         if (!b.address && !b.phone) return;
-        const data = { "@context": "https://schema.org", "@type": "ElectronicsStore", name: b.shopName || "Mobile Vault", url: window.location.origin,
+        const data = { "@context": "https://schema.org", "@type": "ElectronicsStore", name: b.shopName || "Mobile Recellr", url: window.location.origin,
           ...(b.address ? { address: b.address } : {}), ...(b.phone ? { telephone: b.phone } : {}), ...(b.email ? { email: b.email } : {}) };
         let el = document.getElementById("mv-localbusiness");
         if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = "mv-localbusiness"; document.head.appendChild(el); }
@@ -441,7 +441,7 @@ function PageMeta() {
     const staff = isStaffPath(path);
     const meta = metaFor(path);
     const title = meta && meta.title, desc = meta && meta.desc;
-    if (staff) document.title = "Staff — Mobile Vault";
+    if (staff) document.title = "Staff — Mobile Recellr";
     else if (title) document.title = title;
     if (desc) {
       let m = document.querySelector('meta[name="description"]');

@@ -25,12 +25,12 @@ const SECTIONS = [
   },
 ];
 
-const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560", brass = "#2150C8", red = "#8B2E2E", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472", brass = "#2150C8", red = "#8B2E2E", line = "#E2E6EC";
 
 function Video({ v }) {
   const [playing, setPlaying] = useState(false);
   return (
-    <div className="cs-card" style={{ border: `2px solid ${line}`, background: panel, padding: 12, display: "flex", flexDirection: "column" }}>
+    <div className="cs-card" style={{ border: `1px solid ${line}`, background: panel, padding: 12, display: "flex", flexDirection: "column" }}>
       <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 10, overflow: "hidden", background: "#1b1b1b" }}>
         {playing ? (
           <iframe src={`https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0`} title={v.title}
@@ -90,7 +90,7 @@ export default function Tutorials() {
             <div style={{ color: muted, fontSize: 13.5, marginBottom: 10 }}>Cheapest prices, genuine parts, done same day in store.</div>
             <span style={{ color: brass, fontWeight: 700 }}>Book a repair →</span>
           </a>
-          <a href="/accessories" className="cs-card" style={{ display: "block", border: `2px solid ${line}`, background: panel, padding: 20, textDecoration: "none", color: paper }}>
+          <a href="/accessories" className="cs-card" style={{ display: "block", border: `1px solid ${line}`, background: panel, padding: 20, textDecoration: "none", color: paper }}>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 6 }}>Doing it yourself?</div>
             <div style={{ color: muted, fontSize: 13.5, marginBottom: 10 }}>DIY repair kits, tools and screen protectors in stock.</div>
             <span style={{ color: brass, fontWeight: 700 }}>Shop parts &amp; kits →</span>
@@ -101,7 +101,7 @@ export default function Tutorials() {
           <strong style={{ color: paper }}>Official written guides:</strong>{" "}
           <a href="https://support.apple.com/self-service-repair" target="_blank" rel="noopener" style={{ color: brass }}>Apple Self Service Repair manuals</a>{" · "}
           <a href="https://www.ifixit.com/Device/iPhone" target="_blank" rel="noopener" style={{ color: brass }}>iFixit iPhone repair guides</a>
-          <br />Videos are made by independent creators and shown from YouTube. Mobile Vault isn't responsible for third-party content, and following them is at your own risk.
+          <br />Videos are made by independent creators and shown from YouTube. Mobile Recellr isn't responsible for third-party content, and following them is at your own risk.
         </div>
       </div>
     </div>

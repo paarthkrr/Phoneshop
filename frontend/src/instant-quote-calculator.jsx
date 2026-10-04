@@ -901,10 +901,10 @@ export default function QuoteCalculator() {
     setBulkTrackResult(found || null);
   }
 
-  // Mobile Vault palette — bold Australian retail: warm paper background,
+  // Mobile Recellr palette — bold Australian retail: warm paper background,
   // heritage signage red as the single brand accent, bold black structure.
-  const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
+    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
@@ -1234,7 +1234,7 @@ export default function QuoteCalculator() {
               style={{ width: "100%", padding: "13px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper,
                 fontSize: 15, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden" }}>
-              {filtered.length > 20 && <div style={{ fontSize: 12, color: "#6B6560", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
+              {filtered.length > 20 && <div style={{ fontSize: 12, color: "#5B6472", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
               {filtered.slice(0, 20).map((d, di) => (
                 <div key={d.brand + d.model}>
                   <div style={{ padding: "10px 14px 4px", fontSize: 11, color: muted, borderTop: di === 0 ? "none" : `1px solid ${line}`, display: "flex", alignItems: "center", gap: 6 }}>

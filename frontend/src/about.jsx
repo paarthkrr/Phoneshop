@@ -5,8 +5,8 @@ import Photo from "./photo.jsx";
 // Same palette every other customer-facing page uses — kept as local
 // constants (not imported) to match the established pattern in this
 // codebase, where each route file is self-contained.
-const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-  brass = "#2150C8", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
+  brass = "#2150C8", line = "#E2E6EC";
 
 export default function AboutUs() {
   return (
@@ -16,11 +16,11 @@ export default function AboutUs() {
 
         <Photo name="screwdriver" height={240} eager style={{ marginBottom: 26 }} />
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 32, lineHeight: 1.08, letterSpacing: "-0.01em", marginBottom: 24 }}>
-          Why Mobile Vault exists
+          Why Mobile Recellr exists
         </div>
 
         <div style={{ fontSize: 16, lineHeight: 1.75, marginBottom: 20 }}>
-          We started Mobile Vault after watching the same thing happen to person after person: a phone that had stopped charging properly, taken in for what should've been a two-minute clean-out, and handed back with a bill for $150 — sometimes more.
+          We started Mobile Recellr after watching the same thing happen to person after person: a phone that had stopped charging properly, taken in for what should've been a two-minute clean-out, and handed back with a bill for $150 — sometimes more.
         </div>
 
         <div style={{ fontSize: 16, lineHeight: 1.75, marginBottom: 20 }}>
@@ -31,7 +31,7 @@ export default function AboutUs() {
           We got tired of watching it happen. So we built a shop that does the opposite: we tell you honestly what's actually wrong, we only use genuine parts when a part genuinely needs replacing, and we back every price with a real guarantee — if you find the same repair cheaper elsewhere, we'll match it.
         </div>
 
-        <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 24, margin: "36px 0", background: panel }}>
+        <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 24, margin: "36px 0", background: panel }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 14 }}>What that actually means for you</div>
           <div style={{ lineHeight: 2 }}>
             ✓ Honest diagnosis first — we tell you what's actually wrong before we quote you<br />
@@ -48,8 +48,8 @@ export default function AboutUs() {
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Link to="/quote" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</Link>
-          <Link to="/shop" className="cs-btn" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Shop Refurbished</Link>
-          <Link to="/contact" className="cs-btn" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Contact Us</Link>
+          <Link to="/shop" className="cs-btn" style={{ padding: "12px 22px", border: `1px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Shop Refurbished</Link>
+          <Link to="/contact" className="cs-btn" style={{ padding: "12px 22px", border: `1px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Contact Us</Link>
         </div>
       </div>
     </div>

@@ -278,8 +278,8 @@ export default function AdminPricingConsole() {
     setTimeout(() => setStatus(""), 2000);
   }
 
-  const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
+    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 
   const numInput = (value, onChange, opts = {}) => (
     <input
@@ -549,7 +549,7 @@ export default function AdminPricingConsole() {
 }
 
 function Section({ title, children, onSave, onDiscard, dirty, status, line, muted }) {
-  const brass = "#2150C8", panel = "#FFFFFF", paper = "#201C18";
+  const brass = "#2150C8", panel = "#FFFFFF", paper = "#111827";
   return (
     <div>
       <div style={{ fontSize: 15, marginBottom: 12 }}>{title}</div>

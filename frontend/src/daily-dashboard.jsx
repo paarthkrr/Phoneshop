@@ -67,8 +67,8 @@ export default function DailyDashboard() {
     return { ordersAwaitingInspection, ordersRevisedPending, ordersToReceive, ungraded, listedNotSold, repairsReady, repairsOpen, repairsStale, todayTill, todayRevenue, todaySalesCount: todaySales.length, feed };
   }, [data]);
 
-  const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-    brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+  const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
+    brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 
   if (!summary) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading today's view…</div>;
 

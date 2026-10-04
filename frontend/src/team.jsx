@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 
 // Team: admins add staff, reset forgotten passwords and remove people who've
 // left. Everyone can change their own password here too.
-const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560", brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472", brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 const field = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 15, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" };
 const btn = (bg, fg = "#fff") => ({ padding: "12px 18px", borderRadius: 10, border: "none", background: bg, color: fg, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 
-const brass = "#2150C8", ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560", line = "#201C18";
+const brass = "#2150C8", ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472", line = "#E2E6EC";
 
 const KNOWLEDGE = [
   { keywords: ["price match", "cheaper", "match", "guarantee"], a: "Yes — find the same repair or device cheaper elsewhere and we'll match it. Submit a price match request through our quote tool and a real person reviews it." },
@@ -62,7 +62,7 @@ export default function ChatWidget() {
           display: flex; align-items: center; justify-content: center; transition: transform 0.15s ease; }
         .cs-chat-fab:hover { transform: scale(1.08); }
         .cs-chat-panel { position: fixed; bottom: 88px; right: 20px; z-index: 1000; width: min(340px, calc(100vw - 32px)); max-height: 460px;
-          background: ${panel}; border: 2px solid ${line}; border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;
+          background: ${panel}; border: 1px solid ${line}; border-radius: 6px; display: flex; flex-direction: column; overflow: hidden;
           box-shadow: 0 8px 30px rgba(32,28,24,0.3); font-family: 'Archivo', system-ui, sans-serif; }
         .has-mobile-cta .cs-chat-fab { bottom: 88px; } .has-mobile-cta .cs-chat-panel { bottom: 156px; }
         @media (min-width: 721px) { .has-mobile-cta .cs-chat-fab { bottom: 20px; } .has-mobile-cta .cs-chat-panel { bottom: 88px; } }
@@ -74,15 +74,15 @@ export default function ChatWidget() {
       </button>
 
       {open && (
-        <div className="cs-chat-panel" role="dialog" aria-label="Chat with Mobile Vault">
-          <div style={{ background: paper, color: ink, padding: "12px 16px", fontWeight: 700, fontSize: 14 }}>Mobile Vault Help</div>
+        <div className="cs-chat-panel" role="dialog" aria-label="Chat with Mobile Recellr">
+          <div style={{ background: paper, color: ink, padding: "12px 16px", fontWeight: 700, fontSize: 14 }}>Mobile Recellr Help</div>
 
           <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 10, minHeight: 200, maxHeight: 260 }}>
             {messages.map((m, i) => (
               <div key={i}>
                 <div style={{
                   maxWidth: "85%", marginLeft: m.from === "user" ? "auto" : 0, padding: "9px 12px", borderRadius: 10,
-                  background: m.from === "user" ? brass : "#F0EBE0", color: m.from === "user" ? "#fff" : paper, fontSize: 13, lineHeight: 1.5,
+                  background: m.from === "user" ? brass : "#F4F6F9", color: m.from === "user" ? "#fff" : paper, fontSize: 13, lineHeight: 1.5,
                 }}>
                   {m.text}
                 </div>
@@ -104,7 +104,7 @@ export default function ChatWidget() {
             ))}
           </div>
 
-          <div style={{ display: "flex", borderTop: `2px solid ${line}` }}>
+          <div style={{ display: "flex", borderTop: `1px solid ${line}` }}>
             <input value={input} onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleSend(); }}
               placeholder="Type a question…" aria-label="Type a question"

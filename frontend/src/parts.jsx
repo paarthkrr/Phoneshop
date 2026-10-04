@@ -25,8 +25,8 @@ const CART_KEY = "mv_cart";
 const ICONS = [[/case|cover/i, "📱"], [/protector|glass/i, "🛡️"], [/charg|cable|power/i, "🔌"], [/kit|diy|tool|part/i, "🧰"], [/audio|ear|head/i, "🎧"]];
 const iconFor = (cat) => (ICONS.find(([re]) => re.test(cat || "")) || [null, "✨"])[1];
 
-const ink = "#F7F4EC", panel = "#FFFFFF", panel2 = "#F0EBE0", paper = "#201C18", muted = "#6B6560",
-  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
+  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 const input = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
 const primary = (on = true) => ({ padding: "12px 20px", borderRadius: 10, border: "none", background: on ? brass : "#C9C3B8", color: "#fff", fontSize: 14, fontWeight: 700, cursor: on ? "pointer" : "default", fontFamily: "inherit" });
 
@@ -103,14 +103,14 @@ export default function Parts() {
   );
   const CrossLinks = (
     <>
-      <div style={{ marginTop: 40, border: `2px solid ${line}`, borderRadius: 14, padding: 22, textAlign: "center", background: panel }}>
+      <div style={{ marginTop: 40, border: `1px solid ${line}`, borderRadius: 14, padding: 22, textAlign: "center", background: panel }}>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 6 }}>Upgrading? Trade in your old device</div>
         <div style={{ color: muted, fontSize: 13, marginBottom: 14 }}>Get an instant quote — no obligation to sell.</div>
         <a href="/quote" className="cs-btn" style={{ ...primary(), textDecoration: "none", display: "inline-block" }}>Get an Instant Quote</a>
       </div>
       <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <a href="/shop" className="cs-card" style={{ flex: 1, minWidth: 200, border: `2px solid ${line}`, padding: 16, textDecoration: "none", color: paper, background: panel }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Need a whole device?</div><div style={{ fontSize: 12.5, color: muted }}>Browse graded refurbished stock →</div></a>
-        <a href="/repairs" className="cs-card" style={{ flex: 1, minWidth: 200, border: `2px solid ${line}`, padding: 16, textDecoration: "none", color: paper, background: panel }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Prefer we fit it for you?</div><div style={{ fontSize: 12.5, color: muted }}>Book a repair →</div></a>
+        <a href="/shop" className="cs-card" style={{ flex: 1, minWidth: 200, border: `1px solid ${line}`, padding: 16, textDecoration: "none", color: paper, background: panel }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Need a whole device?</div><div style={{ fontSize: 12.5, color: muted }}>Browse graded refurbished stock →</div></a>
+        <a href="/repairs" className="cs-card" style={{ flex: 1, minWidth: 200, border: `1px solid ${line}`, padding: 16, textDecoration: "none", color: paper, background: panel }}><div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Prefer we fit it for you?</div><div style={{ fontSize: 12.5, color: muted }}>Book a repair →</div></a>
       </div>
     </>
   );
@@ -198,7 +198,7 @@ export default function Parts() {
   return wrap(<>
     {Header}
     {inStock.length === 0 ? (<>
-      <div style={{ border: `2px solid ${line}`, borderRadius: 14, padding: 30, textAlign: "center", background: panel }}>
+      <div style={{ border: `1px solid ${line}`, borderRadius: 14, padding: 30, textAlign: "center", background: panel }}>
         <div style={{ fontSize: 15, marginBottom: 10 }}>Nothing listed online just yet</div>
         <div style={{ color: muted, fontSize: 13, marginBottom: 18 }}>We carry a range of parts and accessories in-store — get in touch and we'll check what's available.</div>
         <a href="/contact" className="cs-btn" style={{ ...primary(), textDecoration: "none", display: "inline-block" }}>Contact Us</a>
@@ -220,8 +220,8 @@ export default function Parts() {
         {filtered.map((a) => {
           const low = a.qtyOnHand <= 2, inCart = qtyInCart(a.id);
           return (
-            <div key={a.id} className="cs-card" style={{ border: `2px solid ${line}`, padding: 14, background: panel, display: "flex", flexDirection: "column" }}>
-              <div style={{ height: 110, borderRadius: 10, background: "#F4F1EA", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden" }}>
+            <div key={a.id} className="cs-card" style={{ border: `1px solid ${line}`, padding: 14, background: panel, display: "flex", flexDirection: "column" }}>
+              <div style={{ height: 110, borderRadius: 10, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden" }}>
                 {a.imageUrl ? <img src={a.imageUrl} alt={a.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   : <span style={{ fontSize: 40 }} aria-hidden="true">{iconFor(a.category)}</span>}
               </div>

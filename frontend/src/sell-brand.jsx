@@ -10,7 +10,7 @@ import { baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT
 // figure is never higher than what the customer can actually be quoted.
 export const SELL_BRANDS = { apple: "Apple", samsung: "Samsung", google: "Google", oppo: "Oppo", motorola: "Motorola", xiaomi: "Xiaomi", oneplus: "OnePlus", nothing: "Nothing", vivo: "Vivo" };
 
-const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560", brass = "#2150C8";
+const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472", brass = "#2150C8";
 
 async function loadConfig() {
   try { if (!window.storage) return null; const r = await window.storage.get("pricing-config", true); return r ? JSON.parse(r.value) : null; } catch (e) { return null; }
@@ -22,7 +22,7 @@ export default function SellBrand() {
   const [cfg, setCfg] = useState(undefined);
   const [q, setQ] = useState("");
   useEffect(() => { (async () => setCfg(await loadConfig()))(); }, []);
-  useEffect(() => { if (brand) document.title = `Sell Your ${brand === "Apple" ? "iPhone" : brand} — Instant Quote | Mobile Vault`; }, [brand]);
+  useEffect(() => { if (brand) document.title = `Sell Your ${brand === "Apple" ? "iPhone" : brand} — Instant Quote | Mobile Recellr`; }, [brand]);
 
   const models = useMemo(() => {
     if (!brand || cfg === undefined) return [];
@@ -67,7 +67,7 @@ export default function SellBrand() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 14 }}>
             {shown.map((d) => (
               <a key={d.model} href={`/quote?q=${encodeURIComponent(d.model)}`} className="cs-card"
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", border: "2px solid #201C18", background: panel, padding: "18px 12px", color: paper, textDecoration: "none" }}>
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", border: "1px solid #E2E6EC", background: panel, padding: "18px 12px", color: paper, textDecoration: "none" }}>
                 <DeviceArt type={inferDeviceType(d.model, d.category)} size={58} brand={d.brand} model={d.model} imageUrl={d.imageUrl} label={`${d.brand} ${d.model}`} />
                 <div style={{ fontWeight: 700, fontSize: 14.5, margin: "12px 0 4px" }}>{d.model}</div>
                 <div style={{ fontSize: 12.5, color: muted }}>Get up to</div>

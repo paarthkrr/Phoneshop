@@ -2,8 +2,8 @@ import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { POSTS } from "./blog-posts.js";
 
-const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-  brass = "#2150C8", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
+  brass = "#2150C8", line = "#E2E6EC";
 
 // Real, useful guides tied to actual expertise and actual site features —
 // each one written to genuinely help the reader, not just stuff keywords.
@@ -13,7 +13,7 @@ const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
 export default function Blog() {
   const { slug } = useParams();
   const post = POSTS.find((p) => p.slug === slug);
-  useEffect(() => { if (post) document.title = `${post.title} | Mobile Vault`; }, [post]);
+  useEffect(() => { if (post) document.title = `${post.title} | Mobile Recellr`; }, [post]);
 
   if (slug && !post) {
     return (
@@ -33,7 +33,7 @@ export default function Blog() {
           "@type": "Article",
           "headline": post.title,
           "datePublished": post.date,
-          "author": { "@type": "Organization", "name": "Mobile Vault" },
+          "author": { "@type": "Organization", "name": "Mobile Recellr" },
         })}</script>
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 16px 80px" }}>
           <a href="/blog" style={{ color: brass, fontSize: 13, marginBottom: 20, display: "inline-block", textDecoration: "none" }}>← All guides</a>
@@ -44,7 +44,7 @@ export default function Blog() {
           ))}
           <div style={{ marginTop: 30, display: "flex", gap: 10, flexWrap: "wrap" }}>
             <a href="/repairs" className="cs-btn" style={{ padding: "11px 20px", background: brass, color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Book a repair</a>
-            <a href="/quote" className="cs-btn" style={{ padding: "11px 20px", border: `2px solid ${line}`, color: paper, fontSize: 13.5, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get a trade-in quote</a>
+            <a href="/quote" className="cs-btn" style={{ padding: "11px 20px", border: `1px solid ${line}`, color: paper, fontSize: 13.5, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get a trade-in quote</a>
           </div>
         </div>
       </div>
@@ -61,7 +61,7 @@ export default function Blog() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {POSTS.map((p) => (
             <a key={p.slug} href={`/blog/${p.slug}`} className="cs-card"
-              style={{ textAlign: "left", padding: 18, border: `2px solid ${line}`, borderRadius: 3, background: panel, cursor: "pointer", color: paper, textDecoration: "none", display: "block" }}>
+              style={{ textAlign: "left", padding: 18, border: `1px solid ${line}`, borderRadius: 3, background: panel, cursor: "pointer", color: paper, textDecoration: "none", display: "block" }}>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{p.title}</div>
               <div style={{ fontSize: 13.5, color: muted, marginBottom: 8 }}>{p.excerpt}</div>
               <div style={{ fontSize: 11.5, color: muted }}>{new Date(p.date).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}</div>

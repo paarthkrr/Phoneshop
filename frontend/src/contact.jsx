@@ -14,8 +14,8 @@ async function loadJSON(key, shared) {
   }
 }
 
-const ink = "#F7F4EC", panel = "#FFFFFF", paper = "#201C18", muted = "#6B6560",
-  brass = "#2150C8", line = "#201C18";
+const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
+  brass = "#2150C8", line = "#E2E6EC";
 
 export default function ContactUs() {
   const [businessSettings, setBusinessSettings] = useState(null);
@@ -44,7 +44,7 @@ export default function ContactUs() {
         <div style={{ color: muted, fontSize: 15, marginBottom: 34 }}>Questions about a repair, an order, or anything else — here's how to reach us.</div>
 
         <div style={{ display: "grid", gap: 14, marginBottom: 36 }}>
-          <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
+          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: muted, marginBottom: 6 }}>PHONE</div>
             {phone ? (
               <a href={`tel:${phone.replace(/\s/g, "")}`} className="cs-btn" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, color: brass, textDecoration: "none" }}>{phone}</a>
@@ -53,7 +53,7 @@ export default function ContactUs() {
             )}
           </div>
 
-          <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
+          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: muted, marginBottom: 6 }}>EMAIL</div>
             {email ? (
               <a href={`mailto:${email}`} className="cs-btn" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: brass, textDecoration: "none", wordBreak: "break-all" }}>{email}</a>
@@ -62,7 +62,7 @@ export default function ContactUs() {
             )}
           </div>
 
-          <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
+          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: muted, marginBottom: 6 }}>VISIT US</div>
             {address ? (
               <div style={{ fontSize: 15, lineHeight: 1.6 }}>{address}</div>
@@ -72,19 +72,19 @@ export default function ContactUs() {
           </div>
 
           {businessSettings?.hours && (
-            <div style={{ border: `2px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
+            <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: muted, marginBottom: 6 }}>OPENING HOURS</div>
               <div style={{ fontSize: 15, lineHeight: 1.6, whiteSpace: "pre-line" }}>{businessSettings.hours}</div>
             </div>
           )}
         </div>
 
-        <div style={{ borderTop: `2px solid ${line}`, paddingTop: 24 }}>
+        <div style={{ borderTop: `1px solid ${line}`, paddingTop: 24 }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 12 }}>Already have an order?</div>
           <div style={{ color: muted, fontSize: 14, marginBottom: 16 }}>You can check its status yourself without waiting for a reply — usually faster than emailing us.</div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link to="/quote" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Trade-In</Link>
-            <Link to="/shop" className="cs-btn" style={{ padding: "12px 22px", border: `2px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Purchase</Link>
+            <Link to="/shop" className="cs-btn" style={{ padding: "12px 22px", border: `1px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Purchase</Link>
           </div>
         </div>
       </div>

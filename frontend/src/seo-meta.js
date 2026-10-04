@@ -3,9 +3,9 @@
 // description and canonical link — Google sees the right tags on first scan.
 import { POSTS } from "./blog-posts.js";
 
-export const SITE = "Mobile Vault";
+export const SITE = "Mobile Recellr";
 export const PAGE_META = {
-  "/": ["Mobile Vault — Cheapest Phone Repairs in Sydney, Same Day In Store", "Cheapest phone repairs in Sydney, done same day in store with genuine parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping."],
+  "/": ["Mobile Recellr — Cheapest Phone Repairs in Sydney, Same Day In Store", "Cheapest phone repairs in Sydney, done same day in store with genuine parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping."],
   "/quote": ["Sell Your Phone in Sydney — Instant Quote", "Get an instant quote for your phone in under a minute. Any condition, no sign-up, price held 14 days, paid by bank transfer or PayPal. Post it or drop it off in Sydney."],
   "/sell": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days."],
   "/shop": ["Refurbished Phones — Graded & Tested", "Buy graded, tested refurbished iPhones and Android phones with a 1-year warranty and free express shipping."],
