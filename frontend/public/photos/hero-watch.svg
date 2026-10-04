@@ -12,8 +12,8 @@
   <rect x="29" y="59" width="102" height="142" rx="28" fill="#000"/>
   <text x="80" y="128" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="34" fill="#fff">10:09</text>
   <text x="80" y="148" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="#93C5FD">SYDNEY · 24°</text>
-  <circle cx="54" cy="176" r="11" fill="none" stroke="#F43F5E" stroke-width="4" stroke-dasharray="52 70" transform="rotate(-90 54 176)"/>
-  <circle cx="80" cy="176" r="11" fill="none" stroke="#A3E635" stroke-width="4" stroke-dasharray="40 70" transform="rotate(-90 80 176)"/>
-  <circle cx="106" cy="176" r="11" fill="none" stroke="#22D3EE" stroke-width="4" stroke-dasharray="60 70" transform="rotate(-90 106 176)"/>
+  <circle cx="54" cy="176" r="11" fill="none" stroke="#38BDF8" stroke-width="4" stroke-dasharray="52 70" transform="rotate(-90 54 176)"/>
+  <circle cx="80" cy="176" r="11" fill="none" stroke="#93C5FD" stroke-width="4" stroke-dasharray="40 70" transform="rotate(-90 80 176)"/>
+  <circle cx="106" cy="176" r="11" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-dasharray="60 70" transform="rotate(-90 106 176)"/>
   <rect x="22" y="52" width="116" height="156" rx="34" fill="url(#gl)"/>
 </svg>
