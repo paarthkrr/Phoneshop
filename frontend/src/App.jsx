@@ -114,10 +114,10 @@ function Nav() {
 
         .cs-page-enter { animation: cs-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; overflow-x: clip; }
         /* App-like page changes: forward slides in from the right, Back from the left. */
-        @keyframes cs-slide-fwd { from { opacity: 0; transform: translateX(36px); } to { opacity: 1; transform: none; } }
-        @keyframes cs-slide-back { from { opacity: 0; transform: translateX(-36px); } to { opacity: 1; transform: none; } }
-        .cs-page-enter.cs-slide-fwd { animation: cs-slide-fwd 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-        .cs-page-enter.cs-slide-back { animation: cs-slide-back 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        @keyframes cs-slide-fwd { from { opacity: 0; transform: translateX(70px) scale(0.985); } to { opacity: 1; transform: none; } }
+        @keyframes cs-slide-back { from { opacity: 0; transform: translateX(-70px) scale(0.985); } to { opacity: 1; transform: none; } }
+        .cs-page-enter.cs-slide-fwd { animation: cs-slide-fwd 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .cs-page-enter.cs-slide-back { animation: cs-slide-back 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
         /* Sections below the fold rise in gently as you scroll. */
         .mv-reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
         .mv-reveal.mv-in { opacity: 1; transform: none; }
@@ -172,7 +172,9 @@ function Nav() {
         input:focus, textarea:focus, select:focus { outline: none; box-shadow: 0 0 0 3px rgba(33, 80, 200, 0.22); }
 
         @media (prefers-reduced-motion: reduce) {
-          .cs-page-enter, .cs-fade, .cs-btn, .cs-card, .cs-nav-link, .cs-tile, .cs-spinner, .cs-bump { animation: none !important; transition: none !important; }
+          .cs-fade, .cs-btn, .cs-card, .cs-nav-link, .cs-tile, .cs-spinner, .cs-bump { animation: none !important; transition: none !important; }
+          /* Reduce Motion: no sliding, but pages still fade in so the site doesn't feel static. */
+          .cs-page-enter, .cs-page-enter.cs-slide-fwd, .cs-page-enter.cs-slide-back { animation: cs-fade-in 0.35s ease both !important; }
           .mv-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
         }
       `}</style>

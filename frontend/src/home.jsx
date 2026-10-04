@@ -2,8 +2,94 @@ import React, { useState, useEffect } from "react";
 import DeviceArt from "./device-art.jsx";
 import Photo from "./photo.jsx";
 import DeviceArtCard, { inferDeviceType } from "./device-art.jsx";
-import { PHONE_FAULT_GROUPS, BLOCKERS } from "./instant-quote-calculator.jsx";
+import { PHONE_FAULT_GROUPS, BLOCKERS, baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT } from "./instant-quote-calculator.jsx";
 import { mergeCatalog } from "./device-catalog.js";
+
+// ---- Hero: animated gradient, the shop's own phone photos, live price ticker ----
+const TICKER_MODELS = ["iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro"];
+const MARQUEE = ["APPLE", "SAMSUNG", "GOOGLE PIXEL", "OPPO", "MOTOROLA", "XIAOMI", "ONEPLUS", "NOTHING", "IPAD", "APPLE WATCH"];
+// Same formula as the quote tool (sealed, largest storage, after holding cost) — never more than a real quote.
+function upToFor(d, cfg) {
+  const pts = (cfg && cfg.retentionPoints) || DEFAULT_RETENTION_POINTS;
+  const f = { ...DEFAULT_BRAND_FACTOR, ...((cfg && cfg.brandFactors) || {}) };
+  const hold = (cfg && cfg.holdingCostPct) ?? DEFAULT_HOLDING_COST_PCT;
+  return Math.floor(Math.max(0, ...Object.keys(d.retail || {}).map((s) => baseBuybackAUD(d, s, pts, f) || 0)) * (1 - hold));
+}
+const HERO_CSS = `
+.mvx-hero{position:relative;overflow:hidden;color:#fff;background:linear-gradient(120deg,#0B1530,#1E3A8A 30%,#2150C8 55%,#6D28D9 80%,#0B1530);background-size:300% 300%;animation:mvx-grad 14s ease infinite}
+@keyframes mvx-grad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.mvx-hero-inner{max-width:1140px;margin:0 auto;padding:60px 20px 40px;display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center}
+.mvx-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.mvx-pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:7px 12px;border-radius:999px;font-size:13px;font-weight:700}
+.mvx-h1{font-family:'Archivo Black',sans-serif;font-size:clamp(38px,7vw,66px);line-height:1.02;letter-spacing:-.02em;margin:0 0 16px}
+.mvx-word{display:inline-block;opacity:0;transform:translateY(45%);animation:mvx-up .75s cubic-bezier(.16,1,.3,1) forwards}
+.mvx-grad-text{background:linear-gradient(90deg,#93C5FD,#F0ABFC,#FDE68A);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mvx-in{opacity:0;animation:mvx-up .75s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes mvx-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.mvx-sub{font-size:17px;line-height:1.6;opacity:.92;max-width:520px;margin:0 0 20px}
+.mvx-ticker{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:10px 16px;color:#fff;text-decoration:none;margin-bottom:22px;font-size:15px}
+.mvx-price{display:inline-block;font-family:'Archivo Black',sans-serif;font-size:24px;color:#FDE68A;animation:mvx-flip .55s cubic-bezier(.16,1,.3,1)}
+.mvx-model{display:inline-block;font-weight:800;animation:mvx-flip .55s cubic-bezier(.16,1,.3,1)}
+@keyframes mvx-flip{from{opacity:0;transform:translateY(70%)}to{opacity:1;transform:none}}
+.mvx-ctas{display:flex;gap:10px;flex-wrap:wrap}
+.mvx-cta{position:relative;overflow:hidden;background:#fff;color:#1E3A8A;font-weight:800;padding:15px 22px;border-radius:12px;text-decoration:none;font-size:16px;box-shadow:0 12px 30px rgba(0,0,0,.28);transition:transform .2s ease}
+.mvx-cta:hover{transform:translateY(-2px)}
+.mvx-shine::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(33,80,200,.28),transparent);animation:mvx-shine 3.2s ease-in-out infinite}
+@keyframes mvx-shine{0%{left:-60%}60%,100%{left:130%}}
+.mvx-cta2{color:#fff;font-weight:700;padding:15px 18px;border-radius:12px;border:1.5px solid rgba(255,255,255,.55);text-decoration:none;font-size:16px}
+.mvx-phones{position:relative;height:400px;display:flex;justify-content:center;align-items:center}
+.mvx-glow{position:absolute;inset:12% 8%;background:radial-gradient(closest-side,rgba(147,197,253,.6),transparent);filter:blur(30px)}
+.mvx-phone{position:relative;width:40%;max-width:210px;border-radius:24px;box-shadow:0 30px 60px rgba(0,0,0,.5);margin:0 -6%;transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
+@keyframes mvx-float{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-16px)}}
+.mvx-marquee{border-top:1px solid rgba(255,255,255,.16);overflow:hidden;white-space:nowrap;padding:13px 0;font-weight:800;letter-spacing:.08em;font-size:13px;opacity:.85}
+.mvx-track{display:inline-flex;gap:44px;padding-left:44px;animation:mvx-marq 30s linear infinite}
+@keyframes mvx-marq{to{transform:translateX(-50%)}}
+@media(max-width:820px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 20px;text-align:center}.mvx-pills,.mvx-ctas{justify-content:center}.mvx-sub{margin:0 auto 20px}.mvx-phones{height:250px;order:-1}.mvx-phone{max-width:130px;border-radius:16px}}
+@media(prefers-reduced-motion:reduce){.mvx-hero,.mvx-phone,.mvx-track,.mvx-shine::after{animation:none}.mvx-word,.mvx-in{animation:mvx-fade .6s ease forwards;transform:none}.mvx-price,.mvx-model{animation:mvx-fade .4s ease}}
+@keyframes mvx-fade{from{opacity:0}to{opacity:1}}
+`;
+function Hero({ ticker }) {
+  const [i, setI] = useState(0);
+  useEffect(() => { if (ticker.length < 2) return; const t = setInterval(() => setI((x) => (x + 1) % ticker.length), 2600); return () => clearInterval(t); }, [ticker.length]);
+  const cur = ticker[i % Math.max(1, ticker.length)];
+  const words = [["Sell", 0], ["your", 0], ["phone.", 0], ["Get", 1], ["paid", 1], ["today.", 1]];
+  return (
+    <section className="mvx-hero" aria-label="Sell your phone">
+      <style>{HERO_CSS}</style>
+      <div className="mvx-hero-inner">
+        <div>
+          <div className="mvx-pills">
+            {["🏠 Home collection across Sydney", "💵 Paid in cash", "✓ 49-point check"].map((p, n) => <span key={p} className="mvx-pill mvx-in" style={{ animationDelay: `${0.05 + n * 0.08}s` }}>{p}</span>)}
+          </div>
+          <h1 className="mvx-h1">
+            {words.map(([w, hl], n) => <span key={n} className={"mvx-word" + (hl ? " mvx-grad-text" : "")} style={{ animationDelay: `${0.2 + n * 0.08}s` }}>{w}{n === 2 ? <br /> : "\u00a0"}</span>)}
+          </h1>
+          <p className="mvx-sub mvx-in" style={{ animationDelay: "0.7s" }}>Instant quote in 60 seconds. We collect from your door anywhere in Sydney and pay you in cash. Plus the cheapest same-day repairs in store.</p>
+          {cur && (
+            <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-ticker mvx-in" style={{ animationDelay: "0.8s" }} aria-live="polite">
+              <span style={{ opacity: 0.85 }}>Get up to</span>
+              <span key={"p" + i} className="mvx-price">${cur.upTo.toLocaleString()}</span>
+              <span style={{ opacity: 0.85 }}>for your</span>
+              <span key={"m" + i} className="mvx-model">{cur.model}</span>
+              <span aria-hidden="true">→</span>
+            </a>
+          )}
+          <div className="mvx-ctas mvx-in" style={{ animationDelay: "0.9s" }}>
+            <a href="/quote" className="mvx-cta mvx-shine">Get my instant quote →</a>
+            <a href="/accessories" className="mvx-cta2">Shop accessories</a>
+          </div>
+        </div>
+        <div className="mvx-phones" aria-hidden="true">
+          <div className="mvx-glow" />
+          {[["iphone-16-pro-max", -9, "0s"], ["iphone-18-pro-max", 0, "0.9s"], ["iphone-17-pro-max", 9, "1.8s"]].map(([f, r, d], n) => (
+            <img key={f} src={`/photos/${f}.jpg`} alt="" className="mvx-phone" style={{ "--r": `${r}deg`, animationDelay: d, zIndex: n === 1 ? 2 : 1 }} />
+          ))}
+        </div>
+      </div>
+      <div className="mvx-marquee" aria-hidden="true"><div className="mvx-track">{[...MARQUEE, ...MARQUEE].map((b, n) => <span key={n}>{b}</span>)}</div></div>
+    </section>
+  );
+}
 
 // The real inspection checklist used by staff — so the "N-point check" number
 // is always true, and updates itself if the checklist ever changes.
@@ -65,6 +151,7 @@ export default function Home() {
   const [stats, setStats] = useState([]);
   const [biz, setBiz] = useState({});
   const [featured, setFeatured] = useState(null);
+  const [ticker, setTicker] = useState([]);
   const [photos, setPhotos] = useState({});
 
   useEffect(() => {
@@ -72,6 +159,8 @@ export default function Home() {
       const cfg = await loadJSON("pricing-config", true);
       const b = (cfg && cfg.businessSettings) || {};
       setBiz(b);
+      { const cat = mergeCatalog(cfg && cfg.catalog);
+        setTicker(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0)); }
       setPhotos(Object.fromEntries(mergeCatalog(cfg && cfg.catalog).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])));
       // Featured deal: the highest-value device actually listed for sale right now.
       try {
@@ -114,19 +203,8 @@ export default function Home() {
       `}</style>
 
       {/* ---- Hero ---- */}
-      <div className="mv-hero" style={{ ...section, textAlign: "center", padding: "56px 16px 34px" }}>
-        <div aria-hidden="true" style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 6, marginBottom: 18 }}>
-          {[["watch", 34, "0s"], ["phone", 52, "0.6s"], ["laptop", 70, "1.2s"], ["tablet", 50, "1.8s"]].map(([t, sz, d]) => (
-            <div key={t} className="mv-float" style={{ animationDelay: d }}><DeviceArt type={t} size={sz} /></div>
-          ))}
-        </div>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(30px, 6vw, 48px)", lineHeight: 1.05, letterSpacing: "-0.02em", marginBottom: 14 }}>
-          Sell, buy, or fix your phone —<br /><span style={{ color: brass }}>honestly priced.</span>
-        </div>
-        <div style={{ color: muted, fontSize: 16, maxWidth: 560, margin: "0 auto 30px", lineHeight: 1.6 }}>
-          Genuine parts, a real price match guarantee, and no inflated quotes for five-minute fixes. That's the whole idea.
-        </div>
-
+      <Hero ticker={ticker} />
+      <div className="mv-hero" style={{ ...section, textAlign: "center", padding: "34px 20px 34px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, textAlign: "left" }}>
           {ACTIONS.map((a, i) => (
             <a key={a.href} href={a.href} className="cs-card mv-action mv-rise"
