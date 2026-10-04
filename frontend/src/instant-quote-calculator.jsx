@@ -930,7 +930,7 @@ export default function QuoteCalculator() {
         <div style={{ color: muted, fontSize: 14, marginBottom: 14 }}>
           Prices recalculate from age and condition every time you open this — not a static list.
         </div>
-        <div style={{ fontSize: 11, color: source === "admin console" ? green : muted, marginBottom: 14 }}>
+        <div style={{ fontSize: 12.5, color: source === "admin console" ? green : muted, marginBottom: 14 }}>
           {source === "admin console" ? "● Live pricing from admin console" : "○ Using built-in defaults — admin console not connected"}
         </div>
 
@@ -1189,7 +1189,7 @@ export default function QuoteCalculator() {
           {STEPS.map((s, i) => (
             <div key={s} style={{ flex: 1, textAlign: "center" }}>
               <div style={{ height: 3, borderRadius: 2, marginBottom: 6, background: i <= stepIndex ? brass : line }} />
-              <div style={{ fontSize: 11, color: i <= stepIndex ? brass : muted }}>{s}</div>
+              <div style={{ fontSize: 12.5, color: i <= stepIndex ? brass : muted }}>{s}</div>
             </div>
           ))}
         </div>
@@ -1208,7 +1208,7 @@ export default function QuoteCalculator() {
                 return (
                   <li key={label} aria-current={active ? "step" : undefined} style={{ flex: 1, textAlign: "center" }}>
                     <div style={{ height: 5, borderRadius: 3, background: doneStep || active ? brass : "#E4DED2", transition: "background-color 0.35s ease", marginBottom: 6 }} />
-                    <div style={{ fontSize: 11.5, fontWeight: active ? 700 : 500, color: active ? brass : doneStep ? paper : muted }}>
+                    <div style={{ fontSize: 12.5, fontWeight: active ? 700 : 500, color: active ? brass : doneStep ? paper : muted }}>
                       {doneStep ? "✓ " : ""}{label}
                     </div>
                   </li>
@@ -1248,7 +1248,7 @@ export default function QuoteCalculator() {
               {filtered.length > 20 && <div style={{ fontSize: 12, color: "#5B6472", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
               {filtered.slice(0, 20).map((d, di) => (
                 <div key={d.brand + d.model}>
-                  <div style={{ padding: "10px 14px 4px", fontSize: 11, color: muted, borderTop: di === 0 ? "none" : `1px solid ${line}`, display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ padding: "10px 14px 4px", fontSize: 12.5, color: muted, borderTop: di === 0 ? "none" : `1px solid ${line}`, display: "flex", alignItems: "center", gap: 6 }}>
                     <DeviceArt type={inferDeviceType(d.model, d.category)} size={20} brand={d.brand} model={d.model} imageUrl={d.imageUrl} />{d.brand} — {d.model}
                     <span style={{ marginLeft: "auto", color: "#5c6472" }}>{Math.round(ageMonths(d.release))}mo old</span>
                   </div>
@@ -1452,7 +1452,7 @@ export default function QuoteCalculator() {
             <input value={customer.idOwnerName} onChange={(e) => setCustomer((c) => ({ ...c, idOwnerName: e.target.value }))}
               placeholder="Full name (as it appears on your ID)" aria-label="Full name as it appears on your ID"
               style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 6, outline: "none", boxSizing: "border-box" }} />
-            <div style={{ fontSize: 11, color: muted, marginBottom: 14 }}>
+            <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>
               Kept on file as required for second-hand dealer compliance. Never shown in full to anyone but you and the inspecting staff member.
             </div>
 
@@ -1462,11 +1462,11 @@ export default function QuoteCalculator() {
                 <input type="file" accept="image/*" capture="environment"
                   onChange={(e) => setIdPhotoFile(e.target.files?.[0] || null)}
                   style={{ width: "100%", marginBottom: 4, fontSize: 12, color: paper }} />
-                {idPhotoFile && <div style={{ fontSize: 11.5, color: green, marginBottom: 14 }}>{idPhotoFile.name} attached — will be encrypted and stored when you submit.</div>}
-                {!idPhotoFile && <div style={{ fontSize: 11, color: muted, marginBottom: 14 }}>Stored encrypted, separately from everything else, and auto-deleted after your shop's retention period.</div>}
+                {idPhotoFile && <div style={{ fontSize: 12.5, color: green, marginBottom: 14 }}>{idPhotoFile.name} attached — will be encrypted and stored when you submit.</div>}
+                {!idPhotoFile && <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>Stored encrypted, separately from everything else, and auto-deleted after your shop's retention period.</div>}
               </>
             ) : (
-              <div style={{ fontSize: 11, color: muted, marginBottom: 14 }}>Photo ID capture isn't connected on this device — the ID number above still satisfies compliance requirements.</div>
+              <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>Photo ID capture isn't connected on this device — the ID number above still satisfies compliance requirements.</div>
             )}
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Referral code (optional) — you and your friend both get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)}</div>
@@ -1541,10 +1541,10 @@ export default function QuoteCalculator() {
             {customer.payoutMethod === "bank" && customer.bankBsb && !isBsb(customer.bankBsb) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>A BSB is 6 digits, e.g. 062-000.</div>}
             {customer.payoutMethod === "bank" && customer.bankAccountNumber && !isAccount(customer.bankAccountNumber) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>Account numbers are usually 6–10 digits.</div>}
             {customer.payoutMethod === "paypal" && customer.paypalEmail && !isEmail(customer.paypalEmail) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That PayPal email doesn't look right.</div>}
-            <div style={{ fontSize: 11.5, color: muted, marginBottom: 10 }}>
+            <div style={{ fontSize: 12.5, color: muted, marginBottom: 10 }}>
               By continuing you agree to our <a href="/terms" target="_blank" rel="noopener" style={{ color: brass }}>Terms</a> and <a href="/privacy" target="_blank" rel="noopener" style={{ color: brass }}>Privacy Policy</a>. Your details are only used to process this order and pay you.
             </div>
-            <div style={{ fontSize: 11.5, color: muted, marginBottom: 14 }}>
+            <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>
               This quote is locked for 14 days from today. If your device doesn't match what you told us, we'll always send a revised offer for you to accept or decline — never an automatic reduced payment.
             </div>
 
@@ -1629,14 +1629,14 @@ export default function QuoteCalculator() {
                 <div style={{ color: muted, marginBottom: 8 }}>
                   Device age: {reference.ageMonthsNow.toFixed(1)} months. Customers only ever see the AU figure — this is for checking where our AU price sits globally before finalising it.
                 </div>
-                <div style={{ fontSize: 11, color: brass, marginBottom: 4, marginTop: 8 }}>This device, same condition, in every region we track</div>
+                <div style={{ fontSize: 12.5, color: brass, marginBottom: 4, marginTop: 8 }}>This device, same condition, in every region we track</div>
                 {Object.entries(REGIONS_A).map(([code, r]) => (
                   <div key={code} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", color: code === "AU" ? paper : muted }}>
                     <span>{r.label}{code === "AU" && " (customer-facing)"}</span>
                     <span style={{ color: code === "AU" ? brass : muted }}>{fmt(reference.worldwide[code], code, REGIONS_A)}</span>
                   </div>
                 ))}
-                <div style={{ fontSize: 11, color: brass, marginBottom: 4, marginTop: 12 }}>Implied competitor comparison (AUD)</div>
+                <div style={{ fontSize: 12.5, color: brass, marginBottom: 4, marginTop: 12 }}>Implied competitor comparison (AUD)</div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}><span>Our quote</span><span style={{ color: brass }}>{fmt(reference.ourQuoteAUD, "AU", REGIONS_A)}</span></div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", color: muted }}><span>PhoneExchange-style (implied)</span><span>{fmt(reference.phoneExchangeEstAUD, "AU", REGIONS_A)}</span></div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", color: muted }}><span>Mobile Monster-style (implied)</span><span>{fmt(reference.mobileMonsterEstAUD, "AU", REGIONS_A)}</span></div>

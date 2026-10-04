@@ -222,7 +222,7 @@ export default function Storefront() {
                   {stats.map((s) => (
                     <div key={s.label}>
                       <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, color: brass }}>{s.value}</div>
-                      <div style={{ fontSize: 11.5, color: muted }}>{s.label}</div>
+                      <div style={{ fontSize: 12, color: muted }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -267,9 +267,9 @@ export default function Storefront() {
                       <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", background: "#FFFFFF", borderRadius: 3, marginBottom: 10 }}>
                         <DeviceArt type={inferDeviceType(item.model, item.category)} size={56} brand={item.brand} model={item.model} imageUrl={item.photoUrl || modelPhotos[`${item.brand}|${item.model}`]} label={`${item.brand} ${item.model}`} />
                       </div>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: brass, marginBottom: 6 }}>FEATURED</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: brass, marginBottom: 6 }}>FEATURED</div>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>{item.brand} {item.model}</div>
-                      <div style={{ fontSize: 11.5, color: muted, marginBottom: 8 }}>{item.storage} · Grade {item.gradeId}</div>
+                      <div style={{ fontSize: 12, color: muted, marginBottom: 8 }}>{item.storage} · Grade {item.gradeId}</div>
                       <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, color: brass }}>{fmt(item.listedPrice, item.currency)}</div>
                     </button>
                   ))}
@@ -341,7 +341,7 @@ export default function Storefront() {
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 6 }}>Got an Old Phone?</div>
                 <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Turn it into cash, or credit toward one of the devices above.</div>
                 <a href="/quote" className="cs-btn" style={{ display: "inline-block", padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote →</a>
-                <div style={{ fontSize: 11.5, color: muted, marginTop: 10 }}>No obligation — see your price before you commit to anything.</div>
+                <div style={{ fontSize: 12, color: muted, marginTop: 10 }}>No obligation — see your price before you commit to anything.</div>
               </div>
             </div>
 
@@ -385,7 +385,7 @@ export default function Storefront() {
               <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "#FFFFFF", borderRadius: 3, marginBottom: 16 }}>
                 <DeviceArt type={inferDeviceType(selectedItem.model, selectedItem.category)} size={110} brand={selectedItem.brand} model={selectedItem.model} imageUrl={selectedItem.photoUrl || modelPhotos[`${selectedItem.brand}|${selectedItem.model}`]} label={`${selectedItem.brand} ${selectedItem.model}`} />
               </div>
-              {!selectedItem.photoUrl && modelPhotos[`${selectedItem.brand}|${selectedItem.model}`] && <div style={{ fontSize: 11.5, color: muted, textAlign: "center", margin: "-10px 0 14px" }}>Stock photo of this model — condition matches the grade shown.</div>}
+              {!selectedItem.photoUrl && modelPhotos[`${selectedItem.brand}|${selectedItem.model}`] && <div style={{ fontSize: 12, color: muted, textAlign: "center", margin: "-10px 0 14px" }}>Stock photo of this model — condition matches the grade shown.</div>}
               <div style={{ fontSize: 20, marginBottom: 4 }}>{selectedItem.brand} {selectedItem.model}</div>
               <div style={{ fontSize: 13, color: muted, marginBottom: 16 }}>{selectedItem.storage}</div>
 
@@ -442,12 +442,12 @@ export default function Storefront() {
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: 11, color: muted, marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: muted, marginBottom: 16 }}>
               No card payments are processed on this device yet — you'll get {paymentMethod === "bank_transfer" ? "our bank details" : "pickup instructions"} on the confirmation screen.
             </div>
 
             {customer.email && !isEmail(customer.email) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That email address doesn't look right — we'll need it for your order updates.</div>}
-            <div style={{ fontSize: 11.5, color: muted, margin: "4px 0 10px" }}>
+            <div style={{ fontSize: 12, color: muted, margin: "4px 0 10px" }}>
               By placing an order you agree to our <a href="/terms" target="_blank" rel="noopener" style={{ color: brass }}>Terms</a> and <a href="/privacy" target="_blank" rel="noopener" style={{ color: brass }}>Privacy Policy</a>.
             </div>
             <button className="cs-btn" disabled={!customer.name || !isEmail(customer.email) || !customer.address || submitting} onClick={handleCheckout}

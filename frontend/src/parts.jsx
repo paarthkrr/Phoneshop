@@ -309,17 +309,17 @@ export default function Parts() {
             <div key={a.id} className="cs-card" style={{ border: `1px solid ${line}`, padding: 14, background: panel, display: "flex", flexDirection: "column" }}>
               <div role="button" tabIndex={0} aria-label={`View ${a.name}`} onClick={() => openProduct(a.id)} onKeyDown={(e) => { if (e.key === "Enter") openProduct(a.id); }}
                 style={{ height: 150, borderRadius: 10, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden", cursor: "pointer", position: "relative" }}>
-                {pct(a) > 0 && <span style={{ position: "absolute", top: 8, left: 8, background: "#B42318", color: "#fff", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "3px 8px", zIndex: 1 }}>-{pct(a)}%</span>}
+                {pct(a) > 0 && <span style={{ position: "absolute", top: 8, left: 8, background: "#B42318", color: "#fff", fontWeight: 800, fontSize: 12, borderRadius: 999, padding: "3px 8px", zIndex: 1 }}>-{pct(a)}%</span>}
                 {a.imageUrl ? <img src={a.imageUrl} alt={a.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   : <span style={{ fontSize: 40 }} aria-hidden="true">{iconFor(a.category)}</span>}
               </div>
               <div onClick={() => openProduct(a.id)} style={{ fontSize: 14.5, fontWeight: 600, marginBottom: 3, cursor: "pointer" }}>{a.name}</div>
-              <div style={{ fontSize: 11.5, color: muted, marginBottom: 6 }}>{a.category}{a.compatibleWith ? ` · Fits ${a.compatibleWith}` : ""}</div>
+              <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{a.category}{a.compatibleWith ? ` · Fits ${a.compatibleWith}` : ""}</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
                 <span style={{ fontSize: 17, color: brass, fontWeight: 800 }}>{fmt(a.sellPrice)}</span>
                 {pct(a) > 0 && <span style={{ fontSize: 12.5, color: muted, textDecoration: "line-through" }}>{fmt(a.compareAtPrice)}</span>}
               </div>
-              <div style={{ fontSize: 11.5, color: low ? red : green, marginBottom: 10 }}>{low ? `Only ${a.qtyOnHand} left` : "In stock"}</div>
+              <div style={{ fontSize: 12, color: low ? red : green, marginBottom: 10 }}>{low ? `Only ${a.qtyOnHand} left` : "In stock"}</div>
               <div style={{ marginTop: "auto" }}>
                 {inCart ? (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>

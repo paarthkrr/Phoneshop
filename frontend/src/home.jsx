@@ -51,8 +51,8 @@ const TRUST = [
 
 const STEPS = [
   { n: "1", title: "Get your quote", desc: "Tell us the model and condition. Your price appears instantly." },
-  { n: "2", title: "Send or drop it off", desc: "Post it to us or bring it in store — whichever suits you." },
-  { n: "3", title: "Get paid", desc: "We inspect it and pay by bank transfer or PayPal. If anything differs, you choose whether to accept." },
+  { n: "2", title: "We collect it", desc: "We collect from your door anywhere in Sydney — or post it, or drop it in store." },
+  { n: "3", title: "Get paid", desc: "We run our 49-point check and pay you in cash, by bank transfer or PayPal. If anything differs, you choose whether to accept." },
 ];
 
 const GUIDES = [
@@ -88,7 +88,7 @@ export default function Home() {
     })();
   }, []);
 
-  const section = { maxWidth: 1000, margin: "0 auto", padding: "0 16px" };
+  const section = { maxWidth: 1140, margin: "0 auto", padding: "0 20px" };
   const heading = { fontFamily: "'Archivo Black', sans-serif", fontSize: 24, letterSpacing: "-0.01em", marginBottom: 18, textAlign: "center" };
 
   return (
@@ -147,7 +147,7 @@ export default function Home() {
             ))}
           </div>
           <div style={{ fontSize: 12.5, color: muted, marginTop: 14 }}>
-            ✓ Home collection across Sydney &nbsp;·&nbsp; ✓ Paid in cash or bank transfer &nbsp;·&nbsp; ✓ Price held 14 days &nbsp;·&nbsp; ✓ Paid by bank transfer or PayPal
+            ✓ Home collection across Sydney &nbsp;·&nbsp; ✓ Paid in cash or bank transfer &nbsp;·&nbsp; ✓ Price held 14 days
           </div>
         </div>
 
@@ -170,7 +170,7 @@ export default function Home() {
             <DeviceArtCard type={inferDeviceType(featured.model, featured.category)} size={78} brand={featured.brand} model={featured.model}
               imageUrl={featured.photoUrl || photos[`${featured.brand}|${featured.model}`]} label={`${featured.brand} ${featured.model}`} />
             <div style={{ flex: 1, minWidth: 180 }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: brass, letterSpacing: "0.06em", marginBottom: 4 }}>FEATURED DEAL</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: brass, letterSpacing: "0.06em", marginBottom: 4 }}>FEATURED DEAL</div>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20 }}>{featured.brand} {featured.model}</div>
               <div style={{ color: muted, fontSize: 13.5 }}>{featured.storage} · Graded, tested, 1-year warranty, free express shipping</div>
             </div>
@@ -242,10 +242,10 @@ export default function Home() {
         <div style={{ color: muted, fontSize: 14, textAlign: "center", maxWidth: 620, margin: "-8px auto 18px", lineHeight: 1.6 }}>
           The same checklist we use to inspect every trade-in, so you know exactly what's been tested.
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
           {[...CHECK_GROUPS, { name: "Security & lock checks", n: BLOCKERS.length }].map((g) => (
-            <div key={g.name} style={{ background: panel, border: "1px solid rgba(32,28,24,0.12)", borderRadius: 12, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{g.name}</span>
+            <div key={g.name} style={{ background: panel, border: "1px solid rgba(32,28,24,0.12)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{g.name}</span>
               <span style={{ fontSize: 12.5, color: brass, fontWeight: 800, whiteSpace: "nowrap" }}>{g.n} checks</span>
             </div>
           ))}

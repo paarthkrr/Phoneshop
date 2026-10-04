@@ -98,7 +98,7 @@ export default function ChatWidget() {
 
           <div style={{ padding: "8px 12px", borderTop: "1px solid #eee", display: "flex", flexWrap: "wrap", gap: 6 }}>
             {QUICK_ACTIONS.map((qa) => (
-              <a key={qa.label} href={qa.href} style={{ fontSize: 11, padding: "5px 9px", border: `1px solid ${line}`, borderRadius: 999, color: paper, textDecoration: "none" }}>
+              <a key={qa.label} href={qa.href} style={{ fontSize: 12, padding: "5px 9px", border: `1px solid ${line}`, borderRadius: 999, color: paper, textDecoration: "none" }}>
                 {qa.label}
               </a>
             ))}

@@ -81,7 +81,7 @@ export default function SiteFooter() {
           ✓ Phones, tablets, laptops &amp; watches
         </div>
       </div>
-      <div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: muted, borderTop: "1px solid rgba(32,28,24,0.1)", paddingTop: 14 }}>
+      <div style={{ gridColumn: "1 / -1", fontSize: 12, color: muted, borderTop: "1px solid rgba(32,28,24,0.1)", paddingTop: 14 }}>
         Stock photography from <a href="https://www.pexels.com" target="_blank" rel="noopener" style={{ color: muted }}>Pexels</a>.
       </div>
     </footer>
