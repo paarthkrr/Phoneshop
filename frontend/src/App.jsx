@@ -283,6 +283,18 @@ function StaffGate({ children }) {
   // it. Without this, there was no way to create the very first staff
   // account through the website at all, no matter how correctly the
   // backend was configured.
+  // Forgotten admin password: one-time recovery code set by the owner on the host.
+  async function handleRecover() {
+    setError(""); setSuccess("");
+    if (password.length < 8) return setError("New password must be at least 8 characters.");
+    try {
+      const res = await fetch(`${window.SHOP_API_BASE_URL}/auth/recover-admin`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), code: bootstrapToken.trim(), newPassword: password }) });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || "Recovery failed");
+      setSuccess("Password reset — sign in with your new password."); setMode("login"); setPassword(""); setBootstrapToken("");
+    } catch (e) { setError(e.message); }
+  }
+
   async function handleRegister() {
     setError(""); setSuccess("");
     try {
@@ -301,26 +313,31 @@ function StaffGate({ children }) {
   return (
     <div style={{ maxWidth: 320, margin: "70px auto", padding: 20, fontFamily: "'Archivo', sans-serif" }}>
       <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, marginBottom: 16, color: paper }}>
-        {mode === "login" ? "Staff sign in" : "Create the first staff account"}
+        {mode === "login" ? "Staff sign in" : mode === "recover" ? "Reset admin password" : "Create the first staff account"}
       </div>
       <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username"
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, fontSize: 14, boxSizing: "border-box" }} />
-      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" type="password"
+      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "recover" ? "New password (8+ characters)" : "Password (8+ characters)"} type="password"
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
-      {mode === "register" && (
-        <input value={bootstrapToken} onChange={(e) => setBootstrapToken(e.target.value)} placeholder="Bootstrap token (if one was set)"
+      {(mode === "register" || mode === "recover") && (
+        <input value={bootstrapToken} onChange={(e) => setBootstrapToken(e.target.value)} placeholder={mode === "recover" ? "Recovery code" : "Bootstrap token (if one was set)"}
           style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
       )}
       {error && <div style={{ color: "#8B2E2E", fontSize: 13, marginBottom: 8 }}>{error}</div>}
       {success && <div style={{ color: "#3F6B34", fontSize: 13, marginBottom: 8 }}>{success}</div>}
-      <button onClick={mode === "login" ? handleLogin : handleRegister}
+      <button onClick={mode === "login" ? handleLogin : mode === "recover" ? handleRecover : handleRegister}
         style={{ width: "100%", padding: 11, background: brass, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", marginBottom: 10 }}>
-        {mode === "login" ? "Sign in" : "Create account"}
+        {mode === "login" ? "Sign in" : mode === "recover" ? "Reset password" : "Create account"}
       </button>
       <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); }}
         style={{ width: "100%", padding: 9, background: "transparent", border: "none", color: paper, textDecoration: "underline", cursor: "pointer", fontSize: 12.5 }}>
         {mode === "login" ? "First time here? Create an account" : "Already have an account? Sign in"}
       </button>
+      {mode === "login" && <button onClick={() => { setMode("recover"); setError(""); setSuccess(""); }}
+        style={{ width: "100%", padding: 6, background: "transparent", border: "none", color: brass, textDecoration: "underline", cursor: "pointer", fontSize: 12.5 }}>
+        Forgot password?
+      </button>}
+      {mode === "recover" && <div style={{ fontSize: 12, color: "#5B6472", lineHeight: 1.5 }}>Staff: ask your admin to reset your password from the Team page. Admins: use the one-time recovery code set up on the server.</div>}
     </div>
   );
 }

@@ -113,6 +113,11 @@ const schemaReady = pool.query(`
     expires_at TIMESTAMPTZ NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_id_photos_subject ON id_photos(subject_key);
+  CREATE TABLE IF NOT EXISTS recovery_uses (
+    code_hash TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    used_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
   CREATE TABLE IF NOT EXISTS product_images (
     id TEXT PRIMARY KEY,
     mime TEXT NOT NULL,
@@ -425,6 +430,38 @@ app.get("/public/product-images/:id", async (req, res) => {
     res.set("Cross-Origin-Resource-Policy", "cross-origin");
     res.send(r.rows[0].data);
   } catch (e) { res.status(500).end(); }
+});
+
+// ---- Admin password recovery (one-time, owner-controlled) ----
+// For when the only admin forgets their password. Works ONLY while the host
+// has ADMIN_RECOVERY_CODE (24+ chars) set and ADMIN_RECOVERY_EXPIRES is in the
+// future; each code works once; only admin accounts can be recovered; failed
+// tries are rate-limited like logins; success ends the account's old sessions
+// and clears any login lockout.
+app.post("/auth/recover-admin", async (req, res) => {
+  try {
+    const { code, username, newPassword } = req.body || {};
+    const expected = process.env.ADMIN_RECOVERY_CODE || "";
+    const expires = Date.parse(process.env.ADMIN_RECOVERY_EXPIRES || "");
+    if (expected.length < 24 || !(expires > Date.now())) return res.status(403).json({ error: "account recovery isn't enabled right now" });
+    if (!username || !code) return res.status(400).json({ error: "username and recovery code are required" });
+    const key = `recover:${username}`;
+    if (await recentFailedAttempts(key) >= MAX_LOGIN_ATTEMPTS) return res.status(429).json({ error: `too many attempts — try again in ${LOGIN_LOCKOUT_MINUTES} minutes` });
+    const a = Buffer.from(String(code)), b = Buffer.from(expected);
+    const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+    if (!ok) { await recordLoginAttempt(key, false); return res.status(401).json({ error: "that recovery code isn't right" }); }
+    const codeHash = crypto.createHash("sha256").update(expected).digest("hex");
+    if ((await pool.query("SELECT 1 FROM recovery_uses WHERE code_hash = $1", [codeHash])).rows[0]) return res.status(410).json({ error: "this recovery code has already been used" });
+    const u = await pool.query("SELECT role FROM users WHERE username = $1", [username]);
+    if (!u.rows[0] || u.rows[0].role !== "admin") { await recordLoginAttempt(key, false); return res.status(404).json({ error: "no admin account with that username" }); }
+    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
+    const salt = crypto.randomBytes(16).toString("hex");
+    await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hashPassword(newPassword, salt), username]);
+    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [username]);
+    await pool.query("DELETE FROM login_attempts WHERE username = $1 OR username = $2", [username, key]);
+    await pool.query("INSERT INTO recovery_uses (code_hash, username) VALUES ($1, $2)", [codeHash, username]);
+    res.json({ recovered: username });
+  } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 // ---- Team management (admin only) ----
