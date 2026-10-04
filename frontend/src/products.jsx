@@ -13,6 +13,9 @@ const MARKUP = { "Cases & covers": 3, "Screen protectors": 4, "Chargers & cables
   "Screens & displays": 1.6, "Batteries": 1.8, "Back glass & housings": 1.8, "Charging ports & flex": 2, "Cameras & lenses": 1.8, "Other parts": 1.8 };
 const input = { padding: "11px 12px", borderRadius: 10, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 15, boxSizing: "border-box", fontFamily: "inherit", width: "100%" };
 const btn = (bg, fg = "#fff", extra = {}) => ({ padding: "11px 16px", borderRadius: 10, border: bg === "transparent" ? `1px solid ${line}` : "none", background: bg, color: fg, fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", ...extra });
+// First letter capitalised ("clear case" -> "Clear case"), but brand styles like
+// iPhone / iPad / iMac are left exactly as typed.
+export const capFirst = (t) => { const s = String(t || "").trim(); return !s || /^i[A-Z]/.test(s) ? s : s[0].toUpperCase() + s.slice(1); };
 const genId = () => "ACC-" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
 const money = (n) => "$" + Number(n || 0).toFixed(2);
 
@@ -69,7 +72,7 @@ export function parseRows(text) {
     let price = parseFloat(get("price").replace(/[$,]/g, "")) || parseFloat(autoPrice(cost, category)) || 0;
     if (!price) { errors.push(`Row ${n + 2} (${name}): needs a price or a cost.`); return; }
     const fits = get("fits") ? get("fits").split(/[;|]/).map((s) => s.trim()).filter(Boolean) : [];
-    rows.push({ id: genId(), name, category, sellPrice: price, cost, qtyOnHand: parseInt(get("stock"), 10) || 0, compatibleWith: fits.join(", "),
+    rows.push({ id: genId(), name: capFirst(name), category, sellPrice: price, cost, qtyOnHand: parseInt(get("stock"), 10) || 0, compatibleWith: fits.join(", "),
       imageUrl: get("photo"), description: get("description") || autoDescription(category, fits), compareAtPrice: parseFloat(get("compare").replace(/[$,]/g, "")) || undefined,
       showOnline: true, createdAt: new Date().toISOString() });
   });
@@ -160,8 +163,8 @@ function QuickAdd({ onSave }) {
     const p = parseFloat(price) || parseFloat(autoPrice(cost, category)); if (!p) return setErr("Enter a price (or a cost to auto-price).");
     const base = { category, sellPrice: p, cost: parseFloat(cost) || 0, qtyOnHand: parseInt(stock, 10) || 0, imageUrl: photo, compareAtPrice: parseFloat(compare) || undefined, showOnline: true, createdAt: new Date().toISOString() };
     const rows = perModel && fits.length
-      ? fits.map((m) => ({ ...base, id: genId(), name: `${name.trim()} — ${m}`, compatibleWith: m, description: desc.split("{model}").join(m) }))
-      : [{ ...base, id: genId(), name: name.trim(), compatibleWith: fits.join(", "), description: desc.split("{model}").join(fits.join(", ") || "a range of devices") }];
+      ? fits.map((m) => ({ ...base, id: genId(), name: `${capFirst(name)} — ${m}`, compatibleWith: m, description: desc.split("{model}").join(m) }))
+      : [{ ...base, id: genId(), name: capFirst(name), compatibleWith: fits.join(", "), description: desc.split("{model}").join(fits.join(", ") || "a range of devices") }];
     onSave(rows); setName(""); setFits([]); setPhoto(""); setCompare(""); setDescEdited(false); setErr("");
   }
   const suggested = autoPrice(cost, category);
@@ -329,7 +332,7 @@ function ProductEditor({ item, onCancel, onSave }) {
   function save() {
     if (!String(p.name || "").trim()) return setErr("Name can't be empty.");
     const price = parseFloat(p.sellPrice); if (!price) return setErr("Enter a price.");
-    onSave({ ...p, name: p.name.trim(), sellPrice: price, cost: parseFloat(p.cost) || 0, qtyOnHand: parseInt(p.qtyOnHand, 10) || 0,
+    onSave({ ...p, name: capFirst(p.name), sellPrice: price, cost: parseFloat(p.cost) || 0, qtyOnHand: parseInt(p.qtyOnHand, 10) || 0,
       compareAtPrice: parseFloat(p.compareAtPrice) || undefined, compatibleWith: fits.join(", ") });
   }
   return (

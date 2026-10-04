@@ -81,8 +81,8 @@ export default function Home() {
       } catch (e) { /* no stock yet */ }
       // Only show numbers the owner has actually entered — never invented ones.
       const s = [];
-      if (b.yearsInBusiness) s.push({ value: `${b.yearsInBusiness}+`, label: "years in business" });
-      if (b.devicesSoldCount) s.push({ value: Number(b.devicesSoldCount).toLocaleString(), label: "devices sold" });
+      if (b.yearsInBusiness) s.push({ value: `${b.yearsInBusiness}+`, label: "Years in business" });
+      if (b.devicesSoldCount) s.push({ value: Number(b.devicesSoldCount).toLocaleString(), label: "Devices sold" });
       if (b.googleRating) s.push({ value: `${b.googleRating}★`, label: "Google rating" });
       setStats(s);
     })();

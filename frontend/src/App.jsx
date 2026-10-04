@@ -266,7 +266,7 @@ function StaffGate({ children }) {
   async function handleLogin() {
     setError("");
     try {
-      await window.shopAuth.login(window.SHOP_API_BASE_URL, username, password);
+      await window.shopAuth.login(window.SHOP_API_BASE_URL, username.trim(), password);
       // Re-point window.storage at the newly-authenticated session — without
       // this, staff would be "logged in" per currentUser() but every
       // storage call would still go out with no token, hitting the same
@@ -288,7 +288,7 @@ function StaffGate({ children }) {
     setError(""); setSuccess("");
     if (password.length < 8) return setError("New password must be at least 8 characters.");
     try {
-      const res = await fetch(`${window.SHOP_API_BASE_URL}/auth/recover-admin`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), code: bootstrapToken.trim(), newPassword: password }) });
+      const res = await fetch(`${window.SHOP_API_BASE_URL}/auth/recover`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), code: bootstrapToken.trim(), newPassword: password }) });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || "Recovery failed");
       setSuccess("Password reset — sign in with your new password."); setMode("login"); setPassword(""); setBootstrapToken("");
@@ -315,12 +315,12 @@ function StaffGate({ children }) {
       <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, marginBottom: 16, color: paper }}>
         {mode === "login" ? "Staff sign in" : mode === "recover" ? "Reset admin password" : "Create the first staff account"}
       </div>
-      <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username"
+      <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" autoCapitalize="none" autoCorrect="off" spellCheck={false}
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, fontSize: 14, boxSizing: "border-box" }} />
       <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "recover" ? "New password (8+ characters)" : "Password (8+ characters)"} type="password"
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
       {(mode === "register" || mode === "recover") && (
-        <input value={bootstrapToken} onChange={(e) => setBootstrapToken(e.target.value)} placeholder={mode === "recover" ? "Recovery code" : "Bootstrap token (if one was set)"}
+        <input value={bootstrapToken} onChange={(e) => setBootstrapToken(e.target.value)} placeholder={mode === "recover" ? "Backup recovery code" : "Bootstrap token (if one was set)"}
           style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
       )}
       {error && <div style={{ color: "#8B2E2E", fontSize: 13, marginBottom: 8 }}>{error}</div>}
@@ -337,7 +337,7 @@ function StaffGate({ children }) {
         style={{ width: "100%", padding: 6, background: "transparent", border: "none", color: brass, textDecoration: "underline", cursor: "pointer", fontSize: 12.5 }}>
         Forgot password?
       </button>}
-      {mode === "recover" && <div style={{ fontSize: 12, color: "#5B6472", lineHeight: 1.5 }}>Staff: ask your admin to reset your password from the Team page. Admins: use the one-time recovery code set up on the server.</div>}
+      {mode === "recover" && <div style={{ fontSize: 12, color: "#5B6472", lineHeight: 1.5 }}>Use the backup code you saved from the Team page (usernames aren't case-sensitive). No code? Ask an admin to reset your password from the Team page.</div>}
     </div>
   );
 }

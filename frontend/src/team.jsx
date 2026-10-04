@@ -85,6 +85,7 @@ export default function Team() {
       ) : (
         <Card title="Team"><div style={{ fontSize: 15, color: muted }}>Only admins can add or remove team members. Ask an admin if you need an account for someone.</div></Card>
       )}
+      <BackupCode />
       <Card title="Change my password">
         <input style={field} type="password" placeholder="Current password" aria-label="Current password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} autoComplete="current-password" />
         <input style={field} type="password" placeholder="New password (8+ characters)" aria-label="New password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} autoComplete="new-password" />
@@ -111,5 +112,35 @@ function Card({ title, children }) {
       <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12 }}>{title}</div>
       {children}
     </div>
+  );
+}
+
+// Personal backup code: the permanent way to reset a forgotten password.
+function BackupCode() {
+  const [status, setStatus] = useState(null); const [code, setCode] = useState(""); const [err, setErr] = useState(""); const [copied, setCopied] = useState(false);
+  useEffect(() => { (async () => { try { setStatus(await api("/auth/recovery-code")); } catch (e) { setErr(e.message); } })(); }, []);
+  async function make() {
+    if (status && status.hasCode && !window.confirm("Make a new backup code? Your old one will stop working.")) return;
+    try { const r = await api("/auth/recovery-code", { method: "POST" }); setCode(r.code); setStatus({ hasCode: true, createdAt: new Date().toISOString() }); } catch (e) { setErr(e.message); }
+  }
+  return (
+    <Card title="🔑 Backup recovery code">
+      <div style={{ fontSize: 14.5, color: muted, lineHeight: 1.6, marginBottom: 12 }}>
+        If you ever forget your password, use this code on the sign-in screen ("Forgot password?"). Save it somewhere safe — your phone's notes or password manager. Each code works once; afterwards, make a new one here.
+      </div>
+      {code ? (
+        <div style={{ background: "#EEF5EC", border: `1px solid ${green}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: green, fontWeight: 700, marginBottom: 6 }}>Your new backup code — save it now, it won't be shown again:</div>
+          <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 20, fontWeight: 800, letterSpacing: "0.06em", marginBottom: 10, userSelect: "all" }}>{code}</div>
+          <button style={btn(green)} onClick={async () => { try { await navigator.clipboard.writeText(code); setCopied(true); } catch (e) {} }}>{copied ? "✓ Copied" : "Copy code"}</button>
+        </div>
+      ) : (
+        <div style={{ fontSize: 14.5, marginBottom: 10 }}>{status ? (status.hasCode ? `✅ You have a backup code (made ${new Date(status.createdAt).toLocaleDateString("en-AU")}).` : "⚠️ You don't have a backup code yet.") : "…"}</div>
+      )}
+      {err && <div style={{ color: red, fontSize: 14, marginBottom: 8 }}>{err}</div>}
+      <button style={btn(status && status.hasCode ? "transparent" : brass, status && status.hasCode ? paper : "#fff", status && status.hasCode ? { border: `1px solid ${line}` } : {})} onClick={make}>
+        {status && status.hasCode ? "Make a new code" : "Create my backup code"}
+      </button>
+    </Card>
   );
 }

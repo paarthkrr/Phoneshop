@@ -113,6 +113,8 @@ const schemaReady = pool.query(`
     expires_at TIMESTAMPTZ NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_id_photos_subject ON id_photos(subject_key);
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_hash TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_created_at TIMESTAMPTZ;
   CREATE TABLE IF NOT EXISTS recovery_uses (
     code_hash TEXT PRIMARY KEY,
     username TEXT NOT NULL,
@@ -163,6 +165,15 @@ async function purgeExpiredIdPhotos() {
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString("hex");
 }
+// Usernames are case-insensitive everywhere ("paarthkr" = "Paarthkr") and
+// ignore stray spaces. This returns the name exactly as stored, or null.
+async function canonicalUsername(name) {
+  const n = String(name || "").trim();
+  if (!n) return null;
+  const r = await pool.query("SELECT username FROM users WHERE LOWER(username) = LOWER($1) ORDER BY created_at LIMIT 1", [n]);
+  return r.rows[0] ? r.rows[0].username : null;
+}
+const attemptKey = (name) => String(name || "").trim().toLowerCase();
 async function createUser(username, password, role) {
   const salt = crypto.randomBytes(16).toString("hex");
   const hash = hashPassword(password, salt);
@@ -173,7 +184,7 @@ async function createUser(username, password, role) {
 const DUMMY_SALT_FOR_TIMING = crypto.randomBytes(16).toString("hex");
 
 async function verifyPassword(username, password) {
-  const result = await pool.query("SELECT salt, hash, role FROM users WHERE username = $1", [username]);
+  const result = await pool.query("SELECT username, salt, hash, role FROM users WHERE LOWER(username) = LOWER($1) ORDER BY created_at LIMIT 1", [String(username || "").trim()]);
   const row = result.rows[0];
   // Whether or not the username exists, we still do a full scrypt hash
   // before returning. Returning early here would make "no such user"
@@ -185,7 +196,7 @@ async function verifyPassword(username, password) {
   const a = Buffer.from(candidate, "hex");
   const b = Buffer.from(row.hash, "hex");
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  return { username, role: row.role };
+  return { username: row.username, role: row.role };
 }
 function signToken(payload) {
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
@@ -289,7 +300,7 @@ app.use((req, res, next) => {
 // password is even checked, so repeated guessing can't continue no
 // matter how many different passwords are tried.
 const MAX_LOGIN_ATTEMPTS = 5;
-const LOGIN_LOCKOUT_MINUTES = 15;
+const LOGIN_LOCKOUT_MINUTES = 5;
 
 async function recentFailedAttempts(username) {
   const result = await pool.query(
@@ -325,7 +336,8 @@ if (!ADMIN_BOOTSTRAP_TOKEN) {
 // requires being logged in as an admin.
 app.post("/auth/register", async (req, res) => {
   try {
-    const { username, password, role, bootstrapToken } = req.body;
+    const { password, role, bootstrapToken } = req.body;
+    const username = String(req.body.username || "").trim();
     if (!username || !password || password.length < 8) {
       return res.status(400).json({ error: "username and an 8+ character password are required" });
     }
@@ -346,8 +358,7 @@ app.post("/auth/register", async (req, res) => {
         return res.status(403).json({ error: "only an admin can register new accounts once the shop has any users" });
       }
     }
-    const existingResult = await pool.query("SELECT 1 FROM users WHERE username = $1", [username]);
-    if (existingResult.rows[0]) return res.status(409).json({ error: "username already taken" });
+    if (await canonicalUsername(username)) return res.status(409).json({ error: "username already taken (usernames aren't case-sensitive)" });
     const finalRole = userCount === 0 ? "admin" : (role === "admin" ? "admin" : "staff");
     await createUser(username, password, finalRole);
     res.json({ username, role: finalRole, firstAccount: userCount === 0 });
@@ -361,13 +372,13 @@ app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
     if (!username) return res.status(400).json({ error: "username is required" });
 
-    const failedCount = await recentFailedAttempts(username);
+    const failedCount = await recentFailedAttempts(attemptKey(username));
     if (failedCount >= MAX_LOGIN_ATTEMPTS) {
       return res.status(429).json({ error: `too many failed attempts — try again in ${LOGIN_LOCKOUT_MINUTES} minutes` });
     }
 
     const user = await verifyPassword(username, password);
-    await recordLoginAttempt(username, !!user);
+    await recordLoginAttempt(attemptKey(username), !!user);
     if (!user) return res.status(401).json({ error: "invalid username or password" });
 
     await pool.query("DELETE FROM sessions WHERE expires_at < NOW()"); // light housekeeping
@@ -438,31 +449,63 @@ app.get("/public/product-images/:id", async (req, res) => {
 // future; each code works once; only admin accounts can be recovered; failed
 // tries are rate-limited like logins; success ends the account's old sessions
 // and clears any login lockout.
-app.post("/auth/recover-admin", async (req, res) => {
-  try {
-    const { code, username, newPassword } = req.body || {};
-    const expected = process.env.ADMIN_RECOVERY_CODE || "";
-    const expires = Date.parse(process.env.ADMIN_RECOVERY_EXPIRES || "");
-    if (expected.length < 24 || !(expires > Date.now())) return res.status(403).json({ error: "account recovery isn't enabled right now" });
-    if (!username || !code) return res.status(400).json({ error: "username and recovery code are required" });
-    const key = `recover:${username}`;
-    if (await recentFailedAttempts(key) >= MAX_LOGIN_ATTEMPTS) return res.status(429).json({ error: `too many attempts — try again in ${LOGIN_LOCKOUT_MINUTES} minutes` });
-    const a = Buffer.from(String(code)), b = Buffer.from(expected);
-    const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
-    if (!ok) { await recordLoginAttempt(key, false); return res.status(401).json({ error: "that recovery code isn't right" }); }
-    const codeHash = crypto.createHash("sha256").update(expected).digest("hex");
-    if ((await pool.query("SELECT 1 FROM recovery_uses WHERE code_hash = $1", [codeHash])).rows[0]) return res.status(410).json({ error: "this recovery code has already been used" });
-    const u = await pool.query("SELECT role FROM users WHERE username = $1", [username]);
-    if (!u.rows[0] || u.rows[0].role !== "admin") { await recordLoginAttempt(key, false); return res.status(404).json({ error: "no admin account with that username" }); }
-    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
-    const salt = crypto.randomBytes(16).toString("hex");
-    await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hashPassword(newPassword, salt), username]);
-    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [username]);
-    await pool.query("DELETE FROM login_attempts WHERE username = $1 OR username = $2", [username, key]);
-    await pool.query("INSERT INTO recovery_uses (code_hash, username) VALUES ($1, $2)", [codeHash, username]);
-    res.json({ recovered: username });
-  } catch (e) { res.status(400).json({ error: e.message }); }
+const hashCode = (c) => crypto.createHash("sha256").update(String(c || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "")).digest("hex");
+// Personal backup code: each staff member can create one from the Team page,
+// save it somewhere safe, and use it to reset a forgotten password at any
+// time. It works once; then they make a new one.
+app.get("/auth/recovery-code", requireAuth, async (req, res) => {
+  const r = await pool.query("SELECT recovery_created_at FROM users WHERE username = $1", [req.user.username]);
+  res.json({ hasCode: !!(r.rows[0] && r.rows[0].recovery_created_at), createdAt: r.rows[0] ? r.rows[0].recovery_created_at : null });
 });
+app.post("/auth/recovery-code", requireAuth, async (req, res) => {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I lookalikes
+  const bytes = crypto.randomBytes(16);
+  const raw = Array.from(bytes, (x) => alphabet[x % alphabet.length]).join("");
+  const code = raw.match(/.{4}/g).join("-");
+  await pool.query("UPDATE users SET recovery_hash = $1, recovery_created_at = NOW() WHERE username = $2", [hashCode(code), req.user.username]);
+  res.json({ code });
+});
+// Forgotten password. Accepts the account's personal backup code, or (for
+// admins) the owner's server recovery code if one is set on the host.
+// Usernames are case-insensitive; failed tries lock for 5 minutes.
+async function recoverHandler(req, res) {
+  try {
+    const { code, newPassword } = req.body || {};
+    if (!req.body || !req.body.username || !code) return res.status(400).json({ error: "username and recovery code are required" });
+    const key = `recover:${attemptKey(req.body.username)}`;
+    if (await recentFailedAttempts(key) >= MAX_LOGIN_ATTEMPTS) return res.status(429).json({ error: `too many attempts — try again in ${LOGIN_LOCKOUT_MINUTES} minutes` });
+    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
+    const username = await canonicalUsername(req.body.username);
+    const wrong = async () => { await recordLoginAttempt(key, false); return res.status(401).json({ error: "that username and recovery code don't match" }); };
+    if (!username) return wrong();
+    const u = (await pool.query("SELECT role, recovery_hash FROM users WHERE username = $1", [username])).rows[0];
+    let via = null;
+    if (u.recovery_hash) {
+      const a = Buffer.from(hashCode(code), "hex"), b = Buffer.from(u.recovery_hash, "hex");
+      if (a.length === b.length && crypto.timingSafeEqual(a, b)) via = "personal";
+    }
+    const serverCode = process.env.ADMIN_RECOVERY_CODE || "";
+    const exp = Date.parse(process.env.ADMIN_RECOVERY_EXPIRES || "");
+    if (!via && u.role === "admin" && serverCode.length >= 24 && !(exp <= Date.now())) {
+      const a = Buffer.from(String(code).trim()), b = Buffer.from(serverCode);
+      if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
+        const h = crypto.createHash("sha256").update(serverCode).digest("hex");
+        if ((await pool.query("SELECT 1 FROM recovery_uses WHERE code_hash = $1", [h])).rows[0]) return res.status(410).json({ error: "that recovery code has already been used" });
+        await pool.query("INSERT INTO recovery_uses (code_hash, username) VALUES ($1, $2)", [h, username]);
+        via = "server";
+      }
+    }
+    if (!via) return wrong();
+    const salt = crypto.randomBytes(16).toString("hex");
+    await pool.query("UPDATE users SET salt = $1, hash = $2" + (via === "personal" ? ", recovery_hash = NULL, recovery_created_at = NULL" : "") + " WHERE username = $3", [salt, hashPassword(newPassword, salt), username]);
+    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [username]);
+    await pool.query("DELETE FROM login_attempts WHERE username = $1 OR username = $2", [attemptKey(username), key]);
+    res.json({ recovered: username, usedBackupCode: via === "personal" });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+}
+app.post("/auth/recover", recoverHandler);
+app.post("/auth/recover-admin", recoverHandler);
+
 
 // ---- Team management (admin only) ----
 app.get("/auth/users", requireAuth, async (req, res) => {
@@ -476,8 +519,9 @@ app.get("/auth/users", requireAuth, async (req, res) => {
 app.delete("/auth/users/:username", requireAuth, async (req, res) => {
   try {
     if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
-    const target = req.params.username;
-    if (target === req.user.username) return res.status(400).json({ error: "you can't remove your own account" });
+    const target = await canonicalUsername(req.params.username);
+    if (!target) return res.status(404).json({ error: "no such user" });
+    if (target.toLowerCase() === req.user.username.toLowerCase()) return res.status(400).json({ error: "you can't remove your own account" });
     const t = await pool.query("SELECT role FROM users WHERE username = $1", [target]);
     if (!t.rows[0]) return res.status(404).json({ error: "no such user" });
     if (t.rows[0].role === "admin") {
@@ -495,12 +539,12 @@ app.post("/auth/users/:username/password", requireAuth, async (req, res) => {
     if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
-    const t = await pool.query("SELECT 1 FROM users WHERE username = $1", [req.params.username]);
-    if (!t.rows[0]) return res.status(404).json({ error: "no such user" });
+    const target = await canonicalUsername(req.params.username);
+    if (!target) return res.status(404).json({ error: "no such user" });
     const salt = crypto.randomBytes(16).toString("hex");
-    await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hashPassword(newPassword, salt), req.params.username]);
-    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [req.params.username]);
-    res.json({ username: req.params.username, passwordReset: true });
+    await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hashPassword(newPassword, salt), target]);
+    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
+    res.json({ username: target, passwordReset: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -529,10 +573,11 @@ app.post("/auth/change-password", requireAuth, async (req, res) => {
 app.post("/auth/reset-password", requireAuth, async (req, res) => {
   try {
     if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
-    const { username, newPassword } = req.body;
+    const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
-    const existsResult = await pool.query("SELECT 1 FROM users WHERE username = $1", [username]);
-    if (!existsResult.rows[0]) return res.status(404).json({ error: "no such user" });
+    const canon = await canonicalUsername(req.body.username);
+    if (!canon) return res.status(404).json({ error: "no such user" });
+    const username = canon;
     const salt = crypto.randomBytes(16).toString("hex");
     const hash = hashPassword(newPassword, salt);
     await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hash, username]);

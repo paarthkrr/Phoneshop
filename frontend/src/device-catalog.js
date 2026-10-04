@@ -157,13 +157,13 @@ export const DEFAULT_CATALOG = [
   { brand: "Oppo", icon: "🟢", model: "A5 Pro 5G", release: "2025-03-01", retail: {"256GB":  499}, category: "phone" },
   { brand: "Oppo", icon: "🟢", model: "A79 5G", release: "2023-11-01", retail: {"128GB":  399}, category: "phone" },
   { brand: "Oppo", icon: "🟢", model: "A60", release: "2024-05-01", retail: {"128GB":  299}, category: "phone" },
-  { brand: "Motorola", icon: "🔵", model: "edge 60 pro", release: "2025-05-01", retail: {"512GB":  899}, category: "phone" },
-  { brand: "Motorola", icon: "🔵", model: "edge 50 fusion", release: "2024-06-01", retail: {"256GB":  599}, category: "phone" },
-  { brand: "Motorola", icon: "🔵", model: "moto g85", release: "2024-08-01", retail: {"256GB":  499}, category: "phone" },
-  { brand: "Motorola", icon: "🔵", model: "moto g75 5G", release: "2024-11-01", retail: {"256GB":  499}, category: "phone" },
-  { brand: "Motorola", icon: "🔵", model: "moto g55 5G", release: "2024-09-01", retail: {"256GB":  399}, category: "phone" },
-  { brand: "Motorola", icon: "🔵", model: "moto g35 5G", release: "2024-12-01", retail: {"128GB":  299}, category: "phone" },
-  { brand: "Motorola", icon: "🔵", model: "moto g05", release: "2025-01-15", retail: {"128GB":  199}, category: "phone" },
+  { brand: "Motorola", icon: "🔵", model: "Edge 60 Pro", release: "2025-05-01", retail: {"512GB":  899}, category: "phone" },
+  { brand: "Motorola", icon: "🔵", model: "Edge 50 Fusion", release: "2024-06-01", retail: {"256GB":  599}, category: "phone" },
+  { brand: "Motorola", icon: "🔵", model: "Moto G85", release: "2024-08-01", retail: {"256GB":  499}, category: "phone" },
+  { brand: "Motorola", icon: "🔵", model: "Moto G75 5G", release: "2024-11-01", retail: {"256GB":  499}, category: "phone" },
+  { brand: "Motorola", icon: "🔵", model: "Moto G55 5G", release: "2024-09-01", retail: {"256GB":  399}, category: "phone" },
+  { brand: "Motorola", icon: "🔵", model: "Moto G35 5G", release: "2024-12-01", retail: {"128GB":  299}, category: "phone" },
+  { brand: "Motorola", icon: "🔵", model: "Moto G05", release: "2025-01-15", retail: {"128GB":  199}, category: "phone" },
   { brand: "Xiaomi", icon: "🟠", model: "Xiaomi 15", release: "2025-03-10", retail: {"512GB":  1399}, category: "phone" },
   { brand: "Xiaomi", icon: "🟠", model: "Redmi Note 14 Pro 5G", release: "2025-01-20", retail: {"256GB":  599}, category: "phone" },
   { brand: "Xiaomi", icon: "🟠", model: "Redmi Note 14", release: "2025-01-20", retail: {"128GB":  299}, category: "phone" },
@@ -183,6 +183,12 @@ export function mergeCatalog(saved) {
   const have = new Set(saved.map(key));
   const defaults = Object.fromEntries(DEFAULT_CATALOG.map((d) => [key(d), d]));
   // Fill in a built-in sample photo only where staff haven't set their own.
-  const withPhotos = saved.map((d) => (!d.imageUrl && defaults[key(d)] && defaults[key(d)].imageUrl) ? { ...d, imageUrl: defaults[key(d)].imageUrl } : d);
+  const withPhotos = saved.map((d) => {
+    const def = defaults[key(d)]; if (!def) return d;
+    let out = d;
+    if (!d.imageUrl && def.imageUrl) out = { ...out, imageUrl: def.imageUrl };          // built-in sample photo
+    if (d.model !== def.model) out = { ...out, model: def.model };                       // tidy capitalisation, e.g. "moto g85" -> "Moto G85"
+    return out;
+  });
   return [...withPhotos, ...DEFAULT_CATALOG.filter((d) => !have.has(key(d)))];
 }
