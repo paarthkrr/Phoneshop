@@ -32,7 +32,7 @@ export default function SiteFooter() {
   return (
     <footer style={{ marginTop: 50, paddingTop: 30, borderTop: `1px solid ${line}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 24, fontSize: 13, maxWidth: 720, marginLeft: "auto", marginRight: "auto", padding: "30px 16px 40px" }}>
       <div>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8 }}>Mobile Recellr</div>
+        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}><img src="/logo-icon.svg" alt="" width="26" height="26" style={{ borderRadius: 7 }} />Mobile Recellr</div>
         <div style={{ color: muted, lineHeight: 1.7 }}>
           {businessSettings?.address || "Address on file at checkout"}<br />
           {businessSettings?.phone && <>{businessSettings.phone}<br /></>}
