@@ -1,5 +1,6 @@
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
+import InspectionSignature from "./inspection-signature.jsx";
 // Friendly validation shared by the customer forms
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
 const digits = (v) => (v || "").replace(/[\s-]/g, "");
@@ -1372,6 +1373,17 @@ export default function QuoteCalculator() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
                   <div style={{ fontSize: 13, color: muted }}>Your quote</div>
                   <div key={Math.round(calc.total)} className="mv-pop" aria-live="polite" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 36, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
+                </div>
+                {/* Live "device signature": the inspection ring turns amber where a fault is declared */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 12px" }}>
+                  <div style={{ width: 120, flexShrink: 0 }}>
+                    <InspectionSignature size={120} scanning={false}
+                      groups={[...FAULT_GROUPS_A.map((g) => ({ name: g.group || g.title || g.name, faults: g.faults })), { name: "Security & lock checks", faults: BLOCKERS.map((b) => ({ id: b.id, label: b.label })) }]}
+                      faulty={Object.keys(faults).filter((k) => faults[k])} title="Your device signature" />
+                  </div>
+                  <div style={{ fontSize: 12.5, color: muted, lineHeight: 1.5 }}>
+                    <strong style={{ color: paper }}>Your device signature.</strong> Each arc is part of our 49-point check; anything you flag turns amber. We confirm every point in person before paying.
+                  </div>
                 </div>
                 <div style={{ borderTop: `1px solid ${line}`, paddingTop: 10, fontSize: 12.5, color: muted }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>

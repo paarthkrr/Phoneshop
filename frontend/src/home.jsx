@@ -4,6 +4,7 @@ import Photo from "./photo.jsx";
 import DeviceArtCard, { inferDeviceType } from "./device-art.jsx";
 import { PHONE_FAULT_GROUPS, BLOCKERS, baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT } from "./instant-quote-calculator.jsx";
 import { mergeCatalog } from "./device-catalog.js";
+import InspectionSignature from "./inspection-signature.jsx";
 
 // ---- Hero: animated gradient, the shop's own phone photos, live price ticker ----
 const TICKER_MODELS = ["iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro"];
@@ -143,6 +144,7 @@ function Hero({ ticker }) {
 // The real inspection checklist used by staff — so the "N-point check" number
 // is always true, and updates itself if the checklist ever changes.
 const CHECK_GROUPS = PHONE_FAULT_GROUPS.map((g) => ({ name: g.group || g.title || g.name, n: g.faults.length }));
+const SIGNATURE_GROUPS = [...PHONE_FAULT_GROUPS.map((g) => ({ name: g.group || g.title || g.name, faults: g.faults })), { name: "Security & lock checks", faults: BLOCKERS.map((b) => ({ id: b.id, label: b.label })) }];
 const CHECK_COUNT = CHECK_GROUPS.reduce((n, g) => n + g.n, 0) + BLOCKERS.length;
 
 function storageAvailable() {
@@ -372,13 +374,16 @@ export default function Home() {
         <div style={{ color: muted, fontSize: 14, textAlign: "center", maxWidth: 620, margin: "-8px auto 18px", lineHeight: 1.6 }}>
           The same checklist we use to inspect every trade-in, so you know exactly what's been tested.
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+        <div style={{ display: "flex", gap: 28, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+        <div style={{ flex: "0 1 320px", minWidth: 240 }}><InspectionSignature groups={SIGNATURE_GROUPS} size={320} /></div>
+        <div style={{ flex: "1 1 420px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
           {[...CHECK_GROUPS, { name: "Security & lock checks", n: BLOCKERS.length }].map((g) => (
             <div key={g.name} style={{ background: panel, border: "1px solid rgba(32,28,24,0.12)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
               <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{g.name}</span>
               <span style={{ fontSize: 12.5, color: brass, fontWeight: 800, whiteSpace: "nowrap" }}>{g.n} checks</span>
             </div>
           ))}
+        </div>
         </div>
       </div>
 
