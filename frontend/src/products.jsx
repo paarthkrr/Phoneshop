@@ -78,6 +78,14 @@ export function parseRows(text) {
 const TEMPLATE = "name,category,price,cost,stock,fits,photo,description,compare_at\nClear MagSafe case,Cases & covers,29.95,7,20,iPhone 16;iPhone 16 Pro,,,39.95\nTempered glass,Screen protectors,,2.5,50,Galaxy S25 Ultra,,,\n";
 
 // Shrink a photo in the browser before upload (fast pages, small storage).
+// Upload a photo (resized first). Returns a public URL, or a data URL in preview mode.
+async function uploadPhoto(file) {
+  const dataUrl = await resizeToDataUrl(file);
+  if (!window.SHOP_API_BASE_URL || !window.shopAuth) return dataUrl;
+  const res = await fetch(`${window.SHOP_API_BASE_URL}/product-images`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${window.shopAuth.authToken()}` }, body: JSON.stringify({ dataUrl }) });
+  const body = await res.json(); if (!res.ok) throw new Error(body.error || "Upload failed");
+  return body.url;
+}
 async function resizeToDataUrl(file, max = 900) {
   const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = URL.createObjectURL(file); });
   const s = Math.min(1, max / Math.max(img.width, img.height));
@@ -112,7 +120,7 @@ export default function Products() {
       </div>
       {tab === "add" && <QuickAdd onSave={(rows) => persist([...rows, ...items], `${rows.length} product${rows.length === 1 ? "" : "s"} added and live in the online shop.`)} />}
       {tab === "bulk" && <BulkImport onSave={(rows) => persist([...rows, ...items], `${rows.length} products imported.`)} />}
-      {tab === "list" && <ProductList items={items} setItems={(n) => { setItems(n); setDirty(true); }} dirty={dirty} onSave={() => persist(items, "Changes saved.")} />}
+      {tab === "list" && <ProductList items={items} setItems={(n) => { setItems(n); setDirty(true); }} dirty={dirty} onSave={() => persist(items, "Changes saved.")} onSaveNow={(next, note) => persist(next, note)} />}
     </Shell>
   );
 }
@@ -250,7 +258,8 @@ function BulkImport({ onSave }) {
   );
 }
 
-function ProductList({ items, setItems, dirty, onSave }) {
+function ProductList({ items, setItems, dirty, onSave, onSaveNow }) {
+  const [editing, setEditing] = useState(null);
   const [q, setQ] = useState(""); const [cat, setCat] = useState("All"); const [page, setPage] = useState(0); const [sel, setSel] = useState([]); const [pct, setPct] = useState("");
   const live = items.filter((i) => !i.archived);
   const shown = live.filter((i) => (cat === "All" || i.category === cat) && (!q.trim() || `${i.name} ${i.compatibleWith || ""}`.toLowerCase().includes(q.trim().toLowerCase())));
@@ -271,6 +280,11 @@ function ProductList({ items, setItems, dirty, onSave }) {
         <button onClick={() => bulk((i) => ({ ...i, showOnline: true }))} style={btn("transparent", paper)}>Show online</button>
         <button onClick={() => { if (window.confirm(`Remove ${sel.length} products?`)) bulk((i) => ({ ...i, archived: true })); }} style={btn("transparent", red)}>Remove</button>
       </div>}
+      {editing && (() => {
+        const it = items.find((x) => x.id === editing);
+        return it ? <ProductEditor key={it.id} item={it} onCancel={() => setEditing(null)}
+          onSave={(patch) => { onSaveNow(items.map((x) => (x.id === it.id ? { ...x, ...patch, updatedAt: new Date().toISOString() } : x)), `"${patch.name}" saved.`); setEditing(null); }} /> : null;
+      })()}
       <label style={{ fontSize: 13, color: muted, display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
         <input type="checkbox" checked={pageItems.length > 0 && pageItems.every((i) => sel.includes(i.id))} onChange={(e) => setSel(e.target.checked ? [...new Set([...sel, ...pageItems.map((i) => i.id)])] : sel.filter((id) => !pageItems.some((i) => i.id === id)))} /> Select all on this page · {shown.length} shown
       </label>
@@ -284,6 +298,7 @@ function ProductList({ items, setItems, dirty, onSave }) {
           </div>
           <label style={{ fontSize: 12, color: muted }}>$<input value={i.sellPrice} onChange={(e) => upd(i.id, { sellPrice: parseFloat(e.target.value) || 0 })} inputMode="decimal" aria-label={`Price of ${i.name}`} style={{ ...input, width: 80, padding: "7px 8px", fontSize: 14 }} /></label>
           <label style={{ fontSize: 12, color: muted }}>Stock<input value={i.qtyOnHand} onChange={(e) => upd(i.id, { qtyOnHand: parseInt(e.target.value, 10) || 0 })} inputMode="numeric" aria-label={`Stock of ${i.name}`} style={{ ...input, width: 64, padding: "7px 8px", fontSize: 14 }} /></label>
+          <button onClick={() => setEditing(i.id)} style={btn("transparent", brass, { padding: "7px 12px", fontSize: 13 })}>Edit</button>
         </div>
       ))}
       {shown.length > PAGE && <div style={{ display: "flex", gap: 8, justifyContent: "center", margin: "12px 0" }}>
@@ -293,6 +308,78 @@ function ProductList({ items, setItems, dirty, onSave }) {
       </div>}
       <button disabled={!dirty} onClick={onSave} style={btn(dirty ? brass : "#C9CED6", "#fff", { width: "100%", padding: 14, fontSize: 16, marginTop: 10, position: "sticky", bottom: 10 })}>{dirty ? "Save changes" : "All changes saved"}</button>
     </Card>
+  );
+}
+
+// Edit everything about an existing product after it's been added.
+function ProductEditor({ item, onCancel, onSave }) {
+  const [p, setP] = useState({ ...item });
+  const [fits, setFits] = useState((item.compatibleWith || "").split(",").map((x) => x.trim()).filter(Boolean));
+  const [find, setFind] = useState(""); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const models = useMemo(() => DEFAULT_CATALOG.map((d) => d.model), []);
+  const suggestions = useMemo(() => suggestCompatible(p.category, fits, DEFAULT_CATALOG), [p.category, fits]);
+  const hits = find.trim() ? models.filter((m) => m.toLowerCase().includes(find.trim().toLowerCase()) && !fits.includes(m)).slice(0, 10) : [];
+  const set = (k, v) => setP((x) => ({ ...x, [k]: v }));
+  const ICON = { same: "✅", likely: "🟡", check: "⚠️" };
+  async function onPhoto(e) {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    setBusy(true); setErr("");
+    try { set("imageUrl", await uploadPhoto(f)); } catch (x) { setErr(x.message || "Couldn't upload that photo."); } finally { setBusy(false); }
+  }
+  function save() {
+    if (!String(p.name || "").trim()) return setErr("Name can't be empty.");
+    const price = parseFloat(p.sellPrice); if (!price) return setErr("Enter a price.");
+    onSave({ ...p, name: p.name.trim(), sellPrice: price, cost: parseFloat(p.cost) || 0, qtyOnHand: parseInt(p.qtyOnHand, 10) || 0,
+      compareAtPrice: parseFloat(p.compareAtPrice) || undefined, compatibleWith: fits.join(", ") });
+  }
+  return (
+    <div style={{ border: `2px solid ${brass}`, borderRadius: 14, padding: 14, margin: "6px 0 14px", background: "#FAFBFF" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <strong style={{ fontSize: 16 }}>Edit product</strong>
+        <button onClick={onCancel} aria-label="Close editor" style={{ border: "none", background: "none", fontSize: 20, cursor: "pointer", color: muted }}>×</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 12, marginBottom: 10 }}>
+        <label style={{ width: 100, height: 100, borderRadius: 12, border: `1.5px dashed ${line}`, background: panel2, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", cursor: "pointer", fontSize: 12.5, color: muted, textAlign: "center" }}>
+          {p.imageUrl ? <img src={p.imageUrl} alt="Product" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : busy ? "Uploading…" : <span>📷<br />Add photo</span>}
+          <input type="file" accept="image/*" onChange={onPhoto} style={{ display: "none" }} aria-label="Change photo" />
+        </label>
+        <div>
+          <input value={p.name} onChange={(e) => set("name", e.target.value)} aria-label="Edit name" style={{ ...input, marginBottom: 8 }} />
+          <select value={p.category} onChange={(e) => set("category", e.target.value)} aria-label="Edit category" style={input}>
+            {[...new Set([...CATEGORIES, p.category])].map((c) => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+      {p.imageUrl && <button onClick={() => set("imageUrl", "")} style={{ border: "none", background: "none", color: red, cursor: "pointer", fontSize: 13, marginBottom: 8 }}>Remove photo</button>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8, marginBottom: 10 }}>
+        <label style={{ fontSize: 12.5, color: muted }}>Price<input value={p.sellPrice} onChange={(e) => set("sellPrice", e.target.value)} inputMode="decimal" aria-label="Edit price" style={input} /></label>
+        <label style={{ fontSize: 12.5, color: muted }}>Was<input value={p.compareAtPrice || ""} onChange={(e) => set("compareAtPrice", e.target.value)} inputMode="decimal" aria-label="Edit was price" style={input} /></label>
+        <label style={{ fontSize: 12.5, color: muted }}>Cost<input value={p.cost || ""} onChange={(e) => set("cost", e.target.value)} inputMode="decimal" aria-label="Edit cost" style={input} /></label>
+        <label style={{ fontSize: 12.5, color: muted }}>Stock<input value={p.qtyOnHand} onChange={(e) => set("qtyOnHand", e.target.value)} inputMode="numeric" aria-label="Edit stock" style={input} /></label>
+      </div>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Fits ({fits.length})</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+        {fits.map((m) => <span key={m} style={{ background: "rgba(33,80,200,0.10)", color: brass, borderRadius: 999, padding: "5px 10px", fontSize: 13, fontWeight: 600 }}>{m} <button type="button" aria-label={`Remove ${m}`} onClick={() => setFits(fits.filter((x) => x !== m))} style={{ border: "none", background: "none", color: brass, cursor: "pointer", fontWeight: 800 }}>×</button></span>)}
+      </div>
+      <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Add a model…" aria-label="Add model to fits" style={{ ...input, marginBottom: 6 }} />
+      {hits.length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>{hits.map((m) => <button key={m} type="button" onClick={() => { setFits([...fits, m]); setFind(""); }} style={btn("transparent", paper, { padding: "6px 10px", fontSize: 13 })}>+ {m}</button>)}</div>}
+      {suggestions.length > 0 && <div style={{ fontSize: 13, marginBottom: 10 }}>
+        <div style={{ color: muted, marginBottom: 4 }}>🔎 May also fit:</div>
+        {suggestions.slice(0, 12).map((x) => <button key={x.model} type="button" title={x.note} onClick={() => setFits([...fits, x.model])} style={{ border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: paper, display: "block", padding: "2px 0", textAlign: "left" }}>{ICON[x.level]} <strong>+ {x.model}</strong> <span style={{ color: muted }}>— {x.note}</span></button>)}
+      </div>}
+      <label style={{ fontSize: 12.5, color: muted, display: "block", marginBottom: 8 }}>Description
+        <textarea value={p.description || ""} onChange={(e) => set("description", e.target.value)} rows={3} aria-label="Edit description" style={{ ...input, resize: "vertical" }} />
+      </label>
+      <button type="button" onClick={() => set("description", autoDescription(p.category, fits))} style={{ border: "none", background: "none", color: brass, cursor: "pointer", fontSize: 13, marginBottom: 8, padding: 0 }}>↻ Rewrite description from category &amp; fits</button>
+      <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14, marginBottom: 10 }}>
+        <input type="checkbox" checked={p.showOnline !== false} onChange={(e) => set("showOnline", e.target.checked)} /> Show in the online shop
+      </label>
+      {err && <div style={{ color: red, fontSize: 13.5, marginBottom: 8 }}>{err}</div>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={save} disabled={busy} style={btn(brass, "#fff", { flex: 1, padding: 13 })}>Save product</button>
+        <button onClick={onCancel} style={btn("transparent", paper, { padding: 13 })}>Cancel</button>
+      </div>
+    </div>
   );
 }
 
