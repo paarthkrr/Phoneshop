@@ -37,6 +37,7 @@
  * in this file is now async and uses $1, $2... placeholders (Postgres
  * syntax) instead of SQLite's `?`.
  */
+const compression = require("compression");
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
@@ -112,6 +113,13 @@ const schemaReady = pool.query(`
     expires_at TIMESTAMPTZ NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_id_photos_subject ON id_photos(subject_key);
+  CREATE TABLE IF NOT EXISTS product_images (
+    id TEXT PRIMARY KEY,
+    mime TEXT NOT NULL,
+    data BYTEA NOT NULL,
+    created_by TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
   CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
@@ -255,6 +263,8 @@ if (!CORS_ORIGIN) {
 // onrender.com address plus your own domain while switching over).
 const CORS_ORIGINS = CORS_ORIGIN.split(",").map((o) => o.trim().replace(/\/$/, "")).filter(Boolean);
 app.use(cors({ origin: CORS_ORIGINS.length ? CORS_ORIGINS : true }));
+// gzip responses: a catalogue of thousands of products is ~8x smaller over the wire.
+app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use((req, res, next) => {
   // A few no-dependency security headers. HSTS is deliberately left to
@@ -387,6 +397,34 @@ app.post("/auth/revoke-user/:username", requireAuth, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
   const result = await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [req.params.username]);
   res.json({ username: req.params.username, sessionsRevoked: result.rowCount });
+});
+
+// ---- Product photos ----
+// Staff upload a photo (already resized in the browser); it's stored in the
+// database and served publicly with long caching. Only images, max 1.5 MB.
+const IMAGE_TYPES = { "image/jpeg": true, "image/png": true, "image/webp": true };
+app.post("/product-images", requireAuth, async (req, res) => {
+  try {
+    const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(req.body.dataUrl || "");
+    if (!m || !IMAGE_TYPES[m[1]]) return res.status(400).json({ error: "send a JPEG, PNG or WebP image" });
+    const bytes = Buffer.from(m[2], "base64");
+    if (bytes.length > 1.5 * 1024 * 1024) return res.status(413).json({ error: "image too large (max 1.5 MB)" });
+    const id = crypto.randomBytes(12).toString("hex");
+    await pool.query("INSERT INTO product_images (id, mime, data, created_by) VALUES ($1, $2, $3, $4)", [id, m[1], bytes, req.user.username]);
+    const proto = (req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0];
+    res.json({ id, url: `${proto}://${req.get("host")}/public/product-images/${id}` });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.get("/public/product-images/:id", async (req, res) => {
+  try {
+    if (!/^[a-f0-9]{24}$/.test(req.params.id)) return res.status(404).end();
+    const r = await pool.query("SELECT mime, data FROM product_images WHERE id = $1", [req.params.id]);
+    if (!r.rows[0]) return res.status(404).end();
+    res.set("Content-Type", r.rows[0].mime);
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    res.send(r.rows[0].data);
+  } catch (e) { res.status(500).end(); }
 });
 
 // ---- Team management (admin only) ----

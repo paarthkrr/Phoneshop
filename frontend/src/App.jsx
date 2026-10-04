@@ -15,6 +15,7 @@ import Home from "./home.jsx";
 import { metaFor } from "./seo-meta.js";
 import Tutorials from "./tutorials.jsx";
 import Team from "./team.jsx";
+import Products from "./products.jsx";
 import SellBrand from "./sell-brand.jsx";
 import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
@@ -75,6 +76,7 @@ const STAFF_LINKS = [
   { to: "/portal/till", label: "Till" },
   { to: "/portal/crm", label: "Customers & Reports" },
   { to: "/portal/pricing", label: "Pricing Console" },
+  { to: "/portal/products", label: "Products" },
   { to: "/portal/team", label: "Team" },
 ];
 
@@ -169,7 +171,7 @@ function Nav() {
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
           <Link to={isStaff ? "/portal/index.html" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
-            <span style={{ textTransform: "none", letterSpacing: "-0.02em" }}>re<span style={{ color: brass }}>cellr</span></span>{isStaff && <span style={{ fontSize: 11, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
+            <span style={{ textTransform: "none", letterSpacing: "-0.02em" }}>Re<span style={{ color: brass }}>cellr</span></span>{isStaff && <span style={{ fontSize: 11, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
           </Link>
           <div className="cs-nav-links" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {links.map((l) => {
@@ -376,7 +378,7 @@ export default function App() {
 function MobileCTA() {
   const location = useLocation();
   const path = normPath(location.pathname);
-  const hidden = isStaffPath(path) || path === "/quote" || path === "/sell";
+  const hidden = isStaffPath(path) || path === "/quote" || path === "/sell" || path === "/accessories" || path === "/parts";
   const [phone, setPhone] = useState(null);
   useEffect(() => {
     (async () => {
@@ -511,6 +513,7 @@ function AnimatedRoutes() {
         <Route path="/portal/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
         <Route path="/portal/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
         <Route path="/portal/team" element={<StaffGate><Team /></StaffGate>} />
+        <Route path="/portal/products" element={<StaffGate><Products /></StaffGate>} />
         {/* Legacy /staff addresses — same pages */}
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
         <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Photo from "./photo.jsx";
+import { DEFAULT_CATALOG } from "./device-catalog.js";
 
 function storageAvailable() { return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function"; }
 async function loadJSON(key, shared) { if (!storageAvailable()) return null; try { const r = await window.storage.get(key, shared); return r ? JSON.parse(r.value) : null; } catch (e) { return null; } }
@@ -22,7 +23,7 @@ const genId = () => "ACC-" + Math.floor(100000 + Math.random() * 900000);
 const SHIPPING_FLAT = 0; // free express shipping Australia-wide
 const FREE_SHIPPING_OVER = 0;
 const CART_KEY = "mv_cart";
-const ICONS = [[/case|cover/i, "📱"], [/protector|glass/i, "🛡️"], [/charg|cable|power/i, "🔌"], [/kit|diy|tool|part/i, "🧰"], [/audio|ear|head/i, "🎧"]];
+const ICONS = [[/band|strap/i, "⌚"], [/case|cover/i, "📱"], [/protector|glass/i, "🛡️"], [/charg|cable|power/i, "🔌"], [/kit|diy|tool|part/i, "🧰"], [/audio|ear|head/i, "🎧"]];
 const iconFor = (cat) => (ICONS.find(([re]) => re.test(cat || "")) || [null, "✨"])[1];
 
 const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
@@ -32,8 +33,15 @@ const primary = (on = true) => ({ padding: "12px 20px", borderRadius: 10, border
 
 export default function Parts() {
   const [accessories, setAccessories] = useState(null);
-  const [categoryFilter, setCategoryFilter] = useState("All");
-  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(() => { try { return new URLSearchParams(window.location.search).get("cat") || "All"; } catch (e) { return "All"; } });
+  // Ad / share links can pre-filter the shop: ?model=iPhone 16 Pro&cat=Cases %26 covers&q=glass&p=<product id>
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const [search, setSearch] = useState(params.get("q") || "");
+  const [modelFilter, setModelFilter] = useState(params.get("model") || "");
+  const [phoneBrand, setPhoneBrand] = useState("");
+  const [sort, setSort] = useState("featured");
+  const [visible, setVisible] = useState(24);
+  const [productId, setProductId] = useState(params.get("p") || "");
   const [cart, setCart] = useState(() => { try { return JSON.parse(localStorage.getItem(CART_KEY) || "[]"); } catch (e) { return []; } });
   const [view, setView] = useState("shop"); // shop | checkout | done | track
   const [customer, setCustomer] = useState({ name: "", email: "", phone: "", address: "" });
@@ -46,12 +54,25 @@ export default function Parts() {
 
   useEffect(() => { (async () => { setAccessories((await loadJSON("accessories", true)) || []); })(); }, []);
   useEffect(() => { try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {} }, [cart]);
+  // Browser back/forward between the shop and a product page.
+  useEffect(() => { const onPop = () => { try { setProductId(new URLSearchParams(window.location.search).get("p") || ""); } catch (e) {} }; window.addEventListener("popstate", onPop); return () => window.removeEventListener("popstate", onPop); }, []);
+  // A sticky cart bar replaces the site's quick-action bar here; reuse its spacing so the chat bubble moves up.
+  useEffect(() => { const on = view === "shop" && cart.length > 0; document.body.classList.toggle("has-mobile-cta", on); return () => document.body.classList.remove("has-mobile-cta"); }, [view, cart.length]);
 
-  const inStock = useMemo(() => (accessories || []).filter((a) => a.qtyOnHand > 0 && a.showOnline !== false), [accessories]);
+  const inStock = useMemo(() => (accessories || []).filter((a) => a.qtyOnHand > 0 && a.showOnline !== false && !a.archived), [accessories]);
   const categories = ["All", ...new Set(inStock.map((a) => a.category).filter(Boolean))];
   const q = search.trim().toLowerCase();
+  const mq = modelFilter.trim().toLowerCase();
+  const SORTS = { featured: (x, y) => String(y.createdAt || "").localeCompare(String(x.createdAt || "")), low: (x, y) => x.sellPrice - y.sellPrice, high: (x, y) => y.sellPrice - x.sellPrice };
   const filtered = inStock.filter((a) => (categoryFilter === "All" || a.category === categoryFilter) &&
-    (!q || `${a.name} ${a.category} ${a.compatibleWith || ""}`.toLowerCase().includes(q)));
+    (!q || `${a.name} ${a.category} ${a.compatibleWith || ""}`.toLowerCase().includes(q)) &&
+    (!mq || `${a.compatibleWith || ""} ${a.name}`.toLowerCase().includes(mq))).sort(SORTS[sort] || SORTS.featured);
+  const phoneBrands = [...new Set(DEFAULT_CATALOG.filter((d) => d.category === "phone").map((d) => d.brand))];
+  const brandModels = DEFAULT_CATALOG.filter((d) => d.brand === phoneBrand && d.category === "phone").sort((x, y) => String(y.release).localeCompare(String(x.release))).map((d) => d.model);
+  const setUrl = (key, val) => { try { const u = new URL(window.location.href); if (val) u.searchParams.set(key, val); else u.searchParams.delete(key); window.history.replaceState(window.history.state, "", u.pathname + u.search); } catch (e) {} };
+  const openProduct = (id) => { setProductId(id); try { const u = new URL(window.location.href); u.searchParams.set("p", id); window.history.pushState(window.history.state, "", u.pathname + u.search); } catch (e) {} window.scrollTo(0, 0); };
+  const closeProduct = () => { setProductId(""); setUrl("p", ""); };
+  const pct = (a) => (a.compareAtPrice > a.sellPrice ? Math.round((1 - a.sellPrice / a.compareAtPrice) * 100) : 0);
 
   // Cart lines always re-read live stock and price, so a stale cart can't oversell or undercharge.
   const lines = cart.map((c) => { const item = (accessories || []).find((a) => a.id === c.id); return item ? { ...item, qty: Math.min(c.qty, item.qtyOnHand) } : null; }).filter((l) => l && l.qty > 0);
@@ -180,6 +201,41 @@ export default function Parts() {
     </>);
   }
 
+  const product = productId ? (accessories || []).find((x) => x.id === productId && !x.archived) : null;
+  if (view === "shop" && product) {
+    const inCart = qtyInCart(product.id), off = pct(product);
+    return wrap(<>
+      <button onClick={closeProduct} style={{ background: "none", border: "none", color: brass, fontSize: 14, cursor: "pointer", padding: 0, marginBottom: 16 }}>← All accessories</button>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 }}>
+        <div style={{ aspectRatio: "1 / 1", borderRadius: 16, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" }}>
+          {product.imageUrl ? <img src={product.imageUrl} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 96 }} aria-hidden="true">{iconFor(product.category)}</span>}
+          {off > 0 && <span style={{ position: "absolute", top: 12, left: 12, background: "#B42318", color: "#fff", fontWeight: 800, fontSize: 13, borderRadius: 999, padding: "5px 11px" }}>Save {off}%</span>}
+        </div>
+        <div>
+          <div style={{ fontSize: 13, color: muted, marginBottom: 6 }}>{product.category}</div>
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, lineHeight: 1.15, margin: "0 0 10px" }}>{product.name}</h1>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 6 }}>
+            <span style={{ fontSize: 28, fontWeight: 800, color: brass }}>{fmt(product.sellPrice)}</span>
+            {off > 0 && <span style={{ fontSize: 17, color: muted, textDecoration: "line-through" }}>{fmt(product.compareAtPrice)}</span>}
+          </div>
+          <div style={{ fontSize: 13.5, color: product.qtyOnHand <= 2 ? red : green, marginBottom: 14 }}>{product.qtyOnHand <= 2 ? `Only ${product.qtyOnHand} left` : "In stock — ships free"}</div>
+          {product.compatibleWith && <div style={{ fontSize: 14.5, marginBottom: 10 }}><strong>Fits:</strong> {product.compatibleWith}</div>}
+          {product.description && <p style={{ fontSize: 15, lineHeight: 1.65, color: paper, marginTop: 0 }}>{product.description}</p>}
+          {inCart ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <button aria-label="One fewer" onClick={() => setQty(product, inCart - 1)} style={{ width: 46, height: 46, borderRadius: 12, border: `1px solid ${line}`, background: "#fff", fontSize: 20, cursor: "pointer" }}>−</button>
+              <strong style={{ fontSize: 16 }}>{inCart} in cart</strong>
+              <button aria-label="One more" disabled={inCart >= product.qtyOnHand} onClick={() => setQty(product, inCart + 1)} style={{ width: 46, height: 46, borderRadius: 12, border: `1px solid ${line}`, background: "#fff", fontSize: 20, cursor: "pointer" }}>+</button>
+            </div>
+          ) : (
+            <button className="cs-btn" onClick={() => setQty(product, 1)} style={{ ...primary(), width: "100%", padding: 15, fontSize: 16, marginBottom: 12 }}>Add to cart</button>
+          )}
+          {inCart > 0 && <button className="cs-btn" onClick={() => { closeProduct(); setView("checkout"); }} style={{ ...primary(), width: "100%", padding: 15, fontSize: 16, background: "#111827" }}>Checkout · {count} item{count === 1 ? "" : "s"}</button>}
+          <div style={{ fontSize: 13, color: muted, marginTop: 14, lineHeight: 1.7 }}>✓ Free express shipping Australia-wide<br />✓ Free click &amp; collect<br />✓ 30-day returns on unopened items · 6-month warranty</div>
+        </div>
+      </div>
+    </>);
+  }
   if (view === "track") return wrap(<>
     <button onClick={() => { setView("shop"); setTrackResult(undefined); }} style={{ background: "none", border: "none", color: brass, fontSize: 13.5, cursor: "pointer", padding: 0, marginBottom: 16 }}>← Back to the shop</button>
     <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, marginBottom: 14 }}>Track an accessories order</div>
@@ -205,6 +261,20 @@ export default function Parts() {
       </div>
       {CrossLinks}
     </>) : (<>
+      <div style={{ background: "#F4F6F9", borderRadius: 14, padding: 14, marginBottom: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>📱 Shop by your phone</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <select value={phoneBrand} onChange={(e) => { setPhoneBrand(e.target.value); setModelFilter(""); setUrl("model", ""); }} aria-label="Phone brand" style={{ ...input, marginBottom: 0, flex: 1, minWidth: 130, background: "#fff" }}>
+            <option value="">Brand</option>{phoneBrands.map((b) => <option key={b}>{b}</option>)}
+          </select>
+          <select value={modelFilter} onChange={(e) => { setModelFilter(e.target.value); setUrl("model", e.target.value); setVisible(24); }} aria-label="Phone model" disabled={!phoneBrand && !modelFilter} style={{ ...input, marginBottom: 0, flex: 2, minWidth: 170, background: "#fff" }}>
+            <option value="">{phoneBrand ? "Model" : "Pick a brand first"}</option>
+            {modelFilter && !brandModels.includes(modelFilter) && <option>{modelFilter}</option>}
+            {brandModels.map((m) => <option key={m}>{m}</option>)}
+          </select>
+        </div>
+        {modelFilter && <div style={{ fontSize: 13.5, marginTop: 8 }}>Showing accessories for <strong>{modelFilter}</strong> · <button onClick={() => { setModelFilter(""); setPhoneBrand(""); setUrl("model", ""); }} style={{ border: "none", background: "none", color: brass, cursor: "pointer", padding: 0, fontSize: 13.5 }}>show all</button></div>}
+      </div>
       <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search, or type your phone (e.g. iPhone 15) to see what fits" aria-label="Search accessories or your phone model" style={input} />
       <div role="group" aria-label="Filter by category" style={{ display: "flex", gap: 8, margin: "4px 0 18px", flexWrap: "wrap" }}>
         {categories.map((c) => (
@@ -215,19 +285,30 @@ export default function Parts() {
           </button>
         ))}
       </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13.5, color: muted }}>{filtered.length} product{filtered.length === 1 ? "" : "s"}</span>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort" style={{ ...input, marginBottom: 0, width: "auto", padding: "9px 12px", fontSize: 14 }}>
+          <option value="featured">Newest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option>
+        </select>
+      </div>
       {filtered.length === 0 && <div style={{ color: muted, fontSize: 14, marginBottom: 20 }}>No matches. Try a different search, or <a href="/help" style={{ color: brass }}>ask us</a> — we may have it in store.</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
-        {filtered.map((a) => {
+        {filtered.slice(0, visible).map((a) => {
           const low = a.qtyOnHand <= 2, inCart = qtyInCart(a.id);
           return (
             <div key={a.id} className="cs-card" style={{ border: `1px solid ${line}`, padding: 14, background: panel, display: "flex", flexDirection: "column" }}>
-              <div style={{ height: 110, borderRadius: 10, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden" }}>
+              <div role="button" tabIndex={0} aria-label={`View ${a.name}`} onClick={() => openProduct(a.id)} onKeyDown={(e) => { if (e.key === "Enter") openProduct(a.id); }}
+                style={{ height: 150, borderRadius: 10, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden", cursor: "pointer", position: "relative" }}>
+                {pct(a) > 0 && <span style={{ position: "absolute", top: 8, left: 8, background: "#B42318", color: "#fff", fontWeight: 800, fontSize: 11.5, borderRadius: 999, padding: "3px 8px", zIndex: 1 }}>-{pct(a)}%</span>}
                 {a.imageUrl ? <img src={a.imageUrl} alt={a.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   : <span style={{ fontSize: 40 }} aria-hidden="true">{iconFor(a.category)}</span>}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{a.name}</div>
+              <div onClick={() => openProduct(a.id)} style={{ fontSize: 14.5, fontWeight: 600, marginBottom: 3, cursor: "pointer" }}>{a.name}</div>
               <div style={{ fontSize: 11.5, color: muted, marginBottom: 6 }}>{a.category}{a.compatibleWith ? ` · Fits ${a.compatibleWith}` : ""}</div>
-              <div style={{ fontSize: 17, color: brass, fontWeight: 700, marginBottom: 2 }}>{fmt(a.sellPrice)}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
+                <span style={{ fontSize: 17, color: brass, fontWeight: 800 }}>{fmt(a.sellPrice)}</span>
+                {pct(a) > 0 && <span style={{ fontSize: 12.5, color: muted, textDecoration: "line-through" }}>{fmt(a.compareAtPrice)}</span>}
+              </div>
               <div style={{ fontSize: 11.5, color: low ? red : green, marginBottom: 10 }}>{low ? `Only ${a.qtyOnHand} left` : "In stock"}</div>
               <div style={{ marginTop: "auto" }}>
                 {inCart ? (
@@ -244,7 +325,18 @@ export default function Parts() {
           );
         })}
       </div>
-      {count > 0 && <button className="cs-btn" onClick={() => setView("checkout")} style={{ ...primary(), width: "100%", marginTop: 20, padding: 14, fontSize: 15 }}>Checkout · {count} item{count === 1 ? "" : "s"} · {fmt(subtotal)}</button>}
+      {filtered.length > visible && (
+        <button onClick={() => setVisible(visible + 24)} style={{ ...primary(), width: "100%", marginTop: 18, background: "#fff", color: brass, border: `1.5px solid ${brass}` }}>
+          Show more ({filtered.length - visible} more)
+        </button>
+      )}
+      {count > 0 && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 950, padding: "10px 14px calc(10px + env(safe-area-inset-bottom, 0px))", background: "rgba(255,255,255,0.96)", borderTop: `1px solid ${line}`, boxShadow: "0 -6px 20px rgba(17,24,39,0.08)", backdropFilter: "blur(8px)" }}>
+          <button className="cs-btn" onClick={() => setView("checkout")} style={{ ...primary(), width: "100%", maxWidth: 520, margin: "0 auto", display: "block", padding: 14, fontSize: 15.5 }}>
+            🛒 Checkout · {count} item{count === 1 ? "" : "s"} · {fmt(subtotal)}
+          </button>
+        </div>
+      )}
       <div style={{ marginTop: 18, textAlign: "center" }}>
         <button onClick={() => setView("track")} style={{ background: "none", border: "none", color: brass, cursor: "pointer", fontSize: 13, textDecoration: "underline" }}>Already ordered? Track it here</button>
       </div>
