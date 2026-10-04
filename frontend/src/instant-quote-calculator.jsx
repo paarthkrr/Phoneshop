@@ -115,6 +115,7 @@ const PHONE_FAULT_GROUPS = [
     { id: "dead_pixels", label: "Dead pixels or lines on display", pct: 0.15 },
     { id: "burn_in", label: "Screen burn-in (OLED)", pct: 0.15 },
     { id: "discoloration", label: "Screen discoloration / tint", pct: 0.10 },
+    { id: "true_tone", label: "True Tone / auto-brightness not working", pct: 0.04 },
     { id: "touch_partial", label: "Touch unresponsive in some areas", pct: 0.20 },
     { id: "touch_dead", label: "Touch completely unresponsive", pct: 0.35 },
     { id: "screen_replaced", label: "Non-original replacement screen fitted", pct: 0.15 },
@@ -136,6 +137,7 @@ const PHONE_FAULT_GROUPS = [
     { id: "cam_rear", label: "Rear camera not working", pct: 0.12 },
     { id: "cam_front", label: "Front camera not working", pct: 0.08 },
     { id: "cam_lens_crack", label: "Camera lens cracked", pct: 0.06 },
+    { id: "flash", label: "Flash / torch not working", pct: 0.03 },
   ]},
   { group: "Buttons & Ports", cosmetic: false, faults: [
     { id: "btn_power", label: "Power button faulty", pct: 0.10 },
@@ -145,13 +147,18 @@ const PHONE_FAULT_GROUPS = [
   ]},
   { group: "Audio & Sensors", cosmetic: false, faults: [
     { id: "speaker", label: "Speaker not working", pct: 0.08 },
+    { id: "earpiece", label: "Earpiece (call speaker) not working", pct: 0.06 },
     { id: "mic", label: "Microphone not working", pct: 0.08 },
     { id: "biometric", label: "Face ID / fingerprint sensor not working", pct: 0.10 },
     { id: "sensor", label: "Proximity / other sensor issue", pct: 0.05 },
+    { id: "vibration", label: "Vibration / haptic motor not working", pct: 0.04 },
   ]},
   { group: "Connectivity & Wireless", cosmetic: false, faults: [
     { id: "nfc", label: "NFC / tap-to-pay not working", pct: 0.04 },
     { id: "wireless_charge", label: "Wireless charging not working", pct: 0.06 },
+    { id: "wifi", label: "Wi-Fi not working", pct: 0.1 },
+    { id: "bluetooth", label: "Bluetooth not working", pct: 0.06 },
+    { id: "gps", label: "GPS / location not working", pct: 0.04 },
     { id: "signal_issue", label: "Signal / 5G modem issue", pct: 0.10 },
     { id: "esim_issue", label: "eSIM won't activate / provision", pct: 0.05 },
   ]},
@@ -579,6 +586,8 @@ export default function QuoteCalculator() {
   const [referralCodeEntered, setReferralCodeEntered] = useState("");
   const [myReferralCode, setMyReferralCode] = useState(null);
   const [fulfillment, setFulfillment] = useState("post");
+  // Cash is only possible face to face (home collection or drop-off).
+  useEffect(() => { if (fulfillment === "post") setCustomer((c) => (c.payoutMethod === "cash" ? { ...c, payoutMethod: "bank" } : c)); }, [fulfillment]);
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState(null);
@@ -716,7 +725,7 @@ export default function QuoteCalculator() {
   }, [selected, tier, calc, region]);
 
   async function handleSubmitOrder() {
-    const payoutValid = customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail);
+    const payoutValid = (customer.payoutMethod === "cash" ? fulfillment !== "post" : customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail));
     if (!calc || calc.blocked || !customer.name || !isEmail(customer.email) || !customer.idOwnerName || !payoutValid) return;
     setSubmitting(true);
     const newCode = genReferralCode(customer.name);
@@ -1040,7 +1049,9 @@ export default function QuoteCalculator() {
 
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: muted, marginBottom: 18 }}>
           {live?.businessSettings?.dealerLicence && <span>✓ Licensed dealer</span>}
-          <span>✓ Any condition</span>
+          <span>✓ Home collection across Sydney</span>
+          <span>✓ Paid in cash</span>
+          <span>✓ 49-point check</span>
           <span>✓ Price held 14 days</span>
           <span>✓ Paid by bank transfer or PayPal</span>
           <button onClick={() => setPmOpen((s) => !s)} style={{ background: "none", border: "none", padding: 0, color: green, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
@@ -1464,7 +1475,7 @@ export default function QuoteCalculator() {
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>How will you send it?</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              {[{ id: "post", label: "Post it to us" }, { id: "dropoff", label: "Drop it off in store" }, ...(live?.businessSettings?.pickupArea ? [{ id: "pickup", label: "Doorstep pickup" }] : [])].map((opt) => (
+              {[{ id: "post", label: "Post it to us" }, { id: "dropoff", label: "Drop it off in store" }, { id: "pickup", label: "Home collection" }].map((opt) => (
                 <button key={opt.id} onClick={() => setFulfillment(opt.id)}
                   style={{ flex: 1, padding: "10px", borderRadius: 3, fontSize: 13, cursor: "pointer",
                     border: `1px solid ${fulfillment === opt.id ? brass : line}`, background: fulfillment === opt.id ? brassDim : "transparent",
@@ -1492,7 +1503,7 @@ export default function QuoteCalculator() {
             {fulfillment === "pickup" && (
               <>
                 <div style={{ fontSize: 12.5, color: muted, border: `1px solid ${line}`, borderRadius: 3, padding: 12, marginBottom: 10 }}>
-                  Available in <strong style={{ color: paper }}>{live?.businessSettings?.pickupArea}</strong> only. We'll call or email to book a time, and check your photo ID at pickup. <a href="/terms#pickup" target="_blank" rel="noopener" style={{ color: brass }}>Conditions apply</a>.
+                  We collect from <strong style={{ color: paper }}>{live?.businessSettings?.pickupArea || "anywhere in Sydney"}</strong>. We'll call or email to book a time, run our 49-point check on the spot, check your photo ID, and pay you — cash if you like. <a href="/terms#pickup" target="_blank" rel="noopener" style={{ color: brass }}>Conditions apply</a>.
                 </div>
                 <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pickup address" aria-label="Pickup address" autoComplete="street-address"
                   style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
@@ -1501,7 +1512,7 @@ export default function QuoteCalculator() {
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }} id="payout-method-label">How should we pay you?</div>
             <div role="group" aria-labelledby="payout-method-label" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              {[{ id: "bank", label: "Bank transfer" }, { id: "paypal", label: "PayPal" }].map((opt) => (
+              {[{ id: "bank", label: "Bank transfer" }, { id: "paypal", label: "PayPal" }, ...(fulfillment !== "post" ? [{ id: "cash", label: "Cash" }] : [])].map((opt) => (
                 <button key={opt.id} onClick={() => setCustomer((c) => ({ ...c, payoutMethod: opt.id }))} aria-pressed={customer.payoutMethod === opt.id}
                   style={{ flex: 1, padding: "9px 6px", borderRadius: 3, fontSize: 12.5, cursor: "pointer",
                     border: `1px solid ${customer.payoutMethod === opt.id ? brass : line}`, background: customer.payoutMethod === opt.id ? brassDim : "transparent",
@@ -1510,7 +1521,11 @@ export default function QuoteCalculator() {
                 </button>
               ))}
             </div>
-            {customer.payoutMethod === "bank" ? (
+            {customer.payoutMethod === "cash" ? (
+              <div style={{ fontSize: 12.5, color: muted, border: `1px solid ${line}`, borderRadius: 3, padding: 12, marginBottom: 14 }}>
+                💵 We'll pay you <strong style={{ color: paper }}>in cash</strong> {fulfillment === "pickup" ? "when we collect your device" : "when you drop it off"}, after our 49-point check and a quick photo ID check.
+              </div>
+            ) : customer.payoutMethod === "bank" ? (
               <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                 <input value={customer.bankBsb} onChange={(e) => setCustomer((c) => ({ ...c, bankBsb: e.target.value }))} placeholder="BSB" aria-label="Bank BSB" inputMode="numeric" autoComplete="off" maxLength={7}
                   style={{ width: 90, padding: "12px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
@@ -1539,7 +1554,7 @@ export default function QuoteCalculator() {
               </button>
               {(() => {
                 const canSubmit = customer.name && isEmail(customer.email) && customer.idOwnerName &&
-                  (customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail));
+                  (customer.payoutMethod === "cash" ? fulfillment !== "post" : customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail));
                 return (
                   <button className="cs-btn" onClick={handleSubmitOrder} disabled={!canSubmit || submitting}
                     style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -1637,4 +1652,4 @@ export default function QuoteCalculator() {
 }
 
 // Shared with the Sell-by-brand pages so their "up to" figures use the exact same formula.
-export { baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT, PHONE_FAULT_GROUPS, BLOCKERS };
+export { baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT, PHONE_FAULT_GROUPS, BLOCKERS, FAULT_GROUPS_BY_CATEGORY };

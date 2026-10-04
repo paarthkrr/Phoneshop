@@ -1,4 +1,5 @@
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
+import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useCallback } from "react";
 
 /* =================================================================
@@ -49,28 +50,7 @@ const DEFAULT_CONFIG = {
     { id: "fair", label: "Fair", factor: 0.75 },
     { id: "parts", label: "Faulty / For Parts", factor: 0.09 },
   ],
-  faultGroups: [
-    { group: "Display", faults: [
-      { id: "screen_scratch", label: "Minor scratches on screen", pct: 0.05 },
-      { id: "screen_crack", label: "Cracked / shattered screen", pct: 0.25 },
-      { id: "screen_crack_severe", label: "Screen glass missing pieces", pct: 0.40 },
-      { id: "dead_pixels", label: "Dead pixels or lines", pct: 0.15 },
-      { id: "burn_in", label: "Screen burn-in (OLED)", pct: 0.15 },
-      { id: "touch_dead", label: "Touch completely unresponsive", pct: 0.35 },
-    ]},
-    { group: "Body & Battery", faults: [
-      { id: "back_crack", label: "Cracked back glass", pct: 0.10 },
-      { id: "bent", label: "Bent chassis", pct: 0.20 },
-      { id: "batt_below80", label: "Battery health below 80%", pct: 0.12 },
-      { id: "batt_swollen", label: "Battery swollen", pct: 0.25 },
-    ]},
-    { group: "Functional", faults: [
-      { id: "cam_rear", label: "Rear camera not working", pct: 0.12 },
-      { id: "port_charge", label: "Charging port faulty", pct: 0.10 },
-      { id: "speaker", label: "Speaker not working", pct: 0.08 },
-      { id: "biometric", label: "Face ID / fingerprint not working", pct: 0.10 },
-    ]},
-  ],
+  faultGroups: PHONE_FAULT_GROUPS,
   catalog: DEFAULT_CATALOG,
 };
 const CONFIG_VERSION = 6;
@@ -169,6 +149,12 @@ export default function AdminPricingConsole() {
         // preserve-existing-edits principle as the catalog merge above.
         c.businessSettings = { ...DEFAULT_CONFIG.businessSettings, ...(c.businessSettings || {}) };
         migrated = true;
+      }
+      // Always edit the full shared checklist; keep percentages already saved.
+      if (!isNew) {
+        const pct = {}; (c.faultGroups || []).forEach((g) => (g.faults || []).forEach((f) => { pct[f.id] = f.pct; }));
+        const full = PHONE_FAULT_GROUPS.map((g) => ({ ...g, faults: g.faults.map((f) => ({ ...f, pct: pct[f.id] ?? f.pct })) }));
+        if (JSON.stringify(full) !== JSON.stringify(c.faultGroups)) { c = { ...c, faultGroups: full }; migrated = true; }
       }
       // Pick up any newly added built-in models (e.g. a new phone launch)
       // without changing prices staff have already edited.

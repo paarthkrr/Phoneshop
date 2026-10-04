@@ -1,4 +1,5 @@
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
+import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useMemo } from "react";
 
 /* =================================================================
@@ -133,7 +134,7 @@ const FAULT_GROUPS_WATCH = [
     { id: "waterproof_seal", label: "Water resistance seal compromised", pct: 0.12 },
   ]},
 ];
-const FAULT_GROUPS_BY_CATEGORY = { phone: FAULT_GROUPS_DEFAULT, tablet: FAULT_GROUPS_TABLET, laptop: FAULT_GROUPS_LAPTOP, watch: FAULT_GROUPS_WATCH };
+const FAULT_GROUPS_BY_CATEGORY = SHARED_FAULT_GROUPS; // same checklist as the customer quote and the inspection console
 
 function retentionAt(months, points) {
   const pts = points || RETENTION_POINTS;

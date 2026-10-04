@@ -6,7 +6,7 @@ import { POSTS } from "./blog-posts.js";
 export const SITE = "Mobile Recellr";
 export const PAGE_META = {
   "/": ["Mobile Recellr — Cheapest Phone Repairs in Sydney, Same Day In Store", "Cheapest phone repairs in Sydney, done same day in store with genuine parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping."],
-  "/quote": ["Sell Your Phone in Sydney — Instant Quote", "Get an instant quote for your phone in under a minute. Any condition, no sign-up, price held 14 days, paid by bank transfer or PayPal. Post it or drop it off in Sydney."],
+  "/quote": ["Sell Your Phone in Sydney — Home Collection & Cash Paid", "Instant quote from our 49-point check, then we collect from your door anywhere in Sydney and pay you in cash or by bank transfer. Any condition, price held 14 days."],
   "/sell": ["Sell Your Phone — Instant Quote", "Get an instant quote for your phone in under a minute. No sign-up, price held 14 days."],
   "/shop": ["Refurbished Phones — Graded & Tested", "Buy graded, tested refurbished iPhones and Android phones with a 1-year warranty and free express shipping."],
   "/repairs": ["Cheapest Phone Repairs in Sydney — Same Day In Store", "Screen, battery and charging port repairs from $85, done same day in store with genuine parts and a 90-day warranty. Found it cheaper? We'll match it. Mail-in repairs Australia-wide."],

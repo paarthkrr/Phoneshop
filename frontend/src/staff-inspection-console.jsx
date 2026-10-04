@@ -1,3 +1,4 @@
+import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useMemo } from "react";
 
 /* =================================================================
@@ -54,6 +55,12 @@ const REGIONS = {
 const HOLDING_COST_PCT = 0.02;
 // Fallback fault list so the console still has something to re-assess against
 // even if the admin console's shared config hasn't been created yet.
+// One checklist everywhere: staff inspect against exactly the faults customers
+// can declare. Saved % changes from the Pricing Console are applied by id.
+function withSavedPcts(groups, saved) {
+  const pct = {}; (saved || []).forEach((g) => (g.faults || []).forEach((f) => { pct[f.id] = f.pct; }));
+  return groups.map((g) => ({ ...g, faults: g.faults.map((f) => ({ ...f, pct: pct[f.id] ?? f.pct })) }));
+}
 const DEFAULT_FAULT_GROUPS = [
   { group: "Display", faults: [
     { id: "screen_scratch", label: "Minor scratches on screen", pct: 0.05 },
@@ -138,7 +145,7 @@ export default function StaffInspectionConsole() {
     return m;
   }, [config]);
   const faultList = useMemo(() => {
-    const groups = config?.faultGroups?.length ? config.faultGroups : DEFAULT_FAULT_GROUPS;
+    const groups = withSavedPcts(PHONE_FAULT_GROUPS, config?.faultGroups); // the full shared checklist (same as the customer quote)
     const list = [];
     groups.forEach((g) => g.faults.forEach((f) => list.push(f)));
     return list;
@@ -299,7 +306,7 @@ export default function StaffInspectionConsole() {
               </div>
               {open.customer.payoutMethod && (
                 <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>
-                  Payout via {open.customer.payoutMethod === "bank" ? "bank transfer" : "PayPal"}: {
+                  Payout via {open.customer.payoutMethod === "cash" ? "💵 CASH (pay on collection / drop-off)" : open.customer.payoutMethod === "bank" ? "bank transfer" : "PayPal"}{open.customer.payoutMethod === "cash" ? "" : ": "}{open.customer.payoutMethod === "cash" ? null : 
                     open.customer.payoutMethod === "bank"
                       ? `BSB ${open.customer.bankBsb} · Acc ${open.customer.bankAccountNumber}`
                       : open.customer.paypalEmail

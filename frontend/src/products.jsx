@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { DEFAULT_CATALOG } from "./device-catalog.js";
+import { suggestCompatible, typeOf, ACCESSORY_CATEGORIES, PART_CATEGORIES } from "./compatibility.js";
 
 // Products: built for adding THOUSANDS of accessories fast.
 //  • Quick add: photo + category + "fits" (tap a whole series) + price → one
@@ -7,8 +8,9 @@ import { DEFAULT_CATALOG } from "./device-catalog.js";
 //  • Bulk import: paste rows straight from Excel / Google Sheets.
 //  • List: search, edit price/stock inline, bulk price change / hide / remove.
 const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472", brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
-export const CATEGORIES = ["Cases & covers", "Screen protectors", "Chargers & cables", "DIY repair kits", "Audio", "Power banks", "Watch bands", "Other"];
-const MARKUP = { "Cases & covers": 3, "Screen protectors": 4, "Chargers & cables": 2.5, "DIY repair kits": 1.8, "Audio": 2, "Power banks": 2, "Watch bands": 3, "Other": 2.5 };
+export const CATEGORIES = [...ACCESSORY_CATEGORIES, ...PART_CATEGORIES];
+const MARKUP = { "Cases & covers": 3, "Screen protectors": 4, "Chargers & cables": 2.5, "DIY repair kits": 1.8, "Audio": 2, "Power banks": 2, "Watch bands": 3, "Other": 2.5,
+  "Screens & displays": 1.6, "Batteries": 1.8, "Back glass & housings": 1.8, "Charging ports & flex": 2, "Cameras & lenses": 1.8, "Other parts": 1.8 };
 const input = { padding: "11px 12px", borderRadius: 10, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 15, boxSizing: "border-box", fontFamily: "inherit", width: "100%" };
 const btn = (bg, fg = "#fff", extra = {}) => ({ padding: "11px 16px", borderRadius: 10, border: bg === "transparent" ? `1px solid ${line}` : "none", background: bg, color: fg, fontSize: 14.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", ...extra });
 const genId = () => "ACC-" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -27,6 +29,8 @@ export function autoDescription(category, fits) {
     case "Screen protectors": return `Screen protector for ${f}. Helps protect your display from scratches and everyday knocks.`;
     case "DIY repair kits": return `DIY repair kit for ${f}. Watch our repair tutorials first, or let us fit it for you in store.`;
     case "Watch bands": return `Replacement band for ${f}.`;
+    case "Screens & displays": case "Batteries": case "Back glass & housings": case "Charging ports & flex": case "Cameras & lenses": case "Other parts":
+      return `Replacement ${category.toLowerCase().replace(/ & .*/, "").replace(/s$/, "")} for ${f}. Parts are model-specific, so check your exact model before ordering — or let us fit it in store with a 90-day warranty.`;
     default: return `Compatible with ${f}.`;
   }
 }
@@ -126,6 +130,10 @@ function QuickAdd({ onSave }) {
   const seriesHits = Object.keys(series).filter((s) => !q || s.toLowerCase().includes(q)).slice(0, q ? 12 : 10);
   const modelHits = q ? models.filter((m) => m.toLowerCase().includes(q)).slice(0, 16) : [];
   const toggle = (m) => setFits((f) => (f.includes(m) ? f.filter((x) => x !== m) : [...f, m]));
+  const suggestions = useMemo(() => suggestCompatible(category, fits, DEFAULT_CATALOG), [category, fits]);
+  const byLevel = (l) => suggestions.filter((x) => x.level === l);
+  const addMany = (list) => setFits((f) => [...new Set([...f, ...list.map((x) => x.model)])]);
+  const ICON = { same: "✅", likely: "🟡", check: "⚠️" };
   const addSeries = (s) => setFits((f) => [...new Set([...f, ...series[s]])]);
 
   async function onPhoto(e) {
@@ -173,6 +181,30 @@ function QuickAdd({ onSave }) {
         {fits.map((m) => <span key={m} style={{ background: "rgba(33,80,200,0.10)", color: brass, borderRadius: 999, padding: "5px 10px", fontSize: 13, fontWeight: 600 }}>{m} <button type="button" aria-label={`Remove ${m}`} onClick={() => toggle(m)} style={{ border: "none", background: "none", color: brass, cursor: "pointer", fontWeight: 800 }}>×</button></span>)}
         <button type="button" onClick={() => setFits([])} style={{ border: "none", background: "none", color: muted, cursor: "pointer", fontSize: 13 }}>clear all</button>
       </div>}
+      {suggestions.length > 0 && (
+        <div style={{ border: `1px solid ${line}`, borderRadius: 12, padding: 12, marginBottom: 12, background: "#FAFBFD" }}>
+          <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 4 }}>🔎 Compatibility check — this may also fit:</div>
+          <div style={{ fontSize: 12.5, color: muted, marginBottom: 8 }}>✅ same fit (widely agreed) · 🟡 likely (confirm on the packaging) · ⚠️ check first (brand-dependent — try it on the phone)</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            {byLevel("same").length > 0 && <button type="button" onClick={() => addMany(byLevel("same"))} style={btn(green, "#fff", { padding: "7px 11px", fontSize: 13 })}>+ Add {byLevel("same").length} same-fit model{byLevel("same").length === 1 ? "" : "s"}</button>}
+            {byLevel("likely").length > 0 && <button type="button" onClick={() => addMany(byLevel("likely"))} style={btn("transparent", paper, { padding: "7px 11px", fontSize: 13 })}>+ Add all {byLevel("likely").length} likely</button>}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 220, overflowY: "auto" }}>
+            {suggestions.slice(0, 40).map((x) => (
+              <button key={x.model} type="button" onClick={() => toggle(x.model)} title={x.note}
+                style={{ textAlign: "left", border: "none", background: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, color: paper, padding: "3px 0" }}>
+                {ICON[x.level]} <strong>+ {x.model}</strong> <span style={{ color: muted }}>— {x.note}</span>
+              </button>
+            ))}
+            {suggestions.length > 40 && <div style={{ fontSize: 12.5, color: muted }}>…and {suggestions.length - 40} more (use the buttons above)</div>}
+          </div>
+        </div>
+      )}
+      {typeOf(category) === "part" && fits.length > 0 && (
+        <div style={{ fontSize: 13, color: red, background: "#FBF1EF", borderRadius: 10, padding: "9px 11px", marginBottom: 12 }}>
+          Repair parts are model-specific. Only add another model if the part number matches — a wrong-fit part means a return.
+        </div>
+      )}
       {fits.length > 1 && <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14, marginBottom: 12 }}>
         <input type="checkbox" checked={perModel} onChange={(e) => setPerModel(e.target.checked)} /> Create a separate listing for each model ({fits.length} listings) — best for shoppers searching their exact phone
       </label>}

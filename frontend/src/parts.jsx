@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Photo from "./photo.jsx";
 import { DEFAULT_CATALOG } from "./device-catalog.js";
+import { departmentOf } from "./compatibility.js";
 
 function storageAvailable() { return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function"; }
 async function loadJSON(key, shared) { if (!storageAvailable()) return null; try { const r = await window.storage.get(key, shared); return r ? JSON.parse(r.value) : null; } catch (e) { return null; } }
@@ -23,7 +24,7 @@ const genId = () => "ACC-" + Math.floor(100000 + Math.random() * 900000);
 const SHIPPING_FLAT = 0; // free express shipping Australia-wide
 const FREE_SHIPPING_OVER = 0;
 const CART_KEY = "mv_cart";
-const ICONS = [[/band|strap/i, "⌚"], [/case|cover/i, "📱"], [/protector|glass/i, "🛡️"], [/charg|cable|power/i, "🔌"], [/kit|diy|tool|part/i, "🧰"], [/audio|ear|head/i, "🎧"]];
+const ICONS = [[/band|strap/i, "⌚"], [/case|cover/i, "📱"], [/protector/i, "🛡️"], [/back glass|housing/i, "🪟"], [/screen|display/i, "📲"], [/batter/i, "🔋"], [/camera|lens/i, "📷"], [/port|flex/i, "🔌"], [/glass/i, "🛡️"], [/charg|cable|power/i, "🔌"], [/kit|diy|tool|part/i, "🧰"], [/audio|ear|head/i, "🎧"]];
 const iconFor = (cat) => (ICONS.find(([re]) => re.test(cat || "")) || [null, "✨"])[1];
 
 const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
@@ -38,6 +39,7 @@ export default function Parts() {
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
   const [search, setSearch] = useState(params.get("q") || "");
   const [modelFilter, setModelFilter] = useState(params.get("model") || "");
+  const [dept, setDept] = useState(["accessories", "parts"].includes(params.get("dept")) ? params.get("dept") : "all");
   const [phoneBrand, setPhoneBrand] = useState("");
   const [sort, setSort] = useState("featured");
   const [visible, setVisible] = useState(24);
@@ -60,11 +62,12 @@ export default function Parts() {
   useEffect(() => { const on = view === "shop" && cart.length > 0; document.body.classList.toggle("has-mobile-cta", on); return () => document.body.classList.remove("has-mobile-cta"); }, [view, cart.length]);
 
   const inStock = useMemo(() => (accessories || []).filter((a) => a.qtyOnHand > 0 && a.showOnline !== false && !a.archived), [accessories]);
-  const categories = ["All", ...new Set(inStock.map((a) => a.category).filter(Boolean))];
+  const inDept = (x) => dept === "all" || departmentOf(x.category) === dept;
+  const categories = ["All", ...new Set(inStock.filter(inDept).map((x) => x.category).filter(Boolean))];
   const q = search.trim().toLowerCase();
   const mq = modelFilter.trim().toLowerCase();
   const SORTS = { featured: (x, y) => String(y.createdAt || "").localeCompare(String(x.createdAt || "")), low: (x, y) => x.sellPrice - y.sellPrice, high: (x, y) => y.sellPrice - x.sellPrice };
-  const filtered = inStock.filter((a) => (categoryFilter === "All" || a.category === categoryFilter) &&
+  const filtered = inStock.filter((a) => inDept(a) && (categoryFilter === "All" || a.category === categoryFilter) &&
     (!q || `${a.name} ${a.category} ${a.compatibleWith || ""}`.toLowerCase().includes(q)) &&
     (!mq || `${a.compatibleWith || ""} ${a.name}`.toLowerCase().includes(mq))).sort(SORTS[sort] || SORTS.featured);
   const phoneBrands = [...new Set(DEFAULT_CATALOG.filter((d) => d.category === "phone").map((d) => d.brand))];
@@ -276,6 +279,13 @@ export default function Parts() {
         {modelFilter && <div style={{ fontSize: 13.5, marginTop: 8 }}>Showing accessories for <strong>{modelFilter}</strong> · <button onClick={() => { setModelFilter(""); setPhoneBrand(""); setUrl("model", ""); }} style={{ border: "none", background: "none", color: brass, cursor: "pointer", padding: 0, fontSize: 13.5 }}>show all</button></div>}
       </div>
       <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search, or type your phone (e.g. iPhone 15) to see what fits" aria-label="Search accessories or your phone model" style={input} />
+      <div role="tablist" aria-label="Department" style={{ display: "flex", gap: 6, margin: "6px 0 10px", background: "#F4F6F9", borderRadius: 12, padding: 4 }}>
+        {[["all", "All"], ["accessories", "📱 Accessories"], ["parts", "🔧 Repair parts"]].map(([k, l]) => (
+          <button key={k} role="tab" aria-selected={dept === k} onClick={() => { setDept(k); setCategoryFilter("All"); setVisible(24); setUrl("dept", k === "all" ? "" : k); }}
+            style={{ flex: 1, padding: "10px 6px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700, background: dept === k ? "#fff" : "transparent", color: dept === k ? brass : paper, boxShadow: dept === k ? "0 1px 3px rgba(17,24,39,0.12)" : "none" }}>{l}</button>
+        ))}
+      </div>
+      {dept === "parts" && <div style={{ fontSize: 13, color: muted, marginBottom: 10 }}>Genuine-quality replacement parts. Parts are model-specific — pick your phone above to see only parts that fit. Want us to fit it? <a href="/repairs" style={{ color: brass }}>Book a repair</a> (90-day warranty).</div>}
       <div role="group" aria-label="Filter by category" style={{ display: "flex", gap: 8, margin: "4px 0 18px", flexWrap: "wrap" }}>
         {categories.map((c) => (
           <button key={c} onClick={() => setCategoryFilter(c)} aria-pressed={categoryFilter === c}

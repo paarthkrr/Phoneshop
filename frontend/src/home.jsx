@@ -30,7 +30,7 @@ const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
 // prominent billing up top, the way PhoneExchange and Mobile Monster lead
 // with their core actions rather than burying them.
 const ACTIONS = [
-  { href: "/quote", icon: "💰", title: "Sell your device", desc: "Instant quote in under a minute. No obligation.", cta: "Get a quote" },
+  { href: "/quote", icon: "💰", title: "Sell your device", desc: "Instant quote, then we collect from your door anywhere in Sydney and pay you in cash.", cta: "Get a quote" },
   { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, 1-year warranty and free express shipping.", cta: "Shop now" },
   { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Cheapest prices, genuine parts, done same day in store.", cta: "Book a repair" },
 ];
@@ -38,6 +38,7 @@ const ACTIONS = [
 const POPULAR = ["iPhone 16 Pro", "iPhone 15 Pro", "iPhone 14", "Galaxy S24 Ultra", "Pixel 9 Pro", "iPhone 13"];
 
 const TRUST = [
+  { title: "Home collection across Sydney", desc: "We come to you, check your phone on the spot, and pay you — in cash if you like." },
   { title: "Genuine parts only", desc: "Never unmarked aftermarket substitutes." },
   { title: "Price match guarantee", desc: "Found it cheaper? We'll match it." },
   { title: "1-year warranty", desc: "On every device we sell. Repairs 90 days, parts & accessories 6 months." },
@@ -146,7 +147,7 @@ export default function Home() {
             ))}
           </div>
           <div style={{ fontSize: 12.5, color: muted, marginTop: 14 }}>
-            ✓ No sign-up &nbsp;·&nbsp; ✓ Any condition &nbsp;·&nbsp; ✓ Price held 14 days &nbsp;·&nbsp; ✓ Paid by bank transfer or PayPal
+            ✓ Home collection across Sydney &nbsp;·&nbsp; ✓ Paid in cash or bank transfer &nbsp;·&nbsp; ✓ Price held 14 days &nbsp;·&nbsp; ✓ Paid by bank transfer or PayPal
           </div>
         </div>
 

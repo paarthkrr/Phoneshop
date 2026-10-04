@@ -115,9 +115,10 @@ export function Terms() {
         <li><strong>Posting us a trade-in:</strong> pack it securely and drop it at any Australia Post outlet or Parcel Locker. Keep your tracking number until we confirm it's arrived. Devices travel at your risk until received, so we recommend tracked postage.</li>
       </ul>
 
-      <h2 id="pickup">Doorstep pickup for trade-ins</h2>
+      <h2 id="pickup">Home collection for trade-ins</h2>
       <ul>
-        <li>Available only in the area shown at checkout, and subject to booking availability.</li>
+        <li>Available across the Sydney metropolitan area, subject to booking availability. We'll confirm a time by phone or email.</li>
+        <li><strong>Cash payments</strong> are made at collection or drop-off, after the device passes inspection and photo ID is checked. If the device differs from your description, we'll give you a revised offer first. Cash isn't available for posted trade-ins.</li>
         <li>Photo ID matching the seller's name is checked at pickup, as required for second-hand dealers.</li>
         <li>The device is inspected in our workshop; if it differs from your description, you'll get a revised offer to accept or decline, as with any trade-in.</li>
       </ul>
