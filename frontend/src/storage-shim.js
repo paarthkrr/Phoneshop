@@ -124,6 +124,8 @@
     installStorage(baseUrl, () => { const s = loadSession(); return s?.token || null; });
   }
   function currentUser() { const s = loadSession(); return s ? { username: s.username, role: s.role } : null; }
+  // Token of the signed-in staff member, for staff-only actions like managing the team.
+  function authToken() { const s = loadSession(); return s ? s.token : null; }
 
   // A minimal, dependency-free login screen so this is usable without
   // also having to build a login UI yourself first. Replace with your
@@ -176,5 +178,5 @@
     };
   }
 
-  window.shopAuth = { login, register, logout, currentUser, mountLoginGate, installStorage, installStorageForEveryone };
+  window.shopAuth = { login, register, logout, currentUser, authToken, mountLoginGate, installStorage, installStorageForEveryone };
 })();

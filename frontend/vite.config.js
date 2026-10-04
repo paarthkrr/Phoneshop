@@ -59,7 +59,7 @@ function legacyEntryForwarders() {
 // an empty page for every address except the homepage.
 const STATIC_ROUTES = [
   "quote", "sell", "shop", "repairs", "parts", "accessories", "about", "faq", "help", "contact", "blog", "tutorials", "privacy", "terms",
-  "portal", "portal/pricing", "portal/inspect", "portal/pos", "portal/repairs", "portal/till", "portal/crm",
+  "portal", "portal/pricing", "portal/inspect", "portal/pos", "portal/repairs", "portal/till", "portal/crm", "portal/team",
   "staff", "staff/admin", "staff/inspect", "staff/pos", "staff/repairs", "staff/till", "staff/crm",
 ];
 // Guides and sell-by-brand pages come straight from their source lists, so a

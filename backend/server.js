@@ -389,6 +389,46 @@ app.post("/auth/revoke-user/:username", requireAuth, async (req, res) => {
   res.json({ username: req.params.username, sessionsRevoked: result.rowCount });
 });
 
+// ---- Team management (admin only) ----
+app.get("/auth/users", requireAuth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
+  const r = await pool.query("SELECT username, role, created_at FROM users ORDER BY created_at");
+  res.json({ users: r.rows });
+});
+// Remove a team member: deletes the account and ends all their sessions.
+// Safety: you can't remove yourself, and the last admin can never be removed
+// (that would lock the shop out of its own console).
+app.delete("/auth/users/:username", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
+    const target = req.params.username;
+    if (target === req.user.username) return res.status(400).json({ error: "you can't remove your own account" });
+    const t = await pool.query("SELECT role FROM users WHERE username = $1", [target]);
+    if (!t.rows[0]) return res.status(404).json({ error: "no such user" });
+    if (t.rows[0].role === "admin") {
+      const admins = await pool.query("SELECT COUNT(*) AS n FROM users WHERE role = 'admin'");
+      if (parseInt(admins.rows[0].n, 10) <= 1) return res.status(400).json({ error: "can't remove the last admin" });
+    }
+    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
+    await pool.query("DELETE FROM users WHERE username = $1", [target]);
+    res.json({ removed: target });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+// Admin sets a new password for someone who forgot theirs; their old sessions end.
+app.post("/auth/users/:username/password", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
+    const t = await pool.query("SELECT 1 FROM users WHERE username = $1", [req.params.username]);
+    if (!t.rows[0]) return res.status(404).json({ error: "no such user" });
+    const salt = crypto.randomBytes(16).toString("hex");
+    await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hashPassword(newPassword, salt), req.params.username]);
+    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [req.params.username]);
+    res.json({ username: req.params.username, passwordReset: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 // A staff member changes their own password (needs to know the current one).
 app.post("/auth/change-password", requireAuth, async (req, res) => {
   try {

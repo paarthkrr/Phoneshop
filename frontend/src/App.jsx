@@ -14,6 +14,7 @@ import Blog from "./blog.jsx";
 import Home from "./home.jsx";
 import { metaFor } from "./seo-meta.js";
 import Tutorials from "./tutorials.jsx";
+import Team from "./team.jsx";
 import SellBrand from "./sell-brand.jsx";
 import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
@@ -74,6 +75,7 @@ const STAFF_LINKS = [
   { to: "/portal/till", label: "Till" },
   { to: "/portal/crm", label: "Customers & Reports" },
   { to: "/portal/pricing", label: "Pricing Console" },
+  { to: "/portal/team", label: "Team" },
 ];
 
 function Nav() {
@@ -84,6 +86,7 @@ function Nav() {
   // Close the mobile menu whenever the page changes, so tapping a link
   // doesn't leave the menu hanging open over the new page.
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+  useEffect(() => { document.body.classList.toggle("cs-staff-mode", isStaff); }, [isStaff]);
 
   return (
     <nav style={{ borderBottom: `3px solid ${line}`, background: panel, position: "sticky", top: 0, zIndex: 50 }} aria-label="Main navigation">
@@ -120,6 +123,13 @@ function Nav() {
         .cs-card:hover { border-color: rgba(33,80,200,0.45) !important; }
         .cs-btn { border-radius: 10px !important; }
         body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        /* Form controls don't inherit the page font by default — they fall back to the
+           phone's system font, which made forms look mismatched. Inherit everywhere. */
+        button, input, select, textarea, optgroup { font-family: inherit; }
+        /* Staff tools were written with small (11-13px) text; scale the whole staff
+           area up proportionally so it's comfortable to read on a phone or tablet. */
+        .cs-staff-mode main { zoom: 1.06; }
+        @media (max-width: 720px) { .cs-staff-mode main { zoom: 1.12; } }
         ::selection { background: rgba(33,80,200,0.18); }
         .cs-mobile-cta { display: none; }
         @media (max-width: 720px) {
@@ -500,6 +510,7 @@ function AnimatedRoutes() {
         <Route path="/portal/repairs" element={<StaffGate><RepairTickets /></StaffGate>} />
         <Route path="/portal/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
         <Route path="/portal/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
+        <Route path="/portal/team" element={<StaffGate><Team /></StaffGate>} />
         {/* Legacy /staff addresses — same pages */}
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
         <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
