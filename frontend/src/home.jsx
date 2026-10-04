@@ -7,6 +7,53 @@ import { mergeCatalog } from "./device-catalog.js";
 
 // ---- Hero: animated gradient, the shop's own phone photos, live price ticker ----
 const TICKER_MODELS = ["iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro"];
+// "Top phones we buy" strip — big cards that glide across, each with a real "up to" price.
+const FEATURED_PHONES = ["iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro Max", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro Max", "Galaxy S25 Ultra", "iPhone 14 Pro Max", "Pixel 9 Pro", "iPhone 13 Pro Max", "Galaxy S24 Ultra"];
+const TOP_CSS = `
+.mvt-wrap{position:relative;overflow:hidden;padding:6px 0 10px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.mvt-track{display:flex;gap:16px;width:max-content;animation:mvt-scroll 60s linear infinite}
+.mvt-wrap:hover .mvt-track,.mvt-track:focus-within{animation-play-state:paused}
+@keyframes mvt-scroll{to{transform:translateX(-50%)}}
+.mvt-card{flex:0 0 200px;background:#fff;border:1px solid #E2E6EC;border-radius:18px;padding:14px;text-decoration:none;color:#111827;box-shadow:0 6px 20px rgba(17,24,39,.06);transition:transform .25s ease,box-shadow .25s ease}
+.mvt-card:hover{transform:translateY(-6px);box-shadow:0 16px 34px rgba(33,80,200,.16)}
+.mvt-img{height:190px;border-radius:14px;background:linear-gradient(180deg,#F7F9FC,#EEF2F8);display:flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden}
+.mvt-img img{max-height:170px;max-width:90%;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(17,24,39,.18))}
+.mvt-name{font-weight:800;font-size:15px;margin-bottom:4px}
+.mvt-price{font-family:'Archivo Black',sans-serif;font-size:22px;color:#2150C8}
+.mvt-cta{font-size:13px;font-weight:700;color:#2150C8;margin-top:6px}
+@media(max-width:720px){.mvt-card{flex-basis:165px}.mvt-img{height:160px}.mvt-img img{max-height:145px}}
+@media(prefers-reduced-motion:reduce){.mvt-track{animation:none}.mvt-wrap{overflow-x:auto}}
+`;
+function TopPhones({ phones }) {
+  if (!phones.length) return null;
+  const card = (p, n, dup) => (
+    <a key={(dup ? "d" : "") + p.model} href={`/quote?q=${encodeURIComponent(p.model)}`} className="mvt-card" tabIndex={dup ? -1 : 0} aria-hidden={dup ? true : undefined}>
+      <div className="mvt-img">
+        {p.imageUrl ? <img src={p.imageUrl} alt={dup ? "" : p.model} loading="lazy" /> : <DeviceArtCard type="phone" size={120} brand={p.brand} model={p.model} />}
+      </div>
+      <div className="mvt-name">{p.model}</div>
+      <div style={{ fontSize: 12.5, color: "#5B6472" }}>Get up to</div>
+      <div className="mvt-price">${p.upTo.toLocaleString()}</div>
+      <div className="mvt-cta">Get my quote →</div>
+    </a>
+  );
+  return (
+    <section aria-label="Top phones we buy" style={{ padding: "34px 0 6px" }}>
+      <style>{TOP_CSS}</style>
+      <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 20px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26 }}>Top phones we buy</div>
+          <div style={{ color: "#5B6472", fontSize: 14.5 }}>Real prices from our quote tool. Tap a phone for your exact offer.</div>
+        </div>
+        <a href="/sell/apple" style={{ color: "#2150C8", fontWeight: 700, fontSize: 14.5 }}>See all models →</a>
+      </div>
+      <div className="mvt-wrap">
+        <div className="mvt-track">{phones.map((p, n) => card(p, n, false))}{phones.map((p, n) => card(p, n, true))}</div>
+      </div>
+    </section>
+  );
+}
+
 const MARQUEE = ["APPLE", "SAMSUNG", "GOOGLE PIXEL", "OPPO", "MOTOROLA", "XIAOMI", "ONEPLUS", "NOTHING", "IPAD", "APPLE WATCH"];
 // Same formula as the quote tool (sealed, largest storage, after holding cost) — never more than a real quote.
 function upToFor(d, cfg) {
@@ -154,6 +201,7 @@ export default function Home() {
   const [biz, setBiz] = useState({});
   const [featured, setFeatured] = useState(null);
   const [ticker, setTicker] = useState([]);
+  const [topPhones, setTopPhones] = useState([]);
   const [photos, setPhotos] = useState({});
 
   useEffect(() => {
@@ -162,7 +210,8 @@ export default function Home() {
       const b = (cfg && cfg.businessSettings) || {};
       setBiz(b);
       { const cat = mergeCatalog(cfg && cfg.catalog);
-        setTicker(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0)); }
+        setTicker(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0));
+        setTopPhones(FEATURED_PHONES.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, imageUrl: d.imageUrl, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0)); }
       setPhotos(Object.fromEntries(mergeCatalog(cfg && cfg.catalog).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])));
       // Featured deal: the highest-value device actually listed for sale right now.
       try {
@@ -206,6 +255,7 @@ export default function Home() {
 
       {/* ---- Hero ---- */}
       <Hero ticker={ticker} />
+      <TopPhones phones={topPhones} />
       <div className="mv-hero" style={{ ...section, textAlign: "center", padding: "34px 20px 34px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, textAlign: "left" }}>
           {ACTIONS.map((a, i) => (
