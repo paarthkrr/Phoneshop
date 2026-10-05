@@ -1,0 +1,14 @@
+{
+  "name": "Mobile Recellr",
+  "short_name": "Recellr",
+  "description": "Sell your phone for cash with home collection across Sydney, same-day repairs, refurbished phones and accessories.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#2150C8",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

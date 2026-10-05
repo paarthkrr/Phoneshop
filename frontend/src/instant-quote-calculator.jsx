@@ -1267,48 +1267,77 @@ export default function QuoteCalculator() {
           </>
         )}
 
-        {selected && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${line}`, borderRadius: 3, padding: "12px 14px", marginBottom: 22, background: panel }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <DeviceArt type={inferDeviceType(selected.model, selected.category)} size={40} brand={selected.brand} model={selected.model} imageUrl={selected.imageUrl} label={`${selected.brand} ${selected.model}`} />
-              <div>
-                <div style={{ fontSize: 15 }}>{selected.brand} {selected.model}</div>
-                <div style={{ fontSize: 13, color: muted }}>{selected.storage} · {Math.round(ageMonths(selected.release))} months since launch</div>
+        {selected && (() => {
+          // Product-page layout (inspired by PhoneExchange): photo + specs on the left,
+          // live price, storage and condition pills on the right.
+          const mult = REGIONS_A[region].mult;
+          // Same basis as the final offer (after holding cost), so "up to" never promises more than we pay.
+          const sealed = baseBuybackAUD(selected, selected.storage, RETENTION_A, BRAND_FACTOR_A) * mult * (1 - HOLDING_COST_A);
+          const DOT = { new: "#F59E0B", asnew: "#0EA5E9", good: "#10B981", fair: "#F97316", parts: "#9CA3AF" };
+          const released = new Date(selected.release);
+          const specs = [
+            ["Model", `${selected.brand} ${selected.model}`], ["Storage", selected.storage],
+            ["Launched", isNaN(released) ? "—" : released.toLocaleDateString("en-AU", { month: "long", year: "numeric" })],
+            ["Device age", `${Math.round(ageMonths(selected.release))} months`],
+            ["Collection", "Free from your door, anywhere in Sydney"], ["Payment", "Cash, bank transfer or PayPal"], ["Price held", "14 days"],
+          ];
+          const pill = (on) => ({ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 16px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer",
+            border: `2px solid ${on ? brass : line}`, background: on ? "rgba(33,80,200,0.07)" : "#fff", color: on ? brass : paper, fontFamily: "inherit" });
+          return (
+            <div className="mvq-product" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 18, marginBottom: 24, alignItems: "start" }}>
+              <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ border: `1px solid ${line}`, borderRadius: 18, background: "linear-gradient(180deg,#F7F9FC,#EEF2F8)", display: "flex", alignItems: "center", justifyContent: "center", padding: "26px 10px", minHeight: 280 }}>
+                  <DeviceArt type={inferDeviceType(selected.model, selected.category)} size={220} brand={selected.brand} model={selected.model} imageUrl={selected.imageUrl} label={`${selected.brand} ${selected.model}`} />
+                </div>
+                <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "16px 18px", background: "#fff" }}>
+                  <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 17, marginBottom: 8 }}>Specifications</div>
+                  {specs.map(([k, v], i) => (
+                    <div key={k} style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 10, padding: "10px 0", borderTop: i ? `1px solid ${line}` : "none", fontSize: 14 }}>
+                      <span style={{ fontWeight: 700 }}>{k}</span><span style={{ color: muted }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "20px 20px 22px", background: "#fff" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                  <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(24px, 4vw, 32px)", lineHeight: 1.12, margin: 0 }}>{selected.brand} {selected.model}</h2>
+                  <button onClick={() => { setSelected(null); setSearch(""); setTierId(null); }} style={{ background: "none", border: "none", color: brass, fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>Change</button>
+                </div>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 13.5, margin: "8px 0 14px" }}>
+                  <span style={{ color: brass, fontWeight: 700 }}>✓ 49-point check</span>
+                  <span style={{ color: "#047857", fontWeight: 700 }}>● We're buying this model</span>
+                </div>
+                <div style={{ fontSize: 13, color: muted }}>{tier ? `Your offer · ${tier.label}` : "Up to (sealed, best condition)"}</div>
+                <div className="mv-pop" aria-live="polite" key={tier ? Math.round(calc.total) : Math.round(sealed)} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(34px, 6vw, 46px)", lineHeight: 1.1, color: paper }}>
+                  {fmt(tier ? calc.total : sealed, region, REGIONS_A)}
+                </div>
+                <div style={{ fontSize: 13.5, color: muted, margin: "6px 0 16px" }}>Paid in <strong style={{ color: paper }}>cash</strong> at collection, or by bank transfer / PayPal.</div>
+                <div style={{ borderTop: `1px solid ${line}`, paddingTop: 16 }}>
+                  <div style={{ fontSize: 15, marginBottom: 10 }}><strong>Storage:</strong> <span style={{ color: muted }}>{selected.storage}</span></div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 18 }} role="radiogroup" aria-label="Storage">
+                    {Object.keys(selected.retail).map((sz) => (
+                      <button key={sz} role="radio" aria-checked={selected.storage === sz} onClick={() => setSelected({ ...selected, storage: sz })} style={pill(selected.storage === sz)}>{sz}</button>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 15, marginBottom: 10 }}><strong>Condition:</strong> <span style={{ color: muted }}>{tier ? tier.label : "choose one"}</span></div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }} role="radiogroup" aria-label="Condition">
+                    {TIERS_A.map((t) => (
+                      <button key={t.id} role="radio" aria-checked={tierId === t.id} onClick={() => { setTierId(t.id); setFaults({}); setBlockers({}); }} style={pill(tierId === t.id)}>
+                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: DOT[t.id] || brass, display: "inline-block" }} />{t.label}
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: muted }}>up to {fmt(sealed * t.factor, region, REGIONS_A)}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {tier && (
+                    <div style={{ marginTop: 12, fontSize: 13.5, color: muted, background: "#F4F6F9", borderRadius: 10, padding: "10px 12px" }}>
+                      <strong style={{ color: paper }}>{tier.label}:</strong> {tier.sub}. Up to {fmt(sealed * tier.factor, region, REGIONS_A)} before any issues below.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <button onClick={() => { setSelected(null); setSearch(""); setTierId(null); }} style={{ background: "none", border: "none", color: brass, fontSize: 13, cursor: "pointer" }}>
-              Change
-            </button>
-          </div>
-        )}
-
-        {selected && (
-          <>
-            <div style={{ marginBottom: 10, fontSize: 13, color: muted, letterSpacing: 0.2 }}>Step 2 — Condition</div>
-            <div style={{ marginBottom: 24 }}>
-              {TIERS_A.map((t) => {
-                const active = tierId === t.id;
-                return (
-                  <button key={t.id} onClick={() => { setTierId(t.id); setFaults({}); setBlockers({}); }}
-                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", textAlign: "left",
-                      padding: "13px 14px", marginBottom: 7, cursor: "pointer", background: active ? brassDim : panel, border: "none",
-                      borderLeft: `3px solid ${active ? brass : "transparent"}`, borderRadius: 3, color: paper }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ fontSize: 18 }}>{t.icon}</span>
-                      <div>
-                        <div style={{ fontSize: 14 }}>{t.label}</div>
-                        <div style={{ fontSize: 12, color: muted }}>{t.sub}</div>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 13, color: active ? brass : muted }}>
-                      up to {fmt(baseBuybackAUD(selected, selected.storage, RETENTION_A, BRAND_FACTOR_A) * REGIONS_A[region].mult * t.factor, region, REGIONS_A)}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
+          );
+        })()}
 
         {selected && tier && (tier.mode === "full" || tier.mode === "functional-only") && (
           <>
