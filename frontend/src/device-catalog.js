@@ -5,33 +5,33 @@
 // Pricing Console. Previously each kept its own copy and they drifted apart —
 // the Register only knew 17 models while the calculator had 91.
 export const DEFAULT_CATALOG = [
-  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699 }, category: "phone", imageUrl: "/photos/iphone-18-pro-max.png" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro", release: "2026-09-18", retail: { "256GB": 2099, "512GB": 2499 }, category: "phone", imageUrl: "/photos/real/iphone-18-pro.webp" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro Max", release: "2025-09-19", retail: { "256GB": 2199, "512GB": 2599, "1TB": 2999, "2TB": 3799 }, category: "phone", marketAdjPct: 8, imageUrl: "/photos/iphone-17-pro-max.png" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro", release: "2026-09-18", retail: { "256GB": 2099, "512GB": 2499 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro Max", release: "2025-09-19", retail: { "256GB": 2199, "512GB": 2599, "1TB": 2999, "2TB": 3799 }, category: "phone", marketAdjPct: 8 },
   { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro", release: "2025-09-19", retail: { "256GB": 1999, "512GB": 2399, "1TB": 2799 }, category: "phone", marketAdjPct: 8 },
-  { brand: "Apple", icon: "🍎", model: "iPhone 17", release: "2025-09-19", retail: { "256GB": 1399, "512GB": 1799 }, category: "phone", imageUrl: "/photos/real/iphone-17.webp" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro Max", release: "2024-09-20", retail: { "256GB": 2149, "512GB": 2519, "1TB": 2899 }, category: "phone", imageUrl: "/photos/iphone-16-pro-max.png" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 17", release: "2025-09-19", retail: { "256GB": 1399, "512GB": 1799 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro Max", release: "2024-09-20", retail: { "256GB": 2149, "512GB": 2519, "1TB": 2899 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro", release: "2024-09-20", retail: { "128GB": 1799, "256GB": 1999, "512GB": 2369, "1TB": 2749 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16 Plus", release: "2024-09-20", retail: { "128GB": 1599, "256GB": 1799 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16", release: "2024-09-20", retail: { "128GB": 1399, "256GB": 1649 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro Max", release: "2023-09-22", retail: { "256GB": 2199, "512GB": 2569, "1TB": 2939 }, category: "phone", imageUrl: "/photos/iphone-15-pro-max.png" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro", release: "2023-09-22", retail: { "128GB": 1849, "256GB": 2029, "512GB": 2399, "1TB": 2769 }, category: "phone", imageUrl: "https://images.pexels.com/photos/19060954/pexels-photo-19060954.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro Max", release: "2023-09-22", retail: { "256GB": 2199, "512GB": 2569, "1TB": 2939 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 15 Pro", release: "2023-09-22", retail: { "128GB": 1849, "256GB": 2029, "512GB": 2399, "1TB": 2769 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 15 Plus", release: "2023-09-22", retail: { "128GB": 1649, "256GB": 1849 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 15", release: "2023-09-22", retail: { "128GB": 1499, "256GB": 1699, "512GB": 2099 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro Max", release: "2022-09-16", retail: { "128GB": 1899, "256GB": 2069, "512GB": 2409, "1TB": 2779 }, category: "phone", imageUrl: "/photos/iphone-14-pro-max.png" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro", release: "2022-09-16", retail: { "128GB": 1749, "256GB": 1919, "512GB": 2259, "1TB": 2629 }, category: "phone", imageUrl: "https://images.pexels.com/photos/13341771/pexels-photo-13341771.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro Max", release: "2022-09-16", retail: { "128GB": 1899, "256GB": 2069, "512GB": 2409, "1TB": 2779 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 14 Pro", release: "2022-09-16", retail: { "128GB": 1749, "256GB": 1919, "512GB": 2259, "1TB": 2629 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 14 Plus", release: "2022-09-16", retail: { "128GB": 1579, "256GB": 1749 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 14", release: "2022-09-16", retail: { "128GB": 1399, "256GB": 1569 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 13 Pro Max", release: "2021-09-24", retail: { "128GB": 1849, "256GB": 2019, "512GB": 2369, "1TB": 2719 }, category: "phone", imageUrl: "/photos/iphone-13-pro-max.png" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 13", release: "2021-09-24", retail: { "128GB": 1349, "256GB": 1519 }, category: "phone", imageUrl: "https://images.pexels.com/photos/14666032/pexels-photo-14666032.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 13 Pro Max", release: "2021-09-24", retail: { "128GB": 1849, "256GB": 2019, "512GB": 2369, "1TB": 2719 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 13", release: "2021-09-24", retail: { "128GB": 1349, "256GB": 1519 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 12", release: "2020-10-23", retail: { "64GB": 1349, "128GB": 1429, "256GB": 1579 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone SE (2022)", release: "2022-03-18", retail: { "64GB": 719, "128GB": 789 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 11", release: "2019-09-20", retail: { "64GB": 1199, "128GB": 1279 }, category: "phone" },
 
   { brand: "Samsung", icon: "🔷", model: "Galaxy S26 Ultra", release: "2026-02-01", retail: { "256GB": 2199, "512GB": 2419 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S26+", release: "2026-02-01", retail: { "256GB": 1799, "512GB": 1999 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S26", release: "2026-02-01", retail: { "128GB": 1499, "256GB": 1599 }, category: "phone", imageUrl: "/photos/real/galaxy-s26.webp" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S25 Ultra", release: "2025-01-22", retail: { "256GB": 2049, "512GB": 2269 }, category: "phone", imageUrl: "https://images.pexels.com/photos/30466736/pexels-photo-30466736.jpeg?auto=compress&cs=tinysrgb&w=600" },
+  { brand: "Samsung", icon: "🔷", model: "Galaxy S26", release: "2026-02-01", retail: { "128GB": 1499, "256GB": 1599 }, category: "phone" },
+  { brand: "Samsung", icon: "🔷", model: "Galaxy S25 Ultra", release: "2025-01-22", retail: { "256GB": 2049, "512GB": 2269 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S25", release: "2025-01-22", retail: { "128GB": 1399, "256GB": 1499 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S24 Ultra", release: "2024-01-24", retail: { "256GB": 1999, "512GB": 2199 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S24", release: "2024-01-24", retail: { "128GB": 1399 }, category: "phone" },
@@ -48,7 +48,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Samsung", icon: "🔷", model: "Galaxy Z Flip6", release: "2024-07-24", retail: { "256GB": 1649 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy Z Flip5", release: "2023-07-26", retail: { "256GB": 1499 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A56", release: "2025-03-06", retail: { "128GB": 699, "256GB": 799 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy A17", release: "2025-09-01", retail: { "128GB": 399 }, category: "phone", imageUrl: "/photos/real/galaxy-a17.webp" },
+  { brand: "Samsung", icon: "🔷", model: "Galaxy A17", release: "2025-09-01", retail: { "128GB": 399 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A16", release: "2025-01-08", retail: { "128GB": 349 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A55", release: "2024-03-11", retail: { "128GB": 699 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A54", release: "2023-03-24", retail: { "128GB": 699 }, category: "phone" },
@@ -85,7 +85,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Motorola", icon: "🔵", model: "Razr 50", release: "2024-07-25", retail: { "256GB": 1399 }, category: "phone" },
 
 
-  { brand: "Nothing", icon: "🔘", model: "Nothing Phone (3)", release: "2025-07-04", retail: { "256GB": 999, "512GB": 1149 }, category: "phone", imageUrl: "/photos/real/nothing-phone-3.webp" },
+  { brand: "Nothing", icon: "🔘", model: "Nothing Phone (3)", release: "2025-07-04", retail: { "256GB": 999, "512GB": 1149 }, category: "phone" },
   { brand: "Nothing", icon: "🔘", model: "Nothing Phone (3a) Pro", release: "2025-03-11", retail: { "128GB": 649 }, category: "phone" },
   { brand: "Nothing", icon: "🔘", model: "Nothing Phone (2a)", release: "2024-03-05", retail: { "128GB": 449 }, category: "phone" },
 
@@ -110,7 +110,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Apple", icon: "💻", model: "MacBook Air 13 (M4)", release: "2025-03-12", retail: { "256GB": 2099 }, category: "laptop" },
   { brand: "Apple", icon: "💻", model: "MacBook Neo", release: "2026-06-01", retail: { "256GB": 1049 }, category: "laptop" },
   // ---- Added 30 Sep 2026: common Australian models (AU launch RRP; verify with the market-check tracker) ----
-  { brand: "Apple", icon: "🍎", model: "iPhone Air", release: "2025-09-19", retail: { "256GB": 1799, "512GB": 2199, "1TB": 2599 }, category: "phone", imageUrl: "/photos/real/iphone-air.webp" },
+  { brand: "Apple", icon: "🍎", model: "iPhone Air", release: "2025-09-19", retail: { "256GB": 1799, "512GB": 2199, "1TB": 2599 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16e", release: "2025-02-28", retail: {"128GB":  999, "256GB":  1199, "512GB":  1549}, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 13 Pro", release: "2021-09-24", retail: { "128GB": 1699, "256GB": 1869, "512GB": 2219, "1TB": 2569 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 13 mini", release: "2021-09-24", retail: {"128GB":  1199, "256GB":  1369}, category: "phone" },
@@ -193,6 +193,9 @@ const RETAIL_CORRECTIONS = {
   "iPhone 13 Pro": { "128GB": 1699, "256GB": 1869, "512GB": 2219 },
 };
 const sameRetail = (a, b) => { const ka = Object.keys(a || {}), kb = Object.keys(b || {}); return ka.length === kb.length && ka.every((k) => a[k] === b[k]); };
+// Sample photos that used to be built in. The site now uses one uniform line-art
+// style, so these are dropped from saved catalogues too; a photo staff set themselves stays.
+const RETIRED_SAMPLE_PHOTOS = new Set(["/photos/iphone-13-pro-max.png", "/photos/iphone-14-pro-max.png", "/photos/iphone-15-pro-max.png", "/photos/iphone-16-pro-max.png", "/photos/iphone-17-pro-max.png", "/photos/iphone-18-pro-max.png", "/photos/real/galaxy-a17.webp", "/photos/real/galaxy-s26.webp", "/photos/real/iphone-17.webp", "/photos/real/iphone-18-pro.webp", "/photos/real/iphone-air.webp", "/photos/real/nothing-phone-3.webp", "https://images.pexels.com/photos/13341771/pexels-photo-13341771.jpeg?auto=compress&cs=tinysrgb&w=600", "https://images.pexels.com/photos/14666032/pexels-photo-14666032.jpeg?auto=compress&cs=tinysrgb&w=600", "https://images.pexels.com/photos/19060954/pexels-photo-19060954.jpeg?auto=compress&cs=tinysrgb&w=600", "https://images.pexels.com/photos/30466736/pexels-photo-30466736.jpeg?auto=compress&cs=tinysrgb&w=600"]);
 export function mergeCatalog(saved) {
   if (!Array.isArray(saved) || saved.length === 0) return DEFAULT_CATALOG;
   const key = (d) => `${d.brand}|${d.model}`.toLowerCase();
@@ -202,7 +205,7 @@ export function mergeCatalog(saved) {
   const withPhotos = saved.map((d) => {
     const def = defaults[key(d)]; if (!def) return d;
     let out = d;
-    if (!d.imageUrl && def.imageUrl) out = { ...out, imageUrl: def.imageUrl };          // built-in sample photo
+    if (d.imageUrl && (RETIRED_SAMPLE_PHOTOS.has(d.imageUrl) || /^\/photos\//.test(d.imageUrl))) { const { imageUrl, ...rest } = out; out = rest; }  // retired built-in sample photo
     if (d.model !== def.model) out = { ...out, model: def.model };                       // tidy capitalisation, e.g. "moto g85" -> "Moto G85"
     if (out.marketAdjPct == null && def.marketAdjPct != null) out = { ...out, marketAdjPct: def.marketAdjPct };  // built-in market correction unless staff set their own
     const wrong = RETAIL_CORRECTIONS[def.model];

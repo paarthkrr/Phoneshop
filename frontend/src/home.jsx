@@ -94,9 +94,9 @@ const HERO_CSS = `
 .mvx-stage{position:relative;height:470px}
 .mvx-stage::before{content:"";position:absolute;width:380px;height:380px;border-radius:50%;border:1px solid rgba(33,80,200,.14);background:radial-gradient(closest-side,rgba(255,255,255,.9),rgba(255,255,255,0));top:22px;left:4%}
 .mvx-phones{position:absolute;inset:0}
-.mvx-phone{position:absolute;filter:drop-shadow(14px 24px 26px rgba(15,27,61,.22));transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
-.mvx-ph-back{width:170px;left:8%;top:72px;--r:-14deg}
-.mvx-ph-front{width:182px;left:31%;top:14px;--r:9deg;animation-delay:.9s}
+.mvx-phone{position:absolute;filter:drop-shadow(10px 18px 22px rgba(15,27,61,.12));transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
+.mvx-phone svg{width:100%!important;height:auto!important}.mvx-ph-back{width:210px;left:2%;top:70px;--r:-10deg;opacity:.92}
+.mvx-ph-front{width:235px;left:27%;top:6px;--r:6deg;animation-delay:.9s}
 @keyframes mvx-float{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-12px)}}
 .mvx-sticker{position:absolute;top:18px;right:2%;background:#fff;border:1px solid #E2E6EC;border-radius:8px;padding:10px 13px;font-size:13px;font-weight:800;transform:rotate(4deg);box-shadow:0 8px 20px rgba(15,27,61,.08);z-index:3}
 .mvx-quote{position:absolute;right:0;bottom:0;width:300px;background:#fff;border:1px solid #E2E6EC;border-radius:16px;box-shadow:0 22px 60px rgba(15,27,61,.16);padding:18px;z-index:4;text-align:left}
@@ -116,7 +116,7 @@ const HERO_CSS = `
 .mvx-benefits-inner{max-width:1180px;margin:0 auto;padding:18px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .mvx-benefits-inner div{display:flex;align-items:center;justify-content:center;gap:9px;font-size:13.5px;font-weight:700}
 .mvx-benefits-inner svg{width:19px;height:19px;color:#2150C8;flex-shrink:0}
-@media(max-width:860px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 26px}.mvx-stage{height:430px;max-width:420px;width:100%;margin:0 auto}.mvx-stage::before{width:290px;height:290px;left:6px}.mvx-ph-back{width:128px;left:2%;top:56px}.mvx-ph-front{width:138px;left:27%;top:8px}.mvx-quote{width:250px;padding:14px}.mvx-price{font-size:28px}.mvx-sticker{font-size:11.5px;top:4px}.mvx-benefits-inner{grid-template-columns:1fr 1fr}.mvx-benefits-inner div{justify-content:flex-start;font-size:12.5px}}
+@media(max-width:860px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 26px}.mvx-stage{height:430px;max-width:420px;width:100%;margin:0 auto}.mvx-stage::before{width:290px;height:290px;left:6px}.mvx-ph-back{width:150px;left:0;top:52px}.mvx-ph-front{width:170px;left:24%;top:4px}.mvx-quote{width:250px;padding:14px}.mvx-price{font-size:28px}.mvx-sticker{font-size:11.5px;top:4px}.mvx-benefits-inner{grid-template-columns:1fr 1fr}.mvx-benefits-inner div{justify-content:flex-start;font-size:12.5px}}
 @media(prefers-reduced-motion:reduce){.mvx-phone,.mvx-shine::after,.mvx-live i{animation:none}.mvx-word,.mvx-in{animation:mvx-fade .6s ease forwards;transform:none}.mvx-price{animation:mvx-fade .3s ease}}
 @keyframes mvx-fade{from{opacity:0}to{opacity:1}}
 `;
@@ -162,8 +162,8 @@ function Hero({ quoteModels }) {
           </div>
           <div className="mvx-stage">
             <div className="mvx-phones" aria-hidden="true">
-              <img src="/photos/real/galaxy-s26.webp" alt="" className="mvx-phone mvx-ph-back" />
-              <img src="/photos/real/iphone-18-pro.webp" alt="" className="mvx-phone mvx-ph-front" />
+              <div className="mvx-phone mvx-ph-back"><DeviceArtCard type="phone" size={240} brand="Samsung" model="Galaxy S26 Ultra" /></div>
+              <div className="mvx-phone mvx-ph-front"><DeviceArtCard type="phone" size={260} brand="Apple" model="iPhone 17 Pro Max" /></div>
             </div>
             <div className="mvx-sticker">♻ Good phones. More life.</div>
             {cur && (

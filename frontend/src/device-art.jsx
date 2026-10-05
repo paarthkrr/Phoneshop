@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 
-// Device pictures. Shows a real photo when one is set (staff can add a photo
-// link per model in the Pricing Console), otherwise an original drawing of the
-// back of the device, styled per brand and model family (iPhone Pro camera
-// square, Pixel camera bar, Galaxy vertical lenses, Fold/Flip shapes...) so
-// customers recognise their phone at a glance. All drawings are original —
-// no brand logos or copied product images.
+// Device pictures: one uniform, original line-art style for every model (thin navy
+// lines, white and light grey, no colour, no brand logos), drawn per family with
+// the right camera layout and screen cut-out. The back sits behind the front, like
+// a spec sheet. A real photo is shown only when staff set one (Pricing Console
+// photo link, or a shop listing's own stock photo).
 
-const INK = "#111827", BLUE = "#2150C8", SCREEN = "rgba(33,80,200,0.12)";
+const INK = "#0F1B3D", FILL = "#FFFFFF", SOFT = "#F1F4F9";
 
 export function inferDeviceType(model, category) {
   const c = (category || "").toLowerCase();
@@ -36,77 +35,140 @@ export function phoneFamily(brand, model) {
   return "android";
 }
 
-// Deterministic, realistic finish per model so the grid has natural variety.
-const FINISHES = [["#8E9196", "#5F6267"], ["#2E3036", "#16171B"], ["#D9D6CF", "#B9B5AC"], ["#5B6B7E", "#3D4A59"], ["#7C6A58", "#56483A"], ["#3B4A3F", "#26302A"]];
-function finishFor(model) {
-  let h = 0; for (const ch of String(model || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return FINISHES[h % FINISHES.length];
+// Screen cut-out on the front.
+function cutout(family, model) {
+  const m = (model || "").toLowerCase();
+  if (family.startsWith("iphone")) {
+    const gen = parseInt((m.match(/iphone (\d+)/) || [])[1] || "0", 10);
+    if (family === "iphone-single") return /\bx/.test(m.replace("iphone ", "")) ? "notch" : "home";
+    if (family === "iphone-air" || family === "iphone-pro-plateau") return "island";
+    if (/\d+e\b/.test(m)) return "notch";
+    if (gen >= 15 || (gen === 14 && /pro/.test(m))) return "island";
+    return "notch";
+  }
+  return "hole";
 }
 
-const Lens = ({ x, y, r = 4.2 }) => (
+function Lens({ x, y, r, sw }) {
+  return (
+    <g>
+      <circle cx={x} cy={y} r={r} fill={FILL} stroke={INK} strokeWidth={sw} />
+      <circle cx={x} cy={y} r={r * 0.55} fill={SOFT} stroke={INK} strokeWidth={sw * 0.75} />
+      <circle cx={x - r * 0.2} cy={y - r * 0.2} r={r * 0.13} fill={INK} opacity=".35" />
+    </g>
+  );
+}
+const Body = ({ x, y, w, h, rx, sw }) => (
   <g>
-    <circle cx={x} cy={y} r={r + 1.2} fill="#0E0F12" />
-    <circle cx={x} cy={y} r={r} fill="#1E2A3A" />
-    <circle cx={x - r * 0.3} cy={y - r * 0.3} r={r * 0.32} fill="rgba(255,255,255,0.55)" />
+    <rect x={x} y={y} width={w} height={h} rx={rx} fill={FILL} stroke={INK} strokeWidth={sw} />
+    <rect x={x + 3.5} y={y + 3.5} width={w - 7} height={h - 7} rx={Math.max(1, rx - 3.5)} fill="none" stroke={INK} strokeWidth={sw * 0.4} opacity=".35" />
   </g>
 );
 
-function PhoneBack({ family, model, uid }) {
-  const [c1, c2] = finishFor(model);
-  const g = `g${uid}`;
-  const body = (x, y, w, h, rx) => (
-    <>
-      <rect x={x} y={y} width={w} height={h} rx={rx} fill={`url(#${g})`} stroke={INK} strokeWidth="2" />
-      <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4} rx={rx - 2} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1" />
-    </>
+function Front({ x, y, w, h, rx, sw, cut, crease }) {
+  const cx = x + w / 2, b = cut === "home" ? 20 : 6;
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} rx={rx} fill={FILL} stroke={INK} strokeWidth={sw} />
+      <rect x={x + 6} y={y + b} width={w - 12} height={h - b * 2} rx={cut === "home" ? 2 : Math.max(1, rx - 6)} fill={SOFT} stroke={INK} strokeWidth={sw * 0.5} />
+      {cut === "island" && <rect x={cx - 12} y={y + 11} width="24" height="7" rx="3.5" fill={INK} />}
+      {cut === "notch" && <path d={`M${cx - 17} ${y + 6} h34 v4 a5 5 0 0 1 -5 5 h-24 a5 5 0 0 1 -5 -5 z`} fill={INK} />}
+      {cut === "hole" && <circle cx={cx} cy={y + 14} r="2.8" fill={INK} />}
+      {cut === "home" && <><circle cx={cx} cy={y + h - 10} r="5.5" fill="none" stroke={INK} strokeWidth={sw * 0.8} /><rect x={cx - 7} y={y + 9} width="14" height="2.5" rx="1.25" fill={INK} opacity=".6" /></>}
+      {cut !== "home" && <line x1={cx - 13} y1={y + h - 10} x2={cx + 13} y2={y + h - 10} stroke={INK} strokeWidth={sw} strokeLinecap="round" opacity=".45" />}
+      {crease && <line x1={cx} y1={y + 6} x2={cx} y2={y + h - 6} stroke={INK} strokeWidth={sw * 0.5} opacity=".3" />}
+    </g>
   );
-  const defs = (
-    <defs>
-      <linearGradient id={g} x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor={c1} /><stop offset="1" stopColor={c2} />
-      </linearGradient>
-    </defs>
-  );
-  switch (family) {
-    case "fold": return (<>{defs}{body(12, 8, 56, 74, 6)}<line x1="40" y1="8" x2="40" y2="82" stroke="rgba(0,0,0,0.35)" strokeWidth="1.5" />
-      <rect x="47" y="14" width="15" height="30" rx="7" fill="rgba(0,0,0,0.35)" /><Lens x={54.5} y={21} r={3.4} /><Lens x={54.5} y={29.5} r={3.4} /><Lens x={54.5} y={38} r={3.4} /></>);
-    case "flip": return (<>{defs}{body(22, 6, 36, 78, 9)}<line x1="22" y1="45" x2="58" y2="45" stroke="rgba(0,0,0,0.4)" strokeWidth="1.5" />
-      <rect x="26" y="10" width="28" height="31" rx="6" fill="#0E0F12" /><rect x="28" y="12" width="24" height="27" rx="5" fill={SCREEN} /><Lens x={31} y={16} r={2.8} /><Lens x={31} y={24} r={2.8} /></>);
-    case "pixel": return (<>{defs}{body(20, 6, 40, 76, 9)}<rect x="20" y="16" width="40" height="12" rx="6" fill="#16171B" />
-      <Lens x={29} y={22} r={3.6} /><Lens x={38.5} y={22} r={3.6} /><Lens x={48} y={22} r={3.6} /><circle cx="55" cy="22" r="1.4" fill="#F4E9C8" /></>);
-    case "galaxy-ultra": return (<>{defs}{body(20, 6, 40, 76, 5)}<Lens x={28} y={16} r={3.8} /><Lens x={28} y={26} r={3.8} /><Lens x={28} y={36} r={3.8} /><Lens x={37} y={18} r={2.6} /><Lens x={37} y={26} r={2.6} /><circle cx="37" cy="33" r="1.4" fill="#F4E9C8" /></>);
-    case "galaxy": return (<>{defs}{body(20, 6, 40, 76, 8)}<Lens x={28} y={16} r={3.6} /><Lens x={28} y={25.5} r={3.6} /><Lens x={28} y={35} r={3.6} /></>);
-    case "iphone-air": return (<>{defs}{body(21, 6, 38, 76, 9)}<rect x="21" y="11" width="38" height="11" rx="5.5" fill="rgba(0,0,0,0.3)" /><Lens x={29} y={16.5} r={3.4} /><circle cx="37" cy="16.5" r="1.2" fill="#F4E9C8" /></>);
-    case "iphone-pro-plateau": return (<>{defs}{body(20, 6, 40, 76, 9)}<rect x="20" y="9" width="40" height="22" rx="6" fill="rgba(0,0,0,0.28)" />
-      <Lens x={28} y={15} r={3.5} /><Lens x={28} y={25} r={3.5} /><Lens x={37} y={20} r={3.5} /><circle cx="51" cy="15" r="1.4" fill="#F4E9C8" /></>);
-    case "iphone-pro": return (<>{defs}{body(20, 6, 40, 76, 9)}<rect x="23" y="9" width="21" height="21" rx="5.5" fill="rgba(0,0,0,0.3)" stroke="rgba(255,255,255,0.15)" />
-      <Lens x={29} y={15} r={3.4} /><Lens x={29} y={24.5} r={3.4} /><Lens x={38} y={19.8} r={3.4} /><circle cx="39" cy="12.5" r="1.2" fill="#F4E9C8" /></>);
-    case "iphone": return (<>{defs}{body(20, 6, 40, 76, 9)}<rect x="23" y="9" width="17" height="19" rx="5" fill="rgba(0,0,0,0.28)" />
-      <Lens x={29} y={14.5} r={3.4} /><Lens x={34.5} y={22.5} r={3.4} /><circle cx="37" cy="13" r="1.1" fill="#F4E9C8" /></>);
-    case "iphone-single": return (<>{defs}{body(21, 6, 38, 76, 8)}<Lens x={28} y={14} r={3.6} /><circle cx="35" cy="14" r="1.1" fill="#F4E9C8" /></>);
-    default: return (<>{defs}{body(20, 6, 40, 76, 8)}<rect x="23" y="9" width="18" height="18" rx="9" fill="rgba(0,0,0,0.3)" /><Lens x={29} y={15} r={3.2} /><Lens x={35.5} y={21} r={3.2} /></>);
-  }
 }
 
-const OTHER = {
-  tablet: (<><rect x="8" y="12" width="64" height="66" rx="7" fill="#fff" stroke={INK} strokeWidth="3" /><rect x="14" y="18" width="52" height="54" rx="3" fill={SCREEN} /><circle cx="40" cy="15" r="1.4" fill={INK} /><rect x="20" y="26" width="26" height="4" rx="2" fill={BLUE} opacity="0.55" /><rect x="20" y="34" width="18" height="4" rx="2" fill={BLUE} opacity="0.35" /></>),
-  laptop: (<><rect x="14" y="16" width="52" height="38" rx="4" fill="#fff" stroke={INK} strokeWidth="3" /><rect x="19" y="21" width="42" height="28" rx="2" fill={SCREEN} /><path d="M6 60 H74 L70 68 H10 Z" fill="#fff" stroke={INK} strokeWidth="3" strokeLinejoin="round" /><rect x="34" y="60" width="12" height="2.5" rx="1.25" fill={BLUE} /></>),
-  watch: (<><rect x="30" y="4" width="20" height="18" rx="4" fill="#fff" stroke={INK} strokeWidth="3" /><rect x="30" y="68" width="20" height="18" rx="4" fill="#fff" stroke={INK} strokeWidth="3" /><rect x="22" y="20" width="36" height="50" rx="11" fill="#fff" stroke={INK} strokeWidth="3" /><rect x="28" y="27" width="24" height="36" rx="6" fill={SCREEN} /><rect x="58" y="36" width="4" height="10" rx="2" fill={BLUE} /><path d="M40 38 V45 L45 48" stroke={BLUE} strokeWidth="2.5" fill="none" strokeLinecap="round" /></>),
-};
+// Back-of-phone camera layouts (back body sits at x=24..106, y=20..196).
+function Back({ family, model, sw }) {
+  const eModel = /\d+e\b/.test((model || "").toLowerCase());   // iPhone 16e / 17e: single camera
+  const x = 24, y = 20, w = 82, h = 176;
+  const rx = { "galaxy-ultra": 8, galaxy: 15, pixel: 18, android: 14, flip: 16 }[family] ?? 17;
+  const parts = [];
+  if (family === "iphone-pro-plateau") {
+    parts.push(<rect key="p" x={x + 4} y={y + 6} width={w - 8} height="50" rx="12" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 21} y={y + 20} r={9.5} sw={sw} />, <Lens key="2" x={x + 21} y={y + 43} r={9.5} sw={sw} />, <Lens key="3" x={x + 42} y={y + 31} r={9.5} sw={sw} />);
+    parts.push(<circle key="f" cx={x + 63} cy={y + 18} r="3.4" fill="none" stroke={INK} strokeWidth={sw} />);
+  } else if (family === "iphone-pro") {
+    parts.push(<rect key="p" x={x + 6} y={y + 6} width="46" height="46" rx="12" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 19} y={y + 19} r={7.5} sw={sw} />, <Lens key="2" x={x + 19} y={y + 39} r={7.5} sw={sw} />, <Lens key="3" x={x + 38} y={y + 29} r={7.5} sw={sw} />);
+    parts.push(<circle key="f" cx={x + 40} cy={y + 13} r="2.6" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
+  } else if (family === "iphone" && eModel) {
+    parts.push(<Lens key="1" x={x + 18} y={y + 18} r={8} sw={sw} />, <circle key="f" cx={x + 33} cy={y + 18} r="2.6" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
+  } else if (family === "iphone") {
+    parts.push(<rect key="p" x={x + 6} y={y + 6} width="34" height="46" rx="11" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 23} y={y + 19} r={7.5} sw={sw} />, <Lens key="2" x={x + 23} y={y + 39} r={7.5} sw={sw} />);
+  } else if (family === "iphone-single") {
+    parts.push(<Lens key="1" x={x + 16} y={y + 16} r={7} sw={sw} />, <circle key="f" cx={x + 29} cy={y + 16} r="2.4" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
+  } else if (family === "iphone-air") {
+    parts.push(<rect key="p" x={x + 4} y={y + 7} width={w - 8} height="28" rx="14" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 20} y={y + 21} r={8.5} sw={sw} />, <circle key="f" cx={x + 62} cy={y + 21} r="3" fill="none" stroke={INK} strokeWidth={sw} />);
+  } else if (family === "galaxy-ultra") {
+    [0, 1, 2].forEach((i) => parts.push(<Lens key={"b" + i} x={x + 17} y={y + 19 + i * 23} r={8.5} sw={sw} />));
+    [0, 1].forEach((i) => parts.push(<Lens key={"s" + i} x={x + 36} y={y + 25 + i * 21} r={5.5} sw={sw} />));
+  } else if (family === "galaxy") {
+    [0, 1, 2].forEach((i) => parts.push(<Lens key={"b" + i} x={x + 18} y={y + 19 + i * 21} r={7.5} sw={sw} />));
+    parts.push(<circle key="f" cx={x + 34} cy={y + 19} r="2.4" fill={INK} opacity=".5" />);
+  } else if (family === "pixel") {
+    parts.push(<rect key="v" x={x - 1} y={y + 26} width={w + 2} height="28" rx="14" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<rect key="w" x={x + 9} y={y + 31} width="40" height="18" rx="9" fill={FILL} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 19} y={y + 40} r={5.5} sw={sw} />, <Lens key="2" x={x + 39} y={y + 40} r={5.5} sw={sw} />, <Lens key="3" x={x + 60} y={y + 40} r={5.5} sw={sw} />);
+  } else if (family === "flip") {
+    parts.push(<rect key="c" x={x + 8} y={y + 8} width={w - 16} height="60" rx="10" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 22} y={y + 22} r={6.5} sw={sw} />, <Lens key="2" x={x + 22} y={y + 46} r={6.5} sw={sw} />);
+    parts.push(<line key="h" x1={x} y1={y + h / 2} x2={x + w} y2={y + h / 2} stroke={INK} strokeWidth={sw * 0.8} opacity=".5" />);
+  } else if (family === "fold") {
+    [0, 1, 2].forEach((i) => parts.push(<Lens key={"b" + i} x={x + 17} y={y + 19 + i * 22} r={7.5} sw={sw} />));
+  } else {
+    parts.push(<rect key="p" x={x + 6} y={y + 6} width="44" height="44" rx="11" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 18} y={y + 18} r={6.5} sw={sw} />, <Lens key="2" x={x + 38} y={y + 18} r={6.5} sw={sw} />, <Lens key="3" x={x + 18} y={y + 38} r={6.5} sw={sw} />);
+  }
+  return <g><Body x={x} y={y} w={w} h={h} rx={rx} sw={sw} />{parts}</g>;
+}
 
-let uidCounter = 0;
+function PhonePair({ family, model, sw }) {
+  if (family === "fold") {
+    // closed back on the left, the open inner screen in front
+    return <g><Back family="fold" model={model} sw={sw} /><Front x={70} y={34} w={124} h={150} rx={10} sw={sw} cut="hole" crease /></g>;
+  }
+  const rx = { "galaxy-ultra": 8, galaxy: 15, pixel: 18, android: 14, flip: 16 }[family] ?? 17;
+  return <g><Back family={family} model={model} sw={sw} /><Front x={94} y={28} w={82} h={176} rx={rx} sw={sw} cut={cutout(family, model)} crease={family === "flip"} /></g>;
+}
+
+function Other({ type, sw }) {
+  if (type === "tablet") return (
+    <g><rect x="28" y="16" width="144" height="190" rx="14" fill={FILL} stroke={INK} strokeWidth={sw} />
+      <rect x="37" y="25" width="126" height="172" rx="6" fill={SOFT} stroke={INK} strokeWidth={sw * 0.5} />
+      <circle cx="100" cy="20.5" r="2" fill={INK} /></g>);
+  if (type === "laptop") return (
+    <g><rect x="34" y="52" width="132" height="90" rx="8" fill={FILL} stroke={INK} strokeWidth={sw} />
+      <rect x="42" y="60" width="116" height="74" rx="3" fill={SOFT} stroke={INK} strokeWidth={sw * 0.5} />
+      <path d="M18 150 h164 l-8 12 h-148 z" fill={FILL} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+      <line x1="88" y1="150" x2="112" y2="150" stroke={INK} strokeWidth={sw} opacity=".5" /></g>);
+  // watch
+  return (
+    <g><path d="M78 10 h44 l-4 52 h-36 z" fill={SOFT} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+      <path d="M82 158 h36 l4 52 h-44 z" fill={SOFT} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+      <rect x="60" y="56" width="80" height="108" rx="26" fill={FILL} stroke={INK} strokeWidth={sw} />
+      <rect x="68" y="64" width="64" height="92" rx="19" fill={SOFT} stroke={INK} strokeWidth={sw * 0.5} />
+      <rect x="140" y="92" width="7" height="20" rx="3.5" fill={FILL} stroke={INK} strokeWidth={sw * 0.8} /></g>);
+}
+
 export default function DeviceArt({ type = "phone", size = 64, label, brand, model, imageUrl }) {
   const [failed, setFailed] = useState(false);
-  const [uid] = useState(() => ++uidCounter);
   if (imageUrl && !failed) {
+    const clean = /\.(png|webp|svg)($|\?)/.test(imageUrl);
     return <img src={imageUrl} alt={label || ""} width={size} height={Math.round(size * 1.1)} loading="lazy" onError={() => setFailed(true)}
-      style={{ display: "block", width: size, height: size * 1.1, objectFit: /\.png($|\?)/.test(imageUrl) ? "contain" : "cover", borderRadius: /\.png($|\?)/.test(imageUrl) ? 0 : Math.max(6, size / 9) }} />;
+      style={{ display: "block", width: size, height: size * 1.1, objectFit: clean ? "contain" : "cover", borderRadius: clean ? 0 : Math.max(6, size / 9) }} />;
   }
   const family = type === "phone" ? phoneFamily(brand, model) : type;
+  const sw = Math.max(1.6, 230 / size);   // lines stay visible at thumbnail size, fine when large
   return (
-    <svg width={size} height={size * 1.1} viewBox="0 0 80 88" role={label ? "img" : undefined} aria-label={label}
+    <svg width={size} height={size * 1.1} viewBox="0 0 200 220" role={label ? "img" : undefined} aria-label={label}
       aria-hidden={label ? undefined : true} data-family={family} style={{ display: "block" }}>
-      {type === "phone" ? <PhoneBack family={family} model={model || brand || ""} uid={uid} /> : (OTHER[type] || OTHER.tablet)}
+      {type === "phone" ? <PhonePair family={family} model={model || ""} sw={sw} /> : <Other type={type} sw={sw} />}
     </svg>
   );
 }
