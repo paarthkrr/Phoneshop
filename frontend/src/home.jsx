@@ -18,7 +18,7 @@ const TOP_CSS = `
 .mvt-card{flex:0 0 200px;background:#fff;border:1px solid #E2E6EC;border-radius:18px;padding:14px;text-decoration:none;color:#111827;box-shadow:0 6px 20px rgba(17,24,39,.06);transition:transform .25s ease,box-shadow .25s ease}
 .mvt-card:hover{transform:translateY(-6px);box-shadow:0 16px 34px rgba(33,80,200,.16)}
 .mvt-img{height:190px;border-radius:14px;background:linear-gradient(180deg,#F7F9FC,#EEF2F8);display:flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden}
-.mvt-img img{max-height:170px;max-width:90%;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(17,24,39,.18))}
+.mvt-img img{max-height:170px;max-width:90%;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(17,24,39,.18))}.mvt-img svg{max-height:96%;max-width:96%;width:auto;height:auto}
 .mvt-name{font-weight:800;font-size:15px;margin-bottom:4px}
 .mvt-price{font-family:'Archivo Black',sans-serif;font-size:22px;color:#2150C8}
 .mvt-cta{font-size:13px;font-weight:700;color:#2150C8;margin-top:6px}
@@ -30,7 +30,7 @@ function TopPhones({ phones }) {
   const card = (p, n, dup) => (
     <a key={(dup ? "d" : "") + p.model} href={`/quote?q=${encodeURIComponent(p.model)}`} className="mvt-card" tabIndex={dup ? -1 : 0} aria-hidden={dup ? true : undefined}>
       <div className="mvt-img">
-        {p.imageUrl ? <img src={p.imageUrl} alt={dup ? "" : p.model} loading="lazy" /> : <DeviceArtCard type="phone" size={120} brand={p.brand} model={p.model} />}
+        {p.imageUrl ? <img src={p.imageUrl} alt={dup ? "" : p.model} loading="lazy" /> : <DeviceArtCard type="phone" size={168} brand={p.brand} model={p.model} />}
       </div>
       <div className="mvt-name">{p.model}</div>
       <div style={{ fontSize: 12.5, color: "#5B6472" }}>Get up to</div>
@@ -106,7 +106,7 @@ const HERO_CSS = `
 .mvx-quote label{display:grid;gap:5px;font-size:12px;color:#5B6472;font-weight:700}
 .mvx-quote select{width:100%;height:40px;border:1px solid #E2E6EC;background:#F4F6F9;border-radius:10px;padding:0 10px;font-size:14px;font-weight:700;color:#0F1B3D;font-family:inherit}
 .mvx-quote-row{display:grid;grid-template-columns:1.6fr 1fr;gap:8px}
-.mvx-est{display:flex;justify-content:space-between;align-items:flex-end;margin:14px 0}
+.mvx-est{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:14px 0}.mvx-quote-img{width:62px;flex-shrink:0;background:#F4F6F9;border-radius:12px;padding:4px;animation:mvx-flip .45s cubic-bezier(.16,1,.3,1)}.mvx-quote-img svg{width:100%!important;height:auto!important}
 .mvx-est-label{font-size:12px;color:#5B6472}.mvx-price{display:block;font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1.1;color:#0F1B3D;animation:mvx-flip .45s cubic-bezier(.16,1,.3,1)}
 @keyframes mvx-flip{from{opacity:0;transform:translateY(40%)}to{opacity:1;transform:none}}
 .mvx-cash{font-size:12px;font-weight:800;color:#047857;background:#ECFDF5;border-radius:8px;padding:6px 8px;white-space:nowrap}
@@ -182,7 +182,8 @@ function Hero({ quoteModels }) {
                   </label>
                 </div>
                 <div className="mvx-est">
-                  <div><span className="mvx-est-label">Yours could be worth up to</span><span key={cur.model + storage} className="mvx-price">${price.toLocaleString()}</span></div>
+                  <div key={"img" + cur.model} className="mvx-quote-img" aria-hidden="true"><DeviceArtCard type="phone" size={74} brand={cur.brand} model={cur.model} /></div>
+                  <div style={{ flex: 1 }}><span className="mvx-est-label">Yours could be worth up to</span><span key={cur.model + storage} className="mvx-price">${price.toLocaleString()}</span></div>
                   <span className="mvx-cash">💵 Paid in cash</span>
                 </div>
                 <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-quote-btn">Get my exact quote <span aria-hidden="true">→</span></a>
@@ -276,7 +277,7 @@ export default function Home() {
       const b = (cfg && cfg.businessSettings) || {};
       setBiz(b);
       { const cat = mergeCatalog(cfg && cfg.catalog);
-        setQuoteModels(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, prices: pricesFor(d, cfg) })).filter((x) => Object.keys(x.prices).length));
+        setQuoteModels(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, category: d.category, prices: pricesFor(d, cfg) })).filter((x) => Object.keys(x.prices).length));
         setTopPhones(FEATURED_PHONES.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, imageUrl: d.imageUrl, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0)); }
       setPhotos(Object.fromEntries(mergeCatalog(cfg && cfg.catalog).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])));
       // Featured deal: the highest-value device actually listed for sale right now.

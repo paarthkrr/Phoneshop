@@ -255,6 +255,62 @@ const PUBLIC_READ_KEYS = ["inventory", "pricing-config", "accessories"];
 // own new submission, never overwrites anyone else's data.
 const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries", "repair_requests", "accessory_orders"];
 
+// ---- Email (Resend) ----
+// Customer emails are the ones the site already prepares in notification_queue
+// (quote confirmations, orders, repair requests, replies); the owner gets an
+// alert for every new public submission. Nothing is sent without RESEND_API_KEY,
+// and a failed email never blocks the customer's submission.
+const OWNER_EMAIL = () => process.env.OWNER_EMAIL || "mobilerecellr@outlook.com";
+const EMAIL_FROM = () => process.env.EMAIL_FROM || "Mobile Recellr <onboarding@resend.dev>";
+const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function emailHtml(subject, text) {
+  const body = escHtml(text).replace(/\n/g, "<br>");
+  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0F1B3D">
+    <div style="padding:18px 0;border-bottom:2px solid #2150C8;font-weight:800;font-size:18px">MOBILE <span style="color:#2150C8">RECELLR</span></div>
+    <h2 style="font-size:18px;margin:20px 0 10px">${escHtml(subject)}</h2>
+    <div style="font-size:15px;line-height:1.6">${body}</div>
+    <div style="margin-top:26px;padding-top:12px;border-top:1px solid #E2E6EC;font-size:12px;color:#5B6472">Mobile Recellr · Sydney · mobilerecellr.com.au · WhatsApp 0411 931 999</div></div>`;
+}
+async function sendEmail({ to, subject, text, replyTo }) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || !to) return { skipped: true };
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: EMAIL_FROM(), to: [to], subject, text, html: emailHtml(subject, text), ...(replyTo ? { reply_to: replyTo } : {}) }),
+    });
+    if (!r.ok) console.error("email not sent:", r.status, (await r.text()).slice(0, 200));
+    return { ok: r.ok };
+  } catch (e) { console.error("email error:", e.message); return { ok: false }; }
+}
+const NEW_LABEL = { orders: "New order", purchase_orders: "New trade-in / sell order", price_match_requests: "New price-match request", bulk_quote_requests: "New bulk quote request",
+  quote_leads: "New sell quote", referrals: "New referral", support_queries: "New customer message", repair_requests: "New repair request", accessory_orders: "New accessories order" };
+function summarise(item) {
+  const lines = [];
+  const add = (k, v) => { if (v == null || v === "" || typeof v === "object") return; lines.push(`${k}: ${String(v).slice(0, 300)}`); };
+  for (const [k, v] of Object.entries(item || {})) {
+    if (v && typeof v === "object" && !Array.isArray(v)) { for (const [k2, v2] of Object.entries(v)) add(`${k} ${k2}`, v2); }
+    else if (Array.isArray(v)) lines.push(`${k}: ${v.length} item(s)`);
+    else add(k, v);
+  }
+  return lines.slice(0, 40).join("\n");
+}
+function notifyNew(key, items) {
+  for (const item of items || []) {
+    if (!item) continue;
+    if (key === "notification_queue") {
+      if (item.channel === "email" && item.recipientEmail) void sendEmail({ to: item.recipientEmail, subject: item.subject || "Update from Mobile Recellr", text: item.message || "", replyTo: OWNER_EMAIL() });
+      continue;
+    }
+    const who = item.name || (item.customer && item.customer.name) || item.email || (item.customer && item.customer.email) || item.id || "";
+    void sendEmail({
+      to: OWNER_EMAIL(), subject: `${NEW_LABEL[key] || `New ${key.replace(/_/g, " ")}`}${who ? ` — ${who}` : ""}`,
+      text: `${summarise(item)}\n\nOpen the staff portal: https://mobilerecellr.com.au/portal`,
+      replyTo: item.email || (item.customer && item.customer.email) || undefined,
+    });
+  }
+}
+
 function scopeFor(shared, username) {
   if (shared === "true" || shared === true) return "shared";
   return `private:${username}`;
@@ -680,17 +736,23 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
         await write(JSON.stringify([...fresh, ...existing]), "public");
         return fresh;
       });
+      notifyNew(req.params.key, newOnes);
       // Never return the merged collection to an anonymous caller — only confirm what THEY submitted.
       return res.json({ key: req.params.key, submitted: newOnes.length });
     }
 
     const scope = scopeFor(shared, req.user.username);
+    let staffQueued = [];
     const saved = await withListLock(scope, req.params.key, async (existingValue, write) => {
       const finalValue = scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)
         ? mergeKeepingNewer(value, existingValue) : value;
+      if (scope === "shared" && req.params.key === "notification_queue") {   // staff-sent customer updates (e.g. "repair ready")
+        try { const had = new Set((existingValue ? JSON.parse(existingValue) : []).map((r) => r && r.id)); staffQueued = JSON.parse(finalValue).filter((r) => r && r.id && !had.has(r.id)); } catch (e) { staffQueued = []; }
+      }
       await write(finalValue, req.user.username);
       return finalValue;
     });
+    if (staffQueued.length) notifyNew("notification_queue", staffQueued);
     res.json({ key: req.params.key, value: saved, shared: scope === "shared" });
   } catch (e) {
     res.status(400).json({ error: e.message });
