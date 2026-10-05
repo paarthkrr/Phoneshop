@@ -21,8 +21,8 @@ function fmt(n) { return "$" + Number(n || 0).toFixed(2); }
 const genId = () => "ACC-" + Math.floor(100000 + Math.random() * 900000);
 
 // Delivery pricing — change these to suit your postage costs.
-const SHIPPING_FLAT = 0; // free express shipping Australia-wide
-const FREE_SHIPPING_OVER = 0;
+const SHIPPING_FLAT = 9.95; // express shipping on accessory orders under the free-shipping threshold
+const FREE_SHIPPING_OVER = 100; // free express shipping on accessory orders of $100+
 const CART_KEY = "mv_cart";
 const ICONS = [[/band|strap/i, "⌚"], [/case|cover/i, "📱"], [/protector/i, "🛡️"], [/back glass|housing/i, "🪟"], [/screen|display/i, "📲"], [/batter/i, "🔋"], [/camera|lens/i, "📷"], [/port|flex/i, "🔌"], [/glass/i, "🛡️"], [/charg|cable|power/i, "🔌"], [/kit|diy|tool|part/i, "🧰"], [/audio|ear|head/i, "🎧"]];
 const iconFor = (cat) => (ICONS.find(([re]) => re.test(cat || "")) || [null, "✨"])[1];
@@ -124,7 +124,7 @@ export default function Parts() {
           <button className="cs-btn" onClick={() => setView("checkout")} style={primary()}>🛒 Cart ({count}) · {fmt(subtotal)} →</button>
         )}
       </div>
-      <div style={{ color: muted, fontSize: 14, marginBottom: 18 }}>Cases, screen protectors, chargers, and DIY repair kits — in stock, ready today, with a 6-month warranty. Free click &amp; collect, or free express shipping Australia-wide. 30-day returns on unopened items — <a href="/terms#returns" target="_blank" rel="noopener" style={{ color: brass }}>conditions apply</a>.</div>
+      <div style={{ color: muted, fontSize: 14, marginBottom: 18 }}>Cases, screen protectors, chargers, and DIY repair kits — in stock, ready today, with a 6-month warranty. Free click &amp; collect, or express shipping Australia-wide: free on orders over $100, otherwise $9.95. 30-day returns on unopened items — <a href="/terms#returns" target="_blank" rel="noopener" style={{ color: brass }}>conditions apply</a>.</div>
     </>
   );
   const CrossLinks = (
@@ -180,7 +180,7 @@ export default function Parts() {
         </div>
 
         <div role="group" aria-label="Delivery method" style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          {[["collect", "Click & collect — free"], ["delivery", "Free express shipping"]].map(([k, lbl]) => (
+          {[["collect", "Click & collect — free"], ["delivery", subtotal >= FREE_SHIPPING_OVER ? "Express shipping — free" : `Express shipping — $${SHIPPING_FLAT.toFixed(2)} (free over $${FREE_SHIPPING_OVER})`]].map(([k, lbl]) => (
             <button key={k} aria-pressed={fulfilment === k} onClick={() => setFulfilment(k)} style={{ flex: 1, padding: 12, borderRadius: 10, cursor: "pointer", fontSize: 13.5, fontWeight: 600,
               border: `1.5px solid ${fulfilment === k ? brass : line}`, background: fulfilment === k ? brassDim : "transparent", color: fulfilment === k ? brass : paper }}>{lbl}</button>
           ))}
@@ -236,7 +236,7 @@ export default function Parts() {
             <button className="cs-btn" onClick={() => setQty(product, 1)} style={{ ...primary(), width: "100%", padding: 15, fontSize: 16, marginBottom: 12 }}>Add to cart</button>
           )}
           {inCart > 0 && <button className="cs-btn" onClick={() => { closeProduct(); setView("checkout"); }} style={{ ...primary(), width: "100%", padding: 15, fontSize: 16, background: "#111827" }}>Checkout · {count} item{count === 1 ? "" : "s"}</button>}
-          <div style={{ fontSize: 13, color: muted, marginTop: 14, lineHeight: 1.7 }}>✓ Free express shipping Australia-wide<br />✓ Free click &amp; collect<br />✓ 30-day returns on unopened items · 6-month warranty</div>
+          <div style={{ fontSize: 13, color: muted, marginTop: 14, lineHeight: 1.7 }}>✓ Free express shipping on orders over $100<br />✓ Free click &amp; collect<br />✓ 30-day returns on unopened items · 6-month warranty</div>
         </div>
       </div>
     </>);
@@ -345,6 +345,9 @@ export default function Parts() {
       )}
       {count > 0 && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 950, padding: "10px 14px calc(10px + env(safe-area-inset-bottom, 0px))", background: "rgba(255,255,255,0.96)", borderTop: `1px solid ${line}`, boxShadow: "0 -6px 20px rgba(17,24,39,0.08)", backdropFilter: "blur(8px)" }}>
+          <div style={{ maxWidth: 520, margin: "0 auto 6px", fontSize: 13, textAlign: "center", color: subtotal >= FREE_SHIPPING_OVER ? "#047857" : muted, fontWeight: 700 }}>
+            {subtotal >= FREE_SHIPPING_OVER ? "✓ You've got free express shipping" : `Add ${fmt(FREE_SHIPPING_OVER - subtotal)} more for free express shipping`}
+          </div>
           <button key={count} className="cs-btn cs-bump" onClick={() => setView("checkout")} style={{ ...primary(), width: "100%", maxWidth: 520, margin: "0 auto", display: "block", padding: 14, fontSize: 15.5 }}>
             🛒 Checkout · {count} item{count === 1 ? "" : "s"} · {fmt(subtotal)}
           </button>

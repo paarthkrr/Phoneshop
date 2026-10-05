@@ -404,6 +404,27 @@ export default function Storefront() {
                 <div style={{ fontSize: 12, color: muted }}>{GRADE_LABELS[selectedItem.gradeId]?.desc}</div>
               </div>
 
+              {/* Specifications (PhoneExchange-style). Only facts we can stand behind. */}
+              <div style={{ border: `1px solid ${line}`, borderRadius: 14, padding: "12px 16px", marginBottom: 16, background: "#fff" }}>
+                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 4 }}>Specifications</div>
+                {[
+                  ["Model", `${selectedItem.brand} ${selectedItem.model}`],
+                  ["Storage", selectedItem.storage || "—"],
+                  ...((selectedItem.colour || selectedItem.color) ? [["Colour", selectedItem.colour || selectedItem.color]] : []),
+                  ["Condition", `Grade ${selectedItem.gradeId}: ${GRADE_LABELS[selectedItem.gradeId]?.label || ""}`],
+                  ["Inspection", "Passed our 49-point check"],
+                  ["Network", "Checked for carrier lock in our 49-point inspection"],
+                  ["Battery health", "Minimum 80% guaranteed (conditions apply)"],
+                  ["Warranty", "1-year hardware warranty included"],
+                  ["Returns", "30-day returns on online orders (conditions apply)"],
+                  ["Shipping", "Free express shipping Australia-wide"],
+                ].map(([k, v], n) => (
+                  <div key={k} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 10, padding: "9px 0", borderTop: n ? `1px solid ${line}` : "none", fontSize: 13.5 }}>
+                    <span style={{ fontWeight: 700 }}>{k}</span><span style={{ color: muted }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+
               <button className="cs-btn" onClick={() => setView("checkout")}
                 style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Buy this device →

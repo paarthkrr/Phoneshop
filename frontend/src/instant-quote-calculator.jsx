@@ -1220,7 +1220,29 @@ export default function QuoteCalculator() {
 
         {!selected && (
           <>
-            <div style={{ marginBottom: 10, fontSize: 13, color: muted, letterSpacing: 0.2 }}>Step 1 — Find your device</div>
+            {(() => {
+              const browsing = brandFilter !== "All" || categoryFilter !== "All" || search.trim();
+              const label = brandFilter === "Apple" && categoryFilter === "phone" ? "iPhone" : brandFilter === "Google" ? "Google Pixel" : brandFilter !== "All" ? brandFilter : categoryFilter !== "All" ? CATEGORY_LABEL[categoryFilter].replace(/s$/, "") : "";
+              const TILES = [["📱", "iPhone", "Apple", "phone"], ["📲", "Samsung", "Samsung", "All"], ["🔵", "Google Pixel", "Google", "All"], ["📋", "iPad / Tablet", "All", "tablet"], ["⌚", "Smartwatch", "All", "watch"], ["💻", "Laptop", "All", "laptop"]];
+              return (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.14em", color: muted, marginBottom: 6 }}>STEP 1 — FIND YOUR DEVICE</div>
+                  <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(24px, 4.5vw, 32px)", margin: "0 0 4px", lineHeight: 1.15 }}>{browsing && label ? `Which ${label} model?` : "What are you selling?"}</h2>
+                  <div style={{ color: muted, fontSize: 14.5, marginBottom: 12 }}>{browsing ? "Prices shown are the most we pay for each model." : "Pick a type or search for your model."}</div>
+                  {!browsing && (
+                    <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 6 }}>
+                      {TILES.map(([icon, name, b, c]) => (
+                        <button key={name} onClick={() => { setBrandFilter(b); setCategoryFilter(c); }} className="cs-card"
+                          style={{ display: "grid", justifyItems: "center", gap: 6, padding: "18px 10px", borderRadius: 16, border: `1.5px solid ${line}`, background: "#fff", cursor: "pointer", fontFamily: "inherit", color: paper }}>
+                          <span style={{ fontSize: 30 }} aria-hidden="true">{icon}</span><span style={{ fontWeight: 800, fontSize: 15.5 }}>{name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {browsing && <button onClick={() => { setBrandFilter("All"); setCategoryFilter("All"); setSearch(""); }} style={{ background: "none", border: "none", color: brass, fontWeight: 700, cursor: "pointer", padding: 0, fontSize: 14, fontFamily: "inherit" }}>‹ Back to all types</button>}
+                </div>
+              );
+            })()}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
               {CATEGORIES.map((c) => (
                 <button key={c} onClick={() => { setCategoryFilter(c); setBrandFilter("All"); }}
@@ -1244,24 +1266,37 @@ export default function QuoteCalculator() {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search model, e.g. iPhone 15 Pro Max" aria-label="Search for your device model"
               style={{ width: "100%", padding: "13px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper,
                 fontSize: 15, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
-            <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ border: `1px solid ${line}`, borderRadius: 16, overflow: "hidden", background: "#fff", display: (brandFilter !== "All" || categoryFilter !== "All" || search.trim()) ? "block" : "none" }}>
               {filtered.length > 20 && <div style={{ fontSize: 12, color: "#5B6472", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
-              {filtered.slice(0, 20).map((d, di) => (
-                <div key={d.brand + d.model}>
-                  <div style={{ padding: "10px 14px 4px", fontSize: 12.5, color: muted, borderTop: di === 0 ? "none" : `1px solid ${line}`, display: "flex", alignItems: "center", gap: 6 }}>
-                    <DeviceArt type={inferDeviceType(d.model, d.category)} size={20} brand={d.brand} model={d.model} imageUrl={d.imageUrl} />{d.brand} — {d.model}
-                    <span style={{ marginLeft: "auto", color: "#5c6472" }}>{Math.round(ageMonths(d.release))}mo old</span>
+              {filtered.slice(0, 20).map((d, di) => {
+                const mult = REGIONS_A[region].mult;
+                const sizes = Object.keys(d.retail);
+                const upTo = Math.max(...sizes.map((sz) => baseBuybackAUD(d, sz, RETENTION_A, BRAND_FACTOR_A) * mult * (1 - HOLDING_COST_A)));
+                const pick = (sz) => { setSelected({ ...d, storage: sz }); setTierId(null); setFaults({}); setBlockers({}); };
+                return (
+                  <div key={d.brand + d.model} className="mvq-model" style={{ borderTop: di === 0 ? "none" : `1px solid ${line}`, padding: "12px 12px 10px" }}>
+                    <div role="button" tabIndex={0} onClick={() => pick(sizes[0])} onKeyDown={(e) => { if (e.key === "Enter") pick(sizes[0]); }}
+                      style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} aria-label={`${d.brand} ${d.model}, up to ${fmt(upTo, region, REGIONS_A)}`}>
+                      <div style={{ width: 62, height: 62, borderRadius: 14, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+                        <DeviceArt type={inferDeviceType(d.model, d.category)} size={46} brand={d.brand} model={d.model} imageUrl={d.imageUrl} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.25 }}>{d.brand === "Apple" ? d.model : `${d.brand} ${d.model}`}</div>
+                        <div style={{ fontSize: 12.5, color: muted }}>{Math.round(ageMonths(d.release))} months old · {sizes.length} size{sizes.length === 1 ? "" : "s"}</div>
+                      </div>
+                      <div style={{ color: brass, fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", textAlign: "right" }}>Up to<br />{fmt(upTo, region, REGIONS_A)}</div>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, paddingLeft: 76 }}>
+                      {sizes.map((sz) => (
+                        <button key={sz} onClick={() => pick(sz)}
+                          style={{ padding: "6px 11px", borderRadius: 10, fontSize: 12.5, cursor: "pointer", border: `1px solid ${line}`, background: "#fff", color: paper, fontFamily: "inherit" }}>
+                          {sz} <span style={{ color: brass }}>· up to {fmt(baseBuybackAUD(d, sz, RETENTION_A, BRAND_FACTOR_A) * mult * (1 - HOLDING_COST_A), region, REGIONS_A)}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "4px 14px 10px" }}>
-                    {Object.keys(d.retail).map((s) => (
-                      <button key={s} onClick={() => { setSelected({ ...d, storage: s }); setTierId(null); setFaults({}); setBlockers({}); }}
-                        style={{ padding: "7px 12px", borderRadius: 3, fontSize: 13, cursor: "pointer", border: `1px solid ${line}`, background: panel2, color: paper }}>
-                        {s} <span style={{ color: brass }}>· {fmt(baseBuybackAUD(d, s, RETENTION_A, BRAND_FACTOR_A) * REGIONS_A[region].mult, region, REGIONS_A)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {filtered.length === 0 && <div style={{ padding: 14, color: muted, fontSize: 14 }}>No matches — try another brand or model.</div>}
             </div>
           </>

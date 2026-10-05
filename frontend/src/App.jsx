@@ -195,7 +195,7 @@ function Nav() {
       `}</style>
       {!isStaff && (
         <div className="cs-announce" style={{ background: "#111827", color: "#FFFFFF", fontSize: 12.5, textAlign: "center", padding: "7px 12px", lineHeight: 1.5, fontFamily: "'Archivo', system-ui, sans-serif" }}>
-          🏠 Home collection across Sydney &nbsp;·&nbsp; 💵 Get paid in cash &nbsp;·&nbsp; ✓ 49-point check &nbsp;·&nbsp; ⚡ Free express shipping &nbsp;·&nbsp; ✓ 1-year warranty &nbsp;·&nbsp; <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>
+          🏠 Home collection across Sydney &nbsp;·&nbsp; 💵 Get paid in cash &nbsp;·&nbsp; ✓ 49-point check &nbsp;·&nbsp; ⚡ Free express shipping on phones &amp; accessory orders over $100 &nbsp;·&nbsp; ✓ 1-year warranty &nbsp;·&nbsp; <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>
         </div>
       )}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>

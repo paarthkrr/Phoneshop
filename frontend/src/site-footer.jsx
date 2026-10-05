@@ -76,7 +76,7 @@ export default function SiteFooter() {
           ✓ Genuine parts only<br />
           ✓ Price match guarantee<br />
           ✓ 1-year warranty on devices<br />
-          ✓ Free express shipping<br />
+          ✓ Free express shipping on phones &amp; accessory orders $100+<br />
           ✓ Same-day repairs in store<br />
           ✓ Phones, tablets, laptops &amp; watches
         </div>

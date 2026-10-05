@@ -111,7 +111,7 @@ export function Terms() {
 
       <h2 id="shipping">Shipping &amp; postage</h2>
       <ul>
-        <li><strong>Accessories orders:</strong> free click &amp; collect, or free express shipping Australia-wide by tracked post.</li>
+        <li><strong>Accessories orders:</strong> free click &amp; collect, or express shipping Australia-wide by tracked post: free on orders of $100 or more, otherwise a flat $9.95.</li>
         <li><strong>Posting us a trade-in:</strong> pack it securely and drop it at any Australia Post outlet or Parcel Locker. Keep your tracking number until we confirm it's arrived. Devices travel at your risk until received, so we recommend tracked postage.</li>
       </ul>
 
