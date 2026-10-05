@@ -124,7 +124,20 @@ function siteUrl() {
 }
 
 export default defineConfig({
-  plugins: [react(), legacyEntryForwarders(), pagePerRoute(), siteUrl()],
+  plugins: [
+    // Cache-busting: the bundle keeps its stable name (/assets/app.js) but every
+    // build stamps a fresh ?v= on it in the HTML, so browsers (iPhone Safari
+    // especially) always fetch the new version after a deploy.
+    {
+      name: "cache-bust-assets",
+      transformIndexHtml: {
+        order: "post",
+        handler(html) {
+          const v = Date.now().toString(36);
+          return html.replace(/(src|href)="(\/assets\/[^"?]+\.(?:js|css))"/g, `$1="$2?v=${v}"`);
+        },
+      },
+    },react(), legacyEntryForwarders(), pagePerRoute(), siteUrl()],
   build: {
     outDir: "dist",
     rollupOptions: {

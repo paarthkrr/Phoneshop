@@ -7,7 +7,7 @@ import { mergeCatalog } from "./device-catalog.js";
 import InspectionSignature from "./inspection-signature.jsx";
 
 // ---- Hero: animated gradient, the shop's own phone photos, live price ticker ----
-const TICKER_MODELS = ["iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro"];
+const TICKER_MODELS = ["iPhone 18 Pro Max", "iPhone 18 Pro", "iPhone 17 Pro Max", "iPhone 17", "iPhone Air", "Galaxy S26 Ultra", "Galaxy S26", "Pixel 10 Pro", "iPhone 16 Pro Max", "iPhone 15 Pro", "Galaxy Z Fold8"];
 // "Top phones we buy" strip — big cards that glide across, each with a real "up to" price.
 const FEATURED_PHONES = ["iPhone 18 Pro", "Galaxy S26", "iPhone Air", "iPhone 17", "Nothing Phone (3)", "Galaxy A17", "iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro Max", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro Max", "Galaxy S25 Ultra", "iPhone 14 Pro Max", "Pixel 9 Pro", "iPhone 13 Pro Max", "Galaxy S24 Ultra"];
 const TOP_CSS = `
@@ -57,6 +57,15 @@ function TopPhones({ phones }) {
 
 const MARQUEE = ["APPLE", "SAMSUNG", "GOOGLE PIXEL", "OPPO", "MOTOROLA", "XIAOMI", "ONEPLUS", "NOTHING", "IPAD", "APPLE WATCH"];
 // Same formula as the quote tool (sealed, largest storage, after holding cost) — never more than a real quote.
+// "Up to" per storage size (same capped formula as the Sell pages and the quote tool's sealed price).
+function pricesFor(d, cfg) {
+  const pts = (cfg && cfg.retentionPoints) || DEFAULT_RETENTION_POINTS;
+  const f = { ...DEFAULT_BRAND_FACTOR, ...((cfg && cfg.brandFactors) || {}) };
+  const hold = (cfg && cfg.holdingCostPct) ?? DEFAULT_HOLDING_COST_PCT;
+  const out = {};
+  for (const s of Object.keys(d.retail || {})) { const v = Math.floor((baseBuybackAUD(d, s, pts, f) || 0) * (1 - hold)); if (v > 0) out[s] = v; }
+  return out;
+}
 function upToFor(d, cfg) {
   const pts = (cfg && cfg.retentionPoints) || DEFAULT_RETENTION_POINTS;
   const f = { ...DEFAULT_BRAND_FACTOR, ...((cfg && cfg.brandFactors) || {}) };
@@ -64,80 +73,134 @@ function upToFor(d, cfg) {
   return Math.floor(Math.max(0, ...Object.keys(d.retail || {}).map((s) => baseBuybackAUD(d, s, pts, f) || 0)) * (1 - hold));
 }
 const HERO_CSS = `
-.mvx-hero{position:relative;overflow:hidden;color:#fff;background:linear-gradient(120deg,#0B1530,#1E3A8A 30%,#2150C8 58%,#0EA5E9 82%,#0B1530);background-size:300% 300%;animation:mvx-grad 14s ease infinite}
-@keyframes mvx-grad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.mvx-hero-inner{max-width:1140px;margin:0 auto;padding:60px 20px 40px;display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center}
-.mvx-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
-.mvx-pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:7px 12px;border-radius:999px;font-size:13px;font-weight:700}
-.mvx-h1{font-family:'Archivo Black',sans-serif;font-size:clamp(38px,7vw,66px);line-height:1.02;letter-spacing:-.02em;margin:0 0 16px}
+.mvx-hero{position:relative;overflow:hidden;color:#0F1B3D;background:linear-gradient(118deg,#F3F7FF,#E6EEFC)}
+.mvx-hero-inner{max-width:1180px;margin:0 auto;padding:58px 22px 46px;display:grid;grid-template-columns:1.05fr 1fr;gap:26px;align-items:center}
+.mvx-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:.16em;color:#0F1B3D;margin-bottom:20px}
+.mvx-eyebrow i{width:26px;height:2px;background:#2150C8;display:block}
+.mvx-h1{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,6.4vw,68px);line-height:1.04;letter-spacing:-.02em;margin:0 0 18px}
+.mvx-h1 .mvx-blue{color:#2150C8}
 .mvx-word{display:inline-block;opacity:0;transform:translateY(45%);animation:mvx-up .75s cubic-bezier(.16,1,.3,1) forwards}
-.mvx-grad-text{background:linear-gradient(90deg,#BAE6FD,#FFFFFF,#93C5FD);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mvx-in{opacity:0;animation:mvx-up .75s cubic-bezier(.16,1,.3,1) forwards}
 @keyframes mvx-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
-.mvx-sub{font-size:17px;line-height:1.6;opacity:.92;max-width:520px;margin:0 0 20px}
-.mvx-ticker{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:10px 16px;color:#fff;text-decoration:none;margin-bottom:22px;font-size:15px}
-.mvx-price{display:inline-block;font-family:'Archivo Black',sans-serif;font-size:24px;color:#FFFFFF;animation:mvx-flip .55s cubic-bezier(.16,1,.3,1)}
-.mvx-model{display:inline-block;font-weight:800;animation:mvx-flip .55s cubic-bezier(.16,1,.3,1)}
-@keyframes mvx-flip{from{opacity:0;transform:translateY(70%)}to{opacity:1;transform:none}}
-.mvx-ctas{display:flex;gap:10px;flex-wrap:wrap}
-.mvx-cta{position:relative;overflow:hidden;background:#fff;color:#1E3A8A;font-weight:800;padding:15px 22px;border-radius:12px;text-decoration:none;font-size:16px;box-shadow:0 12px 30px rgba(0,0,0,.28);transition:transform .2s ease}
+.mvx-sub{font-size:17px;line-height:1.65;color:#5B6472;max-width:440px;margin:0 0 24px}
+.mvx-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.mvx-cta{position:relative;overflow:hidden;background:#2150C8;color:#fff;font-weight:800;padding:15px 22px;border-radius:12px;text-decoration:none;font-size:15.5px;box-shadow:0 12px 28px rgba(33,80,200,.28);transition:transform .2s ease}
 .mvx-cta:hover{transform:translateY(-2px)}
-.mvx-shine::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(33,80,200,.28),transparent);animation:mvx-shine 3.2s ease-in-out infinite}
+.mvx-shine::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:mvx-shine 3.2s ease-in-out infinite}
 @keyframes mvx-shine{0%{left:-60%}60%,100%{left:130%}}
-.mvx-cta2{color:#fff;font-weight:700;padding:15px 18px;border-radius:12px;border:1.5px solid rgba(255,255,255,.55);text-decoration:none;font-size:16px}
-.mvx-phones{position:relative;height:400px;display:flex;justify-content:center;align-items:center}
-.mvx-glow{position:absolute;inset:12% 8%;background:radial-gradient(closest-side,rgba(147,197,253,.6),transparent);filter:blur(30px)}
-.mvx-phone{position:relative;filter:drop-shadow(0 26px 30px rgba(0,0,0,.45));transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
-.mvx-dev-side{width:30%;max-width:170px;margin:0 -6%}.mvx-dev-phone{width:36%;max-width:205px}
-@keyframes mvx-float{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-16px)}}
-.mvx-marquee{border-top:1px solid rgba(255,255,255,.16);overflow:hidden;white-space:nowrap;padding:13px 0;font-weight:800;letter-spacing:.08em;font-size:13px;opacity:.85}
-.mvx-track{display:inline-flex;gap:44px;padding-left:44px;animation:mvx-marq 30s linear infinite}
-@keyframes mvx-marq{to{transform:translateX(-50%)}}
-@media(max-width:820px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 20px;text-align:center}.mvx-pills,.mvx-ctas{justify-content:center}.mvx-sub{margin:0 auto 20px}.mvx-phones{height:250px;order:-1}.mvx-dev-side{max-width:105px}.mvx-dev-phone{max-width:125px}}
-@media(prefers-reduced-motion:reduce){.mvx-hero,.mvx-phone,.mvx-track,.mvx-shine::after{animation:none}.mvx-word,.mvx-in{animation:mvx-fade .6s ease forwards;transform:none}.mvx-price,.mvx-model{animation:mvx-fade .4s ease}}
+.mvx-cta2{color:#0F1B3D;font-weight:800;padding:15px 20px;border-radius:12px;border:1.5px solid #C9D3E6;background:#fff;text-decoration:none;font-size:15.5px}
+.mvx-pills{display:flex;flex-wrap:wrap;gap:16px;font-size:13.5px;font-weight:700}
+.mvx-pills span{display:flex;align-items:center;gap:6px}.mvx-pills svg{width:17px;height:17px;color:#2150C8}
+.mvx-stage{position:relative;height:470px}
+.mvx-stage::before{content:"";position:absolute;width:380px;height:380px;border-radius:50%;border:1px solid rgba(33,80,200,.14);background:radial-gradient(closest-side,rgba(255,255,255,.9),rgba(255,255,255,0));top:22px;left:4%}
+.mvx-phones{position:absolute;inset:0}
+.mvx-phone{position:absolute;filter:drop-shadow(14px 24px 26px rgba(15,27,61,.22));transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
+.mvx-ph-back{width:170px;left:8%;top:72px;--r:-14deg}
+.mvx-ph-front{width:182px;left:31%;top:14px;--r:9deg;animation-delay:.9s}
+@keyframes mvx-float{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-12px)}}
+.mvx-sticker{position:absolute;top:18px;right:2%;background:#fff;border:1px solid #E2E6EC;border-radius:8px;padding:10px 13px;font-size:13px;font-weight:800;transform:rotate(4deg);box-shadow:0 8px 20px rgba(15,27,61,.08);z-index:3}
+.mvx-quote{position:absolute;right:0;bottom:0;width:300px;background:#fff;border:1px solid #E2E6EC;border-radius:16px;box-shadow:0 22px 60px rgba(15,27,61,.16);padding:18px;z-index:4;text-align:left}
+.mvx-quote-top{display:flex;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.08em;color:#5B6472;margin-bottom:12px}
+.mvx-live{display:flex;align-items:center;gap:6px;color:#0F1B3D}.mvx-live i{width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 0 4px rgba(16,185,129,.15);display:block;animation:mvx-pulse 1.8s ease-in-out infinite}
+@keyframes mvx-pulse{50%{box-shadow:0 0 0 7px rgba(16,185,129,0)}}
+.mvx-quote label{display:grid;gap:5px;font-size:12px;color:#5B6472;font-weight:700}
+.mvx-quote select{width:100%;height:40px;border:1px solid #E2E6EC;background:#F4F6F9;border-radius:10px;padding:0 10px;font-size:14px;font-weight:700;color:#0F1B3D;font-family:inherit}
+.mvx-quote-row{display:grid;grid-template-columns:1.6fr 1fr;gap:8px}
+.mvx-est{display:flex;justify-content:space-between;align-items:flex-end;margin:14px 0}
+.mvx-est-label{font-size:12px;color:#5B6472}.mvx-price{display:block;font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1.1;color:#0F1B3D;animation:mvx-flip .45s cubic-bezier(.16,1,.3,1)}
+@keyframes mvx-flip{from{opacity:0;transform:translateY(40%)}to{opacity:1;transform:none}}
+.mvx-cash{font-size:12px;font-weight:800;color:#047857;background:#ECFDF5;border-radius:8px;padding:6px 8px;white-space:nowrap}
+.mvx-quote-btn{display:flex;justify-content:space-between;align-items:center;width:100%;background:#0F1B3D;color:#fff;border-radius:10px;padding:12px 14px;font-weight:800;font-size:14.5px;text-decoration:none;box-sizing:border-box}
+.mvx-quote-note{font-size:11.5px;color:#5B6472;margin-top:9px;line-height:1.45}
+.mvx-benefits{border-top:1px solid #DCE4F2;background:#fff}
+.mvx-benefits-inner{max-width:1180px;margin:0 auto;padding:18px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.mvx-benefits-inner div{display:flex;align-items:center;justify-content:center;gap:9px;font-size:13.5px;font-weight:700}
+.mvx-benefits-inner svg{width:19px;height:19px;color:#2150C8;flex-shrink:0}
+@media(max-width:860px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 26px}.mvx-stage{height:430px;max-width:420px;width:100%;margin:0 auto}.mvx-stage::before{width:290px;height:290px;left:6px}.mvx-ph-back{width:128px;left:2%;top:56px}.mvx-ph-front{width:138px;left:27%;top:8px}.mvx-quote{width:250px;padding:14px}.mvx-price{font-size:28px}.mvx-sticker{font-size:11.5px;top:4px}.mvx-benefits-inner{grid-template-columns:1fr 1fr}.mvx-benefits-inner div{justify-content:flex-start;font-size:12.5px}}
+@media(prefers-reduced-motion:reduce){.mvx-phone,.mvx-shine::after,.mvx-live i{animation:none}.mvx-word,.mvx-in{animation:mvx-fade .6s ease forwards;transform:none}.mvx-price{animation:mvx-fade .3s ease}}
 @keyframes mvx-fade{from{opacity:0}to{opacity:1}}
 `;
-function Hero({ ticker }) {
-  const [i, setI] = useState(0);
-  useEffect(() => { if (ticker.length < 2) return; const t = setInterval(() => setI((x) => (x + 1) % ticker.length), 2600); return () => clearInterval(t); }, [ticker.length]);
-  const cur = ticker[i % Math.max(1, ticker.length)];
+const IC = {
+  truck: <path d="M3 7h11v9H3zM14 10h4l3 3v3h-7zM7 19.3a1.8 1.8 0 1 0 0-.1M17 19.3a1.8 1.8 0 1 0 0-.1" />,
+  cash: <><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="3" /></>,
+  shield: <><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" /><path d="M9 12l2 2 4-4" /></>,
+  bolt: <path d="M13 2L4 14h7l-1 8 9-12h-7z" />,
+  box: <><path d="M3 7l9-4 9 4v10l-9 4-9-4z" /><path d="M3 7l9 4 9-4M12 11v10" /></>,
+};
+const Ico = ({ k }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{IC[k]}</svg>;
+
+// Lovable-inspired hero: light canvas, the shop's own phones, and a live quote card.
+// Prices use the same capped "up to" formula as the quote tool (never above a real quote).
+function Hero({ quoteModels }) {
+  const [mi, setMi] = useState(0);
+  const [si, setSi] = useState(0);
+  const cur = quoteModels[Math.min(mi, quoteModels.length - 1)];
+  const storages = cur ? Object.keys(cur.prices) : [];
+  const storage = storages[Math.min(si, storages.length - 1)];
+  const price = cur && storage ? cur.prices[storage] : 0;
   const words = [["Sell", 0], ["your", 0], ["phone.", 0], ["Get", 1], ["paid", 1], ["today.", 1]];
   return (
-    <section className="mvx-hero" aria-label="Sell your phone">
-      <style>{HERO_CSS}</style>
-      <div className="mvx-hero-inner">
-        <div>
-          <div className="mvx-pills">
-            {["🏠 Home collection across Sydney", "💵 Paid in cash", "✓ 49-point check"].map((p, n) => <span key={p} className="mvx-pill mvx-in" style={{ animationDelay: `${0.05 + n * 0.08}s` }}>{p}</span>)}
+    <>
+      <section className="mvx-hero" aria-label="Sell your phone">
+        <style>{HERO_CSS}</style>
+        <div className="mvx-hero-inner">
+          <div>
+            <div className="mvx-eyebrow mvx-in"><i />SYDNEY · SELL · REPAIR · BUY</div>
+            <h1 className="mvx-h1">
+              {words.map(([w, hl], n) => <span key={n} className={"mvx-word" + (hl ? " mvx-blue" : "")} style={{ animationDelay: `${0.15 + n * 0.07}s` }}>{w}{n === 2 ? <br /> : "\u00a0"}</span>)}
+            </h1>
+            <p className="mvx-sub mvx-in" style={{ animationDelay: "0.6s" }}>Sell it. Fix it. Find your next one. We collect from your door anywhere in Sydney and pay you in cash.</p>
+            <div className="mvx-ctas mvx-in" style={{ animationDelay: "0.7s" }}>
+              <a href="/quote" className="mvx-cta mvx-shine">Sell my phone ↗</a>
+              <a href="/shop" className="mvx-cta2">Shop refurbished ↗</a>
+            </div>
+            <div className="mvx-pills mvx-in" style={{ animationDelay: "0.8s" }}>
+              <span><Ico k="truck" />Home collection across Sydney</span>
+              <span><Ico k="cash" />Paid in cash</span>
+              <span><Ico k="shield" />49-point check</span>
+            </div>
           </div>
-          <h1 className="mvx-h1">
-            {words.map(([w, hl], n) => <span key={n} className={"mvx-word" + (hl ? " mvx-grad-text" : "")} style={{ animationDelay: `${0.2 + n * 0.08}s` }}>{w}{n === 2 ? <br /> : "\u00a0"}</span>)}
-          </h1>
-          <p className="mvx-sub mvx-in" style={{ animationDelay: "0.7s" }}>Instant quote in 60 seconds. We collect from your door anywhere in Sydney and pay you in cash. Plus the cheapest same-day repairs in store.</p>
-          {cur && (
-            <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-ticker mvx-in" style={{ animationDelay: "0.8s" }} aria-live="polite">
-              <span style={{ opacity: 0.85 }}>Get up to</span>
-              <span key={"p" + i} className="mvx-price">${cur.upTo.toLocaleString()}</span>
-              <span style={{ opacity: 0.85 }}>for your</span>
-              <span key={"m" + i} className="mvx-model">{cur.model}</span>
-              <span aria-hidden="true">→</span>
-            </a>
-          )}
-          <div className="mvx-ctas mvx-in" style={{ animationDelay: "0.9s" }}>
-            <a href="/quote" className="mvx-cta mvx-shine">Get my instant quote →</a>
-            <a href="/accessories" className="mvx-cta2">Shop accessories</a>
+          <div className="mvx-stage">
+            <div className="mvx-phones" aria-hidden="true">
+              <img src="/photos/real/galaxy-s26.webp" alt="" className="mvx-phone mvx-ph-back" />
+              <img src="/photos/real/iphone-18-pro.webp" alt="" className="mvx-phone mvx-ph-front" />
+            </div>
+            <div className="mvx-sticker">♻ Good phones. More life.</div>
+            {cur && (
+              <div className="mvx-quote mvx-in" style={{ animationDelay: "0.5s" }}>
+                <div className="mvx-quote-top"><span className="mvx-live"><i />LIVE QUOTE</span><span>SYDNEY</span></div>
+                <div className="mvx-quote-row">
+                  <label>Model
+                    <select aria-label="Phone model" value={mi} onChange={(e) => { setMi(+e.target.value); setSi(0); }}>
+                      {quoteModels.map((q, n) => <option key={q.model} value={n}>{q.model}</option>)}
+                    </select>
+                  </label>
+                  <label>Storage
+                    <select aria-label="Storage" value={si} onChange={(e) => setSi(+e.target.value)}>
+                      {storages.map((s, n) => <option key={s} value={n}>{s}</option>)}
+                    </select>
+                  </label>
+                </div>
+                <div className="mvx-est">
+                  <div><span className="mvx-est-label">Yours could be worth up to</span><span key={cur.model + storage} className="mvx-price">${price.toLocaleString()}</span></div>
+                  <span className="mvx-cash">💵 Paid in cash</span>
+                </div>
+                <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-quote-btn">Get my exact quote <span aria-hidden="true">→</span></a>
+                <div className="mvx-quote-note">Top price for a flawless device. Final offer after our 49-point check.</div>
+              </div>
+            )}
           </div>
         </div>
-        <div className="mvx-phones" aria-hidden="true">
-          <div className="mvx-glow" />
-          {/* Real store photos, cleaned up: Samsung, Apple and Google */}
-          {[["/photos/real/galaxy-s26.webp", -10, "0s", "mvx-dev-side"], ["/photos/real/iphone-18-pro.webp", 0, "0.9s", "mvx-dev-phone"], ["/photos/real/pixel-11-pro.webp", 10, "1.8s", "mvx-dev-side"]].map(([src, r, d, cls], n) => (
-            <img key={src} src={src} alt="" className={"mvx-phone " + cls} style={{ "--r": `${r}deg`, animationDelay: d, zIndex: n === 1 ? 2 : 1 }} />
-          ))}
+      </section>
+      <div className="mvx-benefits">
+        <div className="mvx-benefits-inner">
+          <div><Ico k="truck" />Free Sydney home collection</div>
+          <div><Ico k="shield" />49-point quality inspection</div>
+          <div><Ico k="bolt" />Same-day in-store repairs</div>
+          <div><Ico k="box" />1-year warranty on devices</div>
         </div>
       </div>
-      <div className="mvx-marquee" aria-hidden="true"><div className="mvx-track">{[...MARQUEE, ...MARQUEE].map((b, n) => <span key={n}>{b}</span>)}</div></div>
-    </section>
+    </>
   );
 }
 
@@ -203,7 +266,7 @@ export default function Home() {
   const [stats, setStats] = useState([]);
   const [biz, setBiz] = useState({});
   const [featured, setFeatured] = useState(null);
-  const [ticker, setTicker] = useState([]);
+  const [quoteModels, setQuoteModels] = useState([]);
   const [topPhones, setTopPhones] = useState([]);
   const [photos, setPhotos] = useState({});
 
@@ -213,7 +276,7 @@ export default function Home() {
       const b = (cfg && cfg.businessSettings) || {};
       setBiz(b);
       { const cat = mergeCatalog(cfg && cfg.catalog);
-        setTicker(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0));
+        setQuoteModels(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, prices: pricesFor(d, cfg) })).filter((x) => Object.keys(x.prices).length));
         setTopPhones(FEATURED_PHONES.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, imageUrl: d.imageUrl, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0)); }
       setPhotos(Object.fromEntries(mergeCatalog(cfg && cfg.catalog).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])));
       // Featured deal: the highest-value device actually listed for sale right now.
@@ -257,7 +320,7 @@ export default function Home() {
       `}</style>
 
       {/* ---- Hero ---- */}
-      <Hero ticker={ticker} />
+      <Hero quoteModels={quoteModels} />
       <TopPhones phones={topPhones} />
       <div className="mv-hero" style={{ ...section, textAlign: "center", padding: "34px 20px 34px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, textAlign: "left" }}>
