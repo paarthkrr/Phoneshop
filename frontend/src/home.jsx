@@ -9,7 +9,7 @@ import InspectionSignature from "./inspection-signature.jsx";
 // ---- Hero: animated gradient, the shop's own phone photos, live price ticker ----
 const TICKER_MODELS = ["iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro"];
 // "Top phones we buy" strip — big cards that glide across, each with a real "up to" price.
-const FEATURED_PHONES = ["iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro Max", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro Max", "Galaxy S25 Ultra", "iPhone 14 Pro Max", "Pixel 9 Pro", "iPhone 13 Pro Max", "Galaxy S24 Ultra"];
+const FEATURED_PHONES = ["iPhone 18 Pro", "Galaxy S26", "iPhone Air", "iPhone 17", "Nothing Phone (3)", "Galaxy A17", "iPhone 18 Pro Max", "Galaxy S26 Ultra", "iPhone 17 Pro Max", "Pixel 10 Pro", "iPhone 16 Pro Max", "Galaxy Z Fold8", "iPhone 15 Pro Max", "Galaxy S25 Ultra", "iPhone 14 Pro Max", "Pixel 9 Pro", "iPhone 13 Pro Max", "Galaxy S24 Ultra"];
 const TOP_CSS = `
 .mvt-wrap{position:relative;overflow:hidden;padding:6px 0 10px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
 .mvt-track{display:flex;gap:16px;width:max-content;animation:mvt-scroll 60s linear infinite}
@@ -88,12 +88,12 @@ const HERO_CSS = `
 .mvx-phones{position:relative;height:400px;display:flex;justify-content:center;align-items:center}
 .mvx-glow{position:absolute;inset:12% 8%;background:radial-gradient(closest-side,rgba(147,197,253,.6),transparent);filter:blur(30px)}
 .mvx-phone{position:relative;filter:drop-shadow(0 26px 30px rgba(0,0,0,.45));transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
-.mvx-dev-tab{width:38%;max-width:210px;margin-right:-9%}.mvx-dev-phone{width:44%;max-width:240px}.mvx-dev-watch{width:24%;max-width:130px;margin-left:-5%;align-self:flex-end;margin-bottom:6%}
+.mvx-dev-side{width:30%;max-width:170px;margin:0 -6%}.mvx-dev-phone{width:36%;max-width:205px}
 @keyframes mvx-float{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-16px)}}
 .mvx-marquee{border-top:1px solid rgba(255,255,255,.16);overflow:hidden;white-space:nowrap;padding:13px 0;font-weight:800;letter-spacing:.08em;font-size:13px;opacity:.85}
 .mvx-track{display:inline-flex;gap:44px;padding-left:44px;animation:mvx-marq 30s linear infinite}
 @keyframes mvx-marq{to{transform:translateX(-50%)}}
-@media(max-width:820px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 20px;text-align:center}.mvx-pills,.mvx-ctas{justify-content:center}.mvx-sub{margin:0 auto 20px}.mvx-phones{height:250px;order:-1}.mvx-dev-tab{max-width:130px}.mvx-dev-phone{max-width:150px}.mvx-dev-watch{max-width:80px}}
+@media(max-width:820px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 20px;text-align:center}.mvx-pills,.mvx-ctas{justify-content:center}.mvx-sub{margin:0 auto 20px}.mvx-phones{height:250px;order:-1}.mvx-dev-side{max-width:105px}.mvx-dev-phone{max-width:125px}}
 @media(prefers-reduced-motion:reduce){.mvx-hero,.mvx-phone,.mvx-track,.mvx-shine::after{animation:none}.mvx-word,.mvx-in{animation:mvx-fade .6s ease forwards;transform:none}.mvx-price,.mvx-model{animation:mvx-fade .4s ease}}
 @keyframes mvx-fade{from{opacity:0}to{opacity:1}}
 `;
@@ -130,8 +130,8 @@ function Hero({ ticker }) {
         </div>
         <div className="mvx-phones" aria-hidden="true">
           <div className="mvx-glow" />
-          {/* A mix of gadgets: iPad, iPhone (the shop's own photo), Apple Watch */}
-          {[["/photos/hero-ipad.svg", -8, "0s", "mvx-dev-tab"], ["/photos/iphone-18-pro-max.png", 0, "0.9s", "mvx-dev-phone"], ["/photos/hero-watch.svg", 10, "1.8s", "mvx-dev-watch"]].map(([src, r, d, cls], n) => (
+          {/* Real store photos, cleaned up: Samsung, Apple and Google */}
+          {[["/photos/real/galaxy-s26.png", -10, "0s", "mvx-dev-side"], ["/photos/real/iphone-18-pro.png", 0, "0.9s", "mvx-dev-phone"], ["/photos/real/pixel-11-pro.png", 10, "1.8s", "mvx-dev-side"]].map(([src, r, d, cls], n) => (
             <img key={src} src={src} alt="" className={"mvx-phone " + cls} style={{ "--r": `${r}deg`, animationDelay: d, zIndex: n === 1 ? 2 : 1 }} />
           ))}
         </div>
@@ -186,6 +186,7 @@ const TRUST = [
   { title: "Battery 80%+ guaranteed", desc: "Every refurbished phone we sell. Conditions apply." },
 ];
 
+const STEP_ICONS = {"1": "<rect x=\"7\" y=\"2\" width=\"10\" height=\"20\" rx=\"2.5\"/><path d=\"M11 18h2\"/>", "2": "<path d=\"M3 7h11v9H3zM14 10h4l3 3v3h-7z\"/><circle cx=\"7\" cy=\"17.5\" r=\"1.8\"/><circle cx=\"17\" cy=\"17.5\" r=\"1.8\"/>", "3": "<rect x=\"2\" y=\"6\" width=\"20\" height=\"12\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M6 9v.01M18 15v.01\"/>"};
 const STEPS = [
   { n: "1", title: "Get your quote", desc: "Tell us the model and condition. Your price appears instantly." },
   { n: "2", title: "We collect it", desc: "We collect from your door anywhere in Sydney — or post it, or drop it in store." },
@@ -337,20 +338,29 @@ export default function Home() {
         </Photo>
       </div>
 
-      {/* ---- How selling works ---- */}
-      <div style={{ ...section, marginBottom: 50 }}>
-        <div style={heading}>Selling your phone takes three steps</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-          {STEPS.map((s, i) => (
-            <div key={s.n} className="mv-rise" style={{ animationDelay: `${0.1 + i * 0.1}s`, border: `1px solid ${line}`, borderRadius: 4, padding: 20, background: panel }}>
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: brass, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, marginBottom: 12 }}>{s.n}</div>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{s.title}</div>
-              <div style={{ color: muted, fontSize: 13.5, lineHeight: 1.55 }}>{s.desc}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ textAlign: "center", marginTop: 22 }}>
-          <a href="/quote" className="cs-btn" style={{ padding: "13px 26px", background: brass, color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get your instant quote</a>
+      {/* ---- How selling works: "From drawer to dollars" ---- */}
+      <div style={{ background: "#F4F6F9", padding: "56px 0", marginBottom: 50 }}>
+        <div style={section}>
+          <div style={{ textAlign: "center", marginBottom: 34 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.14em", color: brass, marginBottom: 8 }}>LESS HASSLE. MORE CASH.</div>
+            <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(28px, 5vw, 38px)", lineHeight: 1.15 }}>From drawer to dollars.</div>
+            <div style={{ color: muted, fontSize: 15, marginTop: 8 }}>Three simple steps. You don't even need to leave home.</div>
+          </div>
+          <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 36 }}>
+            {STEPS.map((s) => (
+              <div key={s.n}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, fontFamily: "'Archivo Black', sans-serif", color: brass, fontSize: 13, marginBottom: 18 }}>0{s.n}<span style={{ flex: 1, height: 1, background: line }} /></div>
+                <div style={{ width: 46, height: 46, borderRadius: 12, background: "#fff", color: brass, display: "grid", placeItems: "center", marginBottom: 16, boxShadow: "0 6px 16px rgba(17,24,39,.06)" }}>
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: STEP_ICONS[s.n] }} />
+                </div>
+                <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 8 }}>{s.title}</div>
+                <div style={{ color: muted, fontSize: 14, lineHeight: 1.65 }}>{s.desc}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: "center", marginTop: 30 }}>
+            <a href="/quote" className="cs-btn" style={{ padding: "14px 28px", background: brass, color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none", borderRadius: 12, display: "inline-block" }}>Get your instant quote →</a>
+          </div>
         </div>
       </div>
 
@@ -457,6 +467,17 @@ export default function Home() {
               {g.title} <span style={{ color: brass }}>→</span>
             </a>
           ))}
+        </div>
+      </div>
+
+      {/* ---- Final call to action (Lovable design idea) ---- */}
+      <div style={{ background: "linear-gradient(120deg,#1E3A8A,#2150C8 60%,#0EA5E9)", color: "#fff", padding: "54px 0", marginTop: 20 }}>
+        <div style={{ ...section, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(28px, 5vw, 40px)", lineHeight: 1.12 }}>That old phone has a future.</div>
+            <div style={{ fontSize: 15.5, opacity: 0.88, marginTop: 10 }}>And there could be cash in yours. We collect anywhere in Sydney and pay on the spot.</div>
+          </div>
+          <a href="/quote" className="cs-btn" style={{ background: "#fff", color: "#1E3A8A", padding: "15px 26px", borderRadius: 12, fontWeight: 800, fontSize: 15.5, textDecoration: "none", boxShadow: "0 12px 30px rgba(0,0,0,.2)" }}>Find out what it's worth →</a>
         </div>
       </div>
     </div>

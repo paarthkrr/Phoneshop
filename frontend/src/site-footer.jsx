@@ -81,8 +81,9 @@ export default function SiteFooter() {
           ✓ Phones, tablets, laptops &amp; watches
         </div>
       </div>
-      <div style={{ gridColumn: "1 / -1", fontSize: 12, color: muted, borderTop: "1px solid rgba(32,28,24,0.1)", paddingTop: 14 }}>
-        
+      <div style={{ gridColumn: "1 / -1", fontSize: 12.5, color: muted, borderTop: "1px solid rgba(32,28,24,0.1)", paddingTop: 14, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <span>© {new Date().getFullYear()} Mobile Recellr · Sydney, Australia · Prices in AUD</span>
+        <span style={{ fontWeight: 700, color: "#2150C8" }}>More life. Less landfill. ♻</span>
       </div>
     </footer>
   );

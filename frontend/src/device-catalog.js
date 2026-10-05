@@ -6,10 +6,10 @@
 // the Register only knew 17 models while the calculator had 91.
 export const DEFAULT_CATALOG = [
   { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699 }, category: "phone", imageUrl: "/photos/iphone-18-pro-max.png" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro", release: "2026-09-18", retail: { "256GB": 2099, "512GB": 2499 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro", release: "2026-09-18", retail: { "256GB": 2099, "512GB": 2499 }, category: "phone", imageUrl: "/photos/real/iphone-18-pro.png" },
   { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro Max", release: "2025-09-19", retail: { "256GB": 2199, "512GB": 2549 }, category: "phone", imageUrl: "/photos/iphone-17-pro-max.png" },
   { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro", release: "2025-09-19", retail: { "128GB": 1999, "256GB": 2199 }, category: "phone" },
-  { brand: "Apple", icon: "🍎", model: "iPhone 17", release: "2025-09-19", retail: { "256GB": 1399, "512GB": 1799 }, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone 17", release: "2025-09-19", retail: { "256GB": 1399, "512GB": 1799 }, category: "phone", imageUrl: "/photos/real/iphone-17.png" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro Max", release: "2024-09-20", retail: { "256GB": 2149, "512GB": 2519 }, category: "phone", imageUrl: "/photos/iphone-16-pro-max.png" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16 Pro", release: "2024-09-20", retail: { "128GB": 1799, "256GB": 1999 }, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16 Plus", release: "2024-09-20", retail: { "128GB": 1599, "256GB": 1799 }, category: "phone" },
@@ -30,7 +30,7 @@ export const DEFAULT_CATALOG = [
 
   { brand: "Samsung", icon: "🔷", model: "Galaxy S26 Ultra", release: "2026-02-01", retail: { "256GB": 2199, "512GB": 2419 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S26+", release: "2026-02-01", retail: { "256GB": 1799, "512GB": 1999 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy S26", release: "2026-02-01", retail: { "128GB": 1499, "256GB": 1599 }, category: "phone" },
+  { brand: "Samsung", icon: "🔷", model: "Galaxy S26", release: "2026-02-01", retail: { "128GB": 1499, "256GB": 1599 }, category: "phone", imageUrl: "/photos/real/galaxy-s26.png" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S25 Ultra", release: "2025-01-22", retail: { "256GB": 2049, "512GB": 2269 }, category: "phone", imageUrl: "https://images.pexels.com/photos/30466736/pexels-photo-30466736.jpeg?auto=compress&cs=tinysrgb&w=600" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S25", release: "2025-01-22", retail: { "128GB": 1399, "256GB": 1499 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy S24 Ultra", release: "2024-01-24", retail: { "256GB": 1999, "512GB": 2199 }, category: "phone" },
@@ -48,7 +48,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Samsung", icon: "🔷", model: "Galaxy Z Flip6", release: "2024-07-24", retail: { "256GB": 1649 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy Z Flip5", release: "2023-07-26", retail: { "256GB": 1499 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A56", release: "2025-03-06", retail: { "128GB": 699, "256GB": 799 }, category: "phone" },
-  { brand: "Samsung", icon: "🔷", model: "Galaxy A17", release: "2025-09-01", retail: { "128GB": 399 }, category: "phone" },
+  { brand: "Samsung", icon: "🔷", model: "Galaxy A17", release: "2025-09-01", retail: { "128GB": 399 }, category: "phone", imageUrl: "/photos/real/galaxy-a17.png" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A16", release: "2025-01-08", retail: { "128GB": 349 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A55", release: "2024-03-11", retail: { "128GB": 699 }, category: "phone" },
   { brand: "Samsung", icon: "🔷", model: "Galaxy A54", release: "2023-03-24", retail: { "128GB": 699 }, category: "phone" },
@@ -85,7 +85,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Motorola", icon: "🔵", model: "Razr 50", release: "2024-07-25", retail: { "256GB": 1399 }, category: "phone" },
 
 
-  { brand: "Nothing", icon: "🔘", model: "Nothing Phone (3)", release: "2025-07-04", retail: { "256GB": 999, "512GB": 1149 }, category: "phone" },
+  { brand: "Nothing", icon: "🔘", model: "Nothing Phone (3)", release: "2025-07-04", retail: { "256GB": 999, "512GB": 1149 }, category: "phone", imageUrl: "/photos/real/nothing-phone-3.png" },
   { brand: "Nothing", icon: "🔘", model: "Nothing Phone (3a) Pro", release: "2025-03-11", retail: { "128GB": 649 }, category: "phone" },
   { brand: "Nothing", icon: "🔘", model: "Nothing Phone (2a)", release: "2024-03-05", retail: { "128GB": 449 }, category: "phone" },
 
@@ -110,7 +110,7 @@ export const DEFAULT_CATALOG = [
   { brand: "Apple", icon: "💻", model: "MacBook Air 13 (M4)", release: "2025-03-12", retail: { "256GB": 2099 }, category: "laptop" },
   { brand: "Apple", icon: "💻", model: "MacBook Neo", release: "2026-06-01", retail: { "256GB": 1049 }, category: "laptop" },
   // ---- Added 30 Sep 2026: common Australian models (AU launch RRP; verify with the market-check tracker) ----
-  { brand: "Apple", icon: "🍎", model: "iPhone Air", release: "2025-09-19", retail: {"256GB":  1799, "512GB":  2149, "1TB":  2499}, category: "phone" },
+  { brand: "Apple", icon: "🍎", model: "iPhone Air", release: "2025-09-19", retail: {"256GB":  1799, "512GB":  2149, "1TB":  2499}, category: "phone", imageUrl: "/photos/real/iphone-air.png" },
   { brand: "Apple", icon: "🍎", model: "iPhone 16e", release: "2025-02-28", retail: {"128GB":  999, "256GB":  1199, "512GB":  1549}, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 13 Pro", release: "2021-09-24", retail: {"128GB":  1699, "256GB":  1869, "512GB":  2219}, category: "phone" },
   { brand: "Apple", icon: "🍎", model: "iPhone 13 mini", release: "2021-09-24", retail: {"128GB":  1199, "256GB":  1369}, category: "phone" },
