@@ -131,7 +131,7 @@ function Hero({ ticker }) {
         <div className="mvx-phones" aria-hidden="true">
           <div className="mvx-glow" />
           {/* Real store photos, cleaned up: Samsung, Apple and Google */}
-          {[["/photos/real/galaxy-s26.png", -10, "0s", "mvx-dev-side"], ["/photos/real/iphone-18-pro.png", 0, "0.9s", "mvx-dev-phone"], ["/photos/real/pixel-11-pro.png", 10, "1.8s", "mvx-dev-side"]].map(([src, r, d, cls], n) => (
+          {[["/photos/real/galaxy-s26.webp", -10, "0s", "mvx-dev-side"], ["/photos/real/iphone-18-pro.webp", 0, "0.9s", "mvx-dev-phone"], ["/photos/real/pixel-11-pro.webp", 10, "1.8s", "mvx-dev-side"]].map(([src, r, d, cls], n) => (
             <img key={src} src={src} alt="" className={"mvx-phone " + cls} style={{ "--r": `${r}deg`, animationDelay: d, zIndex: n === 1 ? 2 : 1 }} />
           ))}
         </div>
