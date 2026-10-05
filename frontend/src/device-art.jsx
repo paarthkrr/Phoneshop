@@ -83,7 +83,9 @@ function Front({ x, y, w, h, rx, sw, cut, crease }) {
 
 // Back-of-phone camera layouts (back body sits at x=24..106, y=20..196).
 function Back({ family, model, sw }) {
-  const eModel = /\d+e\b/.test((model || "").toLowerCase());   // iPhone 16e / 17e: single camera
+  const ml = (model || "").toLowerCase();
+  const eModel = /\d+e\b/.test(ml);   // iPhone 16e / 17e: single camera
+  const gen = parseInt((ml.match(/(?:iphone|pixel) (\d+)/) || [])[1] || "0", 10);
   const x = 24, y = 20, w = 82, h = 176;
   const rx = { "galaxy-ultra": 8, galaxy: 15, pixel: 18, android: 14, flip: 16 }[family] ?? 17;
   const parts = [];
@@ -97,6 +99,16 @@ function Back({ family, model, sw }) {
     parts.push(<circle key="f" cx={x + 40} cy={y + 13} r="2.6" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
   } else if (family === "iphone" && eModel) {
     parts.push(<Lens key="1" x={x + 18} y={y + 18} r={8} sw={sw} />, <circle key="f" cx={x + 33} cy={y + 18} r="2.6" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
+  } else if (family === "iphone" && gen >= 16) {
+    // iPhone 16 / 17: two cameras in a tall pill
+    parts.push(<rect key="p" x={x + 8} y={y + 6} width="26" height="54" rx="13" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 21} y={y + 20} r={8} sw={sw} />, <Lens key="2" x={x + 21} y={y + 46} r={8} sw={sw} />);
+    parts.push(<circle key="f" cx={x + 42} cy={y + 13} r="2.6" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
+  } else if (family === "iphone" && gen >= 13) {
+    // iPhone 13 / 14 / 15: two cameras on a diagonal in a square
+    parts.push(<rect key="p" x={x + 6} y={y + 6} width="44" height="44" rx="12" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    parts.push(<Lens key="1" x={x + 18} y={y + 18} r={7.5} sw={sw} />, <Lens key="2" x={x + 38} y={y + 38} r={7.5} sw={sw} />);
+    parts.push(<circle key="f" cx={x + 40} cy={y + 15} r="2.4" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
   } else if (family === "iphone") {
     parts.push(<rect key="p" x={x + 6} y={y + 6} width="34" height="46" rx="11" fill={SOFT} stroke={INK} strokeWidth={sw} />);
     parts.push(<Lens key="1" x={x + 23} y={y + 19} r={7.5} sw={sw} />, <Lens key="2" x={x + 23} y={y + 39} r={7.5} sw={sw} />);
@@ -111,6 +123,11 @@ function Back({ family, model, sw }) {
   } else if (family === "galaxy") {
     [0, 1, 2].forEach((i) => parts.push(<Lens key={"b" + i} x={x + 18} y={y + 19 + i * 21} r={7.5} sw={sw} />));
     parts.push(<circle key="f" cx={x + 34} cy={y + 19} r="2.4" fill={INK} opacity=".5" />);
+  } else if (family === "pixel" && gen >= 9) {
+    // Pixel 9 / 10: rounded camera island that stops short of the edges
+    parts.push(<rect key="v" x={x + 7} y={y + 22} width={w - 14} height="30" rx="15" fill={SOFT} stroke={INK} strokeWidth={sw} />);
+    if (/pro/.test(ml)) parts.push(<Lens key="1" x={x + 19} y={y + 37} r={6} sw={sw} />, <Lens key="2" x={x + 34} y={y + 37} r={6} sw={sw} />, <Lens key="3" x={x + 49} y={y + 37} r={6} sw={sw} />, <circle key="f" cx={x + 63} cy={y + 37} r="2.4" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
+    else parts.push(<Lens key="1" x={x + 22} y={y + 37} r={6.5} sw={sw} />, <Lens key="2" x={x + 40} y={y + 37} r={6.5} sw={sw} />, <circle key="f" cx={x + 58} cy={y + 37} r="2.6" fill="none" stroke={INK} strokeWidth={sw * 0.8} />);
   } else if (family === "pixel") {
     parts.push(<rect key="v" x={x - 1} y={y + 26} width={w + 2} height="28" rx="14" fill={SOFT} stroke={INK} strokeWidth={sw} />);
     parts.push(<rect key="w" x={x + 9} y={y + 31} width="40" height="18" rx="9" fill={FILL} stroke={INK} strokeWidth={sw} />);
