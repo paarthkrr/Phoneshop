@@ -1,3 +1,4 @@
+import { withBusinessDefaults } from "./business-info.js";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 
@@ -433,7 +434,7 @@ function MobileCTA() {
       try {
         if (!window.storage) return;
         const r = await window.storage.get("pricing-config", true);
-        setPhone(r ? (JSON.parse(r.value).businessSettings || {}).phone || null : null);
+        setPhone(withBusinessDefaults(r ? JSON.parse(r.value).businessSettings : null).phone);
       } catch (e) { /* no config yet */ }
     })();
   }, []);
@@ -471,7 +472,7 @@ function SiteSchema() {
       try {
         if (!window.storage) return;
         const r = await window.storage.get("pricing-config", true);
-        const b = r ? (JSON.parse(r.value).businessSettings || {}) : {};
+        const b = withBusinessDefaults(r ? JSON.parse(r.value).businessSettings : null);
         if (!b.address && !b.phone) return;
         const data = { "@context": "https://schema.org", "@type": "ElectronicsStore", name: b.shopName || "Mobile Recellr", url: window.location.origin,
           ...(b.address ? { address: b.address } : {}), ...(b.phone ? { telephone: b.phone } : {}), ...(b.email ? { email: b.email } : {}) };

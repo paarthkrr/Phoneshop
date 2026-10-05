@@ -1,3 +1,4 @@
+import { withBusinessDefaults, waLink, mailLink } from "./business-info.js";
 import React, { useState, useEffect } from "react";
 
 function storageAvailable() {
@@ -25,7 +26,7 @@ export default function SiteFooter() {
   useEffect(() => {
     (async () => {
       const cfg = await loadJSON("pricing-config", true);
-      setBusinessSettings((cfg && cfg.businessSettings) || null);
+      setBusinessSettings(withBusinessDefaults(cfg && cfg.businessSettings));
     })();
   }, []);
 
@@ -35,8 +36,9 @@ export default function SiteFooter() {
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}><img src="/logo-icon.svg" alt="" width="26" height="26" style={{ borderRadius: 7 }} />Mobile Recellr</div>
         <div style={{ color: muted, lineHeight: 1.7 }}>
           {businessSettings?.address || "Address on file at checkout"}<br />
-          {businessSettings?.phone && <>{businessSettings.phone}<br /></>}
-          {businessSettings?.email || "Contact us through the site"}
+          {businessSettings?.phone && <><a href={`tel:${businessSettings.phone.replace(/\s/g, "")}`} style={{ color: "inherit" }}>{businessSettings.phone}</a><br /></>}
+          <a href={waLink(businessSettings?.whatsapp, "Hi Mobile Recellr, ")} target="_blank" rel="noopener" style={{ color: "#047857", fontWeight: 700 }}>WhatsApp us</a><br />
+          <a href={mailLink(businessSettings?.email)} style={{ color: "inherit" }}>{businessSettings?.email}</a>
           {businessSettings?.hours && <><br /><span style={{ whiteSpace: "pre-line" }}>{businessSettings.hours}</span></>}
           {businessSettings?.abn && <><br />ABN {businessSettings.abn}</>}
           {businessSettings?.dealerLicence && <><br />Licensed second-hand dealer · Licence {businessSettings.dealerLicence}</>}

@@ -1,3 +1,4 @@
+import { withBusinessDefaults, waLink } from "./business-info.js";
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
@@ -24,7 +25,7 @@ export default function ContactUs() {
   useEffect(() => {
     (async () => {
       const cfg = await loadJSON("pricing-config", true);
-      setBusinessSettings((cfg && cfg.businessSettings) || null);
+      setBusinessSettings(withBusinessDefaults(cfg && cfg.businessSettings));
       setLoaded(true);
     })();
   }, []);
@@ -47,7 +48,14 @@ export default function ContactUs() {
           <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 20, background: panel }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: muted, marginBottom: 6 }}>PHONE</div>
             {phone ? (
-              <a href={`tel:${phone.replace(/\s/g, "")}`} className="cs-btn" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, color: brass, textDecoration: "none" }}>{phone}</a>
+              <>
+                <a href={`tel:${phone.replace(/\s/g, "")}`} className="cs-btn" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, color: brass, textDecoration: "none" }}>{phone}</a>
+                <a href={waLink(businessSettings.whatsapp, "Hi Mobile Recellr, ")} target="_blank" rel="noopener" className="cs-btn"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "12px 18px", background: "#25D366", color: "#fff", fontWeight: 800, borderRadius: 12, textDecoration: "none", fontSize: 15 }}>
+                  💬 Chat on WhatsApp
+                </a>
+                <div style={{ fontSize: 12.5, color: "#5B6472", marginTop: 6 }}>Fastest way to reach us. Send photos of your phone for a quick check.</div>
+              </>
             ) : (
               <div style={{ color: muted, fontSize: 14 }}>Phone number coming soon — check back shortly.</div>
             )}
