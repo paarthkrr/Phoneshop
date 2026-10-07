@@ -691,7 +691,7 @@ export default function QuoteCalculator() {
 
     await queueNotification({
       type: "order_confirmation", channel: "email", recipientEmail: customer.email, recipientName: customer.name,
-      subject: `Order ${order.id} received - thanks from Mobile Recellr`,
+      subject: `Order ${order.id} received`,
       message: `Thanks for sending us your ${selected.brand} ${selected.model} trade-in. We've received it (order ${order.id}) with a quote of ${fmt(calc.total, region, REGIONS_A)}, subject to inspecting the device.`,
       relatedId: order.id,
     });
