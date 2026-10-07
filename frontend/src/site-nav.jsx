@@ -17,6 +17,8 @@ export function Icon({ name, size = 22 }) {
 
 // Styles for the customer menu. Staff screens keep their own simple nav (see App.jsx).
 export const NAV_CSS = `
+  /* Buttons and links don't inherit the page font by default; keep the whole menu in the site font. */
+  .dd-trigger, .dd-panel, .dd-panel *, .mm-quote-btn, .cs-burger, .mm-drawer, .mm-drawer * { font-family: 'Archivo', system-ui, sans-serif; }
   .mm-quote-btn { display: inline-block; padding: 9px 18px; border-radius: 999px; background: #2150C8; color: #fff !important; font-size: 13.5px; font-weight: 700; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease; }
   .mm-quote-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(33,80,200,.35); background: #1B43AA; }
   .mm-quote-btn:active { transform: scale(.97); }
@@ -81,6 +83,9 @@ export const NAV_CSS = `
     .mm-tile small { display: block; font-size: 12px; color: #5B6472; margin-top: 2px; line-height: 1.35; }
     .mm-tile.sel { border-color: #2150C8; background: #F5F8FF; box-shadow: 0 8px 20px rgba(33,80,200,.14); }
     .mm-tile.sel .ic { background: #2150C8; color: #fff; transform: scale(1.06) rotate(-4deg); }
+    /* finger-sized targets (about 44px) inside the phone menu */
+    .mm-link { min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; }
+    .mm-all { min-height: 44px; }
     .mm-panel { margin-top: 12px; padding: 16px; border-radius: 18px; background: #F7F9FD; border: 1px solid #E7EBF3; animation: mm-pop .3s cubic-bezier(.16,1,.3,1) both; scroll-margin-bottom: 12px; }
     .mm-gt { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: #5B6472; font-weight: 700; margin: 0 0 8px; }
     .mm-group { padding-bottom: 12px; }
@@ -93,7 +98,7 @@ export const NAV_CSS = `
     .mm-promo b { display: block; font-size: 14px; }
     .mm-promo span { display: block; font-size: 12px; color: rgba(255,255,255,.85); line-height: 1.4; }
     .mm-all { display: inline-flex; align-items: center; gap: 4px; font-size: 14.5px; font-weight: 700; color: #2150C8; text-decoration: none; }
-    .mm-staff { display: block; padding: 16px 2px 0; font-size: 13.5px; color: #5B6472; text-decoration: underline; }
+    .mm-staff { display: block; padding: 16px 2px 12px; font-size: 13.5px; color: #5B6472; text-decoration: underline; }
   }
   @media (prefers-reduced-motion: reduce) {
     .mm-drawer, .mm-backdrop, .cs-burger span, .dd-panel, .dd-caret, .mm-tile, .mm-tile .ic { transition: none !important; }
