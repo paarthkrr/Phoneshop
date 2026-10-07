@@ -3,6 +3,7 @@
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 
+process.env.TWO_STEP_ROLES = ""; // two-step sign-in has its own tests (auth.test.js)
 process.env.RESEND_API_KEY = "test-key";
 process.env.OWNER_EMAIL = "owner@example.com";
 process.env.PUBLIC_WRITE_MAX = "1000";
@@ -40,16 +41,16 @@ const ORDER = {
 before(async () => {
   const { Pool } = require("pg");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgres://postgres:testpass@localhost:5432/shoptest" });
-  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts");
+  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices");
   await pool.end();
   app = require("../server.js");
   await app.__schemaReady;
   server = app.listen(0);
   base = `http://127.0.0.1:${server.address().port}`;
-  await call("POST", "/auth/register", { body: { username: "owner", password: "ownerpass1" } });
-  adminToken = (await call("POST", "/auth/login", { body: { username: "owner", password: "ownerpass1" } })).body.token;
-  await call("POST", "/auth/register", { body: { username: "staff", password: "staffpass1", role: "staff" }, token: adminToken });
-  staffToken = (await call("POST", "/auth/login", { body: { username: "staff", password: "staffpass1" } })).body.token;
+  await call("POST", "/auth/register", { body: { username: "owner", password: "owner-pass-2026" } });
+  adminToken = (await call("POST", "/auth/login", { body: { username: "owner", password: "owner-pass-2026" } })).body.token;
+  await call("POST", "/auth/register", { body: { username: "staff", password: "staff-pass-2026", role: "staff" }, token: adminToken });
+  staffToken = (await call("POST", "/auth/login", { body: { username: "staff", password: "staff-pass-2026" } })).body.token;
   assert.equal((await put("orders", [ORDER])).status, 200);
   await settle();
 });

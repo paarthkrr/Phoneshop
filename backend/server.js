@@ -42,6 +42,7 @@ const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
 const crypto = require("node:crypto");
+const sec = require("./security.js");
 
 // Render (and most managed Postgres hosts) provide a single
 // DATABASE_URL. Falls back to discrete PG* vars for other hosts, and
@@ -140,6 +141,28 @@ const schemaReady = pool.query(`
     success INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username, attempted_at);
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_pending TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled_at TIMESTAMPTZ;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_last_step BIGINT;
+  ALTER TABLE sessions ADD COLUMN IF NOT EXISTS weak_password BOOLEAN NOT NULL DEFAULT FALSE;
+  CREATE TABLE IF NOT EXISTS login_log (
+    id BIGSERIAL PRIMARY KEY,
+    username TEXT NOT NULL,
+    at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ip TEXT,
+    device TEXT,
+    result TEXT NOT NULL,
+    new_device BOOLEAN NOT NULL DEFAULT FALSE
+  );
+  CREATE INDEX IF NOT EXISTS idx_login_log_at ON login_log(at);
+  CREATE TABLE IF NOT EXISTS known_devices (
+    username TEXT NOT NULL,
+    device_hash TEXT NOT NULL,
+    first_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (username, device_hash)
+  );
 `).catch((e) => {
   console.error("FATAL: could not set up database schema:", e.message);
   process.exit(1);
@@ -218,16 +241,26 @@ async function verifyToken(token) {
   // admin-revoked session must fail here even with a perfectly valid
   // signature and an unexpired exp claim.
   if (!payload.sid) return null;
-  const result = await pool.query("SELECT revoked_at FROM sessions WHERE session_id = $1", [payload.sid]);
+  const result = await pool.query("SELECT s.revoked_at, s.weak_password, u.totp_enabled_at FROM sessions s LEFT JOIN users u ON u.username = s.username WHERE s.session_id = $1", [payload.sid]);
   const session = result.rows[0];
   if (!session || session.revoked_at) return null;
-  return payload; // { username, role, sid, iat, exp }
+  // Things this person must finish before the portal opens: a password that
+  // meets the current rules, and two-step sign-in for roles that need it.
+  const limits = [];
+  if (session.weak_password) limits.push("password");
+  if (twoStepRequired(payload.role) && !session.totp_enabled_at) limits.push("two-step");
+  return { ...payload, limits }; // { username, role, sid, iat, exp, limits }
 }
+// While a sign-in still has setup to finish, only these calls work.
+const SETUP_PATHS = new Set(["/auth/me", "/auth/logout", "/auth/change-password", "/auth/2fa", "/auth/2fa/setup", "/auth/2fa/enable", "/auth/recovery-code"]);
+const setupBlocked = (req, user) => user && user.limits.length && !SETUP_PATHS.has(req.path);
+const SETUP_ERROR = { error: "finish securing your account first (new password or two-step sign-in)", code: "SETUP_REQUIRED" };
 async function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   const user = await verifyToken(token);
   if (!user) return res.status(401).json({ error: "unauthorized" });
+  if (setupBlocked(req, user)) return res.status(403).json(SETUP_ERROR);
   req.user = user;
   next();
 }
@@ -239,6 +272,7 @@ async function tryAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   req.user = await verifyToken(token); // null if absent/invalid — not an error here
+  if (setupBlocked(req, req.user)) return res.status(403).json(SETUP_ERROR);
   next();
 }
 
@@ -590,6 +624,11 @@ async function enrichReferrals(items) {
 // staff = Counter (sales, trade-ins, till, repairs), technician (repairs + pricing).
 // The server enforces these; the portal only hides what a role can't use.
 const ROLES = ["admin", "manager", "staff", "technician"];
+// Roles that must use an authenticator code at sign-in. TWO_STEP_ROLES="" on
+// the host turns the requirement off in an emergency (e.g. the owner's phone
+// is lost and no backup code was saved).
+const TWO_STEP_ROLES = (process.env.TWO_STEP_ROLES ?? "admin,manager").split(",").map((r) => r.trim()).filter(Boolean);
+function twoStepRequired(role) { return TWO_STEP_ROLES.includes(role); }
 const ALL = ROLES, OFFICE = ["admin", "manager"], COUNTER = ["admin", "manager", "staff"], PRICING = ["admin", "manager", "technician"];
 const ACCESS = {
   orders: { read: ALL, write: COUNTER },
@@ -752,6 +791,20 @@ async function recordLoginAttempt(username, success) {
   await pool.query("INSERT INTO login_attempts (username, attempted_at, success) VALUES ($1, NOW(), $2)", [username, success ? 1 : 0]);
 }
 
+// ---- Sign-in history and security alerts ----
+const totpBox = sec.secretBox(SESSION_SECRET);
+const ROLE_NAMES = { admin: "Owner", manager: "Manager", staff: "Counter", technician: "Technician" };
+const sydneyTime = (d = new Date()) => d.toLocaleString("en-AU", { timeZone: "Australia/Sydney", dateStyle: "medium", timeStyle: "short" });
+async function logSignIn(username, result, meta, newDevice = false) {
+  try {
+    await pool.query("INSERT INTO login_log (username, ip, device, result, new_device) VALUES ($1, $2, $3, $4, $5)",
+      [String(username).slice(0, 60), meta.ip, meta.device, result, newDevice]);
+  } catch (e) { console.error("sign-in log failed:", e.message); }
+}
+function securityAlert(subject, lines) {
+  void sendEmail({ to: OWNER_EMAIL(), subject, text: lines.join("\n\n"), kind: "security alert" });
+}
+
 // ---- Auth ----
 
 // ADMIN_BOOTSTRAP_TOKEN closes the "first visitor wins" race: without
@@ -776,9 +829,9 @@ app.post("/auth/register", async (req, res) => {
   try {
     const { password, role, bootstrapToken } = req.body;
     const username = String(req.body.username || "").trim();
-    if (!username || !password || password.length < 8) {
-      return res.status(400).json({ error: "username and an 8+ character password are required" });
-    }
+    if (!username) return res.status(400).json({ error: "username is required" });
+    const weak = sec.passwordProblem(password, username);
+    if (weak) return res.status(400).json({ error: `password: ${weak}` });
     const countResult = await pool.query("SELECT COUNT(*) AS n FROM users");
     const userCount = parseInt(countResult.rows[0].n, 10);
     if (userCount === 0) {
@@ -792,7 +845,7 @@ app.post("/auth/register", async (req, res) => {
       const header = req.headers.authorization || "";
       const token = header.startsWith("Bearer ") ? header.slice(7) : null;
       const requester = await verifyToken(token);
-      if (!requester || requester.role !== "admin") {
+      if (!requester || requester.role !== "admin" || requester.limits.length) {
         return res.status(403).json({ error: "only an admin can register new accounts once the shop has any users" });
       }
     }
@@ -805,28 +858,80 @@ app.post("/auth/register", async (req, res) => {
   }
 });
 
+// Sign-in. Owner and Manager (see TWO_STEP_ROLES) also need the 6-digit code
+// from their authenticator app: the first call with just the password answers
+// { needCode: true }, and the app calls again with the code. Every result is
+// written to the sign-in history; the owner is emailed about sign-ins from a
+// device an account hasn't used before and about lockouts.
 app.post("/auth/login", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { password, code } = req.body;
+    const username = String(req.body.username || "").trim();
     if (!username) return res.status(400).json({ error: "username is required" });
+    const meta = { ip: clientKey(req).slice(0, 64), device: sec.describeDevice(req.headers["user-agent"]) };
 
     const failedCount = await recentFailedAttempts(attemptKey(username));
     if (failedCount >= MAX_LOGIN_ATTEMPTS) {
+      await logSignIn(username, "blocked (locked out)", meta);
       return res.status(429).json({ error: `too many failed attempts — try again in ${LOGIN_LOCKOUT_MINUTES} minutes` });
     }
+    const failed = async (result, body) => {
+      await recordLoginAttempt(attemptKey(username), false);
+      await logSignIn(username, result, meta);
+      if (failedCount + 1 === MAX_LOGIN_ATTEMPTS) {
+        securityAlert(`Staff account locked: ${username.slice(0, 40)}`, [
+          `${MAX_LOGIN_ATTEMPTS} wrong sign-in attempts in a row for "${username.slice(0, 40)}". The account is locked for ${LOGIN_LOCKOUT_MINUTES} minutes.`,
+          `Last try: ${meta.device}, network ${meta.ip}.`,
+          "If this wasn't one of your team mistyping, check Team → Sign-in history.",
+        ]);
+      }
+      return res.status(401).json(body);
+    };
 
     const user = await verifyPassword(username, password);
-    await recordLoginAttempt(attemptKey(username), !!user);
-    if (!user) return res.status(401).json({ error: "invalid username or password" });
+    if (!user) return failed("wrong password", { error: "invalid username or password" });
+
+    const row = (await pool.query("SELECT totp_secret, totp_enabled_at, totp_last_step FROM users WHERE username = $1", [user.username])).rows[0];
+    if (row.totp_enabled_at) {
+      if (!code) return res.json({ needCode: true });
+      const secret = totpBox.open(row.totp_secret);
+      const step = secret && sec.checkTotp(secret, code, row.totp_last_step);
+      if (step == null) return failed("wrong two-step code", { error: "that code didn't work — use the newest code in your authenticator app", needCode: true });
+      // Only one sign-in per code: if two arrive together, one wins.
+      const won = await pool.query("UPDATE users SET totp_last_step = $1 WHERE username = $2 AND (totp_last_step IS NULL OR totp_last_step < $1)", [step, user.username]);
+      if (!won.rowCount) return failed("wrong two-step code", { error: "that code was just used — wait for the next one", needCode: true });
+    }
+    await recordLoginAttempt(attemptKey(username), true);
 
     await pool.query("DELETE FROM sessions WHERE expires_at < NOW()"); // light housekeeping
     await pool.query("DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '1 day'");
+    await pool.query("DELETE FROM login_log WHERE at < NOW() - INTERVAL '180 days'");
+    const weakPassword = !!sec.passwordProblem(password, user.username);
     const now = Date.now();
     const sessionId = crypto.randomUUID();
     const expiresAtIso = new Date(now + TOKEN_TTL_MS).toISOString();
-    await pool.query("INSERT INTO sessions (session_id, username, created_at, expires_at) VALUES ($1, $2, NOW(), $3)", [sessionId, user.username, expiresAtIso]);
+    await pool.query("INSERT INTO sessions (session_id, username, created_at, expires_at, weak_password) VALUES ($1, $2, NOW(), $3, $4)", [sessionId, user.username, expiresAtIso, weakPassword]);
     const token = signToken({ username: user.username, role: user.role, sid: sessionId, iat: now, exp: now + TOKEN_TTL_MS });
-    res.json({ token, username: user.username, role: user.role, expiresAt: now + TOKEN_TTL_MS });
+
+    // A device is the random id this browser keeps (falls back to the browser
+    // description). New ones are emailed to the owner.
+    const deviceKey = /^[A-Za-z0-9_-]{16,64}$/.test(req.body.deviceId || "") ? req.body.deviceId : meta.device;
+    const deviceHash = crypto.createHash("sha256").update(`${user.username}:${deviceKey}`).digest("hex");
+    const known = await pool.query("UPDATE known_devices SET last_seen = NOW() WHERE username = $1 AND device_hash = $2", [user.username, deviceHash]);
+    const newDevice = !known.rowCount;
+    if (newDevice) await pool.query("INSERT INTO known_devices (username, device_hash) VALUES ($1, $2) ON CONFLICT DO NOTHING", [user.username, deviceHash]);
+    await logSignIn(user.username, "signed in", meta, newDevice);
+    if (newDevice) {
+      securityAlert(`New sign-in: ${user.username} (${ROLE_NAMES[user.role] || user.role}) on ${meta.device}`, [
+        `${user.username} signed in to the staff portal from a device they haven't used before.`,
+        `Device: ${meta.device}`, `Network address: ${meta.ip}`, `Time: ${sydneyTime()}`,
+        "If this was them, there's nothing to do. If not: Team → change their password (that signs them out everywhere) and check Sign-in history.",
+      ]);
+    }
+    const limits = [];
+    if (weakPassword) limits.push("password");
+    if (twoStepRequired(user.role) && !row.totp_enabled_at) limits.push("two-step");
+    res.json({ token, username: user.username, role: user.role, expiresAt: now + TOKEN_TTL_MS, limits });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -914,8 +1019,9 @@ async function recoverHandler(req, res) {
     if (!req.body || !req.body.username || !code) return res.status(400).json({ error: "username and recovery code are required" });
     const key = `recover:${attemptKey(req.body.username)}`;
     if (await recentFailedAttempts(key) >= MAX_LOGIN_ATTEMPTS) return res.status(429).json({ error: `too many attempts — try again in ${LOGIN_LOCKOUT_MINUTES} minutes` });
-    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
     const username = await canonicalUsername(req.body.username);
+    const weak = sec.passwordProblem(newPassword, username || req.body.username);
+    if (weak) return res.status(400).json({ error: `new password: ${weak}` });
     const wrong = async () => { await recordLoginAttempt(key, false); return res.status(401).json({ error: "that username and recovery code don't match" }); };
     if (!username) return wrong();
     const u = (await pool.query("SELECT role, recovery_hash FROM users WHERE username = $1", [username])).rows[0];
@@ -937,7 +1043,13 @@ async function recoverHandler(req, res) {
     }
     if (!via) return wrong();
     const salt = crypto.randomBytes(16).toString("hex");
-    await pool.query("UPDATE users SET salt = $1, hash = $2" + (via === "personal" ? ", recovery_hash = NULL, recovery_created_at = NULL" : "") + " WHERE username = $3", [salt, hashPassword(newPassword, salt), username]);
+    // A backup code is the way back in after losing the authenticator phone,
+    // so it also switches two-step off; the person sets it up again.
+    await pool.query("UPDATE users SET salt = $1, hash = $2, totp_secret = NULL, totp_pending = NULL, totp_enabled_at = NULL" + (via === "personal" ? ", recovery_hash = NULL, recovery_created_at = NULL" : "") + " WHERE username = $3", [salt, hashPassword(newPassword, salt), username]);
+    const meta = { ip: clientKey(req).slice(0, 64), device: sec.describeDevice(req.headers["user-agent"]) };
+    await logSignIn(username, "password reset with backup code", meta);
+    securityAlert(`Backup code used: ${username}`, [`${username} reset their password with a backup recovery code. Their two-step sign-in was switched off and they'll be asked to set it up again.`,
+      `Device: ${meta.device}, network ${meta.ip}, ${sydneyTime()}.`, "If this wasn't them, change their password from Team straight away."]);
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [username]);
     await pool.query("DELETE FROM login_attempts WHERE username = $1 OR username = $2", [attemptKey(username), key]);
     res.json({ recovered: username, usedBackupCode: via === "personal" });
@@ -950,7 +1062,7 @@ app.post("/auth/recover-admin", recoverHandler);
 // ---- Team management (admin only) ----
 app.get("/auth/users", requireAuth, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
-  const r = await pool.query("SELECT username, role, created_at FROM users ORDER BY created_at");
+  const r = await pool.query("SELECT username, role, created_at, totp_enabled_at IS NOT NULL AS two_step FROM users ORDER BY created_at");
   res.json({ users: r.rows });
 });
 // Remove a team member: deletes the account and ends all their sessions.
@@ -998,9 +1110,10 @@ app.post("/auth/users/:username/password", requireAuth, async (req, res) => {
   try {
     if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
     const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
     const target = await canonicalUsername(req.params.username);
     if (!target) return res.status(404).json({ error: "no such user" });
+    const weak = sec.passwordProblem(newPassword, target);
+    if (weak) return res.status(400).json({ error: `new password: ${weak}` });
     const salt = crypto.randomBytes(16).toString("hex");
     await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hashPassword(newPassword, salt), target]);
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
@@ -1012,7 +1125,9 @@ app.post("/auth/users/:username/password", requireAuth, async (req, res) => {
 app.post("/auth/change-password", requireAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
+    const weak = sec.passwordProblem(newPassword, req.user.username);
+    if (weak) return res.status(400).json({ error: `new password: ${weak}` });
+    if (currentPassword === newPassword) return res.status(400).json({ error: "pick a different password from your current one" });
     const verified = await verifyPassword(req.user.username, currentPassword);
     if (!verified) return res.status(401).json({ error: "current password is incorrect" });
     const salt = crypto.randomBytes(16).toString("hex");
@@ -1021,6 +1136,7 @@ app.post("/auth/change-password", requireAuth, async (req, res) => {
     // Changing your password revokes every other session — if someone
     // else had your old password, this locks them out immediately.
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND session_id != $2", [req.user.username, req.user.sid]);
+    await pool.query("UPDATE sessions SET weak_password = FALSE WHERE session_id = $1", [req.user.sid]);
     res.json({ changed: true });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -1034,9 +1150,10 @@ app.post("/auth/reset-password", requireAuth, async (req, res) => {
   try {
     if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
     const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: "new password must be 8+ characters" });
     const canon = await canonicalUsername(req.body.username);
     if (!canon) return res.status(404).json({ error: "no such user" });
+    const weak = sec.passwordProblem(newPassword, canon);
+    if (weak) return res.status(400).json({ error: `new password: ${weak}` });
     const username = canon;
     const salt = crypto.randomBytes(16).toString("hex");
     const hash = hashPassword(newPassword, salt);
@@ -1049,7 +1166,66 @@ app.post("/auth/reset-password", requireAuth, async (req, res) => {
 });
 
 app.get("/auth/me", requireAuth, (req, res) => {
-  res.json({ username: req.user.username, role: req.user.role });
+  res.json({ username: req.user.username, role: req.user.role, limits: req.user.limits });
+});
+
+// ---- Two-step sign-in (authenticator app) ----
+app.get("/auth/2fa", requireAuth, async (req, res) => {
+  const r = (await pool.query("SELECT totp_enabled_at FROM users WHERE username = $1", [req.user.username])).rows[0];
+  res.json({ enabled: !!(r && r.totp_enabled_at), enabledAt: r ? r.totp_enabled_at : null, required: twoStepRequired(req.user.role) });
+});
+// Step 1: confirm the password, get a new secret to scan. Nothing changes
+// until step 2 proves the phone has it.
+app.post("/auth/2fa/setup", requireAuth, async (req, res) => {
+  try {
+    if (!(await verifyPassword(req.user.username, req.body && req.body.password))) return res.status(401).json({ error: "password is incorrect" });
+    const secret = sec.newTotpSecret();
+    await pool.query("UPDATE users SET totp_pending = $1 WHERE username = $2", [totpBox.seal(secret), req.user.username]);
+    res.json({ secret, uri: sec.otpauthUri(req.user.username, secret) });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+// Step 2: the 6-digit code from the app switches two-step on (or moves it to
+// a new phone). Other sessions end, so every device signs in with a code.
+app.post("/auth/2fa/enable", requireAuth, async (req, res) => {
+  try {
+    const r = (await pool.query("SELECT totp_pending FROM users WHERE username = $1", [req.user.username])).rows[0];
+    const secret = r && r.totp_pending && totpBox.open(r.totp_pending);
+    if (!secret) return res.status(400).json({ error: "start the setup again" });
+    const step = sec.checkTotp(secret, req.body && req.body.code);
+    if (step == null) return res.status(400).json({ error: "that code didn't match — check the app and try the newest code" });
+    await pool.query("UPDATE users SET totp_secret = totp_pending, totp_pending = NULL, totp_enabled_at = NOW(), totp_last_step = $1 WHERE username = $2", [step, req.user.username]);
+    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND session_id != $2 AND revoked_at IS NULL", [req.user.username, req.user.sid]);
+    res.json({ enabled: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+// Turning it off is only for roles that don't require it.
+app.post("/auth/2fa/disable", requireAuth, async (req, res) => {
+  try {
+    if (twoStepRequired(req.user.role)) return res.status(400).json({ error: "your role has to keep two-step sign-in on" });
+    if (!(await verifyPassword(req.user.username, req.body && req.body.password))) return res.status(401).json({ error: "password is incorrect" });
+    await pool.query("UPDATE users SET totp_secret = NULL, totp_pending = NULL, totp_enabled_at = NULL WHERE username = $1", [req.user.username]);
+    res.json({ enabled: false });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+// Owner: someone lost their phone. Clears their two-step and signs them out;
+// they set it up again at next sign-in.
+app.post("/auth/users/:username/2fa-reset", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ error: "owner only" });
+    const target = await canonicalUsername(req.params.username);
+    if (!target) return res.status(404).json({ error: "no such user" });
+    await pool.query("UPDATE users SET totp_secret = NULL, totp_pending = NULL, totp_enabled_at = NULL WHERE username = $1", [target]);
+    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
+    securityAlert(`Two-step sign-in reset for ${target}`, [`${req.user.username} reset two-step sign-in for ${target}. ${target} has been signed out and will set it up again at next sign-in.`, sydneyTime()]);
+    res.json({ username: target, reset: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Sign-in history: the Owner sees everyone's, others see their own.
+app.get("/auth/login-log", requireAuth, async (req, res) => {
+  const all = req.user.role === "admin";
+  const r = await pool.query(`SELECT username, at, ip, device, result, new_device FROM login_log ${all ? "" : "WHERE LOWER(username) = LOWER($1)"} ORDER BY at DESC LIMIT 200`, all ? [] : [req.user.username]);
+  res.json({ entries: r.rows });
 });
 
 // ---- Storage ----

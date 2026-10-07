@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ROLE_LABELS, ROLE_HELP, ROLE_ORDER } from "./roles.js";
+import { TwoStepCard, SignInHistory } from "./security.jsx";
 
 // Team: admins add staff, reset forgotten passwords and remove people who've
 // left. Everyone can change their own password here too.
@@ -30,7 +31,7 @@ export default function Team() {
   if (!auth) return <Wrap><div style={{ color: muted }}>Team management needs the live server (not available in this preview).</div></Wrap>;
 
   async function addUser() {
-    if (!nu.username.trim() || nu.password.length < 8) return flash("Enter a username and a password of at least 8 characters.", false);
+    if (!nu.username.trim() || nu.password.length < 12) return flash("Enter a username and a password of at least 12 characters.", false);
     try { await auth.register(window.SHOP_API_BASE_URL, nu.username.trim(), nu.password, nu.role, auth.authToken()); flash(`Account "${nu.username.trim()}" created. Give them their username and password.`); setNu({ username: "", password: "", role: "staff" }); refresh(); }
     catch (e) { flash(e.message, false); }
   }
@@ -40,10 +41,15 @@ export default function Team() {
     catch (e) { flash(e.message, false); refresh(); }
   }
   async function resetPw(u) {
-    const p = window.prompt(`New password for ${u} (8+ characters):`);
+    const p = window.prompt(`New password for ${u} (12+ characters):`);
     if (!p) return;
-    if (p.length < 8) return flash("Password must be at least 8 characters.", false);
+    if (p.length < 12) return flash("Password must be at least 12 characters.", false);
     try { await api(`/auth/users/${encodeURIComponent(u)}/password`, { method: "POST", body: JSON.stringify({ newPassword: p }) }); flash(`Password reset for ${u}. They've been signed out everywhere.`); }
+    catch (e) { flash(e.message, false); }
+  }
+  async function resetTwoStep(u) {
+    if (!window.confirm(`Reset two-step sign-in for ${u}? Use this if they lost their phone. They'll be signed out and set it up again next time.`)) return;
+    try { await api(`/auth/users/${encodeURIComponent(u)}/2fa-reset`, { method: "POST" }); flash(`Two-step reset for ${u}.`); refresh(); }
     catch (e) { flash(e.message, false); }
   }
   async function remove(u) {
@@ -52,7 +58,7 @@ export default function Team() {
     catch (e) { flash(e.message, false); }
   }
   async function changeMine() {
-    if (pw.next.length < 8) return flash("New password must be at least 8 characters.", false);
+    if (pw.next.length < 12) return flash("New password must be at least 12 characters.", false);
     try { await api("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }) }); flash("Your password has been changed."); setPw({ current: "", next: "" }); }
     catch (e) { flash(e.message, false); }
   }
@@ -64,7 +70,7 @@ export default function Team() {
         <>
           <Card title="Add a team member">
             <input style={field} placeholder="Username (e.g. their first name)" aria-label="New username" value={nu.username} onChange={(e) => setNu({ ...nu, username: e.target.value })} autoComplete="off" />
-            <input style={field} placeholder="Temporary password (8+ characters)" aria-label="Temporary password" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} autoComplete="new-password" />
+            <input style={field} placeholder="Temporary password (12+ characters)" aria-label="Temporary password" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} autoComplete="new-password" />
             <div role="group" aria-label="Role" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 12 }}>
               {ROLE_ORDER.map((k) => [k, `${ROLE_LABELS[k]} — ${ROLE_HELP[k]}`]).map(([k, l]) => (
                 <button key={k} type="button" aria-pressed={nu.role === k} onClick={() => setNu({ ...nu, role: k })}
@@ -78,7 +84,7 @@ export default function Team() {
               <div key={u.username} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderBottom: "1px solid rgba(32,28,24,0.1)", flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{u.username}{u.username === me.username ? " (you)" : ""}</div>
-                  <div style={{ fontSize: 13.5, color: muted }}>{ROLE_LABELS[u.role] || u.role} · added {new Date(u.created_at).toLocaleDateString("en-AU")}</div>
+                  <div style={{ fontSize: 13.5, color: muted }}>{ROLE_LABELS[u.role] || u.role} · added {new Date(u.created_at).toLocaleDateString("en-AU")} · {u.two_step ? "📱 two-step on" : "two-step off"}</div>
                 </div>
                 {u.username !== me.username && <>
                   <select aria-label={`Role for ${u.username}`} value={u.role} onChange={(e) => changeRole(u.username, e.target.value)}
@@ -86,6 +92,7 @@ export default function Team() {
                     {ROLE_ORDER.map((k) => <option key={k} value={k}>{ROLE_LABELS[k]}</option>)}
                   </select>
                   <button style={btn("transparent", brass)} onClick={() => resetPw(u.username)}>Reset password</button>
+                  {u.two_step && <button style={btn("transparent", brass)} onClick={() => resetTwoStep(u.username)}>Reset two-step</button>}
                   <button style={btn("transparent", red)} onClick={() => remove(u.username)}>Remove</button>
                 </>}
               </div>
@@ -95,12 +102,14 @@ export default function Team() {
       ) : (
         <Card title="Team"><div style={{ fontSize: 15, color: muted }}>Only the Owner can add, remove or change team members. Ask the Owner if you need an account for someone.</div></Card>
       )}
+      <TwoStepCard Card={Card} />
       <BackupCode />
       <Card title="Change my password">
         <input style={field} type="password" placeholder="Current password" aria-label="Current password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} autoComplete="current-password" />
-        <input style={field} type="password" placeholder="New password (8+ characters)" aria-label="New password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} autoComplete="new-password" />
+        <input style={field} type="password" placeholder="New password (12+ characters, a short sentence works)" aria-label="New password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} autoComplete="new-password" />
         <button style={btn(paper)} onClick={changeMine}>Change password</button>
       </Card>
+      <SignInHistory Card={Card} everyone={isAdmin} />
     </Wrap>
   );
 }

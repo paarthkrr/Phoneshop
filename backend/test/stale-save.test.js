@@ -1,6 +1,7 @@
 // Two staff screens editing the same list. Uses the real storage-shim.js from
 // the frontend, loaded with a fake browser `window`, against a real server.
 // Run with: DATABASE_URL=postgres://... npm test   (drops all tables first)
+process.env.TWO_STEP_ROLES = ""; // two-step sign-in has its own tests (auth.test.js)
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -28,7 +29,7 @@ function openScreen() {
 before(async () => {
   const { Pool } = require("pg");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgres://postgres:testpass@localhost:5432/shoptest" });
-  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts");
+  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices");
   await pool.end();
   delete require.cache[require.resolve("../server.js")];
   app = require("../server.js");
@@ -36,8 +37,8 @@ before(async () => {
   server = app.listen(0);
   base = `http://127.0.0.1:${server.address().port}`;
   const post = (p, body) => fetch(base + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
-  await post("/auth/register", { username: "owner", password: "ownerpass1" });
-  token = (await post("/auth/login", { username: "owner", password: "ownerpass1" })).token;
+  await post("/auth/register", { username: "owner", password: "owner-pass-2026" });
+  token = (await post("/auth/login", { username: "owner", password: "owner-pass-2026" })).token;
 });
 after(async () => { server.close(); await app.__db.end(); });
 

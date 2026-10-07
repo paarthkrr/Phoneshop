@@ -1,5 +1,6 @@
 // Staff roles are enforced by the server.
 // Run with: DATABASE_URL=postgres://... npm test   (drops all tables first)
+process.env.TWO_STEP_ROLES = ""; // two-step sign-in has its own tests (auth.test.js)
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 
@@ -19,7 +20,7 @@ const ORDER = { id: "ORD-1", status: "awaiting_shipment", customer: { name: "Jan
 before(async () => {
   const { Pool } = require("pg");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgres://postgres:testpass@localhost:5432/shoptest" });
-  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts");
+  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices");
   await pool.end();
   app = require("../server.js");
   await app.__schemaReady;

@@ -3,6 +3,7 @@
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 
+process.env.TWO_STEP_ROLES = ""; // two-step sign-in has its own tests (auth.test.js)
 process.env.RESEND_API_KEY = "test-key";
 process.env.OWNER_EMAIL = "owner@example.com";
 process.env.PUBLIC_WRITE_MAX = "1000";
@@ -21,7 +22,7 @@ const find = (headers) => realFetch(`${base}/public/find/orders?field=id&value=O
 before(async () => {
   const { Pool } = require("pg");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgres://postgres:testpass@localhost:5432/shoptest" });
-  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts");
+  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices");
   await pool.end();
   app = require("../server.js");
   await app.__schemaReady;
