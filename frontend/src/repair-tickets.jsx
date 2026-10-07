@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { hasArea } from "./roles.js";
+import { partsCostOf } from "./pnl.js";
 
 /* =================================================================
    REPAIR TICKETS
@@ -96,6 +98,7 @@ export default function RepairTickets() {
   const [trackResult, setTrackResult] = useState(undefined);
   const [partsStock, setPartsStock] = useState(null);
   const [repairRequests, setRepairRequests] = useState([]);
+  const [team, setTeam] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -106,6 +109,12 @@ export default function RepairTickets() {
       else if (s) setStaffName(s);
       setPartsStock(ps || []);
       setRepairRequests(rr || []);
+      if (authed && window.SHOP_API_BASE_URL) {
+        try {
+          const r = await fetch(`${window.SHOP_API_BASE_URL}/auth/team`, { headers: { Authorization: `Bearer ${window.shopAuth.authToken()}` } });
+          if (r.ok) setTeam((await r.json()).team || []);
+        } catch (e) { /* assigning just shows free text then */ }
+      }
     })();
   }, []);
 
@@ -161,11 +170,11 @@ export default function RepairTickets() {
     const completedAt = new Date().toISOString();
     await updateTicket(ticketId, { status: "completed", completedAt, finalPrice }, true);
     const sales = (await loadJSON("sales", true)) || [];
-    const partsCost = (t.parts || []).reduce((s, p) => s + p.cost, 0);
+    const partsCost = partsCostOf(t), labourCost = Number(t.techPay) || 0;
     await saveJSON("sales", [{
       id: "SALE-" + Math.floor(100000 + Math.random() * 900000), itemId: ticketId,
       customerName: t.customer.name, customerEmail: t.customer.email || "",
-      salePrice: finalPrice, costBasis: partsCost,
+      salePrice: finalPrice, costBasis: partsCost + labourCost, partsCost, labourCost, technician: t.assignedTo || "",
       brand: t.device.brand, model: t.device.model, storage: "repair",
       region: "AU", payMethod, soldAt: completedAt,
       staffHandled: staffName || "unattributed", channel: "repair",
@@ -175,6 +184,7 @@ export default function RepairTickets() {
   const open = tickets?.find((t) => t.id === openId);
 
   const filtered = (tickets || []).filter((t) => {
+    if (filter === "mine") return t.assignedTo === staffName && !["completed", "not_repairable"].includes(t.status);
     if (filter === "open") return !["completed", "not_repairable"].includes(t.status);
     if (filter === "completed") return ["completed", "not_repairable"].includes(t.status);
     return true;
@@ -204,6 +214,17 @@ export default function RepairTickets() {
       return updated;
     });
     await persist(next);
+    // A completed job's sale record follows later changes to price, parts or
+    // technician pay, so every report shows the same profit.
+    const t = next.find((x) => x.id === id);
+    if (t && t.status === "completed" && !logStatus && ["finalPrice", "parts", "techPay", "assignedTo"].some((f) => f in patch)) {
+      const sales = (await loadJSON("sales", true)) || [];
+      const partsCost = partsCostOf(t), labourCost = Number(t.techPay) || 0;
+      if (sales.some((s) => s.itemId === id && s.channel === "repair")) {
+        await saveJSON("sales", sales.map((s) => s.itemId === id && s.channel === "repair"
+          ? { ...s, salePrice: t.finalPrice ?? s.salePrice, costBasis: partsCost + labourCost, partsCost, labourCost, technician: t.assignedTo || "" } : s), true);
+      }
+    }
   }
 
   async function reopenForWarranty(ticket) {
@@ -286,10 +307,10 @@ export default function RepairTickets() {
               </div>
             )}
             <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-              {["open", "completed", "all"].map((f) => (
+              {["mine", "open", "completed", "all"].map((f) => (
                 <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",
                   border: `1px solid ${filter === f ? brass : line}`, background: filter === f ? brassDim : "transparent", color: filter === f ? brass : paper }}>
-                  {f}
+                  {f === "mine" ? `my jobs (${(tickets || []).filter((t) => t.assignedTo === staffName && !["completed", "not_repairable"].includes(t.status)).length})` : f}
                 </button>
               ))}
             </div>
@@ -303,14 +324,14 @@ export default function RepairTickets() {
                   <span style={{ fontSize: 12, color: muted }}>{STATUS_LABELS[t.status]}</span>
                 </div>
                 <div style={{ fontSize: 13, marginTop: 2 }}>{t.device.brand} {t.device.model} — {REPAIR_TYPES.find((r) => r.id === t.repairTypeId)?.label}</div>
-                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.customer.name} · {fmt(t.finalPrice ?? t.quotedPrice)}{t.warrantyOf && " · warranty job"}</div>
+                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.customer.name} · {fmt(t.finalPrice ?? t.quotedPrice)}{t.warrantyOf && " · warranty job"}{t.assignedTo ? ` · 🔧 ${t.assignedTo}` : " · not assigned"}</div>
               </button>
             ))}
           </>
         )}
 
         {open && (
-          <TicketDetail colors={colors} ticket={open} repairTypes={REPAIR_TYPES} stock={partsStock || []}
+          <TicketDetail colors={colors} ticket={open} repairTypes={REPAIR_TYPES} stock={partsStock || []} team={team} me={staffName}
             onUpdate={(patch, logStatus) => updateTicket(open.id, patch, logStatus)}
             onUseStock={(stockItem) => usePartFromStock(open.id, stockItem)}
             onReopenWarranty={() => reopenForWarranty(open)}
@@ -395,7 +416,7 @@ function IntakeForm({ colors, repairTypes, onCreate }) {
   );
 }
 
-function TicketDetail({ colors, ticket, repairTypes, stock, onUpdate, onUseStock, onReopenWarranty, onComplete, onBack }) {
+function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, onUseStock, onReopenWarranty, onComplete, onBack }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [partName, setPartName] = useState(""); const [partCost, setPartCost] = useState("");
   const [finalPrice, setFinalPrice] = useState(String(ticket.finalPrice ?? ticket.quotedPrice));
@@ -403,8 +424,9 @@ function TicketDetail({ colors, ticket, repairTypes, stock, onUpdate, onUseStock
   const [stockNotice, setStockNotice] = useState("");
   const [completingPayMethod, setCompletingPayMethod] = useState(null); // null = not confirming yet
 
-  const partsCost = (ticket.parts || []).reduce((s, p) => s + p.cost, 0);
-  const margin = (ticket.finalPrice ?? ticket.quotedPrice) - partsCost;
+  const partsCost = partsCostOf(ticket);
+  const techPay = Number(ticket.techPay) || 0;
+  const margin = (ticket.finalPrice ?? ticket.quotedPrice) - partsCost - techPay;
   const canReopen = ticket.status === "completed" && !ticket.warrantyOf;
   const daysSinceCompleted = ticket.completedAt ? (Date.now() - new Date(ticket.completedAt).getTime()) / (1000 * 60 * 60 * 24) : null;
   const withinWarranty = daysSinceCompleted != null && daysSinceCompleted <= ticket.warrantyDays;
@@ -456,6 +478,8 @@ function TicketDetail({ colors, ticket, repairTypes, stock, onUpdate, onUseStock
         </div>
       )}
 
+      <TechJob colors={colors} ticket={ticket} team={team} me={me} onUpdate={onUpdate} />
+
       <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Parts used</div>
       <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden", marginBottom: 10 }}>
         {(ticket.parts || []).map((p, i) => (
@@ -502,15 +526,18 @@ function TicketDetail({ colors, ticket, repairTypes, stock, onUpdate, onUseStock
       <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <span style={{ fontSize: 12.5, color: muted }}>Final price charged</span>
-          <input value={finalPrice} onChange={(e) => { setFinalPrice(e.target.value); onUpdate({ finalPrice: parseFloat(e.target.value) || 0 }); }} type="number"
+          <input value={finalPrice} onChange={(e) => setFinalPrice(e.target.value)} onBlur={() => { const v = parseFloat(finalPrice) || 0; if (v !== ticket.finalPrice) onUpdate({ finalPrice: v }); }} type="number" aria-label="Final price charged"
             style={{ width: 90, padding: "4px 8px", borderRadius: 2, border: `1px solid ${line}`, background: panel2, color: brass, fontSize: 13, textAlign: "right" }} />
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: muted }}>
           <span>Parts cost</span><span>{fmt(partsCost)}</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 4 }}>
-          <span>Margin (labour + markup)</span><span style={{ color: green }}>{fmt(margin)}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: muted }}>
+          <span>Technician pay</span><span>{fmt(techPay)}</span>
         </div>
+        {hasArea("reports") && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 4 }}>
+          <span>Shop profit on this job</span><span style={{ color: margin >= 0 ? green : red }}>{fmt(margin)}</span>
+        </div>}
       </div>
 
       {canReopen && (
@@ -524,6 +551,55 @@ function TicketDetail({ colors, ticket, repairTypes, stock, onUpdate, onUseStock
           {warrantyResult ? "Within warranty window — new job created at no charge." : "Warranty period has expired — new job created at the standard quoted price."}
         </div>
       )}
+    </div>
+  );
+}
+
+// Who does the job, how long it took, and what the technician is paid for it.
+// Pay can only be set (and marked paid) by someone with the reports area; the
+// server enforces that too.
+function TechJob({ colors, ticket, team, me, onUpdate }) {
+  const { panel2, paper, muted, brass, green, red, line } = colors;
+  const canPay = hasArea("reports");
+  const [mins, setMins] = useState(String(ticket.timeSpentMins ?? ""));
+  const [pay, setPay] = useState(String(ticket.techPay ?? ""));
+  useEffect(() => { setMins(String(ticket.timeSpentMins ?? "")); setPay(String(ticket.techPay ?? "")); }, [ticket.id, ticket.timeSpentMins, ticket.techPay]);
+  const names = team.length ? [...team].sort((a, b) => (a.role === "technician" ? -1 : 0) - (b.role === "technician" ? -1 : 0)) : (me ? [{ username: me, role: "" }] : []);
+  const inputStyle = { padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none", boxSizing: "border-box" };
+  const saveMins = (v) => { const n = Math.max(0, Math.round(Number(v) || 0)); setMins(String(n)); if (n !== (ticket.timeSpentMins || 0)) onUpdate({ timeSpentMins: n }); };
+  const hm = (m) => (m ? `${Math.floor(m / 60) ? `${Math.floor(m / 60)}h ` : ""}${m % 60 ? `${m % 60}m` : ""}`.trim() : "—");
+  return (
+    <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>🔧 Technician job</div>
+      <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }} htmlFor={`assign-${ticket.id}`}>Assigned to</label>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <select id={`assign-${ticket.id}`} value={ticket.assignedTo || ""} onChange={(e) => onUpdate({ assignedTo: e.target.value || null, assignedAt: e.target.value ? new Date().toISOString() : null })}
+          style={{ ...inputStyle, flex: "1 1 180px" }}>
+          <option value="">Not assigned</option>
+          {names.map((u) => <option key={u.username} value={u.username}>{u.username}{u.role === "technician" ? " (technician)" : ""}</option>)}
+          {ticket.assignedTo && !names.some((u) => u.username === ticket.assignedTo) && <option value={ticket.assignedTo}>{ticket.assignedTo}</option>}
+        </select>
+        {me && ticket.assignedTo !== me && <button onClick={() => onUpdate({ assignedTo: me, assignedAt: new Date().toISOString() })} style={{ ...inputStyle, cursor: "pointer", color: brass, background: "transparent" }}>Assign to me</button>}
+      </div>
+      <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }} htmlFor={`mins-${ticket.id}`}>Time spent: <strong style={{ color: paper }}>{hm(Number(ticket.timeSpentMins) || 0)}</strong></label>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        <input id={`mins-${ticket.id}`} value={mins} onChange={(e) => setMins(e.target.value)} onBlur={() => saveMins(mins)} type="number" min="0" placeholder="Minutes" style={{ ...inputStyle, width: 100 }} />
+        {[15, 30, 60].map((d) => <button key={d} onClick={() => saveMins((Number(ticket.timeSpentMins) || 0) + d)} style={{ ...inputStyle, cursor: "pointer", background: "transparent" }}>+{d === 60 ? "1h" : `${d}m`}</button>)}
+      </div>
+      <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }} htmlFor={`pay-${ticket.id}`}>Technician pay for this job</label>
+      {canPay ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 14 }}>$</span>
+          <input id={`pay-${ticket.id}`} value={pay} onChange={(e) => setPay(e.target.value)} type="number" min="0" step="0.01" placeholder="0"
+            onBlur={() => { const v = Math.max(0, Number(pay) || 0); if (v !== (Number(ticket.techPay) || 0)) onUpdate({ techPay: v }); }} style={{ ...inputStyle, width: 110 }} />
+          {Number(ticket.techPay) > 0 && (ticket.techPaidAt
+            ? <span style={{ fontSize: 12.5, color: green }}>✓ Paid {new Date(ticket.techPaidAt).toLocaleDateString("en-AU")} <button onClick={() => onUpdate({ techPaidAt: null, techPaidBy: null })} style={{ background: "none", border: "none", color: muted, textDecoration: "underline", cursor: "pointer", fontSize: 12 }}>undo</button></span>
+            : <button onClick={() => onUpdate({ techPaidAt: new Date().toISOString(), techPaidBy: me || "" })} style={{ ...inputStyle, cursor: "pointer", color: green, background: "transparent", borderColor: green }}>Mark paid</button>)}
+        </div>
+      ) : (
+        <div style={{ fontSize: 13.5 }}>{Number(ticket.techPay) > 0 ? `${fmt(ticket.techPay)}${ticket.techPaidAt ? " · paid" : " · not paid yet"}` : <span style={{ color: muted }}>Set by the Owner or Manager.</span>}</div>
+      )}
+      {!ticket.assignedTo && Number(ticket.techPay) > 0 && <div style={{ fontSize: 12, color: red, marginTop: 8 }}>Pay is set but nobody is assigned: assign the technician so it shows in their total.</div>}
     </div>
   );
 }

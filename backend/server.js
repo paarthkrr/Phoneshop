@@ -704,6 +704,24 @@ function maskBank(json) {
     }));
   } catch (e) { return json; }
 }
+// Technician pay is set by someone with the "reports" area (Owner/Manager by
+// default). Anyone else's save keeps the stored pay, so a technician can't
+// change their own pay or mark it paid.
+const PAY_FIELDS = ["techPay", "techPaidAt", "techPaidBy"];
+function keepPay(finalJson, existingJson) {
+  try {
+    const list = JSON.parse(finalJson), old = existingJson ? JSON.parse(existingJson) : [];
+    if (!Array.isArray(list) || !Array.isArray(old)) return finalJson;
+    const byId = new Map(old.filter((t) => t && t.id != null).map((t) => [String(t.id), t]));
+    return JSON.stringify(list.map((t) => {
+      if (!t || t.id == null) return t;
+      const prev = byId.get(String(t.id)) || {};
+      const next = { ...t };
+      for (const f of PAY_FIELDS) { if (prev[f] === undefined) delete next[f]; else next[f] = prev[f]; }
+      return next;
+    }));
+  } catch (e) { return finalJson; }
+}
 function restoreBank(finalJson, existingJson) {
   try {
     const list = JSON.parse(finalJson), old = existingJson ? JSON.parse(existingJson) : [];
@@ -1159,6 +1177,12 @@ app.post("/auth/users/:username/role", requireAuth, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+// Names and roles of the team, for "assign to" lists. Any signed-in staff member.
+app.get("/auth/team", requireAuth, async (req, res) => {
+  const r = await pool.query("SELECT username, role FROM users ORDER BY created_at");
+  res.json({ team: r.rows });
+});
+
 // Owner adds or removes access areas for one person. Takes effect on their next
 // request (no sign-out needed); the portal menu updates when they reload.
 app.post("/auth/users/:username/access", requireAuth, async (req, res) => {
@@ -1485,6 +1509,7 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
       }
       if (scope === "shared" && req.params.key === "orders") finalValue = keepCustomerDecisions(finalValue, existingValue);
       if (hidesBank) finalValue = restoreBank(finalValue, existingValue);
+      if (scope === "shared" && req.params.key === "repair_tickets" && !hasArea(req.user, "reports")) finalValue = keepPay(finalValue, existingValue);
       if (scope === "shared" && req.params.key === "notification_queue") {   // staff-sent customer updates (e.g. "repair ready")
         try { const had = new Set((existingValue ? JSON.parse(existingValue) : []).map((r) => r && r.id)); staffQueued = JSON.parse(finalValue).filter((r) => r && r.id && !had.has(r.id)); } catch (e) { staffQueued = []; }
       }

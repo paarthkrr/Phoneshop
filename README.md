@@ -81,6 +81,19 @@ Set on the Team page (Owner only). The server enforces them; the portal only hid
 - **Passwords:** 12+ characters; common passwords and ones built from the username or the shop's name are refused. Anyone whose current password is shorter must choose a new one at their next sign-in.
 - **Alerts and history:** every sign-in attempt is logged for 180 days (Team → Sign-in history; the Owner sees everyone's). `OWNER_EMAIL` gets an email for a sign-in from a device that account hasn't used before, an account getting locked, a backup code being used, and a two-step reset.
 
+## Technician jobs and profit & loss
+- **Repair Bench → a job → Technician job:** assign it (or "Assign to me"), log time (+15m / +30m / +1h or minutes), and set the technician's pay for the job.
+- Pay can only be set or marked paid by someone with the `reports` area (Owner/Manager by default). The server keeps the stored pay if anyone else saves the job.
+- Technicians see "my jobs (n)" in the queue and their pay, but not the shop's profit on the job.
+- When a job is completed, its sale records parts cost, technician pay and the technician (`costBasis` = parts + pay). Later changes to price, parts or pay update that sale.
+- **Customers & Reports → Profit & Loss** (by month or all time):
+  - profit for phones (sold − what the shop paid), accessories (sold − item cost) and repairs (sold − parts − technician pay)
+  - minus expenses by category, stock write-offs and till over/short, giving net profit
+  - sales with no buy price are listed as "cost unknown" and left out of profit
+  - per technician: jobs, hours, pay and pay still owed, with "mark paid"
+  - every sale, with CSV download
+- Technician pay is counted inside repair profit, so don't also enter it as an expense. The maths is in `frontend/src/pnl.js` (tested in `backend/test/pnl.test.js`).
+
 ## Activity log
 Every save a signed-in staff member makes to a shared list is recorded server-side: who, when, which record and which fields changed (old → new). Bank, payout, ID and signature values are never stored; the log only says "changed (hidden)". Team changes are logged too (added, removed, role, password and two-step resets). The Owner reads it at **Portal → Activity** (filters: person, area, important only). Entries are kept about 400 days.
 

@@ -86,6 +86,22 @@ test("what each role can open and change", async () => {
   assert.equal((await call("DELETE", "/storage/inventory?shared=true", tok.manager)).status, 403, "wiping a list is Owner only");
 });
 
+test("technician pay: only Owner/Manager-level access can set it or mark it paid", async () => {
+  const job = { id: "RPR-9", status: "in_repair", assignedTo: "tech", device: { brand: "Apple", model: "iPhone 12" } };
+  await put("repair_tickets", [{ ...job, techPay: 50 }], tok.manager);
+  await put("repair_tickets", [{ ...job, techPay: 500, techPaidAt: "2026-10-01T00:00:00Z", timeSpentMins: 90 }], tok.tech);
+  let saved = JSON.parse((await get("repair_tickets", tok.owner)).body.value).find((t) => t.id === "RPR-9");
+  assert.equal(saved.techPay, 50, "technician can't raise their own pay");
+  assert.equal(saved.techPaidAt, undefined, "or mark it paid");
+  assert.equal(saved.timeSpentMins, 90, "but can log their time");
+  await put("repair_tickets", [{ ...saved, techPaidAt: "2026-10-08T00:00:00Z" }], tok.owner);
+  saved = JSON.parse((await get("repair_tickets", tok.owner)).body.value).find((t) => t.id === "RPR-9");
+  assert.equal(saved.techPaidAt, "2026-10-08T00:00:00Z");
+  const team = (await call("GET", "/auth/team", tok.tech)).body.team;
+  assert.deepEqual(team.map((u) => u.username).sort(), ["counter", "manager", "owner", "tech"]);
+  assert.ok(team.every((u) => Object.keys(u).sort().join() === "role,username"), "names and roles only");
+});
+
 test("the Owner can add or remove access for one person, live, without a sign-out", async () => {
   const access = (u, areas, t = tok.owner) => call("POST", `/auth/users/${u}/access`, t, { areas });
   assert.equal((await get("expenses", tok.counter)).status, 403);

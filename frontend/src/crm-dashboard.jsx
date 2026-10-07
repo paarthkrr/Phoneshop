@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { buildPnl, monthsIn, toCsv, KIND_LABELS } from "./pnl.js";
 
 /* =================================================================
    CRM + REPORTING
@@ -35,7 +36,7 @@ async function saveJSON(key, value, shared) {
 }
 
 const ORDER_STATUSES = ["awaiting_shipment", "received_inspecting", "revised_pending_customer", "approved_paid", "returned"];
-const TABS = ["Customers", "Reports", "Expenses", "Leads & Notifications"];
+const TABS = ["Customers", "Profit & Loss", "Reports", "Expenses", "Leads & Notifications"];
 const EXPENSE_CATEGORIES = ["Rent", "Wages", "Utilities", "Supplies", "Marketing", "Insurance", "Other"];
 
 export default function CRMDashboard() {
@@ -49,6 +50,7 @@ export default function CRMDashboard() {
   const [supportQueries, setSupportQueries] = useState([]);
   const [referrals, setReferrals] = useState([]);
   const [tillRecords, setTillRecords] = useState([]);
+  const [tickets, setTickets] = useState([]);
   const [tab, setTab] = useState("Customers");
   const [search, setSearch] = useState("");
   const [openCustomer, setOpenCustomer] = useState(null);
@@ -56,6 +58,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     (async () => {
       const [o, s, l, n, e, inv, bulk, ref, till, sq] = await Promise.all([loadJSON("orders", true), loadJSON("sales", true), loadJSON("quote_leads", true), loadJSON("notification_queue", true), loadJSON("expenses", true), loadJSON("inventory", true), loadJSON("bulk_quote_requests", true), loadJSON("referrals", true), loadJSON("till_records", true), loadJSON("support_queries", true)]);
+      setTickets((await loadJSON("repair_tickets", true)) || []);
       setOrders(o); setSales(s); setLeads(l); setNotifications(n); setExpenses(e); setInventory(inv); setBulkRequests(bulk); setReferrals(ref); setTillRecords(till); setSupportQueries(sq || []);
     })();
   }, []);
@@ -313,6 +316,16 @@ export default function CRMDashboard() {
           </div>
         )}
 
+        {tab === "Profit & Loss" && (
+          <PnlTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }} fmt={fmt}
+            sales={sales || []} tickets={tickets} expenses={expenses || []} inventory={inventory || []} tillRecords={tillRecords || []}
+            onMarkPaid={async (ids) => {
+              const at = new Date().toISOString(), by = (window.shopAuth && window.shopAuth.currentUser() || {}).username || "";
+              const next = tickets.map((t) => (ids.includes(t.id) ? { ...t, techPaidAt: at, techPaidBy: by } : t));
+              if (await saveJSON("repair_tickets", next, true)) setTickets(next);
+            }} />
+        )}
+
         {tab === "Expenses" && (
           <ExpensesTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
             expenses={expenses} onAdd={addExpense} onDelete={deleteExpense} fmt={fmt} />
@@ -517,6 +530,113 @@ function ExpensesTab({ colors, expenses, onAdd, onDelete, fmt }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Profit & loss by month: what each sale made after what the shop paid for it
+// (phone buy price, item cost, repair parts) and technician pay, then expenses,
+// write-offs and till over/short. Technician pay owed can be marked paid here.
+function PnlTab({ colors, fmt, sales, tickets, expenses, inventory, tillRecords, onMarkPaid }) {
+  const { panel2, paper, muted, brass, red, green, line } = colors;
+  const months = monthsIn({ sales, expenses, tickets });
+  const [month, setMonth] = useState(months[0] || "all");
+  const [kind, setKind] = useState("all");
+  const p = useMemo(() => buildPnl({ sales, tickets, expenses, inventory, tillRecords, month }), [sales, tickets, expenses, inventory, tillRecords, month]);
+  const money = (n) => (n == null ? "—" : `${n < 0 ? "−" : ""}${fmt(Math.abs(n))}`);
+  const label = (m) => (m === "all" ? "All time" : new Date(`${m}-01T00:00:00`).toLocaleDateString("en-AU", { month: "long", year: "numeric" }));
+  const Line = ({ name, value, strong, hint, color }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "7px 0", borderTop: `1px solid ${line}`, fontSize: strong ? 15 : 13.5, fontWeight: strong ? 700 : 400 }}>
+      <span>{name}{hint && <span style={{ color: muted, fontWeight: 400, fontSize: 12 }}> · {hint}</span>}</span>
+      <span style={{ color: color || (value < 0 ? red : paper), whiteSpace: "nowrap" }}>{money(value)}</span>
+    </div>
+  );
+  const rows = p.rows.filter((r) => kind === "all" || r.kind === kind);
+  function download() {
+    const blob = new Blob([toCsv(rows)], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `profit-and-loss-${month}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  const sel = { padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13.5 };
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <select aria-label="Month" value={month} onChange={(e) => setMonth(e.target.value)} style={sel}>
+          {months.map((m) => <option key={m} value={m}>{label(m)}</option>)}
+          <option value="all">All time</option>
+        </select>
+      </div>
+
+      <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: "6px 14px 10px", marginBottom: 18 }}>
+        <div style={{ fontSize: 13, color: muted, padding: "6px 0" }}>{label(month)}</div>
+        {Object.entries(KIND_LABELS).map(([k, name]) => {
+          const x = p.byKind[k];
+          if (!x.count) return null;
+          const parts = [`${x.count} sold${x.unknownCost ? ` (${x.unknownCost} without a buy price, ${money(x.unknownRevenue)} not counted)` : ""}`, `takings ${money(x.revenue)}`, `${k === "repair" ? "parts" : "cost"} ${money(x.cost)}`];
+          if (k === "repair") parts.push(`technician pay ${money(x.labour)}`);
+          return <Line key={k} name={`${name} profit`} value={x.profit} hint={parts.join(", ")} />;
+        })}
+        <Line name="Gross profit" value={p.grossProfit} strong />
+        {Object.entries(p.expenseByCategory).map(([c, a]) => <Line key={c} name={`− ${c}`} value={-a} />)}
+        {p.writeOffs > 0 && <Line name="− Stock written off" value={-p.writeOffs} />}
+        {p.tillVariance !== 0 && <Line name={p.tillVariance > 0 ? "+ Till over" : "− Till short"} value={p.tillVariance} />}
+        <Line name="Net profit" value={p.netProfit} strong color={p.netProfit >= 0 ? green : red} />
+        {p.unknownCount > 0 && <div style={{ fontSize: 12.5, color: red, marginTop: 8, lineHeight: 1.5 }}>⚠ {p.unknownCount} sale{p.unknownCount === 1 ? " has" : "s have"} no buy price recorded, so {p.unknownCount === 1 ? "it isn't" : "they aren't"} counted in profit. They're marked "cost unknown" below.</div>}
+      </div>
+
+      {p.technicians.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Technicians</div>
+          {p.technicians.map((t) => (
+            <div key={t.name} style={{ border: `1px solid ${line}`, borderRadius: 3, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>🔧 {t.name}</div>
+                <div style={{ fontSize: 12.5, color: muted }}>{label(month)}: {t.jobs} job{t.jobs === 1 ? "" : "s"} done · {Math.round(t.minutes / 6) / 10} h · pay {money(t.pay)}</div>
+              </div>
+              {t.owed > 0 ? (
+                <button onClick={() => { if (window.confirm(`Mark ${money(t.owed)} as paid to ${t.name} for ${t.owedJobs.length} job(s)?`)) onMarkPaid(t.owedJobs); }}
+                  style={{ padding: "8px 12px", borderRadius: 3, border: `1px solid ${green}`, background: "transparent", color: green, fontSize: 13, cursor: "pointer" }}>
+                  Owed {money(t.owed)} · mark paid
+                </button>
+              ) : <span style={{ fontSize: 12.5, color: green }}>✓ nothing owed</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>Every sale</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <select aria-label="Type" value={kind} onChange={(e) => setKind(e.target.value)} style={sel}>
+            <option value="all">All types</option>
+            {Object.entries(KIND_LABELS).map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+          </select>
+          <button onClick={download} disabled={!rows.length} style={{ ...sel, cursor: rows.length ? "pointer" : "default", color: brass }}>Download CSV</button>
+        </div>
+      </div>
+      {!rows.length ? <div style={{ color: muted, fontSize: 13 }}>No sales in this period.</div> : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead><tr style={{ textAlign: "left", color: muted }}>
+              {["Date", "Item", "Sold", "Cost", "Tech pay", "Profit"].map((h) => <th key={h} style={{ padding: "6px 6px 6px 0", textAlign: h === "Date" || h === "Item" ? "left" : "right" }}>{h}</th>)}
+            </tr></thead>
+            <tbody>{rows.map((r) => (
+              <tr key={r.id} style={{ borderTop: `1px solid ${line}` }}>
+                <td style={{ padding: "7px 6px 7px 0", whiteSpace: "nowrap" }}>{new Date(r.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</td>
+                <td style={{ padding: "7px 6px 7px 0" }}>{r.item}<div style={{ color: muted, fontSize: 11.5 }}>{KIND_LABELS[r.kind]}{r.technician ? ` · 🔧 ${r.technician}` : ""}</div></td>
+                <td style={{ padding: "7px 6px 7px 0", textAlign: "right" }}>{money(r.sold)}</td>
+                <td style={{ padding: "7px 6px 7px 0", textAlign: "right", color: r.cost == null ? red : paper }}>{r.cost == null ? "unknown" : money(r.cost)}</td>
+                <td style={{ padding: "7px 6px 7px 0", textAlign: "right" }}>{r.labour ? money(r.labour) : ""}</td>
+                <td style={{ padding: "7px 0", textAlign: "right", fontWeight: 600, color: r.profit == null ? muted : r.profit < 0 ? red : green }}>{r.profit == null ? "—" : money(r.profit)}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+      <div style={{ fontSize: 12, color: muted, marginTop: 14, lineHeight: 1.6 }}>
+        Phone cost is what the shop paid for that phone (the in-store buy price, or the confirmed trade-in amount when it was received into stock). Repair cost is the parts used on the job; technician pay is set on the job in the Repair Bench. Technician pay is counted here, so don't also add it as an expense.
+      </div>
     </div>
   );
 }
