@@ -7,6 +7,7 @@ const isBsb = (v) => /^\d{6}$/.test(digits(v));
 const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 
 /* =================================================================
    STOREFRONT
@@ -106,6 +107,14 @@ export default function Storefront() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("All");
+  const [gradeFilter, setGradeFilter] = useState("All");
+  // Menu links like /shop?brand=Apple open this page already filtered (and re-filter it without a reload).
+  const routerLoc = useLocation();
+  useEffect(() => {
+    const p = new URLSearchParams(routerLoc.search);
+    setBrandFilter(p.get("brand") || "All");
+    setGradeFilter(["A", "B", "C"].includes(p.get("grade")) ? p.get("grade") : "All");
+  }, [routerLoc.search]);
   const [customer, setCustomer] = useState({ name: "", email: "", phone: "", address: "" });
   const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
   const [submitting, setSubmitting] = useState(false);
@@ -129,7 +138,7 @@ export default function Storefront() {
   const featured = useMemo(() => [...listed].sort((a, b) => b.listedPrice - a.listedPrice).slice(0, 3), [listed]);
   const filtered = listed.filter((i) => {
     const q = search.trim().toLowerCase();
-    const brandOk = brandFilter === "All" || i.brand === brandFilter;
+    const brandOk = (brandFilter === "All" || i.brand === brandFilter) && (gradeFilter === "All" || i.gradeId === gradeFilter);
     const qOk = !q || `${i.brand} ${i.model}`.toLowerCase().includes(q);
     return brandOk && qOk;
   });
@@ -287,6 +296,16 @@ export default function Storefront() {
                   style={{ padding: "6px 14px", borderRadius: 2, fontSize: 13, cursor: "pointer",
                     border: `1px solid ${brandFilter === b ? brass : line}`, background: brandFilter === b ? brassDim : "transparent", color: brandFilter === b ? brass : paper }}>
                   {b}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+              <span style={{ fontSize: 12.5, color: muted, marginRight: 4 }}>Condition</span>
+              {["All", "A", "B", "C"].map((g) => (
+                <button key={g} onClick={() => setGradeFilter(g)} aria-pressed={gradeFilter === g}
+                  style={{ padding: "6px 14px", borderRadius: 2, fontSize: 13, cursor: "pointer",
+                    border: `1px solid ${gradeFilter === g ? brass : line}`, background: gradeFilter === g ? brassDim : "transparent", color: gradeFilter === g ? brass : paper }}>
+                  {g === "All" ? "Any" : GRADE_LABELS[g].label}
                 </button>
               ))}
             </div>

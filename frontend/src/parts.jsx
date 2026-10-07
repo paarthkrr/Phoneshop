@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import Photo from "./photo.jsx";
 import { DEFAULT_CATALOG } from "./device-catalog.js";
 import { departmentOf } from "./compatibility.js";
@@ -54,6 +55,16 @@ export default function Parts() {
   const [trackQuery, setTrackQuery] = useState("");
   const [trackResult, setTrackResult] = useState(undefined);
 
+  // Menu links like /parts?dept=parts&cat=Batteries change the address without remounting this page, so re-read it.
+  const routerLoc = useLocation();
+  useEffect(() => {
+    const p = new URLSearchParams(routerLoc.search);
+    setCategoryFilter(p.get("cat") || "All");
+    setDept(["accessories", "parts"].includes(p.get("dept")) ? p.get("dept") : "all");
+    setModelFilter(p.get("model") || "");
+    setSearch(p.get("q") || "");
+    setVisible(24);
+  }, [routerLoc.search]);
   useEffect(() => { (async () => { setAccessories((await loadJSON("accessories", true)) || []); })(); }, []);
   useEffect(() => { try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) {} }, [cart]);
   // Browser back/forward between the shop and a product page.

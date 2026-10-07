@@ -1,5 +1,6 @@
 import { withBusinessDefaults, waLink, mailLink } from "./business-info.js";
 import React, { useState, useEffect } from "react";
+import { FOOTER_SHOP } from "./site-menu.js";
 
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
@@ -31,7 +32,13 @@ export default function SiteFooter() {
   }, []);
 
   return (
-    <footer style={{ marginTop: 50, paddingTop: 30, borderTop: `1px solid ${line}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 24, fontSize: 13, maxWidth: 720, marginLeft: "auto", marginRight: "auto", padding: "30px 16px 40px" }}>
+    <footer style={{ marginTop: 50, paddingTop: 30, borderTop: `1px solid ${line}`, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 26, fontSize: 13.5, maxWidth: 820, fontFamily: "'Archivo', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", color: "#111827", marginLeft: "auto", marginRight: "auto", padding: "30px 16px 40px" }}>
+      <style>{`
+        .sf-link { color: #5B6472; text-decoration: none; display: inline-block; transition: color .15s ease, transform .15s ease; }
+        .sf-link:hover { color: #2150C8; transform: translateX(3px); }
+        .sf-h { font-weight: 700; margin-bottom: 10px; color: #111827; }
+        @media (prefers-reduced-motion: reduce) { .sf-link { transition: none; } .sf-link:hover { transform: none; } }
+      `}</style>
       <div>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}><img src="/logo-icon.svg" alt="" width="26" height="26" style={{ borderRadius: 7 }} />Mobile Recellr</div>
         <div style={{ color: muted, lineHeight: 1.7 }}>
@@ -45,35 +52,41 @@ export default function SiteFooter() {
         </div>
       </div>
       <div>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Company</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <a href="/about" style={{ color: muted, textDecoration: "none" }}>About us</a>
-          <a href="/blog" style={{ color: muted, textDecoration: "none" }}>Guides</a>
-          <a href="/tutorials" style={{ color: muted, textDecoration: "none" }}>Repair tutorials</a>
-          <a href="/faq" style={{ color: muted, textDecoration: "none" }}>FAQ</a>
+        <div className="sf-h">Shop</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {FOOTER_SHOP.map((l) => <a key={l.label} href={l.to} className="sf-link">{l.label}</a>)}
         </div>
       </div>
       <div>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Sell</div>
+        <div className="sf-h">Company</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <a href="/about" className="sf-link">About us</a>
+          <a href="/blog" className="sf-link">Guides</a>
+          <a href="/tutorials" className="sf-link">Repair tutorials</a>
+          <a href="/faq" className="sf-link">FAQ</a>
+        </div>
+      </div>
+      <div>
+        <div className="sf-h">Sell</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
-          <a href="/sell/apple" style={{ color: muted, textDecoration: "none" }}>Sell iPhone</a>
-          <a href="/sell/samsung" style={{ color: muted, textDecoration: "none" }}>Sell Samsung</a>
-          <a href="/sell/google" style={{ color: muted, textDecoration: "none" }}>Sell Google Pixel</a>
-          <a href="/quote" style={{ color: muted, textDecoration: "none" }}>All devices</a>
+          <a href="/sell/apple" className="sf-link">Sell iPhone</a>
+          <a href="/sell/samsung" className="sf-link">Sell Samsung</a>
+          <a href="/sell/google" className="sf-link">Sell Google Pixel</a>
+          <a href="/quote" className="sf-link">All devices</a>
         </div>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Support</div>
+        <div className="sf-h">Support</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <a href="/help" style={{ color: muted, textDecoration: "none" }}>Help / Ask a question</a>
-          <a href="/contact" style={{ color: muted, textDecoration: "none" }}>Contact us</a>
-          <a href="/terms#returns" style={{ color: muted, textDecoration: "none" }}>30-day returns</a>
-          <a href="/terms#warranty" style={{ color: muted, textDecoration: "none" }}>Warranty</a>
-          <a href="/terms#shipping" style={{ color: muted, textDecoration: "none" }}>Shipping &amp; postage</a>
-          <a href="/terms" style={{ color: muted, textDecoration: "none" }}>Terms</a>
-          <a href="/privacy" style={{ color: muted, textDecoration: "none" }}>Privacy policy</a>
+          <a href="/help" className="sf-link">Help / Ask a question</a>
+          <a href="/contact" className="sf-link">Contact us</a>
+          <a href="/terms#returns" className="sf-link">30-day returns</a>
+          <a href="/terms#warranty" className="sf-link">Warranty</a>
+          <a href="/terms#shipping" className="sf-link">Shipping &amp; postage</a>
+          <a href="/terms" className="sf-link">Terms</a>
+          <a href="/privacy" className="sf-link">Privacy policy</a>
         </div>
       </div>
       <div>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Why Mobile Recellr</div>
+        <div className="sf-h">Why Mobile Recellr</div>
         <div style={{ color: muted, lineHeight: 1.9 }}>
           ✓ Genuine parts only<br />
           ✓ Price match guarantee<br />
