@@ -597,6 +597,8 @@ export default function QuoteCalculator() {
   const [trackResult, setTrackResult] = useState(undefined); // undefined = not searched, null = not found
   const [respondSubmitting, setRespondSubmitting] = useState(false);
   const [respondError, setRespondError] = useState("");
+  const [respondEmail, setRespondEmail] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [pmOpen, setPmOpen] = useState(false);
   const [pmCompetitor, setPmCompetitor] = useState("");
   const [pmPrice, setPmPrice] = useState("");
@@ -729,6 +731,7 @@ export default function QuoteCalculator() {
     const payoutValid = (customer.payoutMethod === "cash" ? fulfillment !== "post" : customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail));
     if (!calc || calc.blocked || !customer.name || !isEmail(customer.email) || !customer.idOwnerName || !payoutValid) return;
     setSubmitting(true);
+    setSubmitError("");
     const newCode = genReferralCode(customer.name);
     const order = {
       id: genOrderId(),
@@ -747,7 +750,11 @@ export default function QuoteCalculator() {
       inspection: null,
       referralCode: newCode,
     };
-    await saveOrder(order);
+    if (!(await saveOrder(order))) {
+      setSubmitError("We couldn't submit your order. Please check your connection and try again.");
+      setSubmitting(false);
+      return;
+    }
     if (idPhotoFile) await uploadIdPhoto(`order:${order.id}`, idPhotoFile);
 
     // If they came in on someone else's referral code, record the reward
@@ -755,22 +762,21 @@ export default function QuoteCalculator() {
     // connected yet), staff honor it manually, same pattern as everywhere else.
     const enteredCode = referralCodeEntered.trim().toUpperCase();
     if (enteredCode) {
-      // Same class of bug as order/price-match tracking: on a real
-      // deployment, loadOrders() correctly returns nothing for an
-      // anonymous customer (privacy), so a plain search would never
-      // find the referrer's order and referral codes would silently
-      // never work at all. Look the referrer up by their code via the
-      // safe public single-record endpoint instead.
-      const localList = window.SHOP_API_BASE_URL ? null : await loadOrders();
-      const referrerOrder = await findPublicRecord("orders", enteredCode, localList, ["referralCode"]);
-      if (referrerOrder && referrerOrder.customer.email.toLowerCase() !== customer.email.toLowerCase()) {
-        await saveReferral({
-          id: "REF-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(),
-          code: enteredCode, referrerEmail: referrerOrder.customer.email, referrerName: referrerOrder.customer.name,
-          referredEmail: customer.email, referredName: customer.name, referredOrderId: order.id,
-          rewardAmount: REFERRAL_REWARD_AMOUNT, currency: REGIONS_A[region].currency,
-          referrerPaid: false, referredPaid: false,
-        });
+      const referral = {
+        id: "REF-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(),
+        code: enteredCode, referredEmail: customer.email, referredName: customer.name, referredOrderId: order.id,
+        rewardAmount: REFERRAL_REWARD_AMOUNT, currency: REGIONS_A[region].currency,
+        referrerPaid: false, referredPaid: false,
+      };
+      if (window.SHOP_API_BASE_URL) {
+        // The server matches the code to its owner (and drops self-referrals),
+        // so the public site never looks up another customer's order.
+        await saveReferral(referral);
+      } else {
+        const referrerOrder = await findPublicRecord("orders", enteredCode, await loadOrders(), ["referralCode"]);
+        if (referrerOrder && referrerOrder.customer.email.toLowerCase() !== customer.email.toLowerCase()) {
+          await saveReferral({ ...referral, referrerEmail: referrerOrder.customer.email, referrerName: referrerOrder.customer.name });
+        }
       }
     }
 
@@ -803,13 +809,16 @@ export default function QuoteCalculator() {
   // preview-mode fallback in this file.
   async function handleOrderRespond(decision) {
     if (!trackResult) return;
+    // Lookups no longer return the customer's email, so the customer confirms it here.
+    const email = isEmail(trackQuery) ? trackQuery.trim() : respondEmail.trim();
+    if (window.SHOP_API_BASE_URL && !isEmail(email)) { setRespondError("Enter the email address you used for this order."); return; }
     setRespondSubmitting(true);
     setRespondError("");
     try {
       if (window.SHOP_API_BASE_URL) {
         const res = await fetch(`${window.SHOP_API_BASE_URL}/public/orders/${encodeURIComponent(trackResult.id)}/respond`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: trackResult.customer.email, decision }),
+          body: JSON.stringify({ email, decision }),
         });
         const body = await res.json();
         if (!res.ok) throw new Error(body.error || "Something went wrong — please try again.");
@@ -1132,6 +1141,10 @@ export default function QuoteCalculator() {
                 {trackResult.status === "revised_pending_customer" && (
                   <div style={{ marginTop: 12, border: `1px solid ${brass}`, borderRadius: 3, padding: 12 }}>
                     <div style={{ fontSize: 12.5, marginBottom: 10 }}>We found something different once we inspected your device. You can accept the revised amount above, or decline and we'll arrange getting your device back to you.</div>
+                    {window.SHOP_API_BASE_URL && !isEmail(trackQuery) && (
+                      <input value={respondEmail} onChange={(e) => setRespondEmail(e.target.value)} placeholder="Email you used for this order" aria-label="Email you used for this order" type="email"
+                        style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, fontSize: 13, marginBottom: 8, fontFamily: "inherit" }} />
+                    )}
                     {respondError && <div style={{ color: red, fontSize: 12, marginBottom: 8 }}>{respondError}</div>}
                     <div style={{ display: "flex", gap: 8 }}>
                       <button className="cs-btn" disabled={respondSubmitting} onClick={() => handleOrderRespond("accept")}
@@ -1623,6 +1636,7 @@ export default function QuoteCalculator() {
               This quote is locked for 14 days from today. If your device doesn't match what you told us, we'll always send a revised offer for you to accept or decline — never an automatic reduced payment.
             </div>
 
+            {submitError && <div role="alert" style={{ color: red, fontSize: 13, marginBottom: 10 }}>{submitError}</div>}
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setCheckout(false)} style={{ padding: "12px 16px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 14, cursor: "pointer" }}>
                 Back

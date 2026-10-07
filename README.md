@@ -28,18 +28,27 @@ Pricing console, Register/POS, Repair Bench, Till, Customers & Reports (CRM), In
 
 ## Email (Resend)
 - Customer confirmations and updates are sent from `notification_queue` items with `channel: "email"`.
+- Confirmations queued by the public site (not logged in) are rewritten by the server: it looks up the record the confirmation is about, sends to the email on that record, uses its own wording, and sends at most one per record. Text or addresses typed into a request are never emailed. Add a new confirmation type in `CONFIRMATIONS` in `server.js`.
+- Owner alerts leave out bank, payout-account and ID details; read those in the portal.
 - Customer emails use a standard layout: greeting, the message, a "we've received your request and will get back to you shortly" line (for submissions only), and a footer with shop name, location, phone/WhatsApp, email and website. Change the location later by setting `SHOP_LOCATION` in Render; no code change needed.
 - Every new public submission also emails `OWNER_EMAIL` (default `mobilerecellr@outlook.com`).
 - Default sender is `onboarding@resend.dev`, which only reaches the Resend account owner. Verify a sending domain in Resend, then set `EMAIL_FROM`, before expecting customers to receive mail.
 
 ## Abuse protection on public forms
-Visitors who are not logged in are limited per IP: 20 submissions per 10 minutes (`PUBLIC_WRITE_MAX`), 30 offer responses per 10 minutes, at most 20 items and 2 MB per submission, and at most 5 owner emails per request. Staff are not limited. Limits are in memory and reset on restart.
+Visitors who are not logged in are limited per IP: 20 submissions per 10 minutes (`PUBLIC_WRITE_MAX`), 30 offer responses per 10 minutes, 60 tracking lookups per 10 minutes, 10 ID photo uploads per 10 minutes, at most 20 items and 2 MB per submission, and at most 5 owner emails per request. Staff are not limited. Limits are in memory and reset on restart.
+
+## Customer privacy
+- Tracking lookups (`/public/find`) search only by reference number or email and return only what the tracking pages show (status, device, amounts, tracking number). Contact, bank, payout and ID details are never returned.
+- Referrals send only the code; the server fills in who owns it.
+- A reference number that clashes with a different existing record is refused (409) instead of silently dropped.
+- Only an admin can delete a whole shared collection.
+- A customer's accept/decline on a revised offer survives a staff save from an older copy; a newer re-inspection still wins.
 
 ## Login protection
 5 failed attempts locks that username for 5 minutes (checked before the password). Sessions are signed tokens and can be revoked per user or everywhere. Admin recovery uses `ADMIN_RECOVERY_CODE` with `ADMIN_RECOVERY_EXPIRES`.
 
 ## ID photos
-Behaviour is unchanged; see the `/id-photos` routes in `backend/server.js`.
+Encrypted at rest and purged after `ID_PHOTO_RETENTION_DAYS`. A visitor who is not logged in can upload one photo for an existing trade-in order (`order:<id>`) and cannot replace it. Staff uploads are unrestricted.
 
 ## Environment variables (set in Render, never in code)
 Backend: `DATABASE_URL`, `PORT`, `SESSION_SECRET`, `CORS_ORIGIN` (comma-separated list allowed; include https://mobilerecellr.com.au), `ADMIN_BOOTSTRAP_TOKEN`, `ADMIN_RECOVERY_CODE`, `ADMIN_RECOVERY_EXPIRES`, `ID_PHOTO_ENCRYPTION_KEY`, `ID_PHOTO_RETENTION_DAYS`, `RESEND_API_KEY`, `EMAIL_FROM`, `OWNER_EMAIL`, `PGSSL`, `NODE_ENV`, optional `PUBLIC_WRITE_MAX`, `SHOP_LOCATION` (shown in customer emails, default "Sydney"), `SHOP_PHONE` (default "0411 931 999").
@@ -48,6 +57,7 @@ Backend: `DATABASE_URL`, `PORT`, `SESSION_SECRET`, `CORS_ORIGIN` (comma-separate
 ```
 cd backend && npm install && npm start     # :8787, needs a local Postgres (see DATABASE_URL default in server.js)
 cd frontend && npm install && npm run dev
+cd backend && npm test                     # API tests; DROPS ALL TABLES in DATABASE_URL, use a throwaway local database
 ```
 The default local database URL in `server.js` is a localhost test credential only. Never reuse it.
 

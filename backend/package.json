@@ -4,7 +4,8 @@
   "description": "Real storage backend for the phone shop tools — replaces Claude's window.storage with HTTP + SQLite.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": ">=22.5.0"
