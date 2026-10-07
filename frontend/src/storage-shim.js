@@ -99,15 +99,45 @@
     };
   }
 
-  async function login(baseUrl, username, password) {
+  // A random id this browser keeps, so the server can tell a new device
+  // (and email the owner) from one this person has used before.
+  function deviceId() {
+    try {
+      let id = localStorage.getItem("shop_device_id");
+      if (!id) {
+        const b = new Uint8Array(18); crypto.getRandomValues(b);
+        id = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+        localStorage.setItem("shop_device_id", id);
+      }
+      return id;
+    } catch (e) { return undefined; }
+  }
+
+  // Owner/Manager accounts answer the first call with { needCode: true };
+  // call again with the 6-digit code from their authenticator app.
+  async function login(baseUrl, username, password, code) {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, deviceId: deviceId(), ...(code ? { code } : {}) }),
     });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || "login failed");
+    if (body.needCode) return body;
     saveSession(body);
     return body;
+  }
+
+  // Re-reads what this sign-in still has to finish (new password, two-step).
+  async function refreshMe(baseUrl) {
+    const session = loadSession();
+    if (!session?.token) return null;
+    const res = await fetch(`${baseUrl}/auth/me`, { headers: { Authorization: `Bearer ${session.token}` } });
+    if (res.status === 401) { clearSession(); return null; }
+    if (!res.ok) return session;
+    const me = await res.json();
+    const next = { ...session, limits: me.limits || [] };
+    saveSession(next);
+    return next;
   }
 
   async function register(baseUrl, username, password, role, existingToken, bootstrapToken) {
@@ -142,7 +172,7 @@
   function installStorageForEveryone(baseUrl) {
     installStorage(baseUrl, () => { const s = loadSession(); return s?.token || null; });
   }
-  function currentUser() { const s = loadSession(); return s ? { username: s.username, role: s.role } : null; }
+  function currentUser() { const s = loadSession(); return s ? { username: s.username, role: s.role, limits: s.limits || [] } : null; }
   // Token of the signed-in staff member, for staff-only actions like managing the team.
   function authToken() { const s = loadSession(); return s ? s.token : null; }
 
@@ -197,5 +227,5 @@
     };
   }
 
-  window.shopAuth = { login, register, logout, currentUser, authToken, mountLoginGate, installStorage, installStorageForEveryone };
+  window.shopAuth = { login, refreshMe, register, logout, currentUser, authToken, mountLoginGate, installStorage, installStorageForEveryone };
 })();

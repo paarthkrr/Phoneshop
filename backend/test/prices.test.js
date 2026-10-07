@@ -3,6 +3,7 @@
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 
+process.env.TWO_STEP_ROLES = ""; // two-step sign-in has its own tests (auth.test.js)
 process.env.RESEND_API_KEY = "test-key";
 process.env.PUBLIC_WRITE_MAX = "1000";
 const sent = [];
@@ -22,15 +23,15 @@ const getShared = async (key) => JSON.parse((await realFetch(`${base}/storage/${
 before(async () => {
   const { Pool } = require("pg");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgres://postgres:testpass@localhost:5432/shoptest" });
-  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts");
+  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices");
   await pool.end();
   app = require("../server.js");
   await app.__schemaReady;
   server = app.listen(0);
   base = `http://127.0.0.1:${server.address().port}`;
   const post = (p, body) => realFetch(base + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
-  await post("/auth/register", { username: "owner", password: "ownerpass1" });
-  token = (await post("/auth/login", { username: "owner", password: "ownerpass1" })).token;
+  await post("/auth/register", { username: "owner", password: "owner-pass-2026" });
+  token = (await post("/auth/login", { username: "owner", password: "owner-pass-2026" })).token;
   pricing = await import("../../frontend/src/pricing.js");
   const { DEFAULT_CATALOG } = await import("../../frontend/src/device-catalog.js");
   device = DEFAULT_CATALOG.find((d) => d.brand === "Apple" && d.retail);

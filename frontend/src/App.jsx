@@ -75,6 +75,7 @@ const POSInventory = staffScreen(() => import("./pos-inventory.jsx"));
 const RepairTickets = staffScreen(() => import("./repair-tickets.jsx"));
 const TillReconciliation = staffScreen(() => import("./till-reconciliation.jsx"));
 const CRMDashboard = staffScreen(() => import("./crm-dashboard.jsx"));
+const SecuritySetup = staffScreen(() => import("./security.jsx"));
 
 function isStaffPath(p) {
   return STAFF_BASES.some((b) => p === b || p.startsWith(b + "/"));
@@ -340,38 +341,60 @@ function Nav() {
    are left open, matching how every other feature in this system
    degrades gracefully with no backend rather than blocking. */
 function StaffGate({ children }) {
-  const [status, setStatus] = useState("checking"); // checking | needs-login | ok
+  const [status, setStatus] = useState("checking"); // checking | needs-login | setup | ok
   const location = useLocation();
   const [mode, setMode] = useState("login"); // login | register
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [bootstrapToken, setBootstrapToken] = useState("");
+  const [code, setCode] = useState("");
+  const [needCode, setNeedCode] = useState(false);
+  const [limits, setLimits] = useState([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
     if (!window.shopAuth) { setStatus("ok"); return; } // no real backend — don't block
     try {
-      setStatus(window.shopAuth.currentUser() ? "ok" : "needs-login");
+      const me = window.shopAuth.currentUser();
+      if (!me) { setStatus("needs-login"); return; }
+      applyLimits(me.limits);
+      // Ask the server too: rules may have changed since this sign-in.
+      window.shopAuth.refreshMe(window.SHOP_API_BASE_URL).then((s) => { if (!s) setStatus("needs-login"); else applyLimits(s.limits); }).catch(() => {});
     } catch (e) {
       console.error("Auth check failed, treating as logged out:", e);
       setStatus("needs-login");
     }
   }, []);
 
+  function applyLimits(l) {
+    const list = l || [];
+    setLimits(list);
+    setStatus(list.length ? "setup" : "ok");
+  }
+  async function setupStepDone() {
+    const s = await window.shopAuth.refreshMe(window.SHOP_API_BASE_URL).catch(() => null);
+    if (!s) { setStatus("needs-login"); return; }
+    applyLimits(s.limits);
+    if (!(s.limits || []).length) window.dispatchEvent(new Event("mv-auth-change"));
+  }
+
   async function handleLogin() {
     setError("");
     try {
-      await window.shopAuth.login(window.SHOP_API_BASE_URL, username.trim(), password);
+      const r = await window.shopAuth.login(window.SHOP_API_BASE_URL, username.trim(), password, needCode ? code.trim() : undefined);
+      if (r.needCode) { setNeedCode(true); setCode(""); return; }
+      setNeedCode(false); setCode("");
       // Re-point window.storage at the newly-authenticated session — without
       // this, staff would be "logged in" per currentUser() but every
       // storage call would still go out with no token, hitting the same
       // 401s an anonymous visitor gets on staff-only data.
       window.shopAuth.installStorageForEveryone(window.SHOP_API_BASE_URL);
-      setStatus("ok");
+      applyLimits(r.limits);
       window.dispatchEvent(new Event("mv-auth-change")); // menu redraws for this person's role
     } catch (e) {
       setError(e.message);
+      if (needCode) setCode("");
     }
   }
 
@@ -383,7 +406,7 @@ function StaffGate({ children }) {
   // Forgotten admin password: one-time recovery code set by the owner on the host.
   async function handleRecover() {
     setError(""); setSuccess("");
-    if (password.length < 8) return setError("New password must be at least 8 characters.");
+    if (password.length < 12) return setError("New password must be at least 12 characters.");
     try {
       const res = await fetch(`${window.SHOP_API_BASE_URL}/auth/recover`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), code: bootstrapToken.trim(), newPassword: password }) });
       const body = await res.json().catch(() => ({}));
@@ -405,6 +428,7 @@ function StaffGate({ children }) {
   }
 
   if (status === "checking") return null;
+  if (status === "setup") return <SecuritySetup limits={limits} onDone={setupStepDone} />;
   if (status === "ok") {
     const role = currentRole();
     if (!canSeeScreen(normPath(location.pathname), role)) {
@@ -426,8 +450,17 @@ function StaffGate({ children }) {
       </div>
       <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" autoCapitalize="none" autoCorrect="off" spellCheck={false}
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, fontSize: 14, boxSizing: "border-box" }} />
-      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "recover" ? "New password (8+ characters)" : "Password (8+ characters)"} type="password"
+      <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "login" ? "Password" : "New password (12+ characters)"} type="password"
+        onKeyDown={(e) => { if (e.key === "Enter" && mode === "login" && !needCode) handleLogin(); }}
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
+      {mode === "login" && needCode && (
+        <>
+          <div style={{ fontSize: 13.5, color: "#5B6472", margin: "4px 0 6px" }}>Enter the 6-digit code from your authenticator app.</div>
+          <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="000000" aria-label="6-digit code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter" && code.length === 6) handleLogin(); }}
+            style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 20, letterSpacing: "0.3em", textAlign: "center" }} />
+        </>
+      )}
       {(mode === "register" || mode === "recover") && (
         <input value={bootstrapToken} onChange={(e) => setBootstrapToken(e.target.value)} placeholder={mode === "recover" ? "Backup recovery code" : "Bootstrap token (if one was set)"}
           style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
@@ -438,15 +471,15 @@ function StaffGate({ children }) {
         style={{ width: "100%", padding: 11, background: brass, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", marginBottom: 10 }}>
         {mode === "login" ? "Sign in" : mode === "recover" ? "Reset password" : "Create account"}
       </button>
-      <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); }}
+      <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); setNeedCode(false); }}
         style={{ width: "100%", padding: 9, background: "transparent", border: "none", color: paper, textDecoration: "underline", cursor: "pointer", fontSize: 12.5 }}>
         {mode === "login" ? "First time here? Create an account" : "Already have an account? Sign in"}
       </button>
-      {mode === "login" && <button onClick={() => { setMode("recover"); setError(""); setSuccess(""); }}
+      {mode === "login" && <button onClick={() => { setMode("recover"); setError(""); setSuccess(""); setNeedCode(false); }}
         style={{ width: "100%", padding: 6, background: "transparent", border: "none", color: brass, textDecoration: "underline", cursor: "pointer", fontSize: 12.5 }}>
         Forgot password?
       </button>}
-      {mode === "recover" && <div style={{ fontSize: 12, color: "#5B6472", lineHeight: 1.5 }}>Use the backup code you saved from the Team page (usernames aren't case-sensitive). No code? Ask an admin to reset your password from the Team page.</div>}
+      {mode === "recover" && <div style={{ fontSize: 12, color: "#5B6472", lineHeight: 1.5 }}>Use the backup code you saved from the Team page (usernames aren't case-sensitive). Lost your phone? This also switches two-step sign-in off so you can set it up again. No code? Ask the Owner to reset your password from the Team page.</div>}
     </div>
   );
 }
