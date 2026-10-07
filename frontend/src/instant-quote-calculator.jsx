@@ -321,37 +321,6 @@ const CONFIG_KEY = "pricing-config";
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
 }
-// ID photo upload — only active when this app is deployed with the real
-// backend (window.SHOP_API_BASE_URL set by whoever installs storage-shim.js).
-// Inside Claude.ai there's no such backend, so this quietly no-ops there;
-// the ID number field above still satisfies the core compliance need.
-function idPhotoBackendConfigured() {
-  return typeof window !== "undefined" && !!window.SHOP_API_BASE_URL;
-}
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(",")[1] || "");
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-async function uploadIdPhoto(subjectKey, file) {
-  if (!idPhotoBackendConfigured() || !file) return null;
-  try {
-    const session = JSON.parse(localStorage.getItem("shop_auth_token") || "null");
-    if (!session?.token) return null;
-    const imageBase64 = await fileToBase64(file);
-    const res = await fetch(`${window.SHOP_API_BASE_URL}/id-photos`, {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
-      body: JSON.stringify({ subjectKey, imageBase64 }),
-    });
-    return res.ok ? await res.json() : null;
-  } catch (e) {
-    return null; // photo capture is a best-effort enhancement, never blocks the order itself
-  }
-}
-
 async function loadSharedConfig() {
   if (!storageAvailable()) return null;
   try {
@@ -583,7 +552,7 @@ export default function QuoteCalculator() {
   const [hasAccessories, setHasAccessories] = useState(false);
   const [showRef, setShowRef] = useState(false);
   const [checkout, setCheckout] = useState(false);
-  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idType: "license", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" });
+  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" });
   const [referralCodeEntered, setReferralCodeEntered] = useState("");
   const [myReferralCode, setMyReferralCode] = useState(null);
   const [fulfillment, setFulfillment] = useState("post");
@@ -619,8 +588,6 @@ export default function QuoteCalculator() {
   const [bulkTrackOpen, setBulkTrackOpen] = useState(false);
   const [bulkTrackQuery, setBulkTrackQuery] = useState("");
   const [bulkTrackResult, setBulkTrackResult] = useState(undefined);
-  const [idPhotoFile, setIdPhotoFile] = useState(null);
-  const idPhotoBackendAvailable = idPhotoBackendConfigured();
 
   useEffect(() => {
     let cancelled = false;
@@ -755,7 +722,6 @@ export default function QuoteCalculator() {
       setSubmitting(false);
       return;
     }
-    if (idPhotoFile) await uploadIdPhoto(`order:${order.id}`, idPhotoFile);
 
     // If they came in on someone else's referral code, record the reward
     // for both sides — nothing is auto-credited (no payment rails
@@ -1526,36 +1492,13 @@ export default function QuoteCalculator() {
               />
             ))}
 
-            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }} id="id-type-label">Photo ID — required by law to buy second-hand devices</div>
-            <div role="group" aria-labelledby="id-type-label" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              {[{ id: "license", label: "Driver licence" }, { id: "passport", label: "Passport" }, { id: "other", label: "Other photo ID" }].map((opt) => (
-                <button key={opt.id} onClick={() => setCustomer((c) => ({ ...c, idType: opt.id }))} aria-pressed={customer.idType === opt.id}
-                  style={{ flex: 1, padding: "9px 6px", borderRadius: 3, fontSize: 12, cursor: "pointer",
-                    border: `1px solid ${customer.idType === opt.id ? brass : line}`, background: customer.idType === opt.id ? brassDim : "transparent",
-                    color: customer.idType === opt.id ? brass : paper }}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Name on your photo ID</div>
             <input value={customer.idOwnerName} onChange={(e) => setCustomer((c) => ({ ...c, idOwnerName: e.target.value }))}
               placeholder="Full name (as it appears on your ID)" aria-label="Full name as it appears on your ID"
               style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 6, outline: "none", boxSizing: "border-box" }} />
             <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>
-              Kept on file as required for second-hand dealer compliance. Never shown in full to anyone but you and the inspecting staff member.
+              No need to upload anything. We check your photo ID in person before we pay you, as second-hand dealer rules require.
             </div>
-
-            {idPhotoBackendAvailable ? (
-              <>
-                <label style={{ display: "block", fontSize: 13, color: muted, marginBottom: 6 }}>Photo of your ID (optional, encrypted)</label>
-                <input type="file" accept="image/*" capture="environment"
-                  onChange={(e) => setIdPhotoFile(e.target.files?.[0] || null)}
-                  style={{ width: "100%", marginBottom: 4, fontSize: 12, color: paper }} />
-                {idPhotoFile && <div style={{ fontSize: 12.5, color: green, marginBottom: 14 }}>{idPhotoFile.name} attached — will be encrypted and stored when you submit.</div>}
-                {!idPhotoFile && <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>Stored encrypted, separately from everything else, and auto-deleted after your shop's retention period.</div>}
-              </>
-            ) : (
-              <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>Photo ID capture isn't connected on this device — the ID number above still satisfies compliance requirements.</div>
-            )}
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Referral code (optional) — you and your friend both get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)}</div>
             <input value={referralCodeEntered} onChange={(e) => setReferralCodeEntered(e.target.value)} placeholder="e.g. JORDAN482"
@@ -1694,7 +1637,7 @@ export default function QuoteCalculator() {
                 <li><strong>Remove your SIM</strong> and any memory card.</li>
               </ol>
             </div>
-            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idType: "license", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" }); setIdPhotoFile(null); setReferralCodeEntered(""); setMyReferralCode(null); }}
+            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" }); setReferralCodeEntered(""); setMyReferralCode(null); }}
               style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 14, cursor: "pointer" }}>
               Start another quote
             </button>

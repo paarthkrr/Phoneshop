@@ -301,8 +301,7 @@ export default function StaffInspectionConsole() {
               </div>
               <div style={{ fontSize: 13 }}>{open.customer.name} · {open.customer.email} · {open.customer.phone}</div>
               <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>
-                ID on file: {open.customer.idType ? open.customer.idType.replace(/^\w/, (c) => c.toUpperCase()) : "not captured"}
-                {open.customer.idOwnerName && ` — name on ID: ${open.customer.idOwnerName}`}
+                Name on ID (customer entered): {open.customer.idOwnerName || "not given"}. Check their photo ID in person before paying.
               </div>
               {open.customer.payoutMethod && (
                 <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>

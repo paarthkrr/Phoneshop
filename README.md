@@ -48,7 +48,7 @@ Visitors who are not logged in are limited per IP: 20 submissions per 10 minutes
 5 failed attempts locks that username for 5 minutes (checked before the password). Sessions are signed tokens and can be revoked per user or everywhere. Admin recovery uses `ADMIN_RECOVERY_CODE` with `ADMIN_RECOVERY_EXPIRES`.
 
 ## ID photos
-Encrypted at rest and purged after `ID_PHOTO_RETENTION_DAYS`. A visitor who is not logged in can upload one photo for an existing trade-in order (`order:<id>`) and cannot replace it. Staff uploads are unrestricted.
+Customers are not asked to upload ID. The sell form takes only the name as it appears on their photo ID, and staff check the ID in person before paying (the in-store till records the ID type and "ID sighted"). The backend `/id-photos` routes remain (encrypted, purged after `ID_PHOTO_RETENTION_DAYS`) but stay off while `ID_PHOTO_ENCRYPTION_KEY` is unset; if enabled, a visitor who is not logged in can upload only one photo, only for an existing order.
 
 ## Environment variables (set in Render, never in code)
 Backend: `DATABASE_URL`, `PORT`, `SESSION_SECRET`, `CORS_ORIGIN` (comma-separated list allowed; include https://mobilerecellr.com.au), `ADMIN_BOOTSTRAP_TOKEN`, `ADMIN_RECOVERY_CODE`, `ADMIN_RECOVERY_EXPIRES`, `ID_PHOTO_ENCRYPTION_KEY`, `ID_PHOTO_RETENTION_DAYS`, `RESEND_API_KEY`, `EMAIL_FROM`, `OWNER_EMAIL`, `PGSSL`, `NODE_ENV`, optional `PUBLIC_WRITE_MAX`, `SHOP_LOCATION` (shown in customer emails, default "Sydney"), `SHOP_PHONE` (default "0411 931 999").
