@@ -7,6 +7,7 @@ const isBsb = (v) => /^\d{6}$/.test(digits(v));
 const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
 
 import React, { useState } from "react";
+import { REPAIRS_BY_DEVICE } from "./repair-prices.js";
 
 async function findPublicRecord(key, query, localList, fields = ["id", "email"]) {
   const q = query.trim().toLowerCase();
@@ -64,30 +65,6 @@ const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827",
 
 const DEVICE_TYPES = ["Phone", "Tablet", "Laptop", "Watch"];
 
-const REPAIRS_BY_DEVICE = {
-  Phone: [
-    { name: "Screen replacement", from: 85 },
-    { name: "Battery replacement", from: 59 },
-    { name: "Charging port", from: 55 },
-    { name: "Camera repair", from: 75 },
-    { name: "Water damage diagnosis", from: 50 },
-  ],
-  Tablet: [
-    { name: "Screen replacement", from: 170 },
-    { name: "Battery replacement", from: 90 },
-    { name: "Charging port", from: 90 },
-  ],
-  Laptop: [
-    { name: "Screen replacement", from: 180 },
-    { name: "Keyboard replacement", from: 120 },
-    { name: "Battery replacement", from: 110 },
-    { name: "Charging port", from: 100 },
-  ],
-  Watch: [
-    { name: "Screen replacement", from: 90 },
-    { name: "Battery replacement", from: 70 },
-  ],
-};
 
 export default function Repairs() {
   const [deviceType, setDeviceType] = useState("Phone");

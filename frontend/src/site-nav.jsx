@@ -10,6 +10,15 @@ const ICONS = {
   chip: <><rect x="5" y="5" width="14" height="14" rx="2" /><rect x="9" y="9" width="6" height="6" /><path d="M9 2v3M15 2v3M9 19v3M15 19v3M19 9h3M19 15h3M2 9h3M2 15h3" /></>,
   help: <><circle cx="12" cy="12" r="9.5" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" /></>,
   shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+  search: <><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></>,
+  chat: <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.6-.8L3 21l1.9-5.1A8.4 8.4 0 1 1 21 11.5z" />,
+  tablet: <><rect x="4" y="2.5" width="16" height="19" rx="2.5" /><path d="M11 18.5h2" /></>,
+  laptop: <><rect x="4" y="5" width="16" height="11" rx="1.5" /><path d="M2 19h20" /></>,
+  watch: <><rect x="7" y="6" width="10" height="12" rx="3" /><path d="M9 6l.6-3h4.8l.6 3M9 18l.6 3h4.8l.6-3" /></>,
+  box: <><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z" /><path d="M3.3 7.5L12 12l8.7-4.5M12 12v9.5" /></>,
+  mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></>,
+  up: <path d="M7 11v9H4v-9h3zm0 0l4-8c1.5 0 2.5 1.2 2.2 2.7L12.7 9H19a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.8 20H7" />,
+  down: <path d="M17 13V4h3v9h-3zm0 0l-4 8c-1.5 0-2.5-1.2-2.2-2.7l.5-3.3H5a2 2 0 0 1-2-2.3l1.2-7A2 2 0 0 1 6.2 4H17" />,
 };
 export function Icon({ name, size = 22 }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{ICONS[name] || ICONS.phone}</svg>;
