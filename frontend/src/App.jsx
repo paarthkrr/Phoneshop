@@ -19,6 +19,7 @@ import SellBrand from "./sell-brand.jsx";
 import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
 import { NAV_CSS, DesktopMenu, MobileDrawer, MobileBackdrop } from "./site-nav.jsx";
+import { ROLE_LABELS, currentRole, canSeeScreen } from "./roles.js";
 
 /* =================================================================
    APP SHELL
@@ -116,7 +117,11 @@ function AnnouncementBar() {
 function Nav() {
   const location = useLocation();
   const isStaff = isStaffPath(normPath(location.pathname));
-  const links = isStaff ? STAFF_LINKS : CUSTOMER_LINKS;
+  // Redraw when someone signs in, so the menu shows only their role's screens straight away.
+  const [, setAuthTick] = useState(0);
+  useEffect(() => { const f = () => setAuthTick((n) => n + 1); window.addEventListener("mv-auth-change", f); return () => window.removeEventListener("mv-auth-change", f); }, []);
+  const role = isStaff ? currentRole() : null;
+  const links = isStaff ? STAFF_LINKS.filter((l) => canSeeScreen(l.to, role)) : CUSTOMER_LINKS;
   const [menuOpen, setMenuOpen] = useState(false);
   // Close the mobile menu whenever the page changes, so tapping a link
   // doesn't leave the menu hanging open over the new page.
@@ -336,6 +341,7 @@ function Nav() {
    degrades gracefully with no backend rather than blocking. */
 function StaffGate({ children }) {
   const [status, setStatus] = useState("checking"); // checking | needs-login | ok
+  const location = useLocation();
   const [mode, setMode] = useState("login"); // login | register
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -363,6 +369,7 @@ function StaffGate({ children }) {
       // 401s an anonymous visitor gets on staff-only data.
       window.shopAuth.installStorageForEveryone(window.SHOP_API_BASE_URL);
       setStatus("ok");
+      window.dispatchEvent(new Event("mv-auth-change")); // menu redraws for this person's role
     } catch (e) {
       setError(e.message);
     }
@@ -398,7 +405,19 @@ function StaffGate({ children }) {
   }
 
   if (status === "checking") return null;
-  if (status === "ok") return children;
+  if (status === "ok") {
+    const role = currentRole();
+    if (!canSeeScreen(normPath(location.pathname), role)) {
+      return (
+        <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", fontFamily: "'Archivo', system-ui, sans-serif", color: "#111827" }}>
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontWeight: 400, fontSize: 24, margin: "0 0 8px" }}>Not part of your role</h1>
+          <p style={{ color: "#5B6472", fontSize: 15, lineHeight: 1.6 }}>Your role is <strong>{ROLE_LABELS[role] || role}</strong>, which doesn't include this screen. Ask the Owner if you need it.</p>
+          <Link to="/portal" style={{ color: "#2150C8", fontWeight: 700 }}>Go to Today →</Link>
+        </div>
+      );
+    }
+    return children;
+  }
 
   return (
     <div style={{ maxWidth: 320, margin: "70px auto", padding: 20, fontFamily: "'Archivo', sans-serif" }}>
