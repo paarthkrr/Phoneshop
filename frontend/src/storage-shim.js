@@ -34,6 +34,21 @@
     try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* nothing to clean up if storage was already blocked */ }
   }
 
+  // What this browser last loaded or saved for each shared list. On save we
+  // tell the server which records this screen actually changed since then,
+  // so a screen left open for a while can't roll back other people's edits.
+  const lastSeen = new Map();
+  const stable = (v) => JSON.stringify(v, (k, x) => (x && typeof x === "object" && !Array.isArray(x)
+    ? Object.fromEntries(Object.keys(x).sort().map((k2) => [k2, x[k2]])) : x));
+  function changedIdsSince(baseStr, valueStr) {
+    try {
+      const base = JSON.parse(baseStr), next = JSON.parse(valueStr);
+      if (!Array.isArray(base) || !Array.isArray(next) || !next.every((r) => r && typeof r === "object" && r.id != null)) return null;
+      const before = new Map(base.filter((r) => r && r.id != null).map((r) => [r.id, stable(r)]));
+      return next.filter((r) => before.get(r.id) !== stable(r)).map((r) => r.id);
+    } catch (e) { return null; }
+  }
+
   function installStorage(baseUrl, getToken) {
     // getToken may return null/undefined for an anonymous visitor — that's
     // expected now, not an error. The backend's public routes (catalog
@@ -55,14 +70,18 @@
         const res = await authedFetch(`${baseUrl}/storage/${encodeURIComponent(key)}?${params}`);
         if (res.status === 404) throw new Error(`key not found: ${key}`);
         if (!res.ok) throw new Error(`storage.get failed: ${res.status}`);
-        return res.json();
+        const body = await res.json();
+        if (shared && typeof body.value === "string") lastSeen.set(key, body.value);
+        return body;
       },
       async set(key, value, shared) {
+        const changedIds = shared && lastSeen.has(key) ? changedIdsSince(lastSeen.get(key), value) : null;
         const res = await authedFetch(`${baseUrl}/storage/${encodeURIComponent(key)}`, {
           method: "PUT", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value, shared: !!shared }),
+          body: JSON.stringify({ value, shared: !!shared, ...(changedIds ? { changedIds } : {}) }),
         });
         if (!res.ok) throw new Error(`storage.set failed: ${res.status}`);
+        if (shared) lastSeen.set(key, value);
         return res.json();
       },
       async delete(key, shared) {
