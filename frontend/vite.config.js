@@ -143,7 +143,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         entryFileNames: APP_FILE,
-        chunkFileNames: "assets/[name].js",
+        // Content-named, so files from different deploys never mix (the entry, app.js, stays stable and only loads these).
+        chunkFileNames: "assets/[name]-[hash].js",
+        // Vite's dynamic-import helper would otherwise sit inside app.js, and every other
+        // file would import "./app.js" without its ?v= version (possibly an old cached copy).
+        manualChunks(id) { if (id.includes("vite/preload-helper") || id.includes("modulepreload-polyfill")) return "loader"; },
         assetFileNames: "assets/[name][extname]",
       },
     },

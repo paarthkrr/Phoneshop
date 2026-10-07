@@ -15,19 +15,10 @@ import Blog from "./blog.jsx";
 import Home from "./home.jsx";
 import { metaFor } from "./seo-meta.js";
 import Tutorials from "./tutorials.jsx";
-import Team from "./team.jsx";
-import Products from "./products.jsx";
 import SellBrand from "./sell-brand.jsx";
 import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
 import { NAV_CSS, DesktopMenu, MobileDrawer, MobileBackdrop } from "./site-nav.jsx";
-import DailyDashboard from "./daily-dashboard.jsx";
-import AdminPricingConsole from "./admin-pricing-console.jsx";
-import StaffInspectionConsole from "./staff-inspection-console.jsx";
-import POSInventory from "./pos-inventory.jsx";
-import RepairTickets from "./repair-tickets.jsx";
-import TillReconciliation from "./till-reconciliation.jsx";
-import CRMDashboard from "./crm-dashboard.jsx";
 
 /* =================================================================
    APP SHELL
@@ -59,6 +50,31 @@ export function normPath(p) {
   const n = p.replace(/\/index\.html$/, "").replace(/(.)\/$/, "$1");
   return n || "/";
 }
+
+// Staff screens load on demand, so customers never download them. If a screen's
+// file has gone because a new version was deployed while the page was open,
+// reload once to pick up the new version.
+function staffScreen(load) {
+  return React.lazy(() => load().then((m) => {
+    try { sessionStorage.removeItem("mv_chunk_reload"); } catch (e) {}
+    return m;
+  }, (err) => {
+    let reloaded = true;
+    try { reloaded = sessionStorage.getItem("mv_chunk_reload") === "1"; sessionStorage.setItem("mv_chunk_reload", "1"); } catch (e) {}
+    if (!reloaded) { window.location.reload(); return new Promise(() => {}); }
+    throw err;
+  }));
+}
+const Team = staffScreen(() => import("./team.jsx"));
+const Products = staffScreen(() => import("./products.jsx"));
+const DailyDashboard = staffScreen(() => import("./daily-dashboard.jsx"));
+const AdminPricingConsole = staffScreen(() => import("./admin-pricing-console.jsx"));
+const StaffInspectionConsole = staffScreen(() => import("./staff-inspection-console.jsx"));
+const POSInventory = staffScreen(() => import("./pos-inventory.jsx"));
+const RepairTickets = staffScreen(() => import("./repair-tickets.jsx"));
+const TillReconciliation = staffScreen(() => import("./till-reconciliation.jsx"));
+const CRMDashboard = staffScreen(() => import("./crm-dashboard.jsx"));
+
 function isStaffPath(p) {
   return STAFF_BASES.some((b) => p === b || p.startsWith(b + "/"));
 }
@@ -603,6 +619,7 @@ function AnimatedRoutes() {
   const isStaff = isStaffPath(normPath(location.pathname));
   return (
     <main key={location.pathname} className={"cs-page-enter" + slide}>
+      <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "#5B6472", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />
         <Route path="/quote" element={<QuoteCalculator />} />
@@ -645,6 +662,7 @@ function AnimatedRoutes() {
           </div>
         } />
       </Routes>
+      </React.Suspense>
       {!isStaff && <SiteFooter />}
       {!isStaff && <ChatWidget />}
       <MobileCTA />

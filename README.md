@@ -52,6 +52,9 @@ The server never trusts a price sent from a customer's browser:
 - Phone purchases: the price comes from the listed inventory item.
 - Accessories: prices come from the catalogue and the total is recomputed (shipping rule mirrors `parts.jsx`; change both together).
 
+## How the website loads
+`/assets/app.js` is a tiny starter (index.html adds a fresh `?v=` each deploy) that loads the real app from files named after their content (`main-<hash>.js`), so a browser can never mix files from two deploys. Staff screens load only when staff open them, so customers don't download them. If a file is missing after a deploy, the page reloads once by itself.
+
 ## Two staff screens at once
 `storage-shim.js` remembers what each screen last loaded and sends only the records that screen changed. The server keeps everyone else's newer edits, so a screen left open can't roll back other people's work. Two people editing the same record at the same moment: the last save wins for that record.
 
@@ -73,6 +76,7 @@ cd backend && npm test                     # API tests; DROPS ALL TABLES in DATA
 The default local database URL in `server.js` is a localhost test credential only. Never reuse it.
 
 ## Deploying changes
+- Every pull request runs **Checks** on GitHub (backend tests against Postgres, and a website build). Only merge when both show a green ✓.
 - Backend change: push to `main`, Render redeploys the web service.
 - Frontend change: push to `main`, Render rebuilds the static site.
 - Say in each change whether it is frontend, backend or both, and list any new env vars.
