@@ -80,11 +80,26 @@ Set on the Team page (Owner only). The server enforces them; the portal only hid
 - **Passwords:** 12+ characters; common passwords and ones built from the username or the shop's name are refused. Anyone whose current password is shorter must choose a new one at their next sign-in.
 - **Alerts and history:** every sign-in attempt is logged for 180 days (Team → Sign-in history; the Owner sees everyone's). `OWNER_EMAIL` gets an email for a sign-in from a device that account hasn't used before, an account getting locked, a backup code being used, and a two-step reset.
 
+## Activity log
+Every save a signed-in staff member makes to a shared list is recorded server-side: who, when, which record and which fields changed (old → new). Bank, payout, ID and signature values are never stored; the log only says "changed (hidden)". Team changes are logged too (added, removed, role, password and two-step resets). The Owner reads it at **Portal → Activity** (filters: person, area, important only). Entries are kept about 400 days.
+
+Important changes are also emailed to `OWNER_EMAIL`, bundled into one email about 90 seconds after the first (`ACTIVITY_EMAIL_DELAY_MS`):
+- trade-in payouts approved, and trade-in amounts changed
+- bank or payout details changed
+- price or business-settings changes
+- expenses added, edited or deleted
+- stock written off, and stock buy prices changed
+- a recorded sale's amount changed
+- repair pay changed, or a completed repair's final price changed
+- a till closed over or short
+- anything deleted
+- team changes
+
 ## ID photos
 Customers are not asked to upload ID. The sell form takes only the name as it appears on their photo ID, and staff check the ID in person before paying (the in-store till records the ID type and "ID sighted"). The backend `/id-photos` routes remain (encrypted, purged after `ID_PHOTO_RETENTION_DAYS`) but stay off while `ID_PHOTO_ENCRYPTION_KEY` is unset; if enabled, a visitor who is not logged in can upload only one photo, only for an existing order.
 
 ## Environment variables (set in Render, never in code)
-Backend: `DATABASE_URL`, `PORT`, `SESSION_SECRET`, `CORS_ORIGIN` (comma-separated list allowed; include https://mobilerecellr.com.au), `ADMIN_BOOTSTRAP_TOKEN`, `ADMIN_RECOVERY_CODE`, `ADMIN_RECOVERY_EXPIRES`, `ID_PHOTO_ENCRYPTION_KEY`, `ID_PHOTO_RETENTION_DAYS`, `RESEND_API_KEY`, `EMAIL_FROM`, `OWNER_EMAIL`, `PGSSL`, `NODE_ENV`, optional `PUBLIC_WRITE_MAX`, `SHOP_LOCATION` (shown in customer emails, default "Sydney"), `SHOP_PHONE` (default "0411 931 999"), `TWO_STEP_ROLES` (default `admin,manager`; empty = not required).
+Backend: `DATABASE_URL`, `PORT`, `SESSION_SECRET`, `CORS_ORIGIN` (comma-separated list allowed; include https://mobilerecellr.com.au), `ADMIN_BOOTSTRAP_TOKEN`, `ADMIN_RECOVERY_CODE`, `ADMIN_RECOVERY_EXPIRES`, `ID_PHOTO_ENCRYPTION_KEY`, `ID_PHOTO_RETENTION_DAYS`, `RESEND_API_KEY`, `EMAIL_FROM`, `OWNER_EMAIL`, `PGSSL`, `NODE_ENV`, optional `PUBLIC_WRITE_MAX`, `SHOP_LOCATION` (shown in customer emails, default "Sydney"), `SHOP_PHONE` (default "0411 931 999"), `TWO_STEP_ROLES` (default `admin,manager`; empty = not required), `ACTIVITY_EMAIL_DELAY_MS` (default 90000).
 
 ## Run locally
 ```

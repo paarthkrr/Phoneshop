@@ -43,6 +43,7 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const crypto = require("node:crypto");
 const sec = require("./security.js");
+const activity = require("./activity.js");
 
 // Render (and most managed Postgres hosts) provide a single
 // DATABASE_URL. Falls back to discrete PG* vars for other hosts, and
@@ -156,6 +157,19 @@ const schemaReady = pool.query(`
     new_device BOOLEAN NOT NULL DEFAULT FALSE
   );
   CREATE INDEX IF NOT EXISTS idx_login_log_at ON login_log(at);
+  CREATE TABLE IF NOT EXISTS activity_log (
+    id BIGSERIAL PRIMARY KEY,
+    at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    username TEXT NOT NULL,
+    role TEXT,
+    area TEXT NOT NULL,
+    record_id TEXT,
+    action TEXT NOT NULL,
+    summary TEXT,
+    changes JSONB,
+    important TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_activity_at ON activity_log(at);
   CREATE TABLE IF NOT EXISTS known_devices (
     username TEXT NOT NULL,
     device_hash TEXT NOT NULL,
@@ -805,6 +819,23 @@ function securityAlert(subject, lines) {
   void sendEmail({ to: OWNER_EMAIL(), subject, text: lines.join("\n\n"), kind: "security alert" });
 }
 
+// ---- Activity log (see activity.js) ----
+const ACTIVITY_DELAY_MS = parseInt(process.env.ACTIVITY_EMAIL_DELAY_MS || "90000", 10);
+const changeAlerts = activity.makeAlerter({ delayMs: ACTIVITY_DELAY_MS, when: () => sydneyTime(),
+  send: (subject, lines) => void sendEmail({ to: OWNER_EMAIL(), subject, text: lines.join("\n\n"), kind: "change alert" }) });
+async function recordActivity(user, area, events) {
+  if (!events || !events.length) return;
+  try {
+    const rows = events.map((e) => [user.username, user.role, area, e.recordId || null, e.action, (e.summary || "").slice(0, 200), JSON.stringify(e.changes || []), e.important || null]);
+    const params = [], values = rows.map((r, i) => { params.push(...r); return `(${r.map((_, j) => `$${i * r.length + j + 1}`).join(", ")})`; });
+    await pool.query(`INSERT INTO activity_log (username, role, area, record_id, action, summary, changes, important) VALUES ${values.join(", ")}`, params);
+    if (Math.random() < 0.02) await pool.query("DELETE FROM activity_log WHERE at < NOW() - INTERVAL '400 days'");
+  } catch (e) { console.error("activity log failed:", e.message); }
+  for (const e of events) if (e.important) changeAlerts.add({ username: user.username, role: ROLE_NAMES[user.role] || user.role, area, reason: e.important, event: e });
+}
+const teamEvent = (req, recordId, summary, important = "team changed") =>
+  recordActivity(req.user, "team", [{ recordId, action: "note", summary, changes: [], important }]);
+
 // ---- Auth ----
 
 // ADMIN_BOOTSTRAP_TOKEN closes the "first visitor wins" race: without
@@ -834,6 +865,7 @@ app.post("/auth/register", async (req, res) => {
     if (weak) return res.status(400).json({ error: `password: ${weak}` });
     const countResult = await pool.query("SELECT COUNT(*) AS n FROM users");
     const userCount = parseInt(countResult.rows[0].n, 10);
+    let requester = null;
     if (userCount === 0) {
       if (ADMIN_BOOTSTRAP_TOKEN) {
         const a = Buffer.from(bootstrapToken || "");
@@ -844,7 +876,7 @@ app.post("/auth/register", async (req, res) => {
     } else {
       const header = req.headers.authorization || "";
       const token = header.startsWith("Bearer ") ? header.slice(7) : null;
-      const requester = await verifyToken(token);
+      requester = await verifyToken(token);
       if (!requester || requester.role !== "admin" || requester.limits.length) {
         return res.status(403).json({ error: "only an admin can register new accounts once the shop has any users" });
       }
@@ -852,6 +884,7 @@ app.post("/auth/register", async (req, res) => {
     if (await canonicalUsername(username)) return res.status(409).json({ error: "username already taken (usernames aren't case-sensitive)" });
     const finalRole = userCount === 0 ? "admin" : (ROLES.includes(role) ? role : "staff");
     await createUser(username, password, finalRole);
+    if (requester) await teamEvent({ user: requester }, username, `added ${username} as ${ROLE_NAMES[finalRole]}`, "team member added");
     res.json({ username, role: finalRole, firstAccount: userCount === 0 });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -1082,6 +1115,7 @@ app.delete("/auth/users/:username", requireAuth, async (req, res) => {
     }
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
     await pool.query("DELETE FROM users WHERE username = $1", [target]);
+    await teamEvent(req, target, `removed ${target}`, "team member removed");
     res.json({ removed: target });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -1101,6 +1135,7 @@ app.post("/auth/users/:username/role", requireAuth, async (req, res) => {
     }
     await pool.query("UPDATE users SET role = $1 WHERE username = $2", [role, target]);
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
+    await teamEvent(req, target, `${target}: ${ROLE_NAMES[cur.role] || cur.role} → ${ROLE_NAMES[role]}`, "role changed");
     res.json({ username: target, role });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -1117,6 +1152,7 @@ app.post("/auth/users/:username/password", requireAuth, async (req, res) => {
     const salt = crypto.randomBytes(16).toString("hex");
     await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hashPassword(newPassword, salt), target]);
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
+    await teamEvent(req, target, `reset ${target}'s password`, "password reset by owner");
     res.json({ username: target, passwordReset: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -1137,6 +1173,7 @@ app.post("/auth/change-password", requireAuth, async (req, res) => {
     // else had your old password, this locks them out immediately.
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND session_id != $2", [req.user.username, req.user.sid]);
     await pool.query("UPDATE sessions SET weak_password = FALSE WHERE session_id = $1", [req.user.sid]);
+    await teamEvent(req, req.user.username, "changed their own password", null);
     res.json({ changed: true });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -1159,6 +1196,7 @@ app.post("/auth/reset-password", requireAuth, async (req, res) => {
     const hash = hashPassword(newPassword, salt);
     await pool.query("UPDATE users SET salt = $1, hash = $2 WHERE username = $3", [salt, hash, username]);
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [username]);
+    await teamEvent(req, username, `reset ${username}'s password`, "password reset by owner");
     res.json({ username, reset: true });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -1216,8 +1254,23 @@ app.post("/auth/users/:username/2fa-reset", requireAuth, async (req, res) => {
     if (!target) return res.status(404).json({ error: "no such user" });
     await pool.query("UPDATE users SET totp_secret = NULL, totp_pending = NULL, totp_enabled_at = NULL WHERE username = $1", [target]);
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
+    await teamEvent(req, target, `reset ${target}'s two-step sign-in`, null);
     securityAlert(`Two-step sign-in reset for ${target}`, [`${req.user.username} reset two-step sign-in for ${target}. ${target} has been signed out and will set it up again at next sign-in.`, sydneyTime()]);
     res.json({ username: target, reset: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Activity log viewer (Owner only). Filters: user, area, important=1; pages with before=<id>.
+app.get("/activity", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ error: "owner only" });
+    const where = [], params = [];
+    if (req.query.user) { params.push(String(req.query.user)); where.push(`LOWER(username) = LOWER($${params.length})`); }
+    if (req.query.area) { params.push(String(req.query.area)); where.push(`area = $${params.length}`); }
+    if (req.query.important === "1") where.push("important IS NOT NULL");
+    if (/^\d+$/.test(String(req.query.before || ""))) { params.push(req.query.before); where.push(`id < $${params.length}`); }
+    const r = await pool.query(`SELECT id, at, username, role, area, record_id, action, summary, changes, important FROM activity_log ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY id DESC LIMIT 100`, params);
+    res.json({ entries: r.rows, areas: activity.AREA_NAMES });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -1380,8 +1433,9 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
     const scope = scopeFor(shared, req.user.username);
     if (scope === "shared" && !canAccess(req.user.role, req.params.key, "write")) return res.status(403).json({ error: "your role can't change this" });
     const hidesBank = scope === "shared" && req.params.key === "orders" && !SEES_BANK.includes(req.user.role);
-    let staffQueued = [];
+    let staffQueued = [], beforeValue = null;
     const saved = await withListLock(scope, req.params.key, async (existingValue, write) => {
+      beforeValue = existingValue;
       let finalValue = value;
       if (scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)) {
         finalValue = (Array.isArray(changedIds) && mergeOnlyChanged(value, existingValue, changedIds)) || mergeKeepingNewer(value, existingValue);
@@ -1395,6 +1449,9 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
       return finalValue;
     });
     if (staffQueued.length) notifyNew("notification_queue", staffQueued);
+    if (scope === "shared" && req.params.key !== "notification_queue") {
+      try { await recordActivity(req.user, req.params.key, activity.diffSave(req.params.key, beforeValue, saved)); } catch (e) { console.error("activity diff failed:", e.message); }
+    }
     res.json({ key: req.params.key, value: hidesBank ? maskBank(saved) : saved, shared: scope === "shared" });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -1407,6 +1464,7 @@ app.delete("/storage/:key", requireAuth, async (req, res) => {
     // Deleting a shared key wipes a whole collection (every order, every sale).
     if (scope === "shared" && req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
     await pool.query("DELETE FROM storage WHERE scope = $1 AND key = $2", [scope, req.params.key]);
+    if (scope === "shared") await recordActivity(req.user, req.params.key, [{ recordId: "", action: "removed", summary: "the WHOLE list was deleted", changes: [], important: "a whole list was deleted" }]);
     res.json({ key: req.params.key, deleted: true, shared: scope === "shared" });
   } catch (e) {
     res.status(400).json({ error: e.message });

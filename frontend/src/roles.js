@@ -21,6 +21,7 @@ const SCREENS = {
   "/portal/pricing": ["admin", "manager", "technician"],
   "/portal/products": ["admin", "manager", "staff"],
   "/portal/team": ALL,                    // everyone can change their own password; only the Owner manages people
+  "/portal/activity": ["admin"],
 };
 const ALIASES = { "/staff": "/portal", "/staff/admin": "/portal/pricing", "/staff/inspect": "/portal/inspect", "/staff/pos": "/portal/pos", "/staff/repairs": "/portal/repairs", "/staff/till": "/portal/till", "/staff/crm": "/portal/crm", "/staff/team": "/portal/team", "/staff/products": "/portal/products" };
 

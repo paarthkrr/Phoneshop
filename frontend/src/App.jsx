@@ -76,6 +76,7 @@ const RepairTickets = staffScreen(() => import("./repair-tickets.jsx"));
 const TillReconciliation = staffScreen(() => import("./till-reconciliation.jsx"));
 const CRMDashboard = staffScreen(() => import("./crm-dashboard.jsx"));
 const SecuritySetup = staffScreen(() => import("./security.jsx"));
+const Activity = staffScreen(() => import("./activity.jsx"));
 
 function isStaffPath(p) {
   return STAFF_BASES.some((b) => p === b || p.startsWith(b + "/"));
@@ -98,6 +99,7 @@ const STAFF_LINKS = [
   { to: "/portal/pricing", label: "Pricing Console" },
   { to: "/portal/products", label: "Products" },
   { to: "/portal/team", label: "Team" },
+  { to: "/portal/activity", label: "Activity" },
 ];
 
 // Top strip. Wide screens show every message on one line; phones show one
@@ -695,6 +697,7 @@ function AnimatedRoutes() {
         <Route path="/portal/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
         <Route path="/portal/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
         <Route path="/portal/team" element={<StaffGate><Team /></StaffGate>} />
+        <Route path="/portal/activity" element={<StaffGate><Activity /></StaffGate>} />
         <Route path="/portal/products" element={<StaffGate><Products /></StaffGate>} />
         {/* Legacy /staff addresses — same pages */}
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />

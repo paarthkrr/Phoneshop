@@ -31,7 +31,7 @@ const codeFor = (secret, offset = 0) => sec.totpCode(secret, sec.currentStep() +
 before(async () => {
   const { Pool } = require("pg");
   pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgres://postgres:testpass@localhost:5432/shoptest" });
-  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices");
+  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices, activity_log");
   app = require("../server.js");
   await app.__schemaReady;
   server = app.listen(0);
