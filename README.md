@@ -68,7 +68,8 @@ Set on the Team page (Owner only). The server enforces them; the portal only hid
 | Counter (`staff`) | Today, Register, trade-in inspection, repairs, till, products | Last 3 digits |
 | Technician (`technician`) | Today, repairs, pricing console (incl. business settings), inspection view only | Last 3 digits |
 
-- Per-list read/write rules are `ACCESS` in `backend/server.js`; a list not named there is Owner/Manager only.
+- **Per-person access:** access is grouped into four areas: `register` (register, trade-ins, stock, till, products), `pricing`, `reports` (customers, reports, expenses) and `bank` (full bank details). Each role has default areas (Manager: all four; Counter: register; Technician: pricing). On Team → a person → **Access**, the Owner can tick extra areas or untick defaults for that one person. It applies on their next request, with no sign-out. Changing their role resets them to that role's defaults, and every change is logged in Activity and emailed. Without `register`, trade-in inspection is view-only.
+- Per-list rules are `ACCESS` in `backend/server.js` (each list needs an area, or `all`). A list not named there needs `reports`.
 - Saves from Counter/Technician can't overwrite the real bank details with the masked ones.
 - Changing someone's role signs them out everywhere; the new role applies at their next sign-in. The last Owner can't be demoted.
 - Existing `staff` accounts are Counters. Move technicians to Technician on the Team page.

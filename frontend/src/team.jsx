@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ROLE_LABELS, ROLE_HELP, ROLE_ORDER } from "./roles.js";
+import { ROLE_LABELS, ROLE_HELP, ROLE_ORDER, AREA_LABELS } from "./roles.js";
 import { TwoStepCard, SignInHistory } from "./security.jsx";
 
 // Team: admins add staff, reset forgotten passwords and remove people who've
@@ -46,6 +46,10 @@ export default function Team() {
     if (p.length < 12) return flash("Password must be at least 12 characters.", false);
     try { await api(`/auth/users/${encodeURIComponent(u)}/password`, { method: "POST", body: JSON.stringify({ newPassword: p }) }); flash(`Password reset for ${u}. They've been signed out everywhere.`); }
     catch (e) { flash(e.message, false); }
+  }
+  async function setAccess(u, areas) {
+    try { await api(`/auth/users/${encodeURIComponent(u)}/access`, { method: "POST", body: JSON.stringify({ areas }) }); flash(`Access updated for ${u}. It applies straight away (they may need to reload to see the menu change).`); refresh(); }
+    catch (e) { flash(e.message, false); refresh(); }
   }
   async function resetTwoStep(u) {
     if (!window.confirm(`Reset two-step sign-in for ${u}? Use this if they lost their phone. They'll be signed out and set it up again next time.`)) return;
@@ -95,6 +99,7 @@ export default function Team() {
                   {u.two_step && <button style={btn("transparent", brass)} onClick={() => resetTwoStep(u.username)}>Reset two-step</button>}
                   <button style={btn("transparent", red)} onClick={() => remove(u.username)}>Remove</button>
                 </>}
+                {u.role !== "admin" && <AccessBoxes user={u} onChange={(areas) => setAccess(u.username, areas)} />}
               </div>
             ))}
           </Card>
@@ -130,6 +135,33 @@ function Card({ title, children }) {
     <div style={{ background: panel, border: "1px solid rgba(32,28,24,0.14)", borderRadius: 14, padding: 18, marginBottom: 18 }}>
       <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12 }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+// Per-person access: starts from the role's defaults; ticks that differ are marked.
+function AccessBoxes({ user, onChange }) {
+  const [open, setOpen] = useState(false);
+  const areas = user.areas || [], defaults = user.roleAreas || [];
+  const custom = Object.keys(AREA_LABELS).some((a) => areas.includes(a) !== defaults.includes(a));
+  const toggle = (a) => onChange(areas.includes(a) ? areas.filter((x) => x !== a) : [...areas, a]);
+  return (
+    <div style={{ flexBasis: "100%" }}>
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}
+        style={{ background: "none", border: "none", padding: "6px 0", color: brass, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit" }}>
+        {open ? "▾" : "▸"} Access{custom ? " (customised)" : ""}: {areas.length ? areas.map((a) => AREA_LABELS[a].split(",")[0]).join(", ") : "repairs and today only"}
+      </button>
+      {open && (
+        <div style={{ background: panel2, borderRadius: 10, padding: "10px 12px", marginTop: 4 }}>
+          {Object.entries(AREA_LABELS).map(([a, label]) => (
+            <label key={a} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 15, cursor: "pointer" }}>
+              <input type="checkbox" checked={areas.includes(a)} onChange={() => toggle(a)} style={{ width: 20, height: 20 }} />
+              <span>{label}{areas.includes(a) !== defaults.includes(a) && <em style={{ color: muted, fontSize: 13 }}> — {areas.includes(a) ? "added" : "removed"} for this person</em>}</span>
+            </label>
+          ))}
+          <div style={{ fontSize: 13, color: muted, lineHeight: 1.5, marginTop: 4 }}>Everyone can always use Today, the Repair Bench, view trade-ins and change their own password. Changing someone's role resets their access to that role's defaults. Changes are logged in Activity and emailed to you.</div>
+        </div>
+      )}
     </div>
   );
 }

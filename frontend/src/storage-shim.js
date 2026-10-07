@@ -135,7 +135,7 @@
     if (res.status === 401) { clearSession(); return null; }
     if (!res.ok) return session;
     const me = await res.json();
-    const next = { ...session, limits: me.limits || [] };
+    const next = { ...session, limits: me.limits || [], ...(Array.isArray(me.areas) ? { areas: me.areas, role: me.role } : {}) };
     saveSession(next);
     return next;
   }
@@ -172,7 +172,7 @@
   function installStorageForEveryone(baseUrl) {
     installStorage(baseUrl, () => { const s = loadSession(); return s?.token || null; });
   }
-  function currentUser() { const s = loadSession(); return s ? { username: s.username, role: s.role, limits: s.limits || [] } : null; }
+  function currentUser() { const s = loadSession(); return s ? { username: s.username, role: s.role, limits: s.limits || [], areas: s.areas } : null; }
   // Token of the signed-in staff member, for staff-only actions like managing the team.
   function authToken() { const s = loadSession(); return s ? s.token : null; }
 
