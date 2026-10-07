@@ -710,6 +710,7 @@ export default function QuoteCalculator() {
     });
     setMyReferralCode(newCode);
     setSubmittedOrder(order);
+    setTimeout(() => { const el = document.getElementById("mvq-done"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60);
     setSubmitting(false);
   }
 
@@ -1096,7 +1097,7 @@ export default function QuoteCalculator() {
           </>
         )}
 
-        {selected && (() => {
+        {selected && !submittedOrder && (() => {
           // Product-page layout (inspired by PhoneExchange): photo + specs on the left,
           // live price, storage and condition pills on the right.
           const mult = REGIONS_A[region].mult;
@@ -1168,7 +1169,7 @@ export default function QuoteCalculator() {
           );
         })()}
 
-        {selected && tier && (tier.mode === "full" || tier.mode === "functional-only") && (
+        {selected && tier && !submittedOrder && (tier.mode === "full" || tier.mode === "functional-only") && (
           <>
             <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, fontWeight: 400, margin: "0 0 4px" }}>Anything wrong with it?</h2>
             <div style={{ fontSize: 13.5, color: muted, marginBottom: 12 }}>Being accurate now means your price won't change at inspection.</div>
@@ -1430,7 +1431,7 @@ export default function QuoteCalculator() {
         )}
 
         {submittedOrder && (
-          <div style={{ border: `1px solid ${brass}`, borderRadius: 4, padding: 18, marginTop: 20, background: panel }}>
+          <div id="mvq-done" style={{ border: `1px solid ${brass}`, borderRadius: 4, padding: 18, marginTop: 20, background: panel, scrollMarginTop: 16 }}>
             {(() => {
               const rawFirst = String(submittedOrder.customer.name || "").trim().split(/\s+/)[0];
               const first = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1) : "";
@@ -1439,7 +1440,7 @@ export default function QuoteCalculator() {
               const steps = [
                 ["Check your inbox", `We're emailing a confirmation to ${submittedOrder.customer.email}.`],
                 [post ? "Pop it in the post" : "Bring it to us", post ? "Send your phone to us using the details below." : "We'll be in touch to arrange a time that suits you."],
-                ["Inspect, ID check, get paid", "We check the phone with you, see your photo ID in person, then pay you the way you chose."],
+                ["Inspect, ID check, get paid", post ? "We inspect it when it arrives and confirm your ID, then pay you the way you chose." : "We check the phone with you, see your photo ID in person, then pay you the way you chose."],
               ];
               return (
                 <div style={{ textAlign: "center", paddingBottom: 6 }}>
