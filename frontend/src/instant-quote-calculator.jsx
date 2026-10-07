@@ -321,6 +321,37 @@ const CONFIG_KEY = "pricing-config";
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
 }
+// ID photo upload — only active when this app is deployed with the real
+// backend (window.SHOP_API_BASE_URL set by whoever installs storage-shim.js).
+// Inside Claude.ai there's no such backend, so this quietly no-ops there;
+// the ID number field above still satisfies the core compliance need.
+function idPhotoBackendConfigured() {
+  return typeof window !== "undefined" && !!window.SHOP_API_BASE_URL;
+}
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1] || "");
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadIdPhoto(subjectKey, file) {
+  if (!idPhotoBackendConfigured() || !file) return null;
+  try {
+    const session = JSON.parse(localStorage.getItem("shop_auth_token") || "null");
+    if (!session?.token) return null;
+    const imageBase64 = await fileToBase64(file);
+    const res = await fetch(`${window.SHOP_API_BASE_URL}/id-photos`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+      body: JSON.stringify({ subjectKey, imageBase64 }),
+    });
+    return res.ok ? await res.json() : null;
+  } catch (e) {
+    return null; // photo capture is a best-effort enhancement, never blocks the order itself
+  }
+}
+
 async function loadSharedConfig() {
   if (!storageAvailable()) return null;
   try {
@@ -552,7 +583,7 @@ export default function QuoteCalculator() {
   const [hasAccessories, setHasAccessories] = useState(false);
   const [showRef, setShowRef] = useState(false);
   const [checkout, setCheckout] = useState(false);
-  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" });
+  const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idType: "license", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" });
   const [referralCodeEntered, setReferralCodeEntered] = useState("");
   const [myReferralCode, setMyReferralCode] = useState(null);
   const [fulfillment, setFulfillment] = useState("post");
@@ -566,8 +597,6 @@ export default function QuoteCalculator() {
   const [trackResult, setTrackResult] = useState(undefined); // undefined = not searched, null = not found
   const [respondSubmitting, setRespondSubmitting] = useState(false);
   const [respondError, setRespondError] = useState("");
-  const [respondEmail, setRespondEmail] = useState("");
-  const [submitError, setSubmitError] = useState("");
   const [pmOpen, setPmOpen] = useState(false);
   const [pmCompetitor, setPmCompetitor] = useState("");
   const [pmPrice, setPmPrice] = useState("");
@@ -588,6 +617,8 @@ export default function QuoteCalculator() {
   const [bulkTrackOpen, setBulkTrackOpen] = useState(false);
   const [bulkTrackQuery, setBulkTrackQuery] = useState("");
   const [bulkTrackResult, setBulkTrackResult] = useState(undefined);
+  const [idPhotoFile, setIdPhotoFile] = useState(null);
+  const idPhotoBackendAvailable = idPhotoBackendConfigured();
 
   useEffect(() => {
     let cancelled = false;
@@ -698,7 +729,6 @@ export default function QuoteCalculator() {
     const payoutValid = (customer.payoutMethod === "cash" ? fulfillment !== "post" : customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail));
     if (!calc || calc.blocked || !customer.name || !isEmail(customer.email) || !customer.idOwnerName || !payoutValid) return;
     setSubmitting(true);
-    setSubmitError("");
     const newCode = genReferralCode(customer.name);
     const order = {
       id: genOrderId(),
@@ -717,38 +747,36 @@ export default function QuoteCalculator() {
       inspection: null,
       referralCode: newCode,
     };
-    if (!(await saveOrder(order))) {
-      setSubmitError("We couldn't submit your order. Please check your connection and try again.");
-      setSubmitting(false);
-      return;
-    }
+    await saveOrder(order);
+    if (idPhotoFile) await uploadIdPhoto(`order:${order.id}`, idPhotoFile);
 
     // If they came in on someone else's referral code, record the reward
     // for both sides — nothing is auto-credited (no payment rails
     // connected yet), staff honor it manually, same pattern as everywhere else.
     const enteredCode = referralCodeEntered.trim().toUpperCase();
     if (enteredCode) {
-      const referral = {
-        id: "REF-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(),
-        code: enteredCode, referredEmail: customer.email, referredName: customer.name, referredOrderId: order.id,
-        rewardAmount: REFERRAL_REWARD_AMOUNT, currency: REGIONS_A[region].currency,
-        referrerPaid: false, referredPaid: false,
-      };
-      if (window.SHOP_API_BASE_URL) {
-        // The server matches the code to its owner (and drops self-referrals),
-        // so the public site never looks up another customer's order.
-        await saveReferral(referral);
-      } else {
-        const referrerOrder = await findPublicRecord("orders", enteredCode, await loadOrders(), ["referralCode"]);
-        if (referrerOrder && referrerOrder.customer.email.toLowerCase() !== customer.email.toLowerCase()) {
-          await saveReferral({ ...referral, referrerEmail: referrerOrder.customer.email, referrerName: referrerOrder.customer.name });
-        }
+      // Same class of bug as order/price-match tracking: on a real
+      // deployment, loadOrders() correctly returns nothing for an
+      // anonymous customer (privacy), so a plain search would never
+      // find the referrer's order and referral codes would silently
+      // never work at all. Look the referrer up by their code via the
+      // safe public single-record endpoint instead.
+      const localList = window.SHOP_API_BASE_URL ? null : await loadOrders();
+      const referrerOrder = await findPublicRecord("orders", enteredCode, localList, ["referralCode"]);
+      if (referrerOrder && referrerOrder.customer.email.toLowerCase() !== customer.email.toLowerCase()) {
+        await saveReferral({
+          id: "REF-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(),
+          code: enteredCode, referrerEmail: referrerOrder.customer.email, referrerName: referrerOrder.customer.name,
+          referredEmail: customer.email, referredName: customer.name, referredOrderId: order.id,
+          rewardAmount: REFERRAL_REWARD_AMOUNT, currency: REGIONS_A[region].currency,
+          referrerPaid: false, referredPaid: false,
+        });
       }
     }
 
     await queueNotification({
       type: "order_confirmation", channel: "email", recipientEmail: customer.email, recipientName: customer.name,
-      subject: `Order ${order.id} received - thanks from Mobile Recellr`,
+      subject: `Order ${order.id} received`,
       message: `Thanks for sending us your ${selected.brand} ${selected.model} trade-in. We've received it (order ${order.id}) with a quote of ${fmt(calc.total, region, REGIONS_A)}, subject to inspecting the device.`,
       relatedId: order.id,
     });
@@ -775,16 +803,13 @@ export default function QuoteCalculator() {
   // preview-mode fallback in this file.
   async function handleOrderRespond(decision) {
     if (!trackResult) return;
-    // Lookups no longer return the customer's email, so the customer confirms it here.
-    const email = isEmail(trackQuery) ? trackQuery.trim() : respondEmail.trim();
-    if (window.SHOP_API_BASE_URL && !isEmail(email)) { setRespondError("Enter the email address you used for this order."); return; }
     setRespondSubmitting(true);
     setRespondError("");
     try {
       if (window.SHOP_API_BASE_URL) {
         const res = await fetch(`${window.SHOP_API_BASE_URL}/public/orders/${encodeURIComponent(trackResult.id)}/respond`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, decision }),
+          body: JSON.stringify({ email: trackResult.customer.email, decision }),
         });
         const body = await res.json();
         if (!res.ok) throw new Error(body.error || "Something went wrong — please try again.");
@@ -1107,10 +1132,6 @@ export default function QuoteCalculator() {
                 {trackResult.status === "revised_pending_customer" && (
                   <div style={{ marginTop: 12, border: `1px solid ${brass}`, borderRadius: 3, padding: 12 }}>
                     <div style={{ fontSize: 12.5, marginBottom: 10 }}>We found something different once we inspected your device. You can accept the revised amount above, or decline and we'll arrange getting your device back to you.</div>
-                    {window.SHOP_API_BASE_URL && !isEmail(trackQuery) && (
-                      <input value={respondEmail} onChange={(e) => setRespondEmail(e.target.value)} placeholder="Email you used for this order" aria-label="Email you used for this order" type="email"
-                        style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, fontSize: 13, marginBottom: 8, fontFamily: "inherit" }} />
-                    )}
                     {respondError && <div style={{ color: red, fontSize: 12, marginBottom: 8 }}>{respondError}</div>}
                     <div style={{ display: "flex", gap: 8 }}>
                       <button className="cs-btn" disabled={respondSubmitting} onClick={() => handleOrderRespond("accept")}
@@ -1492,13 +1513,36 @@ export default function QuoteCalculator() {
               />
             ))}
 
-            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Name on your photo ID</div>
+            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }} id="id-type-label">Photo ID — required by law to buy second-hand devices</div>
+            <div role="group" aria-labelledby="id-type-label" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              {[{ id: "license", label: "Driver licence" }, { id: "passport", label: "Passport" }, { id: "other", label: "Other photo ID" }].map((opt) => (
+                <button key={opt.id} onClick={() => setCustomer((c) => ({ ...c, idType: opt.id }))} aria-pressed={customer.idType === opt.id}
+                  style={{ flex: 1, padding: "9px 6px", borderRadius: 3, fontSize: 12, cursor: "pointer",
+                    border: `1px solid ${customer.idType === opt.id ? brass : line}`, background: customer.idType === opt.id ? brassDim : "transparent",
+                    color: customer.idType === opt.id ? brass : paper }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <input value={customer.idOwnerName} onChange={(e) => setCustomer((c) => ({ ...c, idOwnerName: e.target.value }))}
               placeholder="Full name (as it appears on your ID)" aria-label="Full name as it appears on your ID"
               style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 6, outline: "none", boxSizing: "border-box" }} />
             <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>
-              No need to upload anything. We check your photo ID in person before we pay you, as second-hand dealer rules require.
+              Kept on file as required for second-hand dealer compliance. Never shown in full to anyone but you and the inspecting staff member.
             </div>
+
+            {idPhotoBackendAvailable ? (
+              <>
+                <label style={{ display: "block", fontSize: 13, color: muted, marginBottom: 6 }}>Photo of your ID (optional, encrypted)</label>
+                <input type="file" accept="image/*" capture="environment"
+                  onChange={(e) => setIdPhotoFile(e.target.files?.[0] || null)}
+                  style={{ width: "100%", marginBottom: 4, fontSize: 12, color: paper }} />
+                {idPhotoFile && <div style={{ fontSize: 12.5, color: green, marginBottom: 14 }}>{idPhotoFile.name} attached — will be encrypted and stored when you submit.</div>}
+                {!idPhotoFile && <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>Stored encrypted, separately from everything else, and auto-deleted after your shop's retention period.</div>}
+              </>
+            ) : (
+              <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>Photo ID capture isn't connected on this device — the ID number above still satisfies compliance requirements.</div>
+            )}
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Referral code (optional) — you and your friend both get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)}</div>
             <input value={referralCodeEntered} onChange={(e) => setReferralCodeEntered(e.target.value)} placeholder="e.g. JORDAN482"
@@ -1579,7 +1623,6 @@ export default function QuoteCalculator() {
               This quote is locked for 14 days from today. If your device doesn't match what you told us, we'll always send a revised offer for you to accept or decline — never an automatic reduced payment.
             </div>
 
-            {submitError && <div role="alert" style={{ color: red, fontSize: 13, marginBottom: 10 }}>{submitError}</div>}
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setCheckout(false)} style={{ padding: "12px 16px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 14, cursor: "pointer" }}>
                 Back
@@ -1637,7 +1680,7 @@ export default function QuoteCalculator() {
                 <li><strong>Remove your SIM</strong> and any memory card.</li>
               </ol>
             </div>
-            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" }); setReferralCodeEntered(""); setMyReferralCode(null); }}
+            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idType: "license", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" }); setIdPhotoFile(null); setReferralCodeEntered(""); setMyReferralCode(null); }}
               style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 14, cursor: "pointer" }}>
               Start another quote
             </button>

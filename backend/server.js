@@ -255,33 +255,6 @@ const PUBLIC_READ_KEYS = ["inventory", "pricing-config", "accessories"];
 // own new submission, never overwrites anyone else's data.
 const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries", "repair_requests", "accessory_orders"];
 
-// ---- What an anonymous visitor may look up ----
-// Tracking pages find ONE record by its id or the customer's email, and get
-// back only what those pages display. Contact, bank, payout and ID details
-// never leave the server through a public lookup.
-const PUBLIC_FIND_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "repair_requests", "accessory_orders"];
-const PUBLIC_LOOKUP_FIELDS = ["id", "email", "customer.email", "customerEmail", "business.email"];
-const PUBLIC_RECORD_FIELDS = ["id", "createdAt", "status", "region", "currency", "device", "brand", "model", "storage", "deviceType", "issue",
-  "tierLabel", "faultLabels", "quotedTotal", "priceLockExpires", "fulfillment", "fulfilment", "competitorName", "ourQuote", "approvedPrice",
-  "staffNote", "itemCount", "estimatedTotal", "subtotal", "total", "warrantyExpiresAt"];
-function publicView(record) {
-  const out = {};
-  for (const k of PUBLIC_RECORD_FIELDS) if (record[k] !== undefined) out[k] = record[k];
-  if (record.device && typeof record.device === "object") out.device = { brand: record.device.brand, model: record.device.model, storage: record.device.storage };
-  if (record.inspection && typeof record.inspection === "object") {
-    const { confirmedTotal, staffNote, customerDecision, customerRespondedAt } = record.inspection;
-    out.inspection = { confirmedTotal, staffNote, customerDecision, customerRespondedAt };
-  }
-  if (record.shipping && typeof record.shipping === "object") out.shipping = { trackingNumber: record.shipping.trackingNumber, carrier: record.shipping.carrier };
-  else if (typeof record.shipping === "number") out.shipping = record.shipping;
-  if (Array.isArray(record.items)) out.items = record.items.map((i) => ({ name: i && i.name, qty: i && i.qty, price: i && i.price }));
-  return out;
-}
-async function loadSharedList(key) {
-  const r = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = $1", [key]);
-  try { const v = r.rows[0] ? JSON.parse(r.rows[0].value) : []; return Array.isArray(v) ? v : []; } catch (e) { return []; }
-}
-
 // ---- Email (Resend) ----
 // Customer emails are the ones the site already prepares in notification_queue
 // (quote confirmations, orders, repair requests, replies); the owner gets an
@@ -290,19 +263,50 @@ async function loadSharedList(key) {
 const OWNER_EMAIL = () => process.env.OWNER_EMAIL || "mobilerecellr@outlook.com";
 const EMAIL_FROM = () => process.env.EMAIL_FROM || "Mobile Recellr <onboarding@resend.dev>";
 const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-function emailHtml(subject, text) {
-  const body = escHtml(text).replace(/\n/g, "<br>");
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0F1B3D">
-    <div style="padding:18px 0;border-bottom:2px solid #2150C8;font-weight:800;font-size:18px">MOBILE <span style="color:#2150C8">RECELLR</span></div>
-    <h2 style="font-size:18px;margin:20px 0 10px">${escHtml(subject)}</h2>
-    <div style="font-size:15px;line-height:1.6">${body}</div>
-    <div style="margin-top:26px;padding-top:12px;border-top:1px solid #E2E6EC;font-size:12px;color:#5B6472">Mobile Recellr · Sydney · mobilerecellr.com.au · WhatsApp 0411 931 999</div></div>`;
-}
-// ---- Customer-facing email layout (thank-you + shop details) ----
+// ---- Email design: logo + brand, system-font stack, table layout (renders in Gmail, Outlook and Apple Mail) ----
 // Location and phone can be changed later in Render (SHOP_LOCATION, SHOP_PHONE) with no code change.
 const SHOP_LOCATION = () => process.env.SHOP_LOCATION || "Sydney";
 const SHOP_PHONE = () => process.env.SHOP_PHONE || "0411 931 999";
 const SHOP_WA_LINK = () => { const d = String(SHOP_PHONE()).replace(/\D/g, ""); return `https://wa.me/${d.startsWith("0") ? "61" + d.slice(1) : d}`; };
+const SITE_URL = "https://mobilerecellr.com.au";
+const LOGO_URL = `${SITE_URL}/logo-512.png`;
+const E = { navy: "#0F1B3D", blue: "#2150C8", soft: "#E8EEFF", bg: "#F3F6FD", line: "#E2E6EC", muted: "#5B6472",
+  font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif" };
+const nl2br = (s) => escHtml(s).replace(/\r?\n/g, "<br>");
+const emailButton = (href, label, primary = true) =>
+  `<a href="${escHtml(href)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 22px;border-radius:8px;font-family:${E.font};font-size:15px;font-weight:600;text-decoration:none;${primary ? `background:${E.blue};color:#ffffff;` : `background:#ffffff;color:${E.blue};border:1px solid ${E.blue};`}">${escHtml(label)}</a>`;
+
+// One shell for every email: logo + brand name on top, white card, soft footer.
+function emailShell({ preheader, heading, bodyHtml, footerHtml }) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escHtml(heading)}</title></head>
+<body style="margin:0;padding:0;background:${E.bg};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${E.bg};">${escHtml(preheader || "")}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${E.bg};"><tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+ <tr><td style="padding:0 4px 14px 4px;">
+   <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+     <td style="vertical-align:middle;"><img src="${LOGO_URL}" width="52" height="52" alt="Mobile Recellr" style="display:block;border:0;border-radius:12px;"></td>
+     <td style="vertical-align:middle;padding-left:12px;font-family:${E.font};font-size:20px;font-weight:800;letter-spacing:.6px;color:${E.navy};">MOBILE <span style="color:${E.blue};">RECELLR</span></td>
+   </tr></table>
+ </td></tr>
+ <tr><td style="background:#ffffff;border-radius:14px;border-top:4px solid ${E.blue};padding:28px 28px 22px 28px;font-family:${E.font};color:${E.navy};">
+   <h1 style="margin:0 0 16px 0;font-family:${E.font};font-size:22px;line-height:1.3;font-weight:700;color:${E.navy};">${escHtml(heading)}</h1>
+   ${bodyHtml}
+ </td></tr>
+ <tr><td style="padding:16px 8px 0 8px;font-family:${E.font};font-size:12px;line-height:1.7;color:${E.muted};">${footerHtml}</td></tr>
+</table></td></tr></table></body></html>`;
+}
+const shopFooterHtml = (why) => `<strong style="color:${E.navy};">Mobile Recellr</strong> · ${escHtml(SHOP_LOCATION())}<br>
+Phone / WhatsApp: <a href="${escHtml(SHOP_WA_LINK())}" style="color:${E.blue};text-decoration:none;">${escHtml(SHOP_PHONE())}</a> · Email: <a href="mailto:${escHtml(OWNER_EMAIL())}" style="color:${E.blue};text-decoration:none;">${escHtml(OWNER_EMAIL())}</a><br>
+<a href="${SITE_URL}" style="color:${E.blue};text-decoration:none;">mobilerecellr.com.au</a>${why ? `<br><span style="color:${E.muted};">${escHtml(why)}</span>` : ""}`;
+
+// Generic fallback (staff-written emails etc.)
+function emailHtml(subject, text) {
+  return emailShell({ preheader: String(text || "").slice(0, 90), heading: subject,
+    bodyHtml: `<div style="font-size:15px;line-height:1.65;">${nl2br(text)}</div>`, footerHtml: shopFooterHtml() });
+}
+
+// ---- Customer emails ----
 // Submissions where the customer is waiting to hear back from us.
 const RECEIVED_KINDS = new Set(["order_confirmation", "quote_lead", "bulk_quote_request", "repair_request", "support_query", "accessory_order"]);
 const NEXT_STEPS = "We've received your request and our team will review it and get back to you shortly. If you'd like to add anything in the meantime, just reply to this email or message us on WhatsApp.";
@@ -316,52 +320,98 @@ function customerEmailText(text, kind, name) {
   return [
     `Hi ${firstName(name) || "there"},`, "", text || "",
     ...(RECEIVED_KINDS.has(kind) ? ["", NEXT_STEPS] : []),
-    "", "Thanks for choosing Mobile Recellr.", "",
+    "", "Thanks for choosing Mobile Recellr.", "The Mobile Recellr team", "",
     "--", "Mobile Recellr", SHOP_LOCATION(),
-    `Phone / WhatsApp: ${SHOP_PHONE()}`, `Email: ${OWNER_EMAIL()} (or just reply to this email)`, "https://mobilerecellr.com.au",
+    `Phone / WhatsApp: ${SHOP_PHONE()}`, `Email: ${OWNER_EMAIL()} (or just reply to this email)`, SITE_URL,
   ].join("\n");
 }
 function customerEmailHtml(subject, text, kind, name) {
-  const body = escHtml(text).replace(/\n/g, "<br>");
-  const next = RECEIVED_KINDS.has(kind) ? `<p style="margin:16px 0 0">${escHtml(NEXT_STEPS)}</p>` : "";
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0F1B3D">
-    <div style="padding:18px 0;border-bottom:2px solid #2150C8;font-weight:800;font-size:18px">MOBILE <span style="color:#2150C8">RECELLR</span></div>
-    <h2 style="font-size:18px;margin:20px 0 10px">${escHtml(subject)}</h2>
-    <div style="font-size:15px;line-height:1.6"><p style="margin:0 0 12px">Hi ${escHtml(firstName(name) || "there")},</p><p style="margin:0">${body}</p>${next}<p style="margin:16px 0 0">Thanks for choosing Mobile Recellr.</p></div>
-    <div style="margin-top:26px;padding:14px 16px;background:#F3F6FD;border-radius:8px;font-size:13px;line-height:1.7;color:#0F1B3D">
-      <strong>Mobile Recellr</strong> · ${escHtml(SHOP_LOCATION())}<br>
-      Phone / WhatsApp: <a href="${escHtml(SHOP_WA_LINK())}" style="color:#2150C8;text-decoration:none">${escHtml(SHOP_PHONE())}</a><br>
-      Email: <a href="mailto:${escHtml(OWNER_EMAIL())}" style="color:#2150C8;text-decoration:none">${escHtml(OWNER_EMAIL())}</a> (or just reply to this email)<br>
-      <a href="https://mobilerecellr.com.au" style="color:#2150C8;text-decoration:none">mobilerecellr.com.au</a>
-    </div></div>`;
+  const received = RECEIVED_KINDS.has(kind);
+  const body = `<p style="margin:0 0 14px 0;font-size:16px;line-height:1.6;">Hi ${escHtml(firstName(name) || "there")},</p>
+   <p style="margin:0 0 18px 0;font-size:16px;line-height:1.65;">${nl2br(text)}</p>
+   ${received ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;"><tr><td style="background:${E.soft};border-left:4px solid ${E.blue};border-radius:6px;padding:14px 16px;font-size:15px;line-height:1.6;color:${E.navy};"><strong>What happens next</strong><br>${escHtml(NEXT_STEPS)}</td></tr></table>` : ""}
+   <div style="margin:0 0 20px 0;">${emailButton(SHOP_WA_LINK(), "Message us on WhatsApp")}${emailButton(`mailto:${OWNER_EMAIL()}`, "Reply by email", false)}</div>
+   <p style="margin:0;font-size:15px;line-height:1.6;">Thanks for choosing Mobile Recellr.<br><span style="color:${E.muted};">The Mobile Recellr team</span></p>`;
+  return emailShell({ preheader: received ? "We've received your request and will be in touch shortly." : String(text || "").slice(0, 90),
+    heading: subject, bodyHtml: body, footerHtml: shopFooterHtml("You're receiving this because of a request you made on mobilerecellr.com.au.") });
 }
-async function sendEmail({ to, subject, text, replyTo, customer, kind, name }) {
+
+// ---- Owner alert (new order / repair / message): grouped, readable, sensitive numbers masked ----
+const NEW_LABEL = { orders: "New order", purchase_orders: "New trade-in / sell order", price_match_requests: "New price-match request", bulk_quote_requests: "New bulk quote request",
+  quote_leads: "New sell quote", referrals: "New referral", support_queries: "New customer message", repair_requests: "New repair request", accessory_orders: "New accessories order" };
+const FIELD_LABEL = { id: "Reference", createdAt: "Received", priceLockExpires: "Price held until", quotedTotal: "Quoted total", total: "Total", tierLabel: "Condition",
+  hasAccessories: "Accessories included", idType: "ID type", idOwnerName: "Name on ID", payoutMethod: "Payout method", bankBsb: "BSB", bankAccountNumber: "Account number",
+  bankAccountName: "Account name", paypalEmail: "PayPal email", fulfillment: "Fulfilment", faultLabels: "Faults reported", release: "Released", name: "Name", email: "Email", phone: "Phone" };
+const FIELD_HIDE = new Set(["tierId", "brandNewBase", "category", "region", "currency", "status", "notifiedAt"]);
+const FIELD_MASK = new Set(["bankAccountNumber", "idNumber", "licenceNumber", "licenseNumber", "passportNumber"]);
+const MONEY_KEYS = new Set(["quotedTotal", "total", "rewardAmount", "subtotal", "amount", "price", "deposit"]);
+const VALUE_MAP = { dropoff: "Drop-off in store", post: "Post / mail-in", pickup: "Pickup", delivery: "Delivery", collect: "Collect in store", cash: "Cash", bank: "Bank transfer",
+  license: "Driver licence", passport: "Passport", other: "Other photo ID" };
+const humanise = (k) => FIELD_LABEL[k] || String(k).replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase());
+function fmtValue(k, v, currency) {
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  const s = String(v).slice(0, 300);
+  if (FIELD_MASK.has(k)) return s.length > 3 ? "•••• " + s.slice(-3) : "••••";
+  if (MONEY_KEYS.has(k) && !isNaN(Number(v))) { try { return new Intl.NumberFormat("en-AU", { style: "currency", currency: currency || "AUD" }).format(Number(v)); } catch (e) { return `$${v}`; } }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !isNaN(Date.parse(s))) return new Date(s).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+  return VALUE_MAP[s] || s;
+}
+function alertSections(item) {
+  const cur = (item && (item.currency || (item.device && item.device.currency))) || "AUD";
+  const top = [], groups = [];
+  const row = (k, v) => ({ key: k, label: humanise(k), value: fmtValue(k, v, cur) });
+  for (const [k, v] of Object.entries(item || {})) {
+    if (v == null || v === "" || FIELD_HIDE.has(k)) continue;
+    if (Array.isArray(v)) { if (v.length && v.every((x) => typeof x !== "object")) top.push(row(k, v.join(", "))); else if (v.length) top.push({ key: k, label: humanise(k), value: `${v.length} item${v.length === 1 ? "" : "s"}` }); }
+    else if (typeof v === "object") {
+      const rows = Object.entries(v).filter(([k2, v2]) => v2 != null && v2 !== "" && typeof v2 !== "object" && !FIELD_HIDE.has(k2)).map(([k2, v2]) => row(k2, v2));
+      if (rows.length) groups.push({ title: humanise(k), rows });
+    } else top.push(row(k, v));
+  }
+  const get = (k) => (top.find((r) => r.key === k) || {}).value;
+  const highlights = [["Reference", get("id")], ["Quoted total", get("quotedTotal") || get("total")]].filter(([, v]) => v);
+  const rest = top.filter((r) => !["id", "quotedTotal", "total"].includes(r.key));
+  return { highlights, sections: [...groups, ...(rest.length ? [{ title: "Order details", rows: rest }] : [])].slice(0, 8) };
+}
+function ownerAlertText(item) {
+  const { highlights, sections } = alertSections(item);
+  const out = highlights.map(([l, v]) => `${l}: ${v}`);
+  for (const s of sections) { out.push("", s.title.toUpperCase()); for (const r of s.rows.slice(0, 25)) out.push(`${r.label}: ${r.value}`); }
+  return out.join("\n") + `\n\nOpen the staff portal: ${SITE_URL}/portal`;
+}
+function ownerAlertHtml(key, item, subject) {
+  const { highlights, sections } = alertSections(item);
+  const email = item.email || (item.customer && item.customer.email);
+  const phone = item.phone || (item.customer && item.customer.phone);
+  const cell = (inner, extra = "") => `<td style="padding:7px 0;border-bottom:1px solid ${E.line};font-family:${E.font};font-size:14px;line-height:1.5;${extra}">${inner}</td>`;
+  const linkify = (r) => /email/i.test(r.key) ? `<a href="mailto:${escHtml(r.value)}" style="color:${E.blue};">${escHtml(r.value)}</a>` : /phone/i.test(r.key) ? `<a href="tel:${escHtml(String(r.value).replace(/\s+/g, ""))}" style="color:${E.blue};">${escHtml(r.value)}</a>` : escHtml(r.value);
+  const band = highlights.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px 0;"><tr>${highlights.map(([l, v]) => `<td style="background:${E.soft};border-radius:8px;padding:12px 14px;width:${Math.floor(100 / highlights.length)}%;"><div style="font-family:${E.font};font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:${E.muted};">${escHtml(l)}</div><div style="font-family:${E.font};font-size:18px;font-weight:700;color:${E.navy};padding-top:2px;">${escHtml(v)}</div></td>`).join('<td width="10"></td>')}</tr></table>` : "";
+  const tables = sections.map((s) => `<div style="margin:0 0 6px 0;font-family:${E.font};font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:${E.blue};">${escHtml(s.title)}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px 0;">${s.rows.slice(0, 25).map((r) => `<tr>${cell(escHtml(r.label), `color:${E.muted};width:38%;padding-right:10px;`)}${cell(linkify(r), `color:${E.navy};font-weight:600;`)}</tr>`).join("")}</table>`).join("");
+  const buttons = emailButton(`${SITE_URL}/portal`, "Open staff portal") + (email ? emailButton(`mailto:${email}`, "Email customer", false) : "") + (phone ? emailButton(`tel:${String(phone).replace(/\s+/g, "")}`, "Call", false) : "");
+  return emailShell({ preheader: subject, heading: subject, bodyHtml: `${band}${tables}<div style="margin-top:6px;">${buttons}</div>`,
+    footerHtml: `Automatic alert from mobilerecellr.com.au. Sensitive numbers (bank account, ID) are partly hidden here; open the staff portal for full details.` });
+}
+
+const maskEmail = (a) => String(a || "").replace(/^(.).*(@.*)$/, "$1***$2");
+async function sendEmail({ to, subject, text, replyTo, customer, kind, name, alert }) {
   const key = process.env.RESEND_API_KEY;
   if (!key || !to) return { skipped: true };
   try {
+    const content = customer ? { text: customerEmailText(text, kind, name), html: customerEmailHtml(subject, text, kind, name) }
+      : alert ? { text: ownerAlertText(alert.item), html: ownerAlertHtml(alert.key, alert.item, subject) }
+      : { text, html: emailHtml(subject, text) };
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: EMAIL_FROM(), to: [to], subject, text: customer ? customerEmailText(text, kind, name) : text, html: customer ? customerEmailHtml(subject, text, kind, name) : emailHtml(subject, text), ...(replyTo ? { reply_to: replyTo } : {}) }),
+      body: JSON.stringify({ from: EMAIL_FROM(), to: [to], subject, text: content.text, html: content.html, ...(replyTo ? { reply_to: replyTo } : {}) }),
     });
-    if (!r.ok) console.error("email not sent:", r.status, (await r.text()).slice(0, 200));
+    const body = await r.text();
+    if (!r.ok) console.error("email not sent:", r.status, body.slice(0, 200));
+    else { let id = ""; try { id = JSON.parse(body).id || ""; } catch (e) {} console.log(`email sent to ${maskEmail(to)} (${kind || (alert ? "owner alert" : "message")}) id=${id}`); }
     return { ok: r.ok };
   } catch (e) { console.error("email error:", e.message); return { ok: false }; }
 }
-const NEW_LABEL = { orders: "New order", purchase_orders: "New trade-in / sell order", price_match_requests: "New price-match request", bulk_quote_requests: "New bulk quote request",
-  quote_leads: "New sell quote", referrals: "New referral", support_queries: "New customer message", repair_requests: "New repair request", accessory_orders: "New accessories order" };
-// Bank, payout-account and ID details stay in the portal; email is not a safe place for them.
-const SENSITIVE_KEY = /bank|bsb|accountnumber|paypal|idtype|idowner|idnumber|licen[cs]e|passport|birth|dob|password|token/i;
-function summarise(item) {
-  const lines = [];
-  const add = (k, v) => { if (v == null || v === "" || typeof v === "object") return; lines.push(`${k}: ${String(v).slice(0, 300)}`); };
-  for (const [k, v] of Object.entries(item || {})) {
-    if (SENSITIVE_KEY.test(k)) continue;
-    if (v && typeof v === "object" && !Array.isArray(v)) { for (const [k2, v2] of Object.entries(v)) if (!SENSITIVE_KEY.test(k2)) add(`${k} ${k2}`, v2); }
-    else if (Array.isArray(v)) lines.push(`${k}: ${v.length} item(s)`);
-    else add(k, v);
-  }
-  return lines.slice(0, 40).join("\n");
-}
+
 function notifyNew(key, items, max = Infinity) {
   const list = items || [];
   if (list.length > max) console.warn(`notifyNew(${key}): ${list.length} new items, only emailing the first ${max}`);
@@ -374,73 +424,10 @@ function notifyNew(key, items, max = Infinity) {
     const who = item.name || (item.customer && item.customer.name) || item.email || (item.customer && item.customer.email) || item.id || "";
     void sendEmail({
       to: OWNER_EMAIL(), subject: `${NEW_LABEL[key] || `New ${key.replace(/_/g, " ")}`}${who ? ` — ${who}` : ""}`,
-      text: `${summarise(item)}\n\nOpen the staff portal: https://mobilerecellr.com.au/portal`,
+      alert: { key, item },
       replyTo: item.email || (item.customer && item.customer.email) || undefined,
     });
   }
-}
-
-// ---- Customer confirmations for anonymous submissions ----
-// The site queues a confirmation after each public form. The server never
-// emails text or addresses supplied by an anonymous browser: it looks up
-// the record the confirmation is about, sends to the email ON that record,
-// writes the wording itself, and sends at most one per record.
-const clip = (v) => String(v ?? "").replace(/(https?:\/\/|www\.)\S*/gi, "").replace(/\b[\w-]+\.(com|net|org|au|io|co|xyz|info|link|app|me|ly|ru|top)\b\S*/gi, "").replace(/\s+/g, " ").trim().slice(0, 60);
-function money(n, currency) {
-  if (!Number.isFinite(Number(n))) return "";
-  try { return new Intl.NumberFormat("en-AU", { style: "currency", currency: /^[A-Z]{3}$/.test(currency || "") ? currency : "AUD" }).format(Number(n)); } catch (e) { return `$${Number(n).toFixed(2)}`; }
-}
-const dateAU = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-AU"); };
-const deviceName = (r) => clip(`${(r.device && r.device.brand) || ""} ${(r.device && r.device.model) || ""}`) || "device";
-const CONFIRMATIONS = {
-  order_confirmation: { key: "orders", email: (r) => r.customer && r.customer.email, name: (r) => r.customer && r.customer.name,
-    subject: (r) => `Order ${clip(r.id)} received - thanks from Mobile Recellr`,
-    message: (r) => `Thanks for sending us your ${deviceName(r)} trade-in. We've received it (order ${clip(r.id)}) with a quote of ${money(r.quotedTotal, r.currency)}, subject to inspecting the device.` },
-  quote_lead: { key: "quote_leads", email: (r) => r.email, name: () => "",
-    subject: (r) => `Your ${deviceName(r)} quote: ${money(r.quotedTotal, r.currency)}`,
-    message: (r) => `We've held this price for you${dateAU(r.priceHeldUntil) ? ` until ${dateAU(r.priceHeldUntil)}` : ""}. Ready to sell? Come back anytime.` },
-  bulk_quote_request: { key: "bulk_quote_requests", email: (r) => r.business && r.business.email, name: (r) => r.business && r.business.contactName,
-    subject: (r) => `Bulk trade-in request ${clip(r.id)} received`,
-    message: (r) => `We've received your request for ${Number(r.itemCount) || (Array.isArray(r.items) ? r.items.length : 0)} device(s), estimated at ${money(r.estimatedTotal, r.currency)} total. A team member will follow up within 1-2 business days with a firm offer.` },
-  repair_request: { key: "repair_requests", email: (r) => r.email, name: (r) => r.name,
-    subject: (r) => `Repair request ${clip(r.id)} received`,
-    message: (r) => `We've received your repair request for your ${clip(r.deviceType).toLowerCase() || "device"}${clip(r.model) ? ` (${clip(r.model)})` : ""}. We'll reach out shortly to confirm details and turnaround.` },
-  support_query: { key: "support_queries", email: (r) => r.email, name: (r) => r.name,
-    subject: (r) => `We've received your question — ${clip(r.id)}`,
-    message: () => "Thanks for reaching out. We've received your message and will get back to you shortly." },
-  accessory_order: { key: "accessory_orders", email: (r) => r.customer && r.customer.email, name: (r) => r.customer && r.customer.name,
-    subject: (r) => `Order ${clip(r.id)} received`,
-    message: (r) => {
-      const count = (Array.isArray(r.items) ? r.items : []).reduce((s, i) => s + (Number(i && i.qty) || 0), 0);
-      return `Thanks for your order (${count} item${count === 1 ? "" : "s"}, ${money(r.total, "AUD")}). ${r.fulfilment === "collect" ? "We'll let you know when it's ready to collect — pay when you pick it up." : "We'll email you a secure payment link, then post it out."}`;
-    } },
-};
-async function buildConfirmations(items, existingQueue) {
-  const seen = new Set(existingQueue.map((q) => q && `${q.type}:${q.relatedId}`));
-  const out = [];
-  for (const item of items) {
-    const spec = item && CONFIRMATIONS[item.type];
-    if (!spec || !item.relatedId || seen.has(`${item.type}:${item.relatedId}`)) continue;
-    seen.add(`${item.type}:${item.relatedId}`);
-    const record = (await loadSharedList(spec.key)).find((r) => r && r.id === item.relatedId);
-    const to = record && String(spec.email(record) || "").trim();
-    if (!to) continue;
-    out.push({ id: item.id, createdAt: new Date().toISOString(), status: "pending", type: item.type, channel: "email",
-      recipientEmail: to, recipientName: spec.name(record) || "", subject: spec.subject(record), message: spec.message(record), relatedId: record.id });
-  }
-  return out;
-}
-// A referral names only the code it used; the server fills in who owns that
-// code, so the public site never needs to look up another customer's order.
-async function enrichReferrals(items) {
-  const orders = await loadSharedList("orders");
-  return items.map((ref) => {
-    const code = String(ref.code || "").trim().toUpperCase();
-    const referrer = code && orders.find((o) => o && String(o.referralCode || "").toUpperCase() === code);
-    const referrerEmail = referrer && referrer.customer && referrer.customer.email;
-    if (!referrerEmail || referrerEmail.toLowerCase() === String(ref.referredEmail || "").trim().toLowerCase()) return null;
-    return { ...ref, code, referrerEmail, referrerName: referrer.customer.name || "", referrerPaid: false, referredPaid: false };
-  }).filter(Boolean);
 }
 
 function scopeFor(shared, username) {
@@ -452,8 +439,12 @@ function scopeFor(shared, username) {
 // Public forms can write without a login, and each new submission emails
 // the owner. In-memory, per client IP, sliding window. Resets on restart,
 // which is fine for abuse control (this is not a security boundary).
+// Render puts Cloudflare AND its own proxy in front of the app, so `req.ip` can be a shared proxy address
+// (every visitor counted as one). Cloudflare sets CF-Connecting-IP to the real visitor, so prefer that.
+const clientKey = (req) => String(req.headers["cf-connecting-ip"] || req.headers["true-client-ip"] || req.ip || "unknown").trim();
 function makeLimiter(max, windowMs) {
   const hits = new Map();
+  const warnedAt = new Map();
   const timer = setInterval(() => {
     const cutoff = Date.now() - windowMs;
     for (const [ip, list] of hits) {
@@ -463,10 +454,14 @@ function makeLimiter(max, windowMs) {
   }, windowMs);
   if (timer.unref) timer.unref();
   return function allow(req) {
-    const ip = req.ip || "unknown";
+    const ip = clientKey(req);
     const now = Date.now();
     const list = (hits.get(ip) || []).filter((ts) => ts > now - windowMs);
-    if (list.length >= max) { hits.set(ip, list); return false; }
+    if (list.length >= max) {
+      hits.set(ip, list);
+      if (now - (warnedAt.get(ip) || 0) > 60000) { warnedAt.set(ip, now); console.warn(`rate limit hit for ${ip} (max ${max} per ${Math.round(windowMs / 60000)} min)`); }
+      return false;
+    }
     list.push(now);
     hits.set(ip, list);
     return true;
@@ -475,8 +470,6 @@ function makeLimiter(max, windowMs) {
 const PUBLIC_WRITE_MAX = parseInt(process.env.PUBLIC_WRITE_MAX || "20", 10);          // submissions per IP per 10 min
 const publicWriteAllowed = makeLimiter(PUBLIC_WRITE_MAX, 10 * 60 * 1000);
 const publicRespondAllowed = makeLimiter(30, 10 * 60 * 1000);
-const publicFindAllowed = makeLimiter(60, 10 * 60 * 1000);       // a tracking search tries up to 4 fields
-const publicIdPhotoAllowed = makeLimiter(10, 10 * 60 * 1000);
 const PUBLIC_MAX_ITEMS_PER_SUBMISSION = 20;
 const PUBLIC_MAX_VALUE_CHARS = 2_000_000;   // anonymous JSON payload cap (staff are not capped below the 10mb body limit)
 const PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST = 5;
@@ -605,7 +598,6 @@ app.post("/auth/login", async (req, res) => {
     if (!user) return res.status(401).json({ error: "invalid username or password" });
 
     await pool.query("DELETE FROM sessions WHERE expires_at < NOW()"); // light housekeeping
-    await pool.query("DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '1 day'");
     const now = Date.now();
     const sessionId = crypto.randomUUID();
     const expiresAtIso = new Date(now + TOKEN_TTL_MS).toISOString();
@@ -881,27 +873,6 @@ function mergeKeepingNewer(incomingJson, existingJson) {
   return missing.length ? JSON.stringify([...missing, ...incoming]) : incomingJson;
 }
 
-// A customer's accept/decline (via /public/orders/:id/respond) must survive a
-// staff save made from a copy loaded before they answered. A deliberate
-// re-inspection after their answer (a newer inspectedAt) still wins.
-function keepCustomerDecisions(finalJson, existingJson) {
-  try {
-    const list = JSON.parse(finalJson), old = existingJson ? JSON.parse(existingJson) : [];
-    if (!Array.isArray(list) || !Array.isArray(old)) return finalJson;
-    const answered = new Map(old.filter((o) => o && o.inspection && o.inspection.customerRespondedAt).map((o) => [o.id, o]));
-    let changed = false;
-    const out = list.map((o) => {
-      const prev = o && answered.get(o.id);
-      if (!prev || (o.inspection && o.inspection.customerRespondedAt)) return o;
-      const at = Date.parse(prev.inspection.customerRespondedAt);
-      if (o.inspection && Date.parse(o.inspection.inspectedAt) > at) return o;
-      changed = true;
-      return { ...o, status: prev.status, inspection: { ...(o.inspection || {}), customerRespondedAt: prev.inspection.customerRespondedAt, customerDecision: prev.inspection.customerDecision } };
-    });
-    return changed ? JSON.stringify(out) : finalJson;
-  } catch (e) { return finalJson; }
-}
-
 app.put("/storage/:key", tryAuth, async (req, res) => {
   try {
     const { value, shared } = req.body;
@@ -921,24 +892,14 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
       // their local view of "existing records" is always empty (they
       // can't read this key back), so this only ever adds their genuinely
       // new submission(s), never overwrites or exposes anyone else's data.
-      const key = req.params.key;
-      const result = await withListLock("shared", key, async (existingValue, write) => {
+      const newOnes = await withListLock("shared", req.params.key, async (existingValue, write) => {
         const existing = existingValue ? JSON.parse(existingValue) : [];
-        const byId = new Map(existing.map((r) => [r && r.id, r]));
-        // Same id, different content = two customers drew the same random id.
-        // Refuse rather than silently dropping the second customer's submission.
-        // (A retry of an already-saved submission is identical and just succeeds.)
-        if (key !== "notification_queue" && key !== "referrals" &&
-            incoming.some((r) => r && r.id && byId.has(r.id) && JSON.stringify(byId.get(r.id)) !== JSON.stringify(r))) return { conflict: true };
-        let fresh = incoming.filter((r) => r && r.id && !byId.has(r.id));
-        if (key === "notification_queue") fresh = await buildConfirmations(fresh, existing);
-        if (key === "referrals") fresh = await enrichReferrals(fresh);
-        if (fresh.length) await write(JSON.stringify([...fresh, ...existing]), "public");
-        return { fresh };
+        const existingIds = new Set(existing.map((r) => r && r.id));
+        const fresh = incoming.filter((r) => r && r.id && !existingIds.has(r.id));
+        await write(JSON.stringify([...fresh, ...existing]), "public");
+        return fresh;
       });
-      if (result.conflict) return res.status(409).json({ error: "id_conflict", detail: "that reference number is already in use, please submit again" });
-      const newOnes = result.fresh;
-      notifyNew(key, newOnes, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST);
+      notifyNew(req.params.key, newOnes, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST);
       // Never return the merged collection to an anonymous caller — only confirm what THEY submitted.
       return res.json({ key: req.params.key, submitted: newOnes.length });
     }
@@ -946,9 +907,8 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
     const scope = scopeFor(shared, req.user.username);
     let staffQueued = [];
     const saved = await withListLock(scope, req.params.key, async (existingValue, write) => {
-      let finalValue = scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)
+      const finalValue = scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)
         ? mergeKeepingNewer(value, existingValue) : value;
-      if (scope === "shared" && req.params.key === "orders") finalValue = keepCustomerDecisions(finalValue, existingValue);
       if (scope === "shared" && req.params.key === "notification_queue") {   // staff-sent customer updates (e.g. "repair ready")
         try { const had = new Set((existingValue ? JSON.parse(existingValue) : []).map((r) => r && r.id)); staffQueued = JSON.parse(finalValue).filter((r) => r && r.id && !had.has(r.id)); } catch (e) { staffQueued = []; }
       }
@@ -965,8 +925,6 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
 app.delete("/storage/:key", requireAuth, async (req, res) => {
   try {
     const scope = scopeFor(req.query.shared, req.user.username);
-    // Deleting a shared key wipes a whole collection (every order, every sale).
-    if (scope === "shared" && req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
     await pool.query("DELETE FROM storage WHERE scope = $1 AND key = $2", [scope, req.params.key]);
     res.json({ key: req.params.key, deleted: true, shared: scope === "shared" });
   } catch (e) {
@@ -991,11 +949,9 @@ app.get("/storage", requireAuth, async (req, res) => {
 // matching record — never the collection it came from.
 app.get("/public/find/:key", async (req, res) => {
   try {
-    if (!PUBLIC_FIND_KEYS.includes(req.params.key)) return res.status(401).json({ error: "unauthorized" });
-    if (!publicFindAllowed(req)) return res.status(429).json({ error: "too many lookups, please try again in a few minutes" });
+    if (!PUBLIC_WRITE_KEYS.includes(req.params.key)) return res.status(401).json({ error: "unauthorized" });
     const { field, value } = req.query;
     if (!field || !value) return res.status(400).json({ error: "field and value query params are required" });
-    if (!PUBLIC_LOOKUP_FIELDS.includes(field)) return res.status(400).json({ error: "search by reference number or email" });
     const result = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = $1", [req.params.key]);
     const row = result.rows[0];
     const list = row ? JSON.parse(row.value) : [];
@@ -1004,7 +960,7 @@ app.get("/public/find/:key", async (req, res) => {
       return typeof v === "string" && typeof value === "string" && v.toLowerCase() === value.toLowerCase();
     });
     if (!match) return res.status(404).json({ error: "not_found" });
-    res.json({ record: publicView(match) });
+    res.json({ record: match });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -1057,14 +1013,6 @@ app.post("/id-photos", tryAuth, async (req, res) => {
     const { subjectKey, imageBase64 } = req.body;
     if (!subjectKey || !imageBase64) return res.status(400).json({ error: "subjectKey and imageBase64 are required" });
     if (imageBase64.length > 8_000_000) return res.status(413).json({ error: "image too large" });
-    if (!req.user) {
-      // A customer may attach ID to their own new trade-in order, once.
-      // They can't add or replace a photo on anyone else's record.
-      if (!publicIdPhotoAllowed(req)) return res.status(429).json({ error: "too many uploads, please try again later" });
-      const m = /^order:([A-Za-z0-9-]{1,40})$/.exec(String(subjectKey));
-      if (!m || !(await loadSharedList("orders")).some((o) => o && o.id === m[1])) return res.status(403).json({ error: "unknown order" });
-      if ((await pool.query("SELECT 1 FROM id_photos WHERE subject_key = $1 LIMIT 1", [subjectKey])).rows[0]) return res.status(409).json({ error: "an ID photo is already on file for this order" });
-    }
     await purgeExpiredIdPhotos();
     const { ciphertext, iv, authTag } = await encryptIdPhoto(imageBase64);
     const id = crypto.randomUUID();
