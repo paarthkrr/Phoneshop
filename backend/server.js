@@ -294,19 +294,50 @@ async function loadSharedList(key) {
 const OWNER_EMAIL = () => process.env.OWNER_EMAIL || "mobilerecellr@outlook.com";
 const EMAIL_FROM = () => process.env.EMAIL_FROM || "Mobile Recellr <onboarding@resend.dev>";
 const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-function emailHtml(subject, text) {
-  const body = escHtml(text).replace(/\n/g, "<br>");
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0F1B3D">
-    <div style="padding:18px 0;border-bottom:2px solid #2150C8;font-weight:800;font-size:18px">MOBILE <span style="color:#2150C8">RECELLR</span></div>
-    <h2 style="font-size:18px;margin:20px 0 10px">${escHtml(subject)}</h2>
-    <div style="font-size:15px;line-height:1.6">${body}</div>
-    <div style="margin-top:26px;padding-top:12px;border-top:1px solid #E2E6EC;font-size:12px;color:#5B6472">Mobile Recellr · Sydney · mobilerecellr.com.au · WhatsApp 0411 931 999</div></div>`;
-}
-// ---- Customer-facing email layout (thank-you + shop details) ----
+// ---- Email design: logo + brand, system-font stack, table layout (renders in Gmail, Outlook and Apple Mail) ----
 // Location and phone can be changed later in Render (SHOP_LOCATION, SHOP_PHONE) with no code change.
 const SHOP_LOCATION = () => process.env.SHOP_LOCATION || "Sydney";
 const SHOP_PHONE = () => process.env.SHOP_PHONE || "0411 931 999";
 const SHOP_WA_LINK = () => { const d = String(SHOP_PHONE()).replace(/\D/g, ""); return `https://wa.me/${d.startsWith("0") ? "61" + d.slice(1) : d}`; };
+const SITE_URL = "https://mobilerecellr.com.au";
+const LOGO_URL = `${SITE_URL}/logo-512.png`;
+const E = { navy: "#0F1B3D", blue: "#2150C8", soft: "#E8EEFF", bg: "#F3F6FD", line: "#E2E6EC", muted: "#5B6472",
+  font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif" };
+const nl2br = (s) => escHtml(s).replace(/\r?\n/g, "<br>");
+const emailButton = (href, label, primary = true) =>
+  `<a href="${escHtml(href)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 22px;border-radius:8px;font-family:${E.font};font-size:15px;font-weight:600;text-decoration:none;${primary ? `background:${E.blue};color:#ffffff;` : `background:#ffffff;color:${E.blue};border:1px solid ${E.blue};`}">${escHtml(label)}</a>`;
+
+// One shell for every email: logo + brand name on top, white card, soft footer.
+function emailShell({ preheader, heading, bodyHtml, footerHtml }) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escHtml(heading)}</title></head>
+<body style="margin:0;padding:0;background:${E.bg};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${E.bg};">${escHtml(preheader || "")}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${E.bg};"><tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+ <tr><td style="padding:0 4px 14px 4px;">
+   <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+     <td style="vertical-align:middle;"><img src="${LOGO_URL}" width="52" height="52" alt="Mobile Recellr" style="display:block;border:0;border-radius:12px;"></td>
+     <td style="vertical-align:middle;padding-left:12px;font-family:${E.font};font-size:20px;font-weight:800;letter-spacing:.6px;color:${E.navy};">MOBILE <span style="color:${E.blue};">RECELLR</span></td>
+   </tr></table>
+ </td></tr>
+ <tr><td style="background:#ffffff;border-radius:14px;border-top:4px solid ${E.blue};padding:28px 28px 22px 28px;font-family:${E.font};color:${E.navy};">
+   <h1 style="margin:0 0 16px 0;font-family:${E.font};font-size:22px;line-height:1.3;font-weight:700;color:${E.navy};">${escHtml(heading)}</h1>
+   ${bodyHtml}
+ </td></tr>
+ <tr><td style="padding:16px 8px 0 8px;font-family:${E.font};font-size:12px;line-height:1.7;color:${E.muted};">${footerHtml}</td></tr>
+</table></td></tr></table></body></html>`;
+}
+const shopFooterHtml = (why) => `<strong style="color:${E.navy};">Mobile Recellr</strong> · ${escHtml(SHOP_LOCATION())}<br>
+Phone / WhatsApp: <a href="${escHtml(SHOP_WA_LINK())}" style="color:${E.blue};text-decoration:none;">${escHtml(SHOP_PHONE())}</a> · Email: <a href="mailto:${escHtml(OWNER_EMAIL())}" style="color:${E.blue};text-decoration:none;">${escHtml(OWNER_EMAIL())}</a><br>
+<a href="${SITE_URL}" style="color:${E.blue};text-decoration:none;">mobilerecellr.com.au</a>${why ? `<br><span style="color:${E.muted};">${escHtml(why)}</span>` : ""}`;
+
+// Generic fallback (staff-written emails etc.)
+function emailHtml(subject, text) {
+  return emailShell({ preheader: String(text || "").slice(0, 90), heading: subject,
+    bodyHtml: `<div style="font-size:15px;line-height:1.65;">${nl2br(text)}</div>`, footerHtml: shopFooterHtml() });
+}
+
+// ---- Customer emails ----
 // Submissions where the customer is waiting to hear back from us.
 const RECEIVED_KINDS = new Set(["order_confirmation", "quote_lead", "bulk_quote_request", "repair_request", "support_query", "accessory_order"]);
 const NEXT_STEPS = "We've received your request and our team will review it and get back to you shortly. If you'd like to add anything in the meantime, just reply to this email or message us on WhatsApp.";
@@ -320,51 +351,98 @@ function customerEmailText(text, kind, name) {
   return [
     `Hi ${firstName(name) || "there"},`, "", text || "",
     ...(RECEIVED_KINDS.has(kind) ? ["", NEXT_STEPS] : []),
-    "", "Thanks for choosing Mobile Recellr.", "",
+    "", "Thanks for choosing Mobile Recellr.", "The Mobile Recellr team", "",
     "--", "Mobile Recellr", SHOP_LOCATION(),
-    `Phone / WhatsApp: ${SHOP_PHONE()}`, `Email: ${OWNER_EMAIL()} (or just reply to this email)`, "https://mobilerecellr.com.au",
+    `Phone / WhatsApp: ${SHOP_PHONE()}`, `Email: ${OWNER_EMAIL()} (or just reply to this email)`, SITE_URL,
   ].join("\n");
 }
 function customerEmailHtml(subject, text, kind, name) {
-  const body = escHtml(text).replace(/\n/g, "<br>");
-  const next = RECEIVED_KINDS.has(kind) ? `<p style="margin:16px 0 0">${escHtml(NEXT_STEPS)}</p>` : "";
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0F1B3D">
-    <div style="padding:18px 0;border-bottom:2px solid #2150C8;font-weight:800;font-size:18px">MOBILE <span style="color:#2150C8">RECELLR</span></div>
-    <h2 style="font-size:18px;margin:20px 0 10px">${escHtml(subject)}</h2>
-    <div style="font-size:15px;line-height:1.6"><p style="margin:0 0 12px">Hi ${escHtml(firstName(name) || "there")},</p><p style="margin:0">${body}</p>${next}<p style="margin:16px 0 0">Thanks for choosing Mobile Recellr.</p></div>
-    <div style="margin-top:26px;padding:14px 16px;background:#F3F6FD;border-radius:8px;font-size:13px;line-height:1.7;color:#0F1B3D">
-      <strong>Mobile Recellr</strong> · ${escHtml(SHOP_LOCATION())}<br>
-      Phone / WhatsApp: <a href="${escHtml(SHOP_WA_LINK())}" style="color:#2150C8;text-decoration:none">${escHtml(SHOP_PHONE())}</a><br>
-      Email: <a href="mailto:${escHtml(OWNER_EMAIL())}" style="color:#2150C8;text-decoration:none">${escHtml(OWNER_EMAIL())}</a> (or just reply to this email)<br>
-      <a href="https://mobilerecellr.com.au" style="color:#2150C8;text-decoration:none">mobilerecellr.com.au</a>
-    </div></div>`;
+  const received = RECEIVED_KINDS.has(kind);
+  const body = `<p style="margin:0 0 14px 0;font-size:16px;line-height:1.6;">Hi ${escHtml(firstName(name) || "there")},</p>
+   <p style="margin:0 0 18px 0;font-size:16px;line-height:1.65;">${nl2br(text)}</p>
+   ${received ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;"><tr><td style="background:${E.soft};border-left:4px solid ${E.blue};border-radius:6px;padding:14px 16px;font-size:15px;line-height:1.6;color:${E.navy};"><strong>What happens next</strong><br>${escHtml(NEXT_STEPS)}</td></tr></table>` : ""}
+   <div style="margin:0 0 20px 0;">${emailButton(SHOP_WA_LINK(), "Message us on WhatsApp")}${emailButton(`mailto:${OWNER_EMAIL()}`, "Reply by email", false)}</div>
+   <p style="margin:0;font-size:15px;line-height:1.6;">Thanks for choosing Mobile Recellr.<br><span style="color:${E.muted};">The Mobile Recellr team</span></p>`;
+  return emailShell({ preheader: received ? "We've received your request and will be in touch shortly." : String(text || "").slice(0, 90),
+    heading: subject, bodyHtml: body, footerHtml: shopFooterHtml("You're receiving this because of a request you made on mobilerecellr.com.au.") });
 }
-async function sendEmail({ to, subject, text, replyTo, customer, kind, name }) {
+
+// ---- Owner alert (new order / repair / message): grouped, readable, sensitive numbers masked ----
+const NEW_LABEL = { orders: "New order", purchase_orders: "New trade-in / sell order", price_match_requests: "New price-match request", bulk_quote_requests: "New bulk quote request",
+  quote_leads: "New sell quote", referrals: "New referral", support_queries: "New customer message", repair_requests: "New repair request", accessory_orders: "New accessories order" };
+const FIELD_LABEL = { id: "Reference", createdAt: "Received", priceLockExpires: "Price held until", quotedTotal: "Quoted total", total: "Total", tierLabel: "Condition",
+  hasAccessories: "Accessories included", idType: "ID type", idOwnerName: "Name on ID", payoutMethod: "Payout method", bankBsb: "BSB", bankAccountNumber: "Account number",
+  bankAccountName: "Account name", paypalEmail: "PayPal email", fulfillment: "Fulfilment", faultLabels: "Faults reported", release: "Released", name: "Name", email: "Email", phone: "Phone" };
+const FIELD_HIDE = new Set(["tierId", "brandNewBase", "category", "region", "currency", "status", "notifiedAt"]);
+// Bank, payout-account and ID details stay in the portal; email is not a safe place for them.
+const SENSITIVE_KEY = /bank|bsb|accountnumber|paypal|idtype|idowner|idnumber|licen[cs]e|passport|birth|dob|password|token/i;
+const FIELD_MASK = new Set(["bankAccountNumber", "idNumber", "licenceNumber", "licenseNumber", "passportNumber"]);
+const MONEY_KEYS = new Set(["quotedTotal", "total", "rewardAmount", "subtotal", "amount", "price", "deposit"]);
+const VALUE_MAP = { dropoff: "Drop-off in store", post: "Post / mail-in", pickup: "Pickup", delivery: "Delivery", collect: "Collect in store", cash: "Cash", bank: "Bank transfer",
+  license: "Driver licence", passport: "Passport", other: "Other photo ID" };
+const humanise = (k) => FIELD_LABEL[k] || String(k).replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase());
+function fmtValue(k, v, currency) {
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  const s = String(v).slice(0, 300);
+  if (FIELD_MASK.has(k)) return s.length > 3 ? "•••• " + s.slice(-3) : "••••";
+  if (MONEY_KEYS.has(k) && !isNaN(Number(v))) { try { return new Intl.NumberFormat("en-AU", { style: "currency", currency: currency || "AUD" }).format(Number(v)); } catch (e) { return `$${v}`; } }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !isNaN(Date.parse(s))) return new Date(s).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
+  return VALUE_MAP[s] || s;
+}
+function alertSections(item) {
+  const cur = (item && (item.currency || (item.device && item.device.currency))) || "AUD";
+  const top = [], groups = [];
+  const row = (k, v) => ({ key: k, label: humanise(k), value: fmtValue(k, v, cur) });
+  for (const [k, v] of Object.entries(item || {})) {
+    if (v == null || v === "" || FIELD_HIDE.has(k) || SENSITIVE_KEY.test(k)) continue;
+    if (Array.isArray(v)) { if (v.length && v.every((x) => typeof x !== "object")) top.push(row(k, v.join(", "))); else if (v.length) top.push({ key: k, label: humanise(k), value: `${v.length} item${v.length === 1 ? "" : "s"}` }); }
+    else if (typeof v === "object") {
+      const rows = Object.entries(v).filter(([k2, v2]) => v2 != null && v2 !== "" && typeof v2 !== "object" && !FIELD_HIDE.has(k2) && !SENSITIVE_KEY.test(k2)).map(([k2, v2]) => row(k2, v2));
+      if (rows.length) groups.push({ title: humanise(k), rows });
+    } else top.push(row(k, v));
+  }
+  const get = (k) => (top.find((r) => r.key === k) || {}).value;
+  const highlights = [["Reference", get("id")], ["Quoted total", get("quotedTotal") || get("total")]].filter(([, v]) => v);
+  const rest = top.filter((r) => !["id", "quotedTotal", "total"].includes(r.key));
+  return { highlights, sections: [...groups, ...(rest.length ? [{ title: "Order details", rows: rest }] : [])].slice(0, 8) };
+}
+function ownerAlertText(item) {
+  const { highlights, sections } = alertSections(item);
+  const out = highlights.map(([l, v]) => `${l}: ${v}`);
+  for (const s of sections) { out.push("", s.title.toUpperCase()); for (const r of s.rows.slice(0, 25)) out.push(`${r.label}: ${r.value}`); }
+  return out.join("\n") + `\n\nOpen the staff portal: ${SITE_URL}/portal`;
+}
+function ownerAlertHtml(key, item, subject) {
+  const { highlights, sections } = alertSections(item);
+  const email = item.email || (item.customer && item.customer.email);
+  const phone = item.phone || (item.customer && item.customer.phone);
+  const cell = (inner, extra = "") => `<td style="padding:7px 0;border-bottom:1px solid ${E.line};font-family:${E.font};font-size:14px;line-height:1.5;${extra}">${inner}</td>`;
+  const linkify = (r) => /email/i.test(r.key) ? `<a href="mailto:${escHtml(r.value)}" style="color:${E.blue};">${escHtml(r.value)}</a>` : /phone/i.test(r.key) ? `<a href="tel:${escHtml(String(r.value).replace(/\s+/g, ""))}" style="color:${E.blue};">${escHtml(r.value)}</a>` : escHtml(r.value);
+  const band = highlights.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px 0;"><tr>${highlights.map(([l, v]) => `<td style="background:${E.soft};border-radius:8px;padding:12px 14px;width:${Math.floor(100 / highlights.length)}%;"><div style="font-family:${E.font};font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:${E.muted};">${escHtml(l)}</div><div style="font-family:${E.font};font-size:18px;font-weight:700;color:${E.navy};padding-top:2px;">${escHtml(v)}</div></td>`).join('<td width="10"></td>')}</tr></table>` : "";
+  const tables = sections.map((s) => `<div style="margin:0 0 6px 0;font-family:${E.font};font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:${E.blue};">${escHtml(s.title)}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px 0;">${s.rows.slice(0, 25).map((r) => `<tr>${cell(escHtml(r.label), `color:${E.muted};width:38%;padding-right:10px;`)}${cell(linkify(r), `color:${E.navy};font-weight:600;`)}</tr>`).join("")}</table>`).join("");
+  const buttons = emailButton(`${SITE_URL}/portal`, "Open staff portal") + (email ? emailButton(`mailto:${email}`, "Email customer", false) : "") + (phone ? emailButton(`tel:${String(phone).replace(/\s+/g, "")}`, "Call", false) : "");
+  return emailShell({ preheader: subject, heading: subject, bodyHtml: `${band}${tables}<div style="margin-top:6px;">${buttons}</div>`,
+    footerHtml: `Automatic alert from mobilerecellr.com.au. Bank and ID details are left out of email; open the staff portal for full details.` });
+}
+
+const maskEmail = (a) => String(a || "").replace(/^(.).*(@.*)$/, "$1***$2");
+async function sendEmail({ to, subject, text, replyTo, customer, kind, name, alert }) {
   const key = process.env.RESEND_API_KEY;
   if (!key || !to) return { skipped: true };
   try {
+    const content = customer ? { text: customerEmailText(text, kind, name), html: customerEmailHtml(subject, text, kind, name) }
+      : alert ? { text: ownerAlertText(alert.item), html: ownerAlertHtml(alert.key, alert.item, subject) }
+      : { text, html: emailHtml(subject, text) };
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: EMAIL_FROM(), to: [to], subject, text: customer ? customerEmailText(text, kind, name) : text, html: customer ? customerEmailHtml(subject, text, kind, name) : emailHtml(subject, text), ...(replyTo ? { reply_to: replyTo } : {}) }),
+      body: JSON.stringify({ from: EMAIL_FROM(), to: [to], subject, text: content.text, html: content.html, ...(replyTo ? { reply_to: replyTo } : {}) }),
     });
-    if (!r.ok) console.error("email not sent:", r.status, (await r.text()).slice(0, 200));
+    const body = await r.text();
+    if (!r.ok) console.error("email not sent:", r.status, body.slice(0, 200));
+    else { let id = ""; try { id = JSON.parse(body).id || ""; } catch (e) {} console.log(`email sent to ${maskEmail(to)} (${kind || (alert ? "owner alert" : "message")}) id=${id}`); }
     return { ok: r.ok };
   } catch (e) { console.error("email error:", e.message); return { ok: false }; }
-}
-const NEW_LABEL = { orders: "New order", purchase_orders: "New trade-in / sell order", price_match_requests: "New price-match request", bulk_quote_requests: "New bulk quote request",
-  quote_leads: "New sell quote", referrals: "New referral", support_queries: "New customer message", repair_requests: "New repair request", accessory_orders: "New accessories order" };
-// Bank, payout-account and ID details stay in the portal; email is not a safe place for them.
-const SENSITIVE_KEY = /bank|bsb|accountnumber|paypal|idtype|idowner|idnumber|licen[cs]e|passport|birth|dob|password|token/i;
-function summarise(item) {
-  const lines = [];
-  const add = (k, v) => { if (v == null || v === "" || typeof v === "object") return; lines.push(`${k}: ${String(v).slice(0, 300)}`); };
-  for (const [k, v] of Object.entries(item || {})) {
-    if (SENSITIVE_KEY.test(k)) continue;
-    if (v && typeof v === "object" && !Array.isArray(v)) { for (const [k2, v2] of Object.entries(v)) if (!SENSITIVE_KEY.test(k2)) add(`${k} ${k2}`, v2); }
-    else if (Array.isArray(v)) lines.push(`${k}: ${v.length} item(s)`);
-    else add(k, v);
-  }
-  return lines.slice(0, 40).join("\n");
 }
 function notifyNew(key, items, max = Infinity) {
   const list = items || [];
@@ -378,7 +456,7 @@ function notifyNew(key, items, max = Infinity) {
     const who = item.name || (item.customer && item.customer.name) || item.email || (item.customer && item.customer.email) || item.id || "";
     void sendEmail({
       to: OWNER_EMAIL(), subject: `${NEW_LABEL[key] || `New ${key.replace(/_/g, " ")}`}${who ? ` — ${who}` : ""}`,
-      text: `${summarise(item)}\n\nOpen the staff portal: https://mobilerecellr.com.au/portal`,
+      alert: { key, item },
       replyTo: item.email || (item.customer && item.customer.email) || undefined,
     });
   }
@@ -458,7 +536,7 @@ const dateAU = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLo
 const deviceName = (r) => clip(`${(r.device && r.device.brand) || ""} ${(r.device && r.device.model) || ""}`) || "device";
 const CONFIRMATIONS = {
   order_confirmation: { key: "orders", email: (r) => r.customer && r.customer.email, name: (r) => r.customer && r.customer.name,
-    subject: (r) => `Order ${clip(r.id)} received - thanks from Mobile Recellr`,
+    subject: (r) => `Order ${clip(r.id)} received`,
     message: (r) => `Thanks for sending us your ${deviceName(r)} trade-in. We've received it (order ${clip(r.id)})${r.priceCheck && r.priceCheck.quoteTooHigh ? "" : ` with a quote of ${money(r.quotedTotal, r.currency)}`}, subject to inspecting the device.` },
   quote_lead: { key: "quote_leads", email: (r) => r.email, name: () => "",
     subject: (r) => `Your ${deviceName(r)} quote: ${money(r.quotedTotal, r.currency)}`,
@@ -516,8 +594,14 @@ function scopeFor(shared, username) {
 // Public forms can write without a login, and each new submission emails
 // the owner. In-memory, per client IP, sliding window. Resets on restart,
 // which is fine for abuse control (this is not a security boundary).
+// Render serves this app through Cloudflare, so req.ip can be a shared proxy
+// address (every visitor counted as one). Cloudflare overwrites CF-Connecting-IP
+// with the real visitor on every request. True-Client-IP is NOT used: on
+// non-Enterprise Cloudflare plans a visitor can set it to anything.
+const clientKey = (req) => String(req.headers["cf-connecting-ip"] || req.ip || "unknown").trim();
 function makeLimiter(max, windowMs) {
   const hits = new Map();
+  const warnedAt = new Map();
   const timer = setInterval(() => {
     const cutoff = Date.now() - windowMs;
     for (const [ip, list] of hits) {
@@ -527,10 +611,14 @@ function makeLimiter(max, windowMs) {
   }, windowMs);
   if (timer.unref) timer.unref();
   return function allow(req) {
-    const ip = req.ip || "unknown";
+    const ip = clientKey(req);
     const now = Date.now();
     const list = (hits.get(ip) || []).filter((ts) => ts > now - windowMs);
-    if (list.length >= max) { hits.set(ip, list); return false; }
+    if (list.length >= max) {
+      hits.set(ip, list);
+      if (now - (warnedAt.get(ip) || 0) > 60000) { warnedAt.set(ip, now); console.warn(`rate limit hit for ${ip} (max ${max} per ${Math.round(windowMs / 60000)} min)`); }
+      return false;
+    }
     list.push(now);
     hits.set(ip, list);
     return true;

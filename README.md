@@ -30,12 +30,14 @@ Pricing console, Register/POS, Repair Bench, Till, Customers & Reports (CRM), In
 - Customer confirmations and updates are sent from `notification_queue` items with `channel: "email"`.
 - Confirmations queued by the public site (not logged in) are rewritten by the server: it looks up the record the confirmation is about, sends to the email on that record, uses its own wording, and sends at most one per record. Text or addresses typed into a request are never emailed. Add a new confirmation type in `CONFIRMATIONS` in `server.js`.
 - Owner alerts leave out bank, payout-account and ID details; read those in the portal.
+- Design: one shared layout (logo, white card, shop footer). Customer emails add a "What happens next" box and WhatsApp / reply buttons; owner alerts show details in grouped tables with portal, email and call buttons.
+- Each sent email is logged as `email sent to x***@domain (kind) id=<resend id>`, so a delivery can be traced in Render logs and matched in Resend.
 - Customer emails use a standard layout: greeting, the message, a "we've received your request and will get back to you shortly" line (for submissions only), and a footer with shop name, location, phone/WhatsApp, email and website. Change the location later by setting `SHOP_LOCATION` in Render; no code change needed.
 - Every new public submission also emails `OWNER_EMAIL` (default `mobilerecellr@outlook.com`).
 - Default sender is `onboarding@resend.dev`, which only reaches the Resend account owner. Verify a sending domain in Resend, then set `EMAIL_FROM`, before expecting customers to receive mail.
 
 ## Abuse protection on public forms
-Visitors who are not logged in are limited per IP: 20 submissions per 10 minutes (`PUBLIC_WRITE_MAX`), 30 offer responses per 10 minutes, 60 tracking lookups per 10 minutes, 10 ID photo uploads per 10 minutes, at most 20 items and 2 MB per submission, and at most 5 owner emails per request. Staff are not limited. Limits are in memory and reset on restart.
+Visitors who are not logged in are limited per IP: 20 submissions per 10 minutes (`PUBLIC_WRITE_MAX`), 30 offer responses per 10 minutes, 60 tracking lookups per 10 minutes, 10 ID photo uploads per 10 minutes, at most 20 items and 2 MB per submission, and at most 5 owner emails per request. Staff are not limited. Limits are in memory and reset on restart. The visitor is identified by Cloudflare's `CF-Connecting-IP` header (Render serves the app through Cloudflare); `True-Client-IP` is ignored because visitors can set it. Blocks are logged as `rate limit hit for <ip>`.
 
 ## Customer privacy
 - Tracking lookups (`/public/find`) search only by reference number or email and return only what the tracking pages show (status, device, amounts, tracking number). Contact, bank, payout and ID details are never returned.
