@@ -18,7 +18,7 @@ const FAQS = [
   },
   {
     q: "What devices do you repair?",
-    a: "Phones, tablets, laptops, and watches — not just one brand. Screens, batteries, charging ports, and more, at the cheapest prices around (and we'll match any lower quote). Most repairs are done same day in store.",
+    a: "Phones, tablets, laptops, and watches — not just one brand. Screens, batteries, charging ports, and more, at low prices (and we'll match any lower quote). Most repairs are done same day in store.",
   },
   {
     q: "How long does a repair take?",
@@ -55,9 +55,9 @@ export default function FAQ() {
       })}</script>
 
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "40px 16px 80px" }}>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 32, letterSpacing: "-0.01em", marginBottom: 30 }}>
+        <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 32, letterSpacing: "-0.01em", marginBottom: 30 }}>
           Frequently asked questions
-        </div>
+        </h1>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {FAQS.map((f, i) => {

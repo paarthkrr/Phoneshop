@@ -79,6 +79,8 @@ const HERO_CSS = `
 .mvx-eyebrow i{width:26px;height:2px;background:#2150C8;display:block}
 .mvx-h1{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,6.4vw,68px);line-height:1.04;letter-spacing:-.02em;margin:0 0 18px}
 .mvx-h1 .mvx-blue{color:#2150C8}
+/* Phones: skip sections that repeat what's in the menu or later steps, so the page stays short. */
+@media (max-width:720px){.mvx-wide-only{display:none!important}}
 .mvx-word{display:inline-block;opacity:0;transform:translateY(45%);animation:mvx-up .75s cubic-bezier(.16,1,.3,1) forwards}
 .mvx-in{opacity:0;animation:mvx-up .75s cubic-bezier(.16,1,.3,1) forwards}
 @keyframes mvx-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
@@ -233,7 +235,7 @@ const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
 const ACTIONS = [
   { href: "/quote", icon: "💰", title: "Sell your device", desc: "Instant quote, then we collect from your door anywhere in Sydney and pay you in cash.", cta: "Get a quote" },
   { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, 1-year warranty and free express shipping.", cta: "Shop now" },
-  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Cheapest prices, genuine parts, done same day in store.", cta: "Book a repair" },
+  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Price match guarantee, genuine parts, done same day in store.", cta: "Book a repair" },
 ];
 
 const POPULAR = ["iPhone 16 Pro", "iPhone 15 Pro", "iPhone 14", "Galaxy S24 Ultra", "Pixel 9 Pro", "iPhone 13"];
@@ -392,7 +394,7 @@ export default function Home() {
       </div>
 
       {/* ---- Photo feature band ---- */}
-      <div style={{ ...section, marginBottom: 50 }}>
+      <div className="mvx-wide-only" style={{ ...section, marginBottom: 50 }}>
         <Photo name="workshop" height={320} overlay="linear-gradient(90deg, rgba(20,24,40,0.82) 0%, rgba(20,24,40,0.55) 55%, rgba(20,24,40,0.1) 100%)">
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%", padding: "0 clamp(20px, 5vw, 44px)", maxWidth: 480, color: "#fff" }}>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(22px, 4vw, 30px)", lineHeight: 1.15, marginBottom: 10 }}>Real technicians.<br />Genuine parts.</div>
@@ -429,7 +431,7 @@ export default function Home() {
       </div>
 
       {/* ---- Before you sell ---- */}
-      <div style={{ ...section, marginBottom: 50 }}>
+      <div className="mvx-wide-only" style={{ ...section, marginBottom: 50 }}>
         <div style={heading}>Before you sell: 2 minutes of prep</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
           {[{"i": "💾", "t": "Back it up", "d": "iCloud, Google, or your computer."}, {"i": "🔓", "t": "Sign out & turn off Find My", "d": "Settings → your name → Find My (iPhone), or remove your Google/Samsung account (Android). Locked phones can't be accepted."}, {"i": "🧹", "t": "Erase it", "d": "Settings → General → Transfer or Reset → Erase All Content (iPhone), or Factory reset (Android)."}, {"i": "📶", "t": "Remove your SIM", "d": "And any memory card."}].map((c) => (
@@ -450,7 +452,7 @@ export default function Home() {
         </div>
         <div style={{ display: "flex", gap: 28, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
         <div style={{ flex: "0 1 320px", minWidth: 240 }}><InspectionSignature groups={SIGNATURE_GROUPS} size={320} /></div>
-        <div style={{ flex: "1 1 420px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+        <div className="mvx-wide-only" style={{ flex: "1 1 420px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
           {[...CHECK_GROUPS, { name: "Security & lock checks", n: BLOCKERS.length }].map((g) => (
             <div key={g.name} style={{ background: panel, border: "1px solid rgba(32,28,24,0.12)", borderRadius: 12, padding: "12px 14px", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
               <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.3 }}>{g.name}</span>
@@ -463,7 +465,7 @@ export default function Home() {
 
       {/* ---- Repairs ---- */}
       <div style={{ ...section, marginBottom: 50 }}>
-        <div style={heading}>Cheapest repairs, done same day in store</div>
+        <div style={heading}>Affordable repairs, done same day in store</div>
         <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
           {[["📱", "Screen replacement", "From $85", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $59", "Phone dying by lunchtime?"],
             ["🔌", "Charging port", "From $55", "Often just dust — we check and clean first."], ["📷", "Camera repair", "From $75", "Blurry, cracked or not focusing."]].map(([i, t, p, d]) => (
@@ -476,12 +478,12 @@ export default function Home() {
           ))}
         </div>
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 13.5 }}>
-          Cheapest prices · Same day in store · Mail-in Australia-wide · 90-day warranty · <a href="/repairs" style={{ color: brass, fontWeight: 700 }}>See all repairs →</a> · <a href="/tutorials" style={{ color: brass }}>DIY tutorials</a>
+          Price match guarantee · Same day in store · Mail-in Australia-wide · 90-day warranty · <a href="/repairs" style={{ color: brass, fontWeight: 700 }}>See all repairs →</a> · <a href="/tutorials" style={{ color: brass }}>DIY tutorials</a>
         </div>
       </div>
 
       {/* ---- Brands ---- */}
-      <div style={{ ...section, marginBottom: 50, textAlign: "center" }}>
+      <div className="mvx-wide-only" style={{ ...section, marginBottom: 50, textAlign: "center" }}>
         <div style={{ color: muted, fontSize: 12.5, marginBottom: 12, letterSpacing: "0.04em" }}>WE BUY, SELL AND REPAIR</div>
         <div style={{ display: "flex", justifyContent: "center", gap: "clamp(18px, 5vw, 44px)", flexWrap: "wrap" }}>
           {[["Apple", "apple"], ["Samsung", "samsung"], ["Google", "google"], ["OPPO", "oppo"], ["Motorola", "motorola"], ["Xiaomi", "xiaomi"]].map(([b, slug]) => (
@@ -522,7 +524,7 @@ export default function Home() {
       )}
 
       {/* ---- Guides ---- */}
-      <div style={{ ...section, marginBottom: 50 }}>
+      <div className="mvx-wide-only" style={{ ...section, marginBottom: 50 }}>
         <div style={heading}>Straight answers</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
           {GUIDES.map((g) => (

@@ -207,9 +207,9 @@ export default function Storefront() {
         {view === "browse" && (
           <>
             <div style={{ padding: "44px 0 30px", textAlign: "center" }}>
-              <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 38, letterSpacing: "-0.01em", lineHeight: 1.05, marginBottom: 10 }}>
+              <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 38, letterSpacing: "-0.01em", lineHeight: 1.05, marginBottom: 10 }}>
                 Good Tech, Done Properly.
-              </div>
+              </h1>
               <div style={{ color: muted, fontSize: 15, maxWidth: 480, margin: "0 auto 22px" }}>
                 Graded, tested, and backed by a real {WARRANTY_MONTHS}-month warranty — not just a "works fine when we packed it" promise.
               </div>
@@ -327,7 +327,7 @@ export default function Storefront() {
               </div>
 
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 14 }}>Repairs — Any Gadget, Genuine Parts, Price Matched</div>
-              <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Phones, tablets, laptops, watches — screens, batteries, charging ports and more, at the cheapest prices and done same day in store. Genuine parts only, and if you find it cheaper elsewhere, we'll match it. Prices below are a starting point; your exact quote depends on the model.</div>
+              <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Phones, tablets, laptops, watches — screens, batteries, charging ports and more, at low prices and done same day in store. Genuine parts only, and if you find it cheaper elsewhere, we'll match it. Prices below are a starting point; your exact quote depends on the model.</div>
               <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 40 }}>
                 {REPAIR_PRICE_TEASERS.map((r) => (
                   <div key={r.name} style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14 }}>

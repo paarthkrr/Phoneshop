@@ -58,7 +58,7 @@ export default function Tutorials() {
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "40px 16px 80px" }}>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 8 }}>Repair tutorials</div>
+        <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 8 }}>Repair tutorials</h1>
         <div style={{ color: muted, fontSize: 15, lineHeight: 1.6, maxWidth: 680, marginBottom: 22 }}>
           Want to fix it yourself? These step-by-step videos show how screen and back glass repairs are done. Watch first — then decide whether to DIY or let us handle it.
         </div>
@@ -87,7 +87,7 @@ export default function Tutorials() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginBottom: 30 }}>
           <a href="/repairs" className="cs-card" style={{ display: "block", border: `2px solid ${brass}`, background: panel, padding: 20, textDecoration: "none", color: paper }}>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 6 }}>Rather we do it?</div>
-            <div style={{ color: muted, fontSize: 13.5, marginBottom: 10 }}>Cheapest prices, genuine parts, done same day in store.</div>
+            <div style={{ color: muted, fontSize: 13.5, marginBottom: 10 }}>Price match guarantee, genuine parts, done same day in store.</div>
             <span style={{ color: brass, fontWeight: 700 }}>Book a repair →</span>
           </a>
           <a href="/accessories" className="cs-card" style={{ display: "block", border: `1px solid ${line}`, background: panel, padding: 20, textDecoration: "none", color: paper }}>

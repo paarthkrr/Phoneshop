@@ -117,9 +117,9 @@ export default function Parts() {
 
   const Header = (
     <>
-      <Photo name="repairMat" height={200} eager style={{ marginBottom: 26 }} />
+      <Photo banner name="repairMat" height={200} eager style={{ marginBottom: 26 }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em" }}>Parts &amp; accessories</div>
+        <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em" }}>Parts &amp; accessories</h1>
         {view === "shop" && count > 0 && (
           <button className="cs-btn" onClick={() => setView("checkout")} style={primary()}>🛒 Cart ({count}) · {fmt(subtotal)} →</button>
         )}

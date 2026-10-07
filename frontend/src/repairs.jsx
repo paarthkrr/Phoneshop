@@ -157,9 +157,9 @@ export default function Repairs() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 16px 80px" }}>
 
-        <Photo name="microscope" height={220} eager style={{ marginBottom: 26 }} />
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 8 }}>Repairs — any gadget, genuine parts</div>
-        <div style={{ color: muted, fontSize: 14, marginBottom: 8 }}>Phones, tablets, laptops, watches. Genuine parts only, the cheapest repairs around (found it cheaper? we'll match it), done <strong>same day in store</strong>, and every repair carries a 90-day warranty. Not nearby? Send it by post — usually back within 3–5 business days. Prefer DIY? See our <a href="/tutorials" style={{ color: brass }}>repair tutorials</a>.</div>
+        <Photo banner name="microscope" height={220} eager style={{ marginBottom: 26 }} />
+        <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 8 }}>Repairs — any gadget, genuine parts</h1>
+        <div style={{ color: muted, fontSize: 14, marginBottom: 8 }}>Phones, tablets, laptops, watches. Genuine parts only, low prices with a price match guarantee (found it cheaper? we'll match it), done <strong>same day in store</strong>, and every repair carries a 90-day warranty. Not nearby? Send it by post — usually back within 3–5 business days. Prefer DIY? See our <a href="/tutorials" style={{ color: brass }}>repair tutorials</a>.</div>
         <div style={{ color: muted, fontSize: 13, marginBottom: 20 }}>Prices below are a starting point — your exact quote depends on the model and what's actually wrong, which we'll tell you honestly before we start anything.</div>
 
         <button onClick={() => { setTrackOpen((o) => !o); setTrackResult(undefined); }} style={{ background: "none", border: "none", padding: 0, color: brass, cursor: "pointer", fontSize: 13, textDecoration: "underline", marginBottom: trackOpen ? 16 : 28, display: "block" }}>

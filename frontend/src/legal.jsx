@@ -28,7 +28,7 @@ function Page({ title, children }) {
         .mv-legal p, .mv-legal li { font-size: 14.5px; line-height: 1.7; }
         .mv-legal ul { padding-left: 20px; }`}</style>
       <div className="mv-legal" style={{ maxWidth: 720, margin: "0 auto", padding: "40px 16px 80px" }}>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 6 }}>{title}</div>
+        <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 30, letterSpacing: "-0.01em", marginBottom: 6 }}>{title}</h1>
         <div style={{ color: muted, fontSize: 13, marginBottom: 20 }}>Last updated {UPDATED}</div>
         {children}
       </div>
@@ -130,7 +130,7 @@ export function Terms() {
       <ul>
         <li><strong>In store:</strong> most repairs are completed the same day, provided the part is in stock and the fault is as diagnosed. Complex faults (e.g. liquid or board damage) can take longer; we'll tell you before we start.</li>
         <li><strong>Mail-in:</strong> usually returned within 3–5 business days of arriving, plus postage time.</li>
-        <li><strong>Cheapest price:</strong> if you find the same repair with the same part quality cheaper at another Australian business, we'll match it under our price match guarantee.</li>
+        <li><strong>Price match:</strong> if you find the same repair with the same part quality cheaper at another Australian business, we'll match it under our price match guarantee.</li>
       </ul>
 
       <h2>Repairs</h2>

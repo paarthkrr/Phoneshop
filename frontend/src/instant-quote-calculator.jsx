@@ -264,6 +264,15 @@ const CONFIG_KEY = "pricing-config";
 function storageAvailable() {
   return typeof window !== "undefined" && window.storage && typeof window.storage.get === "function";
 }
+// "3 months old", "2 years old" (never "1 months").
+function ageText(release) {
+  const m = Math.round(ageMonths(release));
+  if (m < 1) return "Just released";
+  if (m < 12) return `${m} month${m === 1 ? "" : "s"} old`;
+  const y = Math.round(m / 12);
+  return `${y} year${y === 1 ? "" : "s"} old`;
+}
+
 async function loadSharedConfig() {
   if (!storageAvailable()) return null;
   try {
@@ -510,6 +519,10 @@ export default function QuoteCalculator() {
   const [respondSubmitting, setRespondSubmitting] = useState(false);
   const [respondError, setRespondError] = useState("");
   const [respondEmail, setRespondEmail] = useState("");
+  const [hasIssues, setHasIssues] = useState(null); // null = not answered, false = all working, true = show the fault list
+  const [showAllModels, setShowAllModels] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const isStaffViewer = typeof window !== "undefined" && !!(window.shopAuth && window.shopAuth.currentUser && window.shopAuth.currentUser());
   const [submitError, setSubmitError] = useState("");
   const [pmOpen, setPmOpen] = useState(false);
   const [pmCompetitor, setPmCompetitor] = useState("");
@@ -843,23 +856,23 @@ export default function QuoteCalculator() {
       `}</style>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 130px" }}>
 
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.01em', marginBottom: 4 }}>
-          Instant Valuation
-        </div>
-        <div style={{ color: muted, fontSize: 14, marginBottom: 14 }}>
-          Prices recalculate from age and condition every time you open this — not a static list.
-        </div>
-        <div style={{ fontSize: 12.5, color: source === "admin console" ? green : muted, marginBottom: 14 }}>
-          {source === "admin console" ? "● Live pricing from admin console" : "○ Using built-in defaults — admin console not connected"}
+        <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.01em', margin: "0 0 4px", fontWeight: 400 }}>
+          Sell your phone
+        </h1>
+        <div style={{ color: muted, fontSize: 14, marginBottom: 12 }}>
+          Instant quote in under a minute. No sign-up, and we hold your price for 14 days.
         </div>
 
-        <button onClick={() => setBulkMode((s) => !s)} style={{ background: "none", border: "none", color: brass, fontSize: 12.5, padding: 0, marginBottom: 10, cursor: "pointer", textDecoration: "underline" }}>
-          {bulkMode ? "← Back to single device" : "Selling multiple devices? Get a bulk / business quote"}
-        </button>
-        <br />
-        <button onClick={() => { setBulkTrackOpen((o) => !o); setBulkTrackResult(undefined); }} style={{ background: "none", border: "none", color: muted, fontSize: 12, padding: 0, marginBottom: 14, cursor: "pointer", textDecoration: "underline" }}>
-          {bulkTrackOpen ? "← Hide tracking" : "Already submitted a bulk request? Track it"}
-        </button>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: muted, marginBottom: 18 }}>
+          {live?.businessSettings?.dealerLicence && <span>✓ Licensed dealer</span>}
+          <span>✓ Home collection across Sydney</span>
+          <span>✓ 49-point check</span>
+          <span>✓ Price held 14 days</span>
+          <span>✓ Paid in cash, bank transfer or PayPal</span>
+          <button onClick={() => { setPmOpen(true); setTimeout(() => { const el = document.getElementById("mvq-pm"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }} style={{ background: "none", border: "none", padding: 0, color: green, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+            ✓ Price match guarantee
+          </button>
+        </div>
 
         {bulkTrackOpen && (
           <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 14, marginBottom: 20 }}>
@@ -946,7 +959,7 @@ export default function QuoteCalculator() {
                   style={{ width: "100%", padding: "11px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, minHeight: 60, boxSizing: "border-box" }} />
                 <button disabled={!bulkBusiness.businessName.trim() || !bulkBusiness.email.trim()} onClick={handleBulkSubmit}
                   style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none",
-                    background: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? brass : line, color: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? "#1a1408" : muted,
+                    background: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? brass : line, color: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? "#fff" : muted,
                     fontSize: 14, fontWeight: 600, cursor: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? "pointer" : "default" }}>
                   Request a bulk quote →
                 </button>
@@ -965,160 +978,6 @@ export default function QuoteCalculator() {
             </button>
           </div>
         )}
-
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: muted, marginBottom: 18 }}>
-          {live?.businessSettings?.dealerLicence && <span>✓ Licensed dealer</span>}
-          <span>✓ Home collection across Sydney</span>
-          <span>✓ 49-point check</span>
-          <span>✓ Price held 14 days</span>
-          <span>✓ Paid in cash, bank transfer or PayPal</span>
-          <button onClick={() => setPmOpen((s) => !s)} style={{ background: "none", border: "none", padding: 0, color: green, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
-            ✓ Price match guarantee
-          </button>
-        </div>
-
-        {pmOpen && !pmSubmitted && (
-          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
-            <div style={{ fontSize: 13, marginBottom: 4 }}>Got a higher quote elsewhere?</div>
-            <div style={{ fontSize: 12, color: muted, marginBottom: 10 }}>
-              Tell us who quoted you and how much — we'll review it and get back to you{calc ? ` on your ${selected.brand} ${selected.model}` : ""}.
-            </div>
-            {!calc && <div style={{ fontSize: 12, color: red, marginBottom: 10 }}>Get a quote on a device first so we have something to compare against.</div>}
-            <input value={pmCompetitor} onChange={(e) => setPmCompetitor(e.target.value)} placeholder="Competitor name"
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
-            <input value={pmPrice} onChange={(e) => setPmPrice(e.target.value)} placeholder="Their quoted price" type="number"
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
-            <input value={pmNote} onChange={(e) => setPmNote(e.target.value)} placeholder="Anything else we should know (optional)"
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
-            <button disabled={!calc || !pmCompetitor.trim() || !pmPrice} onClick={handlePriceMatchSubmit}
-              style={{ width: "100%", padding: "11px", borderRadius: 3, border: "none",
-                background: calc && pmCompetitor.trim() && pmPrice ? green : line, color: calc && pmCompetitor.trim() && pmPrice ? "#0c1a12" : muted,
-                fontSize: 13, fontWeight: 600, cursor: calc && pmCompetitor.trim() && pmPrice ? "pointer" : "default" }}>
-              Submit for review
-            </button>
-          </div>
-        )}
-        {pmSubmitted && (
-          <div style={{ border: `1px solid ${green}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
-            <div style={{ fontSize: 13, marginBottom: 4 }}>Request {pmSubmitted.id} submitted</div>
-            <div style={{ fontSize: 12, color: muted }}>We'll compare it against {pmSubmitted.competitorName}'s quote of {fmt(pmSubmitted.competitorPrice, region, REGIONS_A)} and respond within 1 business day. Save this number to check back.</div>
-            <button onClick={() => { setPmOpen(false); setPmSubmitted(null); setPmCompetitor(""); setPmPrice(""); setPmNote(""); }}
-              style={{ marginTop: 10, background: "none", border: "none", color: brass, fontSize: 12, cursor: "pointer" }}>Close</button>
-          </div>
-        )}
-
-        <button onClick={() => { setTrackMode((s) => !s); setTrackResult(undefined); }}
-          style={{ background: "none", border: "none", color: brass, fontSize: 12.5, padding: 0, marginBottom: 8, cursor: "pointer", textDecoration: "underline" }}>
-          {trackMode ? "Hide order tracking" : "Track an order you already submitted"}
-        </button>
-        {trackMode && (
-          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email" aria-label="Order number or email to track your order"
-                style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
-              <button onClick={handleTrackSearch} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                Find
-              </button>
-            </div>
-            {trackResult === null && <div style={{ marginTop: 10, fontSize: 13, color: red }}>No order found with that number or email.</div>}
-            {trackResult && (
-              <div style={{ marginTop: 12, fontSize: 13 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
-                  <span style={{ color: muted }}>{trackResult.device.brand} {trackResult.device.model} · {trackResult.device.storage}</span>
-                  <span>{trackResult.id}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
-                  <span style={{ color: muted }}>Status</span><span>{STATUS_LABELS[trackResult.status]}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
-                  <span style={{ color: muted }}>{trackResult.status === "revised_pending_customer" ? "Revised offer" : "Quoted amount"}</span>
-                  <span style={{ color: brass }}>{fmt(trackResult.inspection?.confirmedTotal ?? trackResult.quotedTotal, trackResult.region, REGIONS_A)}</span>
-                </div>
-                {trackResult.fulfillment === "post" && (
-                  trackResult.shipping?.trackingNumber ? (
-                    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
-                      <span style={{ color: muted }}>Tracking number</span>
-                      <span>{trackResult.shipping.trackingNumber} ({trackResult.shipping.carrier || "Australia Post"})</span>
-                    </div>
-                  ) : (
-                    <div style={{ marginTop: 8, fontSize: 12, color: muted }}>A tracking number will appear here once we've booked your shipment.</div>
-                  )
-                )}
-                {trackResult.inspection?.staffNote && (
-                  <div style={{ marginTop: 8, color: muted }}>Note from inspection: {trackResult.inspection.staffNote}</div>
-                )}
-                {trackResult.status === "revised_pending_customer" && (
-                  <div style={{ marginTop: 12, border: `1px solid ${brass}`, borderRadius: 3, padding: 12 }}>
-                    <div style={{ fontSize: 12.5, marginBottom: 10 }}>We found something different once we inspected your device. You can accept the revised amount above, or decline and we'll arrange getting your device back to you.</div>
-                    {window.SHOP_API_BASE_URL && !isEmail(trackQuery) && (
-                      <input value={respondEmail} onChange={(e) => setRespondEmail(e.target.value)} placeholder="Email you used for this order" aria-label="Email you used for this order" type="email"
-                        style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, fontSize: 13, marginBottom: 8, fontFamily: "inherit" }} />
-                    )}
-                    {respondError && <div style={{ color: red, fontSize: 12, marginBottom: 8 }}>{respondError}</div>}
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button className="cs-btn" disabled={respondSubmitting} onClick={() => handleOrderRespond("accept")}
-                        style={{ flex: 1, padding: "9px", borderRadius: 3, border: "none", background: green, color: "#0c1a12", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-                        Accept revised offer
-                      </button>
-                      <button className="cs-btn" disabled={respondSubmitting} onClick={() => handleOrderRespond("decline")}
-                        style={{ flex: 1, padding: "9px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-                        Decline — return my device
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {trackResult.status === "returned" && (
-                  <div style={{ marginTop: 12, color: muted, fontSize: 12.5 }}>You declined the revised offer — we'll be in touch about getting your device back to you.</div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        <button onClick={() => { setPmTrackMode((s) => !s); setPmTrackResult(undefined); }}
-          style={{ background: "none", border: "none", color: brass, fontSize: 12.5, padding: 0, marginBottom: 16, cursor: "pointer", textDecoration: "underline" }}>
-          {pmTrackMode ? "Hide price match tracking" : "Track a price match request"}
-        </button>
-        {pmTrackMode && (
-          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input value={pmTrackQuery} onChange={(e) => setPmTrackQuery(e.target.value)} placeholder="Request number or email" aria-label="Request number or email to track your price match request"
-                style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
-              <button onClick={handlePriceMatchTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                Find
-              </button>
-            </div>
-            {pmTrackResult === null && <div style={{ marginTop: 10, fontSize: 13, color: red }}>No request found with that number or email.</div>}
-            {pmTrackResult && (
-              <div style={{ marginTop: 12, fontSize: 13 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
-                  <span style={{ color: muted }}>vs. {pmTrackResult.competitorName}</span><span>{pmTrackResult.id}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
-                  <span style={{ color: muted }}>Status</span><span>{PM_STATUS_LABELS[pmTrackResult.status]}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
-                  <span style={{ color: muted }}>{pmTrackResult.status === "approved" ? "Matched price" : "Your quote"}</span>
-                  <span style={{ color: brass }}>{fmt(pmTrackResult.status === "approved" ? pmTrackResult.approvedPrice : pmTrackResult.ourQuote, pmTrackResult.region, REGIONS_A)}</span>
-                </div>
-                {pmTrackResult.staffNote && <div style={{ marginTop: 8, color: muted }}>Note: {pmTrackResult.staffNote}</div>}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div style={{ display: "flex", marginBottom: 22 }}>
-          {STEPS.map((s, i) => (
-            <div key={s} style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ height: 3, borderRadius: 2, marginBottom: 6, background: i <= stepIndex ? brass : line }} />
-              <div style={{ fontSize: 12.5, color: i <= stepIndex ? brass : muted }}>{s}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ fontSize: 12, color: muted, marginBottom: 22 }}>
-          All prices in AUD. Your quote updates instantly as you answer — no sign-up needed.
-        </div>
 
         {!bulkMode && (() => {
           const stepsList = ["Device", "Condition", "Your details", "Done"];
@@ -1145,7 +1004,7 @@ export default function QuoteCalculator() {
             {(() => {
               const browsing = brandFilter !== "All" || categoryFilter !== "All" || search.trim();
               const label = brandFilter === "Apple" && categoryFilter === "phone" ? "iPhone" : brandFilter === "Google" ? "Google Pixel" : brandFilter !== "All" ? brandFilter : categoryFilter !== "All" ? CATEGORY_LABEL[categoryFilter].replace(/s$/, "") : "";
-              const TILES = [["📱", "iPhone", "Apple", "phone"], ["📲", "Samsung", "Samsung", "All"], ["🔵", "Google Pixel", "Google", "All"], ["📋", "iPad / Tablet", "All", "tablet"], ["⌚", "Smartwatch", "All", "watch"], ["💻", "Laptop", "All", "laptop"]];
+              const TILES = [[["phone", "Apple", "iPhone 16"], "iPhone", "Apple", "phone"], [["phone", "Samsung", "Galaxy S25"], "Samsung", "Samsung", "All"], [["phone", "Google", "Pixel 9"], "Google Pixel", "Google", "All"], [["tablet"], "iPad / Tablet", "All", "tablet"], [["watch"], "Smartwatch", "All", "watch"], [["laptop"], "Laptop", "All", "laptop"]];
               return (
                 <div style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.14em", color: muted, marginBottom: 6 }}>STEP 1 — FIND YOUR DEVICE</div>
@@ -1156,7 +1015,7 @@ export default function QuoteCalculator() {
                       {TILES.map(([icon, name, b, c]) => (
                         <button key={name} onClick={() => { setBrandFilter(b); setCategoryFilter(c); }} className="cs-card"
                           style={{ display: "grid", justifyItems: "center", gap: 6, padding: "18px 10px", borderRadius: 16, border: `1.5px solid ${line}`, background: "#fff", cursor: "pointer", fontFamily: "inherit", color: paper }}>
-                          <span style={{ fontSize: 30 }} aria-hidden="true">{icon}</span><span style={{ fontWeight: 800, fontSize: 15.5 }}>{name}</span>
+                          <span aria-hidden="true" style={{ height: 52, display: "flex", alignItems: "center" }}><DeviceArt type={icon[0]} size={48} brand={icon[1]} model={icon[2]} /></span><span style={{ fontWeight: 800, fontSize: 15.5 }}>{name}</span>
                         </button>
                       ))}
                     </div>
@@ -1165,7 +1024,16 @@ export default function QuoteCalculator() {
                 </div>
               );
             })()}
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            {categoryFilter !== "All" && brandFilter === "All" && categoryFilter !== "phone" && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+              {BRANDS.filter((b) => b === "All" || CATALOG_A.some((d) => d.brand === b && (d.category || "phone") === categoryFilter)).map((b) => (
+                <button key={b} onClick={() => setBrandFilter(b)}
+                  style={{ minHeight: 40, padding: "8px 14px", borderRadius: 10, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit",
+                    border: `1px solid ${brandFilter === b ? brass : line}`, background: brandFilter === b ? brassDim : "#fff", color: brandFilter === b ? brass : paper }}>
+                  {b === "All" ? "All brands" : b}
+                </button>
+              ))}
+            </div>}
+            <div style={{ display: "none" }}>
               {CATEGORIES.map((c) => (
                 <button key={c} onClick={() => { setCategoryFilter(c); setBrandFilter("All"); }}
                   style={{ padding: "6px 14px", borderRadius: 2, fontSize: 13, cursor: "pointer",
@@ -1175,7 +1043,7 @@ export default function QuoteCalculator() {
                 </button>
               ))}
             </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+            <div style={{ display: "none" }}>
               {BRANDS.map((b) => (
                 <button key={b} onClick={() => setBrandFilter(b)}
                   style={{ padding: "6px 14px", borderRadius: 2, fontSize: 13, cursor: "pointer",
@@ -1189,12 +1057,11 @@ export default function QuoteCalculator() {
               style={{ width: "100%", padding: "13px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper,
                 fontSize: 15, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             <div style={{ border: `1px solid ${line}`, borderRadius: 16, overflow: "hidden", background: "#fff", display: (brandFilter !== "All" || categoryFilter !== "All" || search.trim()) ? "block" : "none" }}>
-              {filtered.length > 20 && <div style={{ fontSize: 12, color: "#5B6472", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
-              {filtered.slice(0, 20).map((d, di) => {
+              {filtered.slice(0, showAllModels ? filtered.length : 40).map((d, di) => {
                 const mult = REGIONS_A[region].mult;
                 const sizes = Object.keys(d.retail);
                 const upTo = Math.max(...sizes.map((sz) => baseBuybackAUD(d, sz, RETENTION_A, BRAND_FACTOR_A) * mult * (1 - HOLDING_COST_A)));
-                const pick = (sz) => { setSelected({ ...d, storage: sz }); setTierId(null); setFaults({}); setBlockers({}); };
+                const pick = (sz) => { setSelected({ ...d, storage: sz }); setTierId(null); setFaults({}); setBlockers({}); setHasIssues(null); setShowAllModels(false); };
                 return (
                   <div key={d.brand + d.model} className="mvq-model" style={{ borderTop: di === 0 ? "none" : `1px solid ${line}`, padding: "12px 12px 10px" }}>
                     <div role="button" tabIndex={0} onClick={() => pick(sizes[0])} onKeyDown={(e) => { if (e.key === "Enter") pick(sizes[0]); }}
@@ -1204,7 +1071,7 @@ export default function QuoteCalculator() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.25 }}>{d.brand === "Apple" ? d.model : `${d.brand} ${d.model}`}</div>
-                        <div style={{ fontSize: 12.5, color: muted }}>{Math.round(ageMonths(d.release))} months old · {sizes.length} size{sizes.length === 1 ? "" : "s"}</div>
+                        <div style={{ fontSize: 12.5, color: muted }}>{ageText(d.release)} · {sizes.length} size{sizes.length === 1 ? "" : "s"}</div>
                       </div>
                       <div style={{ color: brass, fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", textAlign: "right" }}>Up to<br />{fmt(upTo, region, REGIONS_A)}</div>
                     </div>
@@ -1219,6 +1086,11 @@ export default function QuoteCalculator() {
                   </div>
                 );
               })}
+              {filtered.length > 40 && !showAllModels && (
+                <button onClick={() => setShowAllModels(true)} style={{ width: "100%", minHeight: 48, border: "none", borderTop: `1px solid ${line}`, background: "#F4F6F9", color: brass, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit" }}>
+                  Show all {filtered.length} models
+                </button>
+              )}
               {filtered.length === 0 && <div style={{ padding: 14, color: muted, fontSize: 14 }}>No matches — try another brand or model.</div>}
             </div>
           </>
@@ -1235,7 +1107,7 @@ export default function QuoteCalculator() {
           const specs = [
             ["Model", `${selected.brand} ${selected.model}`], ["Storage", selected.storage],
             ["Launched", isNaN(released) ? "—" : released.toLocaleDateString("en-AU", { month: "long", year: "numeric" })],
-            ["Device age", `${Math.round(ageMonths(selected.release))} months`],
+            ["Device age", ageText(selected.release).replace(/ old$/, "")],
             ["Collection", "Free from your door, anywhere in Sydney"], ["Payment", "Cash, bank transfer or PayPal"], ["Price held", "14 days"],
           ];
           const pill = (on) => ({ display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 16px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer",
@@ -1279,7 +1151,7 @@ export default function QuoteCalculator() {
                   <div style={{ fontSize: 15, marginBottom: 10 }}><strong>Condition:</strong> <span style={{ color: muted }}>{tier ? tier.label : "choose one"}</span></div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }} role="radiogroup" aria-label="Condition">
                     {TIERS_A.map((t) => (
-                      <button key={t.id} role="radio" aria-checked={tierId === t.id} onClick={() => { setTierId(t.id); setFaults({}); setBlockers({}); }} style={pill(tierId === t.id)}>
+                      <button key={t.id} role="radio" aria-checked={tierId === t.id} onClick={() => { setTierId(t.id); setFaults({}); setBlockers({}); setHasIssues(null); }} style={pill(tierId === t.id)}>
                         <span style={{ width: 10, height: 10, borderRadius: "50%", background: DOT[t.id] || brass, display: "inline-block" }} />{t.label}
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: muted }}>up to {fmt(sealed * t.factor, region, REGIONS_A)}</span>
                       </button>
@@ -1298,14 +1170,27 @@ export default function QuoteCalculator() {
 
         {selected && tier && (tier.mode === "full" || tier.mode === "functional-only") && (
           <>
-            <div style={{ marginBottom: 4, fontSize: 13, color: muted, letterSpacing: 0.2 }}>Step 3 — Anything wrong with it?</div>
-            <div style={{ fontSize: 12, color: muted, marginBottom: 14 }}>Select everything that applies — the more precise you are, the less this changes after inspection.</div>
-            {FAULT_GROUPS_A.map((g) => {
+            <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, fontWeight: 400, margin: "0 0 4px" }}>Anything wrong with it?</h2>
+            <div style={{ fontSize: 13.5, color: muted, marginBottom: 12 }}>Being accurate now means your price won't change at inspection.</div>
+            <div role="radiogroup" aria-label="Anything wrong with it?" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
+              {[[false, "No, it all works"], [true, "Yes, something's wrong"]].map(([val, label]) => (
+                <button key={label} role="radio" aria-checked={hasIssues === val} onClick={() => { setHasIssues(val); if (!val) setFaults({}); }}
+                  style={{ flex: "1 1 160px", minHeight: 48, padding: "12px 16px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    border: `2px solid ${hasIssues === val ? brass : line}`, background: hasIssues === val ? "rgba(33,80,200,0.07)" : "#fff", color: hasIssues === val ? brass : paper }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {hasIssues && <div style={{ fontSize: 13, color: muted, marginBottom: 10 }}>Open a section and tick everything that applies.</div>}
+            {hasIssues && FAULT_GROUPS_A.map((g) => {
               if (tier.mode === "functional-only" && g.cosmetic) return null;
+              const ticked = g.faults.filter((f) => faults[f.id]).length;
               return (
-                <div key={g.group} style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, color: brass, marginBottom: 6 }}>{g.group}</div>
-                  <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden" }}>
+                <details key={g.group} style={{ marginBottom: 10, border: `1px solid ${line}`, borderRadius: 12, background: "#fff", overflow: "hidden" }}>
+                  <summary style={{ cursor: "pointer", padding: "14px 16px", minHeight: 24, fontSize: 15, fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>{g.group}</span><span style={{ fontSize: 13, fontWeight: 600, color: ticked ? red : muted }}>{ticked ? `${ticked} selected` : `${g.faults.length} checks`}</span>
+                  </summary>
+                  <div style={{ borderTop: `1px solid ${line}` }}>
                     {g.faults.map((f, i) => {
                       const checked = !!faults[f.id];
                       return (
@@ -1322,11 +1207,11 @@ export default function QuoteCalculator() {
                       );
                     })}
                   </div>
-                </div>
+                </details>
               );
             })}
 
-            <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, marginBottom: 20, padding: "10px 2px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, margin: "8px 0 20px", padding: "10px 2px" }}>
               <input type="checkbox" checked={hasAccessories} onChange={(e) => setHasAccessories(e.target.checked)} />
               Original box & charger included
               <span style={{ color: green, fontSize: 13 }}>+{Math.round(ACCESSORY_BONUS_PCT * 100)}%</span>
@@ -1345,7 +1230,7 @@ export default function QuoteCalculator() {
         )}
 
         {calc && !checkout && !submittedOrder && (
-          <div style={{ position: "sticky", bottom: 12, background: panel, border: `1px solid ${brass}`, boxShadow: "0 8px 28px rgba(32,28,24,0.16)", borderRadius: 4, padding: 18, marginTop: 20 }}>
+          <div style={{ position: "sticky", bottom: 12, background: panel, border: `1px solid ${brass}`, boxShadow: "0 8px 28px rgba(32,28,24,0.16)", borderRadius: 12, padding: "14px 16px", marginTop: 20, maxHeight: "70vh", overflowY: "auto" }}>
             {calc.blocked ? (
               <div>
                 <div style={{ color: red, fontSize: 15, marginBottom: 4 }}>Quote unavailable</div>
@@ -1356,10 +1241,15 @@ export default function QuoteCalculator() {
               </div>
             ) : (
               <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}>
                   <div style={{ fontSize: 13, color: muted }}>Your quote</div>
-                  <div key={Math.round(calc.total)} className="mv-pop" aria-live="polite" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 36, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
+                  <div key={Math.round(calc.total)} className="mv-pop" aria-live="polite" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
                 </div>
+                <button onClick={() => setShowBreakdown((v) => !v)} aria-expanded={showBreakdown}
+                  style={{ background: "none", border: "none", padding: "4px 0", color: brass, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  {showBreakdown ? "▾ Hide how we worked this out" : "▸ How we worked this out"}
+                </button>
+                {showBreakdown && <>
                 {/* Live "device signature": the inspection ring turns amber where a fault is declared */}
                 <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 12px" }}>
                   <div style={{ width: 120, flexShrink: 0 }}>
@@ -1373,7 +1263,7 @@ export default function QuoteCalculator() {
                 </div>
                 <div style={{ borderTop: `1px solid ${line}`, paddingTop: 10, fontSize: 12.5, color: muted }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span>Base value ({tier.label})</span><span>{fmt(calc.tierBase, region, REGIONS_A)}</span>
+                    <span>Base value ({tier.label})</span><span>{fmt(calc.tierBase - calc.holdingAmt, region, REGIONS_A)}</span>
                   </div>
                   {calc.lines.map((l, i) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -1381,14 +1271,9 @@ export default function QuoteCalculator() {
                       <span style={{ color: l.amt >= 0 ? red : green }}>{l.amt >= 0 ? "−" : "+"}{fmt(Math.abs(l.amt), region, REGIONS_A)}</span>
                     </div>
                   ))}
-                  {calc.holdingAmt > 0 && (
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span>Refurb & holding cost ({Math.round(HOLDING_COST_A * 100)}%)</span>
-                      <span style={{ color: red }}>−{fmt(calc.holdingAmt, region, REGIONS_A)}</span>
-                    </div>
-                  )}
                 </div>
-                <button className="cs-btn" onClick={() => setCheckout(true)} style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                </>}
+                <button className="cs-btn" onClick={() => setCheckout(true)} style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                   Continue to sell →
                 </button>
                 {!leadSaved && (
@@ -1401,7 +1286,7 @@ export default function QuoteCalculator() {
                     <input value={leadEmail} onChange={(e) => setLeadEmail(e.target.value)} placeholder="Your email" type="email"
                       style={{ flex: 1, padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
                     <button disabled={!leadEmail.trim()} onClick={handleSaveLead}
-                      style={{ padding: "9px 14px", borderRadius: 3, border: "none", background: leadEmail.trim() ? brass : line, color: leadEmail.trim() ? "#1a1408" : muted, fontSize: 12.5, cursor: leadEmail.trim() ? "pointer" : "default" }}>
+                      style={{ padding: "9px 14px", borderRadius: 3, border: "none", background: leadEmail.trim() ? brass : line, color: leadEmail.trim() ? "#fff" : muted, fontSize: 12.5, cursor: leadEmail.trim() ? "pointer" : "default" }}>
                       Hold price
                     </button>
                   </div>
@@ -1533,7 +1418,7 @@ export default function QuoteCalculator() {
                 return (
                   <button className="cs-btn" onClick={handleSubmitOrder} disabled={!canSubmit || submitting}
                     style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      background: canSubmit ? brass : line, color: canSubmit ? "#1a1408" : muted,
+                      background: canSubmit ? brass : line, color: canSubmit ? "#fff" : muted,
                       fontSize: 14, fontWeight: 600, cursor: canSubmit ? "pointer" : "default" }}>
                     {submitting && <span className="cs-spinner"></span>}
                     {submitting ? "Submitting…" : "Confirm & get shipping details →"}
@@ -1629,7 +1514,154 @@ export default function QuoteCalculator() {
         )}
 
 
-        {reference && (
+        {!checkout && !submittedOrder && (
+          <div style={{ marginTop: 34, borderTop: `1px solid ${line}`, paddingTop: 18 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: muted, letterSpacing: "0.08em", marginBottom: 6 }}>MORE OPTIONS</div>
+            <div className="mvq-links" style={{ display: "grid", gap: 2 }}>
+        <button onClick={() => { setBulkMode((s) => !s); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ background: "none", border: "none", color: brass, fontSize: 14.5, padding: "10px 0", textAlign: "left", cursor: "pointer", textDecoration: "underline" }}>
+          {bulkMode ? "← Back to single device" : "Selling multiple devices? Get a bulk / business quote"}
+        </button>
+                <button onClick={() => { setBulkTrackOpen((o) => !o); setBulkTrackResult(undefined); }} style={{ background: "none", border: "none", color: brass, fontSize: 14.5, padding: "10px 0", textAlign: "left", cursor: "pointer", textDecoration: "underline" }}>
+          {bulkTrackOpen ? "← Hide tracking" : "Already submitted a bulk request? Track it"}
+        </button>
+
+            </div>
+
+        {pmOpen && !pmSubmitted && (
+          <div id="mvq-pm" style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>Got a higher quote elsewhere?</div>
+            <div style={{ fontSize: 12, color: muted, marginBottom: 10 }}>
+              Tell us who quoted you and how much — we'll review it and get back to you{calc ? ` on your ${selected.brand} ${selected.model}` : ""}.
+            </div>
+            {!calc && <div style={{ fontSize: 12, color: red, marginBottom: 10 }}>Get a quote on a device first so we have something to compare against.</div>}
+            <input value={pmCompetitor} onChange={(e) => setPmCompetitor(e.target.value)} placeholder="Competitor name"
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
+            <input value={pmPrice} onChange={(e) => setPmPrice(e.target.value)} placeholder="Their quoted price" type="number"
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
+            <input value={pmNote} onChange={(e) => setPmNote(e.target.value)} placeholder="Anything else we should know (optional)"
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
+            <button disabled={!calc || !pmCompetitor.trim() || !pmPrice} onClick={handlePriceMatchSubmit}
+              style={{ width: "100%", padding: "11px", borderRadius: 3, border: "none",
+                background: calc && pmCompetitor.trim() && pmPrice ? green : line, color: calc && pmCompetitor.trim() && pmPrice ? "#fff" : muted,
+                fontSize: 13, fontWeight: 600, cursor: calc && pmCompetitor.trim() && pmPrice ? "pointer" : "default" }}>
+              Submit for review
+            </button>
+          </div>
+        )}
+        {pmSubmitted && (
+          <div style={{ border: `1px solid ${green}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>Request {pmSubmitted.id} submitted</div>
+            <div style={{ fontSize: 12, color: muted }}>We'll compare it against {pmSubmitted.competitorName}'s quote of {fmt(pmSubmitted.competitorPrice, region, REGIONS_A)} and respond within 1 business day. Save this number to check back.</div>
+            <button onClick={() => { setPmOpen(false); setPmSubmitted(null); setPmCompetitor(""); setPmPrice(""); setPmNote(""); }}
+              style={{ marginTop: 10, background: "none", border: "none", color: brass, fontSize: 12, cursor: "pointer" }}>Close</button>
+          </div>
+        )}
+
+        <button onClick={() => { setTrackMode((s) => !s); setTrackResult(undefined); }}
+          style={{ background: "none", border: "none", color: brass, fontSize: 14.5, padding: "10px 0", textAlign: "left", display: "block", cursor: "pointer", textDecoration: "underline" }}>
+          {trackMode ? "Hide order tracking" : "Track an order you already submitted"}
+        </button>
+        {trackMode && (
+          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email" aria-label="Order number or email to track your order"
+                style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
+              <button onClick={handleTrackSearch} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                Find
+              </button>
+            </div>
+            {trackResult === null && <div style={{ marginTop: 10, fontSize: 13, color: red }}>No order found with that number or email.</div>}
+            {trackResult && (
+              <div style={{ marginTop: 12, fontSize: 13 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
+                  <span style={{ color: muted }}>{trackResult.device.brand} {trackResult.device.model} · {trackResult.device.storage}</span>
+                  <span>{trackResult.id}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
+                  <span style={{ color: muted }}>Status</span><span>{STATUS_LABELS[trackResult.status]}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
+                  <span style={{ color: muted }}>{trackResult.status === "revised_pending_customer" ? "Revised offer" : "Quoted amount"}</span>
+                  <span style={{ color: brass }}>{fmt(trackResult.inspection?.confirmedTotal ?? trackResult.quotedTotal, trackResult.region, REGIONS_A)}</span>
+                </div>
+                {trackResult.fulfillment === "post" && (
+                  trackResult.shipping?.trackingNumber ? (
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
+                      <span style={{ color: muted }}>Tracking number</span>
+                      <span>{trackResult.shipping.trackingNumber} ({trackResult.shipping.carrier || "Australia Post"})</span>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 8, fontSize: 12, color: muted }}>A tracking number will appear here once we've booked your shipment.</div>
+                  )
+                )}
+                {trackResult.inspection?.staffNote && (
+                  <div style={{ marginTop: 8, color: muted }}>Note from inspection: {trackResult.inspection.staffNote}</div>
+                )}
+                {trackResult.status === "revised_pending_customer" && (
+                  <div style={{ marginTop: 12, border: `1px solid ${brass}`, borderRadius: 3, padding: 12 }}>
+                    <div style={{ fontSize: 12.5, marginBottom: 10 }}>We found something different once we inspected your device. You can accept the revised amount above, or decline and we'll arrange getting your device back to you.</div>
+                    {window.SHOP_API_BASE_URL && !isEmail(trackQuery) && (
+                      <input value={respondEmail} onChange={(e) => setRespondEmail(e.target.value)} placeholder="Email you used for this order" aria-label="Email you used for this order" type="email"
+                        style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, fontSize: 13, marginBottom: 8, fontFamily: "inherit" }} />
+                    )}
+                    {respondError && <div style={{ color: red, fontSize: 12, marginBottom: 8 }}>{respondError}</div>}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="cs-btn" disabled={respondSubmitting} onClick={() => handleOrderRespond("accept")}
+                        style={{ flex: 1, padding: "9px", borderRadius: 3, border: "none", background: green, color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                        Accept revised offer
+                      </button>
+                      <button className="cs-btn" disabled={respondSubmitting} onClick={() => handleOrderRespond("decline")}
+                        style={{ flex: 1, padding: "9px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                        Decline — return my device
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {trackResult.status === "returned" && (
+                  <div style={{ marginTop: 12, color: muted, fontSize: 12.5 }}>You declined the revised offer — we'll be in touch about getting your device back to you.</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <button onClick={() => { setPmTrackMode((s) => !s); setPmTrackResult(undefined); }}
+          style={{ background: "none", border: "none", color: brass, fontSize: 14.5, padding: "10px 0", textAlign: "left", display: "block", cursor: "pointer", textDecoration: "underline" }}>
+          {pmTrackMode ? "Hide price match tracking" : "Track a price match request"}
+        </button>
+        {pmTrackMode && (
+          <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={pmTrackQuery} onChange={(e) => setPmTrackQuery(e.target.value)} placeholder="Request number or email" aria-label="Request number or email to track your price match request"
+                style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
+              <button onClick={handlePriceMatchTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                Find
+              </button>
+            </div>
+            {pmTrackResult === null && <div style={{ marginTop: 10, fontSize: 13, color: red }}>No request found with that number or email.</div>}
+            {pmTrackResult && (
+              <div style={{ marginTop: 12, fontSize: 13 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
+                  <span style={{ color: muted }}>vs. {pmTrackResult.competitorName}</span><span>{pmTrackResult.id}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
+                  <span style={{ color: muted }}>Status</span><span>{PM_STATUS_LABELS[pmTrackResult.status]}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${line}` }}>
+                  <span style={{ color: muted }}>{pmTrackResult.status === "approved" ? "Matched price" : "Your quote"}</span>
+                  <span style={{ color: brass }}>{fmt(pmTrackResult.status === "approved" ? pmTrackResult.approvedPrice : pmTrackResult.ourQuote, pmTrackResult.region, REGIONS_A)}</span>
+                </div>
+                {pmTrackResult.staffNote && <div style={{ marginTop: 8, color: muted }}>Note: {pmTrackResult.staffNote}</div>}
+              </div>
+            )}
+          </div>
+        )}
+
+          </div>
+        )}
+
+
+        {reference && isStaffViewer && (
           <div style={{ marginTop: 20 }}>
             <button onClick={() => setShowRef((s) => !s)}
               style={{ background: "none", border: `1px dashed ${line}`, color: muted, fontSize: 12, padding: "8px 12px", borderRadius: 3, cursor: "pointer", width: "100%", textAlign: "left" }}>

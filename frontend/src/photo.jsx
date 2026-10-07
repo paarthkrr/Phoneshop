@@ -42,12 +42,16 @@ const CSS = `
 @keyframes mvb-float{0%,100%{translate:0 0}50%{translate:0 -10px}}
 @media(max-width:720px){.mvb-tiles{right:4%;gap:10px}.mvb-tile{width:54px;height:54px;border-radius:15px}.mvb-tile svg{width:26px;height:26px}}
 @media(prefers-reduced-motion:reduce){.mvb-tile{animation:none}}
+
+@media (max-width: 720px) { .mvb.mvb-banner { display: none; } }
 `;
 
-export default function Photo({ name, height = 260, radius = 18, children, style }) {
+// banner: a decorative page-top picture. On phones it's hidden so the page
+// heading and content start on the first screen.
+export default function Photo({ name, height = 260, radius = 18, children, style, banner }) {
   const icons = SCENES[name] || SCENES.workshop;
   return (
-    <div className="mvb" role={children ? undefined : "presentation"} style={{ height, borderRadius: radius, ...style }}>
+    <div className={banner ? "mvb mvb-banner" : "mvb"} role={children ? undefined : "presentation"} style={{ height, borderRadius: radius, ...style }}>
       <style>{CSS}</style>
       <div className="mvb-glow" />
       <div className="mvb-tiles" aria-hidden="true">

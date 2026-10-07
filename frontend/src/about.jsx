@@ -14,10 +14,10 @@ export default function AboutUs() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "40px 16px 80px" }}>
 
-        <Photo name="screwdriver" height={240} eager style={{ marginBottom: 26 }} />
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 32, lineHeight: 1.08, letterSpacing: "-0.01em", marginBottom: 24 }}>
+        <Photo banner name="screwdriver" height={240} eager style={{ marginBottom: 26 }} />
+        <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 32, lineHeight: 1.08, letterSpacing: "-0.01em", marginBottom: 24 }}>
           Why Mobile Recellr exists
-        </div>
+        </h1>
 
         <div style={{ fontSize: 16, lineHeight: 1.75, marginBottom: 20 }}>
           We started Mobile Recellr after watching the same thing happen to person after person: a phone that had stopped charging properly, taken in for what should've been a two-minute clean-out, and handed back with a bill for $150 — sometimes more.
