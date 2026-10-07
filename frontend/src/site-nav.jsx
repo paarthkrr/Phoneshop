@@ -182,7 +182,6 @@ export function MobileDrawer({ open }) {
           <Link to={cur.to} className="mm-all" tabIndex={tab}>{cur.cta}</Link>
         </div>
       )}
-      <Link to="/portal/index.html" className="mm-staff mm-item" style={{ "--i": MENU.length + 1 }} tabIndex={tab}>Staff login →</Link>
     </div>
   );
 }
