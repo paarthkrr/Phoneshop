@@ -255,6 +255,33 @@ const PUBLIC_READ_KEYS = ["inventory", "pricing-config", "accessories"];
 // own new submission, never overwrites anyone else's data.
 const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries", "repair_requests", "accessory_orders"];
 
+// ---- What an anonymous visitor may look up ----
+// Tracking pages find ONE record by its id or the customer's email, and get
+// back only what those pages display. Contact, bank, payout and ID details
+// never leave the server through a public lookup.
+const PUBLIC_FIND_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "repair_requests", "accessory_orders"];
+const PUBLIC_LOOKUP_FIELDS = ["id", "email", "customer.email", "customerEmail", "business.email"];
+const PUBLIC_RECORD_FIELDS = ["id", "createdAt", "status", "region", "currency", "device", "brand", "model", "storage", "deviceType", "issue",
+  "tierLabel", "faultLabels", "quotedTotal", "priceLockExpires", "fulfillment", "fulfilment", "competitorName", "ourQuote", "approvedPrice",
+  "staffNote", "itemCount", "estimatedTotal", "subtotal", "total", "warrantyExpiresAt"];
+function publicView(record) {
+  const out = {};
+  for (const k of PUBLIC_RECORD_FIELDS) if (record[k] !== undefined) out[k] = record[k];
+  if (record.device && typeof record.device === "object") out.device = { brand: record.device.brand, model: record.device.model, storage: record.device.storage };
+  if (record.inspection && typeof record.inspection === "object") {
+    const { confirmedTotal, staffNote, customerDecision, customerRespondedAt } = record.inspection;
+    out.inspection = { confirmedTotal, staffNote, customerDecision, customerRespondedAt };
+  }
+  if (record.shipping && typeof record.shipping === "object") out.shipping = { trackingNumber: record.shipping.trackingNumber, carrier: record.shipping.carrier };
+  else if (typeof record.shipping === "number") out.shipping = record.shipping;
+  if (Array.isArray(record.items)) out.items = record.items.map((i) => ({ name: i && i.name, qty: i && i.qty, price: i && i.price }));
+  return out;
+}
+async function loadSharedList(key) {
+  const r = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = $1", [key]);
+  try { const v = r.rows[0] ? JSON.parse(r.rows[0].value) : []; return Array.isArray(v) ? v : []; } catch (e) { return []; }
+}
+
 // ---- Email (Resend) ----
 // Customer emails are the ones the site already prepares in notification_queue
 // (quote confirmations, orders, repair requests, replies); the owner gets an
@@ -322,11 +349,14 @@ async function sendEmail({ to, subject, text, replyTo, customer, kind, name }) {
 }
 const NEW_LABEL = { orders: "New order", purchase_orders: "New trade-in / sell order", price_match_requests: "New price-match request", bulk_quote_requests: "New bulk quote request",
   quote_leads: "New sell quote", referrals: "New referral", support_queries: "New customer message", repair_requests: "New repair request", accessory_orders: "New accessories order" };
+// Bank, payout-account and ID details stay in the portal; email is not a safe place for them.
+const SENSITIVE_KEY = /bank|bsb|accountnumber|paypal|idtype|idowner|idnumber|licen[cs]e|passport|birth|dob|password|token/i;
 function summarise(item) {
   const lines = [];
   const add = (k, v) => { if (v == null || v === "" || typeof v === "object") return; lines.push(`${k}: ${String(v).slice(0, 300)}`); };
   for (const [k, v] of Object.entries(item || {})) {
-    if (v && typeof v === "object" && !Array.isArray(v)) { for (const [k2, v2] of Object.entries(v)) add(`${k} ${k2}`, v2); }
+    if (SENSITIVE_KEY.test(k)) continue;
+    if (v && typeof v === "object" && !Array.isArray(v)) { for (const [k2, v2] of Object.entries(v)) if (!SENSITIVE_KEY.test(k2)) add(`${k} ${k2}`, v2); }
     else if (Array.isArray(v)) lines.push(`${k}: ${v.length} item(s)`);
     else add(k, v);
   }
@@ -348,6 +378,69 @@ function notifyNew(key, items, max = Infinity) {
       replyTo: item.email || (item.customer && item.customer.email) || undefined,
     });
   }
+}
+
+// ---- Customer confirmations for anonymous submissions ----
+// The site queues a confirmation after each public form. The server never
+// emails text or addresses supplied by an anonymous browser: it looks up
+// the record the confirmation is about, sends to the email ON that record,
+// writes the wording itself, and sends at most one per record.
+const clip = (v) => String(v ?? "").replace(/(https?:\/\/|www\.)\S*/gi, "").replace(/\b[\w-]+\.(com|net|org|au|io|co|xyz|info|link|app|me|ly|ru|top)\b\S*/gi, "").replace(/\s+/g, " ").trim().slice(0, 60);
+function money(n, currency) {
+  if (!Number.isFinite(Number(n))) return "";
+  try { return new Intl.NumberFormat("en-AU", { style: "currency", currency: /^[A-Z]{3}$/.test(currency || "") ? currency : "AUD" }).format(Number(n)); } catch (e) { return `$${Number(n).toFixed(2)}`; }
+}
+const dateAU = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-AU"); };
+const deviceName = (r) => clip(`${(r.device && r.device.brand) || ""} ${(r.device && r.device.model) || ""}`) || "device";
+const CONFIRMATIONS = {
+  order_confirmation: { key: "orders", email: (r) => r.customer && r.customer.email, name: (r) => r.customer && r.customer.name,
+    subject: (r) => `Order ${clip(r.id)} received - thanks from Mobile Recellr`,
+    message: (r) => `Thanks for sending us your ${deviceName(r)} trade-in. We've received it (order ${clip(r.id)}) with a quote of ${money(r.quotedTotal, r.currency)}, subject to inspecting the device.` },
+  quote_lead: { key: "quote_leads", email: (r) => r.email, name: () => "",
+    subject: (r) => `Your ${deviceName(r)} quote: ${money(r.quotedTotal, r.currency)}`,
+    message: (r) => `We've held this price for you${dateAU(r.priceHeldUntil) ? ` until ${dateAU(r.priceHeldUntil)}` : ""}. Ready to sell? Come back anytime.` },
+  bulk_quote_request: { key: "bulk_quote_requests", email: (r) => r.business && r.business.email, name: (r) => r.business && r.business.contactName,
+    subject: (r) => `Bulk trade-in request ${clip(r.id)} received`,
+    message: (r) => `We've received your request for ${Number(r.itemCount) || (Array.isArray(r.items) ? r.items.length : 0)} device(s), estimated at ${money(r.estimatedTotal, r.currency)} total. A team member will follow up within 1-2 business days with a firm offer.` },
+  repair_request: { key: "repair_requests", email: (r) => r.email, name: (r) => r.name,
+    subject: (r) => `Repair request ${clip(r.id)} received`,
+    message: (r) => `We've received your repair request for your ${clip(r.deviceType).toLowerCase() || "device"}${clip(r.model) ? ` (${clip(r.model)})` : ""}. We'll reach out shortly to confirm details and turnaround.` },
+  support_query: { key: "support_queries", email: (r) => r.email, name: (r) => r.name,
+    subject: (r) => `We've received your question — ${clip(r.id)}`,
+    message: () => "Thanks for reaching out. We've received your message and will get back to you shortly." },
+  accessory_order: { key: "accessory_orders", email: (r) => r.customer && r.customer.email, name: (r) => r.customer && r.customer.name,
+    subject: (r) => `Order ${clip(r.id)} received`,
+    message: (r) => {
+      const count = (Array.isArray(r.items) ? r.items : []).reduce((s, i) => s + (Number(i && i.qty) || 0), 0);
+      return `Thanks for your order (${count} item${count === 1 ? "" : "s"}, ${money(r.total, "AUD")}). ${r.fulfilment === "collect" ? "We'll let you know when it's ready to collect — pay when you pick it up." : "We'll email you a secure payment link, then post it out."}`;
+    } },
+};
+async function buildConfirmations(items, existingQueue) {
+  const seen = new Set(existingQueue.map((q) => q && `${q.type}:${q.relatedId}`));
+  const out = [];
+  for (const item of items) {
+    const spec = item && CONFIRMATIONS[item.type];
+    if (!spec || !item.relatedId || seen.has(`${item.type}:${item.relatedId}`)) continue;
+    seen.add(`${item.type}:${item.relatedId}`);
+    const record = (await loadSharedList(spec.key)).find((r) => r && r.id === item.relatedId);
+    const to = record && String(spec.email(record) || "").trim();
+    if (!to) continue;
+    out.push({ id: item.id, createdAt: new Date().toISOString(), status: "pending", type: item.type, channel: "email",
+      recipientEmail: to, recipientName: spec.name(record) || "", subject: spec.subject(record), message: spec.message(record), relatedId: record.id });
+  }
+  return out;
+}
+// A referral names only the code it used; the server fills in who owns that
+// code, so the public site never needs to look up another customer's order.
+async function enrichReferrals(items) {
+  const orders = await loadSharedList("orders");
+  return items.map((ref) => {
+    const code = String(ref.code || "").trim().toUpperCase();
+    const referrer = code && orders.find((o) => o && String(o.referralCode || "").toUpperCase() === code);
+    const referrerEmail = referrer && referrer.customer && referrer.customer.email;
+    if (!referrerEmail || referrerEmail.toLowerCase() === String(ref.referredEmail || "").trim().toLowerCase()) return null;
+    return { ...ref, code, referrerEmail, referrerName: referrer.customer.name || "", referrerPaid: false, referredPaid: false };
+  }).filter(Boolean);
 }
 
 function scopeFor(shared, username) {
@@ -382,6 +475,8 @@ function makeLimiter(max, windowMs) {
 const PUBLIC_WRITE_MAX = parseInt(process.env.PUBLIC_WRITE_MAX || "20", 10);          // submissions per IP per 10 min
 const publicWriteAllowed = makeLimiter(PUBLIC_WRITE_MAX, 10 * 60 * 1000);
 const publicRespondAllowed = makeLimiter(30, 10 * 60 * 1000);
+const publicFindAllowed = makeLimiter(60, 10 * 60 * 1000);       // a tracking search tries up to 4 fields
+const publicIdPhotoAllowed = makeLimiter(10, 10 * 60 * 1000);
 const PUBLIC_MAX_ITEMS_PER_SUBMISSION = 20;
 const PUBLIC_MAX_VALUE_CHARS = 2_000_000;   // anonymous JSON payload cap (staff are not capped below the 10mb body limit)
 const PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST = 5;
@@ -510,6 +605,7 @@ app.post("/auth/login", async (req, res) => {
     if (!user) return res.status(401).json({ error: "invalid username or password" });
 
     await pool.query("DELETE FROM sessions WHERE expires_at < NOW()"); // light housekeeping
+    await pool.query("DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '1 day'");
     const now = Date.now();
     const sessionId = crypto.randomUUID();
     const expiresAtIso = new Date(now + TOKEN_TTL_MS).toISOString();
@@ -785,6 +881,27 @@ function mergeKeepingNewer(incomingJson, existingJson) {
   return missing.length ? JSON.stringify([...missing, ...incoming]) : incomingJson;
 }
 
+// A customer's accept/decline (via /public/orders/:id/respond) must survive a
+// staff save made from a copy loaded before they answered. A deliberate
+// re-inspection after their answer (a newer inspectedAt) still wins.
+function keepCustomerDecisions(finalJson, existingJson) {
+  try {
+    const list = JSON.parse(finalJson), old = existingJson ? JSON.parse(existingJson) : [];
+    if (!Array.isArray(list) || !Array.isArray(old)) return finalJson;
+    const answered = new Map(old.filter((o) => o && o.inspection && o.inspection.customerRespondedAt).map((o) => [o.id, o]));
+    let changed = false;
+    const out = list.map((o) => {
+      const prev = o && answered.get(o.id);
+      if (!prev || (o.inspection && o.inspection.customerRespondedAt)) return o;
+      const at = Date.parse(prev.inspection.customerRespondedAt);
+      if (o.inspection && Date.parse(o.inspection.inspectedAt) > at) return o;
+      changed = true;
+      return { ...o, status: prev.status, inspection: { ...(o.inspection || {}), customerRespondedAt: prev.inspection.customerRespondedAt, customerDecision: prev.inspection.customerDecision } };
+    });
+    return changed ? JSON.stringify(out) : finalJson;
+  } catch (e) { return finalJson; }
+}
+
 app.put("/storage/:key", tryAuth, async (req, res) => {
   try {
     const { value, shared } = req.body;
@@ -804,14 +921,24 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
       // their local view of "existing records" is always empty (they
       // can't read this key back), so this only ever adds their genuinely
       // new submission(s), never overwrites or exposes anyone else's data.
-      const newOnes = await withListLock("shared", req.params.key, async (existingValue, write) => {
+      const key = req.params.key;
+      const result = await withListLock("shared", key, async (existingValue, write) => {
         const existing = existingValue ? JSON.parse(existingValue) : [];
-        const existingIds = new Set(existing.map((r) => r && r.id));
-        const fresh = incoming.filter((r) => r && r.id && !existingIds.has(r.id));
-        await write(JSON.stringify([...fresh, ...existing]), "public");
-        return fresh;
+        const byId = new Map(existing.map((r) => [r && r.id, r]));
+        // Same id, different content = two customers drew the same random id.
+        // Refuse rather than silently dropping the second customer's submission.
+        // (A retry of an already-saved submission is identical and just succeeds.)
+        if (key !== "notification_queue" && key !== "referrals" &&
+            incoming.some((r) => r && r.id && byId.has(r.id) && JSON.stringify(byId.get(r.id)) !== JSON.stringify(r))) return { conflict: true };
+        let fresh = incoming.filter((r) => r && r.id && !byId.has(r.id));
+        if (key === "notification_queue") fresh = await buildConfirmations(fresh, existing);
+        if (key === "referrals") fresh = await enrichReferrals(fresh);
+        if (fresh.length) await write(JSON.stringify([...fresh, ...existing]), "public");
+        return { fresh };
       });
-      notifyNew(req.params.key, newOnes, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST);
+      if (result.conflict) return res.status(409).json({ error: "id_conflict", detail: "that reference number is already in use, please submit again" });
+      const newOnes = result.fresh;
+      notifyNew(key, newOnes, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST);
       // Never return the merged collection to an anonymous caller — only confirm what THEY submitted.
       return res.json({ key: req.params.key, submitted: newOnes.length });
     }
@@ -819,8 +946,9 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
     const scope = scopeFor(shared, req.user.username);
     let staffQueued = [];
     const saved = await withListLock(scope, req.params.key, async (existingValue, write) => {
-      const finalValue = scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)
+      let finalValue = scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)
         ? mergeKeepingNewer(value, existingValue) : value;
+      if (scope === "shared" && req.params.key === "orders") finalValue = keepCustomerDecisions(finalValue, existingValue);
       if (scope === "shared" && req.params.key === "notification_queue") {   // staff-sent customer updates (e.g. "repair ready")
         try { const had = new Set((existingValue ? JSON.parse(existingValue) : []).map((r) => r && r.id)); staffQueued = JSON.parse(finalValue).filter((r) => r && r.id && !had.has(r.id)); } catch (e) { staffQueued = []; }
       }
@@ -837,6 +965,8 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
 app.delete("/storage/:key", requireAuth, async (req, res) => {
   try {
     const scope = scopeFor(req.query.shared, req.user.username);
+    // Deleting a shared key wipes a whole collection (every order, every sale).
+    if (scope === "shared" && req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
     await pool.query("DELETE FROM storage WHERE scope = $1 AND key = $2", [scope, req.params.key]);
     res.json({ key: req.params.key, deleted: true, shared: scope === "shared" });
   } catch (e) {
@@ -861,9 +991,11 @@ app.get("/storage", requireAuth, async (req, res) => {
 // matching record — never the collection it came from.
 app.get("/public/find/:key", async (req, res) => {
   try {
-    if (!PUBLIC_WRITE_KEYS.includes(req.params.key)) return res.status(401).json({ error: "unauthorized" });
+    if (!PUBLIC_FIND_KEYS.includes(req.params.key)) return res.status(401).json({ error: "unauthorized" });
+    if (!publicFindAllowed(req)) return res.status(429).json({ error: "too many lookups, please try again in a few minutes" });
     const { field, value } = req.query;
     if (!field || !value) return res.status(400).json({ error: "field and value query params are required" });
+    if (!PUBLIC_LOOKUP_FIELDS.includes(field)) return res.status(400).json({ error: "search by reference number or email" });
     const result = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = $1", [req.params.key]);
     const row = result.rows[0];
     const list = row ? JSON.parse(row.value) : [];
@@ -872,7 +1004,7 @@ app.get("/public/find/:key", async (req, res) => {
       return typeof v === "string" && typeof value === "string" && v.toLowerCase() === value.toLowerCase();
     });
     if (!match) return res.status(404).json({ error: "not_found" });
-    res.json({ record: match });
+    res.json({ record: publicView(match) });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -925,6 +1057,14 @@ app.post("/id-photos", tryAuth, async (req, res) => {
     const { subjectKey, imageBase64 } = req.body;
     if (!subjectKey || !imageBase64) return res.status(400).json({ error: "subjectKey and imageBase64 are required" });
     if (imageBase64.length > 8_000_000) return res.status(413).json({ error: "image too large" });
+    if (!req.user) {
+      // A customer may attach ID to their own new trade-in order, once.
+      // They can't add or replace a photo on anyone else's record.
+      if (!publicIdPhotoAllowed(req)) return res.status(429).json({ error: "too many uploads, please try again later" });
+      const m = /^order:([A-Za-z0-9-]{1,40})$/.exec(String(subjectKey));
+      if (!m || !(await loadSharedList("orders")).some((o) => o && o.id === m[1])) return res.status(403).json({ error: "unknown order" });
+      if ((await pool.query("SELECT 1 FROM id_photos WHERE subject_key = $1 LIMIT 1", [subjectKey])).rows[0]) return res.status(409).json({ error: "an ID photo is already on file for this order" });
+    }
     await purgeExpiredIdPhotos();
     const { ciphertext, iv, authTag } = await encryptIdPhoto(imageBase64);
     const id = crypto.randomUUID();
