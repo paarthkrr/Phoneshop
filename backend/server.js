@@ -585,6 +585,69 @@ async function enrichReferrals(items) {
   }).filter(Boolean);
 }
 
+// ---- Staff roles ----
+// admin = Owner (everything, incl. team), manager (everything except team),
+// staff = Counter (sales, trade-ins, till, repairs), technician (repairs + pricing).
+// The server enforces these; the portal only hides what a role can't use.
+const ROLES = ["admin", "manager", "staff", "technician"];
+const ALL = ROLES, OFFICE = ["admin", "manager"], COUNTER = ["admin", "manager", "staff"], PRICING = ["admin", "manager", "technician"];
+const ACCESS = {
+  orders: { read: ALL, write: COUNTER },
+  price_match_requests: { read: ALL, write: PRICING },
+  "pricing-config": { read: ALL, write: PRICING },
+  "pricing-history": { read: PRICING, write: PRICING },
+  inventory: { read: ALL, write: COUNTER },
+  sales: { read: ALL, write: ALL },               // the repair bench records repair payments as sales
+  repair_requests: { read: ALL, write: ALL },
+  repair_tickets: { read: ALL, write: ALL },
+  parts_stock: { read: ALL, write: ALL },
+  notification_queue: { read: ALL, write: ALL },
+  staff_on_shift: { read: ALL, write: ALL },
+  till_records: { read: COUNTER, write: COUNTER },
+  accessories: { read: ALL, write: COUNTER },
+  accessory_orders: { read: COUNTER, write: COUNTER },
+  purchase_orders: { read: COUNTER, write: COUNTER },
+  expenses: { read: OFFICE, write: OFFICE },
+  quote_leads: { read: OFFICE, write: OFFICE },
+  referrals: { read: OFFICE, write: OFFICE },
+  support_queries: { read: OFFICE, write: OFFICE },
+  bulk_quote_requests: { read: OFFICE, write: OFFICE },
+};
+const DEFAULT_ACCESS = { read: OFFICE, write: OFFICE };   // anything not listed: Owner and Manager only
+const canAccess = (role, key, mode) => ((ACCESS[key] || DEFAULT_ACCESS)[mode] || []).includes(role);
+
+// Full payout bank details are for Owner and Manager. Everyone else sees the last 3 digits,
+// and a save from them can never overwrite the real numbers with the masked ones.
+const SEES_BANK = OFFICE;
+const BANK_FIELDS = ["bankBsb", "bankAccountNumber", "paypalEmail"];
+const maskTail = (v) => { const t = String(v ?? ""); return t ? "•••" + t.slice(-3) : t; };
+function maskBank(json) {
+  try {
+    const list = JSON.parse(json);
+    if (!Array.isArray(list)) return json;
+    return JSON.stringify(list.map((o) => {
+      if (!o || !o.customer) return o;
+      const c = { ...o.customer };
+      for (const f of BANK_FIELDS) if (c[f]) c[f] = maskTail(c[f]);
+      return { ...o, customer: c };
+    }));
+  } catch (e) { return json; }
+}
+function restoreBank(finalJson, existingJson) {
+  try {
+    const list = JSON.parse(finalJson), old = existingJson ? JSON.parse(existingJson) : [];
+    if (!Array.isArray(list) || !Array.isArray(old)) return finalJson;
+    const byId = new Map(old.filter((o) => o && o.id != null).map((o) => [String(o.id), o]));
+    return JSON.stringify(list.map((o) => {
+      const prev = o && byId.get(String(o.id));
+      if (!prev || !prev.customer || !o.customer) return o;
+      const c = { ...o.customer };
+      for (const f of BANK_FIELDS) { if (prev.customer[f] !== undefined) c[f] = prev.customer[f]; else delete c[f]; }
+      return { ...o, customer: c };
+    }));
+  } catch (e) { return finalJson; }
+}
+
 function scopeFor(shared, username) {
   if (shared === "true" || shared === true) return "shared";
   return `private:${username}`;
@@ -734,7 +797,7 @@ app.post("/auth/register", async (req, res) => {
       }
     }
     if (await canonicalUsername(username)) return res.status(409).json({ error: "username already taken (usernames aren't case-sensitive)" });
-    const finalRole = userCount === 0 ? "admin" : (role === "admin" ? "admin" : "staff");
+    const finalRole = userCount === 0 ? "admin" : (ROLES.includes(role) ? role : "staff");
     await createUser(username, password, finalRole);
     res.json({ username, role: finalRole, firstAccount: userCount === 0 });
   } catch (e) {
@@ -797,6 +860,7 @@ app.post("/auth/revoke-user/:username", requireAuth, async (req, res) => {
 const IMAGE_TYPES = { "image/jpeg": true, "image/png": true, "image/webp": true };
 app.post("/product-images", requireAuth, async (req, res) => {
   try {
+    if (!COUNTER.includes(req.user.role)) return res.status(403).json({ error: "your role can't upload product photos" });
     const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(req.body.dataUrl || "");
     if (!m || !IMAGE_TYPES[m[1]]) return res.status(400).json({ error: "send a JPEG, PNG or WebP image" });
     const bytes = Buffer.from(m[2], "base64");
@@ -909,6 +973,26 @@ app.delete("/auth/users/:username", requireAuth, async (req, res) => {
     res.json({ removed: target });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
+// Owner changes someone's role. Their sessions end so the new role applies at their next sign-in
+// (a role is baked into each sign-in). The last Owner can't be demoted.
+app.post("/auth/users/:username/role", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ error: "owner only" });
+    const role = req.body && req.body.role;
+    if (!ROLES.includes(role)) return res.status(400).json({ error: "unknown role" });
+    const target = await canonicalUsername(req.params.username);
+    if (!target) return res.status(404).json({ error: "no such user" });
+    const cur = (await pool.query("SELECT role FROM users WHERE username = $1", [target])).rows[0];
+    if (cur.role === "admin" && role !== "admin") {
+      const admins = await pool.query("SELECT COUNT(*) AS n FROM users WHERE role = 'admin'");
+      if (parseInt(admins.rows[0].n, 10) <= 1) return res.status(400).json({ error: "the shop needs at least one Owner" });
+    }
+    await pool.query("UPDATE users SET role = $1 WHERE username = $2", [role, target]);
+    await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
+    res.json({ username: target, role });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 // Admin sets a new password for someone who forgot theirs; their old sessions end.
 app.post("/auth/users/:username/password", requireAuth, async (req, res) => {
   try {
@@ -986,10 +1070,12 @@ app.get("/storage/:key", tryAuth, async (req, res) => {
       return res.json({ key: req.params.key, value: row.value, shared: true });
     }
     const scope = scopeFor(req.query.shared, req.user.username);
+    if (scope === "shared" && !canAccess(req.user.role, req.params.key, "read")) return res.status(403).json({ error: "your role can't open this" });
     const result = await pool.query("SELECT value FROM storage WHERE scope = $1 AND key = $2", [scope, req.params.key]);
     const row = result.rows[0];
     if (!row) return res.status(404).json({ error: "not_found" });
-    res.json({ key: req.params.key, value: row.value, shared: scope === "shared" });
+    const value = scope === "shared" && req.params.key === "orders" && !SEES_BANK.includes(req.user.role) ? maskBank(row.value) : row.value;
+    res.json({ key: req.params.key, value, shared: scope === "shared" });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -1116,6 +1202,8 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
     }
 
     const scope = scopeFor(shared, req.user.username);
+    if (scope === "shared" && !canAccess(req.user.role, req.params.key, "write")) return res.status(403).json({ error: "your role can't change this" });
+    const hidesBank = scope === "shared" && req.params.key === "orders" && !SEES_BANK.includes(req.user.role);
     let staffQueued = [];
     const saved = await withListLock(scope, req.params.key, async (existingValue, write) => {
       let finalValue = value;
@@ -1123,6 +1211,7 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
         finalValue = (Array.isArray(changedIds) && mergeOnlyChanged(value, existingValue, changedIds)) || mergeKeepingNewer(value, existingValue);
       }
       if (scope === "shared" && req.params.key === "orders") finalValue = keepCustomerDecisions(finalValue, existingValue);
+      if (hidesBank) finalValue = restoreBank(finalValue, existingValue);
       if (scope === "shared" && req.params.key === "notification_queue") {   // staff-sent customer updates (e.g. "repair ready")
         try { const had = new Set((existingValue ? JSON.parse(existingValue) : []).map((r) => r && r.id)); staffQueued = JSON.parse(finalValue).filter((r) => r && r.id && !had.has(r.id)); } catch (e) { staffQueued = []; }
       }
@@ -1130,7 +1219,7 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
       return finalValue;
     });
     if (staffQueued.length) notifyNew("notification_queue", staffQueued);
-    res.json({ key: req.params.key, value: saved, shared: scope === "shared" });
+    res.json({ key: req.params.key, value: hidesBank ? maskBank(saved) : saved, shared: scope === "shared" });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -1259,6 +1348,7 @@ app.post("/id-photos", tryAuth, async (req, res) => {
 });
 
 app.get("/id-photos/:subjectKey", requireAuth, async (req, res) => {
+  if (!COUNTER.includes(req.user.role)) return res.status(403).json({ error: "your role can't view ID photos" });
   if (!ID_PHOTO_KEY) return res.status(503).json({ error: "id_photo_storage_disabled" });
   try {
     await purgeExpiredIdPhotos();
@@ -1274,6 +1364,7 @@ app.get("/id-photos/:subjectKey", requireAuth, async (req, res) => {
 
 app.delete("/id-photos/:subjectKey", requireAuth, async (req, res) => {
   try {
+    if (!OFFICE.includes(req.user.role)) return res.status(403).json({ error: "owner or manager only" });
     const result = await pool.query("DELETE FROM id_photos WHERE subject_key = $1", [req.params.subjectKey]);
     res.json({ subjectKey: req.params.subjectKey, deleted: result.rowCount });
   } catch (e) {

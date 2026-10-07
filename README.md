@@ -58,6 +58,21 @@ The server never trusts a price sent from a customer's browser:
 ## Two staff screens at once
 `storage-shim.js` remembers what each screen last loaded and sends only the records that screen changed. The server keeps everyone else's newer edits, so a screen left open can't roll back other people's work. Two people editing the same record at the same moment: the last save wins for that record.
 
+## Staff roles
+Set on the Team page (Owner only). The server enforces them; the portal only hides screens a role can't use.
+
+| Role (stored as) | Can use | Bank details |
+|---|---|---|
+| Owner (`admin`) | Everything, including the team and deleting whole lists | Full |
+| Manager (`manager`) | Everything except the team | Full |
+| Counter (`staff`) | Today, Register, trade-in inspection, repairs, till, products | Last 3 digits |
+| Technician (`technician`) | Today, repairs, pricing console (incl. business settings), inspection view only | Last 3 digits |
+
+- Per-list read/write rules are `ACCESS` in `backend/server.js`; a list not named there is Owner/Manager only.
+- Saves from Counter/Technician can't overwrite the real bank details with the masked ones.
+- Changing someone's role signs them out everywhere; the new role applies at their next sign-in. The last Owner can't be demoted.
+- Existing `staff` accounts are Counters. Move technicians to Technician on the Team page.
+
 ## Login protection
 5 failed attempts locks that username for 5 minutes (checked before the password). Sessions are signed tokens and can be revoked per user or everywhere. Admin recovery uses `ADMIN_RECOVERY_CODE` with `ADMIN_RECOVERY_EXPIRES`.
 

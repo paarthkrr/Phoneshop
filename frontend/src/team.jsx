@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { ROLE_LABELS, ROLE_HELP, ROLE_ORDER } from "./roles.js";
 
 // Team: admins add staff, reset forgotten passwords and remove people who've
 // left. Everyone can change their own password here too.
@@ -33,6 +34,11 @@ export default function Team() {
     try { await auth.register(window.SHOP_API_BASE_URL, nu.username.trim(), nu.password, nu.role, auth.authToken()); flash(`Account "${nu.username.trim()}" created. Give them their username and password.`); setNu({ username: "", password: "", role: "staff" }); refresh(); }
     catch (e) { flash(e.message, false); }
   }
+  async function changeRole(u, role) {
+    if (!window.confirm(`Change ${u} to ${ROLE_LABELS[role]}? They'll be signed out and get the new access when they sign in again.`)) return;
+    try { await api(`/auth/users/${encodeURIComponent(u)}/role`, { method: "POST", body: JSON.stringify({ role }) }); flash(`${u} is now ${ROLE_LABELS[role]}.`); refresh(); }
+    catch (e) { flash(e.message, false); refresh(); }
+  }
   async function resetPw(u) {
     const p = window.prompt(`New password for ${u} (8+ characters):`);
     if (!p) return;
@@ -59,8 +65,8 @@ export default function Team() {
           <Card title="Add a team member">
             <input style={field} placeholder="Username (e.g. their first name)" aria-label="New username" value={nu.username} onChange={(e) => setNu({ ...nu, username: e.target.value })} autoComplete="off" />
             <input style={field} placeholder="Temporary password (8+ characters)" aria-label="Temporary password" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} autoComplete="new-password" />
-            <div role="group" aria-label="Role" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-              {[["staff", "Staff — register, repairs, inspection"], ["admin", "Admin — also pricing & team"]].map(([k, l]) => (
+            <div role="group" aria-label="Role" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 12 }}>
+              {ROLE_ORDER.map((k) => [k, `${ROLE_LABELS[k]} — ${ROLE_HELP[k]}`]).map(([k, l]) => (
                 <button key={k} type="button" aria-pressed={nu.role === k} onClick={() => setNu({ ...nu, role: k })}
                   style={{ flex: 1, padding: 12, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: `1.5px solid ${nu.role === k ? brass : line}`, background: nu.role === k ? "rgba(33,80,200,0.10)" : "transparent", color: nu.role === k ? brass : paper }}>{l}</button>
               ))}
@@ -72,9 +78,13 @@ export default function Team() {
               <div key={u.username} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderBottom: "1px solid rgba(32,28,24,0.1)", flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>{u.username}{u.username === me.username ? " (you)" : ""}</div>
-                  <div style={{ fontSize: 13.5, color: muted }}>{u.role === "admin" ? "Admin" : "Staff"} · added {new Date(u.created_at).toLocaleDateString("en-AU")}</div>
+                  <div style={{ fontSize: 13.5, color: muted }}>{ROLE_LABELS[u.role] || u.role} · added {new Date(u.created_at).toLocaleDateString("en-AU")}</div>
                 </div>
                 {u.username !== me.username && <>
+                  <select aria-label={`Role for ${u.username}`} value={u.role} onChange={(e) => changeRole(u.username, e.target.value)}
+                    style={{ padding: "11px 10px", borderRadius: 10, border: `1px solid ${line}`, background: "#fff", fontSize: 14.5, fontFamily: "inherit", color: paper }}>
+                    {ROLE_ORDER.map((k) => <option key={k} value={k}>{ROLE_LABELS[k]}</option>)}
+                  </select>
                   <button style={btn("transparent", brass)} onClick={() => resetPw(u.username)}>Reset password</button>
                   <button style={btn("transparent", red)} onClick={() => remove(u.username)}>Remove</button>
                 </>}
@@ -83,7 +93,7 @@ export default function Team() {
           </Card>
         </>
       ) : (
-        <Card title="Team"><div style={{ fontSize: 15, color: muted }}>Only admins can add or remove team members. Ask an admin if you need an account for someone.</div></Card>
+        <Card title="Team"><div style={{ fontSize: 15, color: muted }}>Only the Owner can add, remove or change team members. Ask the Owner if you need an account for someone.</div></Card>
       )}
       <BackupCode />
       <Card title="Change my password">

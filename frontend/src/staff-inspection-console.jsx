@@ -1,5 +1,6 @@
 import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useMemo } from "react";
+import { currentRole } from "./roles.js";
 
 /* =================================================================
    STAFF INSPECTION CONSOLE
@@ -117,6 +118,7 @@ const STATUS_COLOR = (s, brass, muted, red, green) => ({
 }[s] || muted);
 
 export default function StaffInspectionConsole() {
+  const viewOnly = currentRole() === "technician"; // Technicians can look; Owner, Manager and Counter act
   const [orders, setOrders] = useState(null);
   const [config, setConfig] = useState(null);
   const [priceMatches, setPriceMatches] = useState([]);
@@ -324,17 +326,18 @@ export default function StaffInspectionConsole() {
               <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>
                 Customer originally declared: {open.faultLabels?.length ? open.faultLabels.join(", ") : "no faults, plus accessories: " + (open.hasAccessories ? "yes" : "no")}
               </div>
-              {open.fulfillment === "post" && open.status === "awaiting_shipment" && (
+              {viewOnly && <div style={{ marginTop: 10, fontSize: 13, color: "#5B6472" }}>View only: ask the Counter, a Manager or the Owner to update this trade-in.</div>}
+              {!viewOnly && open.fulfillment === "post" && open.status === "awaiting_shipment" && (
                 <ShippingTrackingField order={open} onSave={(shipping) => updateOrder(open.id, { shipping })} colors={{ paper, muted, brass, panel2, line }} />
               )}
-              {open.status === "awaiting_shipment" && (
+              {!viewOnly && open.status === "awaiting_shipment" && (
                 <button onClick={handleMarkReceived} style={{ marginTop: 10, padding: "8px 14px", borderRadius: 3, border: `1px solid ${brass}`, background: "transparent", color: brass, fontSize: 12.5, cursor: "pointer" }}>
                   Mark as received — start inspection
                 </button>
               )}
             </div>
 
-            {(open.status === "received_inspecting" || open.status === "awaiting_shipment") && (
+            {!viewOnly && (open.status === "received_inspecting" || open.status === "awaiting_shipment") && (
               <>
                 <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Re-assess condition</div>
                 <div style={{ marginBottom: 14 }}>
@@ -404,7 +407,7 @@ export default function StaffInspectionConsole() {
               </>
             )}
 
-            {open.status === "revised_pending_customer" && (
+            {!viewOnly && open.status === "revised_pending_customer" && (
               <div style={{ border: `1px solid ${red}`, borderRadius: 3, padding: 14 }}>
                 <div style={{ fontSize: 13, marginBottom: 8 }}>Awaiting the customer's response to the revised offer.</div>
                 <div style={{ fontSize: 13, color: muted, marginBottom: 12 }}>Revised: {fmt(open.inspection?.confirmedTotal, open.region, regions)} — "{open.inspection?.staffNote}"</div>
