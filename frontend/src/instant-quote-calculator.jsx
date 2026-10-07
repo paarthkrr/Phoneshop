@@ -1546,9 +1546,45 @@ export default function QuoteCalculator() {
 
         {submittedOrder && (
           <div style={{ border: `1px solid ${brass}`, borderRadius: 4, padding: 18, marginTop: 20, background: panel }}>
-            <div style={{ fontSize: 15, marginBottom: 4 }}>Order {submittedOrder.id} confirmed</div>
+            {(() => {
+              const rawFirst = String(submittedOrder.customer.name || "").trim().split(/\s+/)[0];
+              const first = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1) : "";
+              const days = Math.max(1, Math.round((new Date(submittedOrder.priceLockExpires) - new Date()) / 86400000));
+              const post = submittedOrder.fulfillment === "post";
+              const steps = [
+                ["Check your inbox", `We're emailing a confirmation to ${submittedOrder.customer.email}.`],
+                [post ? "Pop it in the post" : "Bring it to us", post ? "Send your phone to us using the details below." : "We'll be in touch to arrange a time that suits you."],
+                ["Inspect, ID check, get paid", "We check the phone with you, see your photo ID in person, then pay you the way you chose."],
+              ];
+              return (
+                <div style={{ textAlign: "center", paddingBottom: 6 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: brass, margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }} aria-hidden="true">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.25, color: paper }}>
+                    {first ? `Thank you, ${first}!` : "Thank you!"}
+                  </div>
+                  <div style={{ fontSize: 15, marginTop: 6, color: paper }}>
+                    Your old phone is about to get a second life.
+                  </div>
+                  <div style={{ fontSize: 13.5, marginTop: 6, color: muted, lineHeight: 1.6 }}>
+                    Your quote of <strong style={{ color: brass }}>{fmt(submittedOrder.quotedTotal, region, REGIONS_A)}</strong> is held for {days} day{days === 1 ? "" : "s"}. The final amount is confirmed when we inspect the phone.
+                  </div>
+                  <div style={{ textAlign: "left", margin: "18px 0 6px" }}>
+                    {steps.map(([title, text], i) => (
+                      <div key={title} style={{ display: "flex", gap: 12, padding: "9px 0", borderTop: i ? `1px solid ${line}` : "none" }}>
+                        <div style={{ flex: "0 0 26px", height: 26, borderRadius: "50%", border: `1.5px solid ${brass}`, color: brass, fontSize: 13, fontWeight: 700, textAlign: "center", lineHeight: "23px" }}>{i + 1}</div>
+                        <div style={{ fontSize: 13.5, lineHeight: 1.5, color: paper }}><strong>{title}</strong><br /><span style={{ color: muted }}>{text}</span></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            <div style={{ fontSize: 13, margin: "14px 0 4px", color: muted }}>Your order number</div>
+            <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 4, color: paper }}>{submittedOrder.id}</div>
             <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>
-              A confirmation has been sent to {submittedOrder.customer.email}. Save your order number to track it any time.
+              Save it to track your order any time. Questions? Just reply to our email or message us on WhatsApp.
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderTop: `1px solid ${line}`, fontSize: 13 }}>
               <span style={{ color: muted }}>Status</span><span>{STATUS_LABELS[submittedOrder.status]}</span>
