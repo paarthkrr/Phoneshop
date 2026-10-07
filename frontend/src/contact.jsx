@@ -41,7 +41,7 @@ export default function ContactUs() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 16px 80px" }}>
 
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 32, letterSpacing: "-0.01em", marginBottom: 10 }}>Get in touch</div>
+        <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 32, letterSpacing: "-0.01em", marginBottom: 10 }}>Get in touch</h1>
         <div style={{ color: muted, fontSize: 15, marginBottom: 34 }}>Questions about a repair, an order, or anything else — here's how to reach us.</div>
 
         <div style={{ display: "grid", gap: 14, marginBottom: 36 }}>
@@ -75,7 +75,7 @@ export default function ContactUs() {
             {address ? (
               <div style={{ fontSize: 15, lineHeight: 1.6 }}>{address}</div>
             ) : (
-              <div style={{ color: muted, fontSize: 14 }}>Address coming soon — check back shortly.</div>
+              <div style={{ fontSize: 15, lineHeight: 1.6 }}>Drop-off and collection are arranged by message. {businessSettings.whatsapp ? <a href={waLink(businessSettings.whatsapp, "Hi Mobile Recellr, I'd like to arrange a drop-off. ")} target="_blank" rel="noopener" style={{ color: "#2150C8", fontWeight: 700 }}>WhatsApp us</a> : "Message us"} and we'll confirm the place and time — or book a free home collection anywhere in Sydney.</div>
             )}
           </div>
 

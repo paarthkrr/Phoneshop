@@ -81,6 +81,21 @@ const STAFF_LINKS = [
   { to: "/portal/team", label: "Team" },
 ];
 
+// Top strip. Wide screens show every message on one line; phones show one
+// message at a time (rotating), so the strip never takes more than one line.
+const ANNOUNCEMENTS = ["🏠 Home collection across Sydney", "💵 Get paid in cash", "✓ 49-point check", "⚡ Free express shipping over $100", "✓ 1-year warranty on phones"];
+function AnnouncementBar() {
+  const [i, setI] = useState(0);
+  useEffect(() => { const t = setInterval(() => setI((n) => (n + 1) % ANNOUNCEMENTS.length), 4000); return () => clearInterval(t); }, []);
+  const terms = <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>;
+  return (
+    <div className="cs-announce" style={{ background: "#111827", color: "#FFFFFF", fontSize: 12.5, textAlign: "center", padding: "7px 12px", lineHeight: 1.5, fontFamily: "'Archivo', system-ui, sans-serif" }}>
+      <span className="cs-announce-full">{ANNOUNCEMENTS.join("  ·  ")}  ·  {terms}</span>
+      <span className="cs-announce-one" aria-live="off" style={{ whiteSpace: "nowrap" }}>{ANNOUNCEMENTS[i]}  ·  {terms}</span>
+    </div>
+  );
+}
+
 function Nav() {
   const location = useLocation();
   const isStaff = isStaffPath(normPath(location.pathname));
@@ -193,12 +208,15 @@ function Nav() {
           .mv-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
           .mv-stagger > * { animation: cs-fade-in 0.4s ease both !important; }
         }
+        /* Touch screens: give small text links a finger-sized tap area (about 44px tall). */
+        @media (pointer: coarse) {
+          footer a { display: inline-block; padding: 9px 0; }
+          .cs-announce a { display: inline-block; padding: 6px 0; }
+        }
+        .cs-announce-one { display: none; }
+        @media (max-width: 900px) { .cs-announce-full { display: none; } .cs-announce-one { display: inline; } }
       `}</style>
-      {!isStaff && (
-        <div className="cs-announce" style={{ background: "#111827", color: "#FFFFFF", fontSize: 12.5, textAlign: "center", padding: "7px 12px", lineHeight: 1.5, fontFamily: "'Archivo', system-ui, sans-serif" }}>
-          🏠 Home collection across Sydney &nbsp;·&nbsp; 💵 Get paid in cash &nbsp;·&nbsp; ✓ 49-point check &nbsp;·&nbsp; ⚡ Free express shipping on phones &amp; accessory orders over $100 &nbsp;·&nbsp; ✓ 1-year warranty &nbsp;·&nbsp; <a href="/terms" target="_blank" rel="noopener" style={{ color: "inherit", textDecoration: "underline" }}>Conditions apply</a>
-        </div>
-      )}
+      {!isStaff && <AnnouncementBar />}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
           <Link to={isStaff ? "/portal/index.html" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
