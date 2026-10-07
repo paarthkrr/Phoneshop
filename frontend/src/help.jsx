@@ -74,7 +74,7 @@ export default function Help() {
       const ok = await saveJSON("support_queries", [entry, ...list], true);
       if (!ok) throw new Error("Couldn't submit — check your connection and try again.");
       await queueNotification({
-        type: "support_query", channel: "email", recipientEmail: entry.email,
+        type: "support_query", channel: "email", recipientEmail: entry.email, recipientName: entry.name,
         subject: `We've received your question — ${entry.id}`,
         message: `Thanks for reaching out. We've received your message and will get back to you shortly.`,
         relatedId: entry.id,

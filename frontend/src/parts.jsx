@@ -106,7 +106,7 @@ export default function Parts() {
       if (!(await saveJSON("accessory_orders", [order, ...list], true))) throw new Error("Couldn't place your order — check your connection and try again.");
       const q2 = (await loadJSON("notification_queue", true)) || [];
       q2.unshift({ id: "NTF-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(), status: "pending", type: "accessory_order",
-        channel: "email", recipientEmail: order.customer.email, subject: `Order ${order.id} received`, relatedId: order.id,
+        channel: "email", recipientEmail: order.customer.email, recipientName: order.customer.name, subject: `Order ${order.id} received`, relatedId: order.id,
         message: `Thanks for your order (${count} item${count === 1 ? "" : "s"}, ${fmt(order.total)}). ${fulfilment === "collect" ? "We'll let you know when it's ready to collect — pay when you pick it up." : "We'll email you a secure payment link, then post it out."}` });
       await saveJSON("notification_queue", q2, true);
       setPlaced(order); setCart([]); setView("done");

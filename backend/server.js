@@ -271,13 +271,50 @@ function emailHtml(subject, text) {
     <div style="font-size:15px;line-height:1.6">${body}</div>
     <div style="margin-top:26px;padding-top:12px;border-top:1px solid #E2E6EC;font-size:12px;color:#5B6472">Mobile Recellr · Sydney · mobilerecellr.com.au · WhatsApp 0411 931 999</div></div>`;
 }
-async function sendEmail({ to, subject, text, replyTo }) {
+// ---- Customer-facing email layout (thank-you + shop details) ----
+// Location and phone can be changed later in Render (SHOP_LOCATION, SHOP_PHONE) with no code change.
+const SHOP_LOCATION = () => process.env.SHOP_LOCATION || "Sydney";
+const SHOP_PHONE = () => process.env.SHOP_PHONE || "0411 931 999";
+const SHOP_WA_LINK = () => { const d = String(SHOP_PHONE()).replace(/\D/g, ""); return `https://wa.me/${d.startsWith("0") ? "61" + d.slice(1) : d}`; };
+// Submissions where the customer is waiting to hear back from us.
+const RECEIVED_KINDS = new Set(["order_confirmation", "quote_lead", "bulk_quote_request", "repair_request", "support_query", "accessory_order"]);
+const NEXT_STEPS = "We've received your request and our team will review it and get back to you shortly. If you'd like to add anything in the meantime, just reply to this email or message us on WhatsApp.";
+// "  rahul   sharma " -> "Rahul". First name only, letters/'-. only, so nothing odd lands in the email.
+function firstName(raw) {
+  const w = String(raw || "").trim().split(/\s+/)[0] || "";
+  const clean = w.replace(/[^\p{L}'’.-]/gu, "").slice(0, 30);
+  return clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : "";
+}
+function customerEmailText(text, kind, name) {
+  return [
+    `Hi ${firstName(name) || "there"},`, "", text || "",
+    ...(RECEIVED_KINDS.has(kind) ? ["", NEXT_STEPS] : []),
+    "", "Thanks for choosing Mobile Recellr.", "",
+    "--", "Mobile Recellr", SHOP_LOCATION(),
+    `Phone / WhatsApp: ${SHOP_PHONE()}`, `Email: ${OWNER_EMAIL()} (or just reply to this email)`, "https://mobilerecellr.com.au",
+  ].join("\n");
+}
+function customerEmailHtml(subject, text, kind, name) {
+  const body = escHtml(text).replace(/\n/g, "<br>");
+  const next = RECEIVED_KINDS.has(kind) ? `<p style="margin:16px 0 0">${escHtml(NEXT_STEPS)}</p>` : "";
+  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#0F1B3D">
+    <div style="padding:18px 0;border-bottom:2px solid #2150C8;font-weight:800;font-size:18px">MOBILE <span style="color:#2150C8">RECELLR</span></div>
+    <h2 style="font-size:18px;margin:20px 0 10px">${escHtml(subject)}</h2>
+    <div style="font-size:15px;line-height:1.6"><p style="margin:0 0 12px">Hi ${escHtml(firstName(name) || "there")},</p><p style="margin:0">${body}</p>${next}<p style="margin:16px 0 0">Thanks for choosing Mobile Recellr.</p></div>
+    <div style="margin-top:26px;padding:14px 16px;background:#F3F6FD;border-radius:8px;font-size:13px;line-height:1.7;color:#0F1B3D">
+      <strong>Mobile Recellr</strong> · ${escHtml(SHOP_LOCATION())}<br>
+      Phone / WhatsApp: <a href="${escHtml(SHOP_WA_LINK())}" style="color:#2150C8;text-decoration:none">${escHtml(SHOP_PHONE())}</a><br>
+      Email: <a href="mailto:${escHtml(OWNER_EMAIL())}" style="color:#2150C8;text-decoration:none">${escHtml(OWNER_EMAIL())}</a> (or just reply to this email)<br>
+      <a href="https://mobilerecellr.com.au" style="color:#2150C8;text-decoration:none">mobilerecellr.com.au</a>
+    </div></div>`;
+}
+async function sendEmail({ to, subject, text, replyTo, customer, kind, name }) {
   const key = process.env.RESEND_API_KEY;
   if (!key || !to) return { skipped: true };
   try {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: EMAIL_FROM(), to: [to], subject, text, html: emailHtml(subject, text), ...(replyTo ? { reply_to: replyTo } : {}) }),
+      body: JSON.stringify({ from: EMAIL_FROM(), to: [to], subject, text: customer ? customerEmailText(text, kind, name) : text, html: customer ? customerEmailHtml(subject, text, kind, name) : emailHtml(subject, text), ...(replyTo ? { reply_to: replyTo } : {}) }),
     });
     if (!r.ok) console.error("email not sent:", r.status, (await r.text()).slice(0, 200));
     return { ok: r.ok };
@@ -296,10 +333,10 @@ function summarise(item) {
   return lines.slice(0, 40).join("\n");
 }
 function notifyNew(key, items) {
-  for (const item of items || []) {
+  for (const item of (items || []).slice(0, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST)) {
     if (!item) continue;
     if (key === "notification_queue") {
-      if (item.channel === "email" && item.recipientEmail) void sendEmail({ to: item.recipientEmail, subject: item.subject || "Update from Mobile Recellr", text: item.message || "", replyTo: OWNER_EMAIL() });
+      if (item.channel === "email" && item.recipientEmail) void sendEmail({ to: item.recipientEmail, subject: item.subject || "Update from Mobile Recellr", text: item.message || "", replyTo: OWNER_EMAIL(), customer: true, kind: item.type, name: item.recipientName });
       continue;
     }
     const who = item.name || (item.customer && item.customer.name) || item.email || (item.customer && item.customer.email) || item.id || "";
@@ -316,7 +353,40 @@ function scopeFor(shared, username) {
   return `private:${username}`;
 }
 
+// ---- Anonymous-traffic throttling (spam / email-flood protection) ----
+// Public forms can write without a login, and each new submission emails
+// the owner. In-memory, per client IP, sliding window. Resets on restart,
+// which is fine for abuse control (this is not a security boundary).
+function makeLimiter(max, windowMs) {
+  const hits = new Map();
+  const timer = setInterval(() => {
+    const cutoff = Date.now() - windowMs;
+    for (const [ip, list] of hits) {
+      const kept = list.filter((ts) => ts > cutoff);
+      if (kept.length) hits.set(ip, kept); else hits.delete(ip);
+    }
+  }, windowMs);
+  if (timer.unref) timer.unref();
+  return function allow(req) {
+    const ip = req.ip || "unknown";
+    const now = Date.now();
+    const list = (hits.get(ip) || []).filter((ts) => ts > now - windowMs);
+    if (list.length >= max) { hits.set(ip, list); return false; }
+    list.push(now);
+    hits.set(ip, list);
+    return true;
+  };
+}
+const PUBLIC_WRITE_MAX = parseInt(process.env.PUBLIC_WRITE_MAX || "20", 10);          // submissions per IP per 10 min
+const publicWriteAllowed = makeLimiter(PUBLIC_WRITE_MAX, 10 * 60 * 1000);
+const publicRespondAllowed = makeLimiter(30, 10 * 60 * 1000);
+const PUBLIC_MAX_ITEMS_PER_SUBMISSION = 20;
+const PUBLIC_MAX_VALUE_CHARS = 2_000_000;   // anonymous JSON payload cap (staff are not capped below the 10mb body limit)
+const PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST = 5;
+
 const app = express();
+// Render sits behind one proxy hop; without this req.ip is the proxy, not the visitor.
+app.set("trust proxy", 1);
 // Gate every request behind schema setup finishing — see the comment
 // on schemaReady above for why this exists.
 app.use(async (req, res, next) => {
@@ -722,9 +792,12 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
       if (!PUBLIC_WRITE_KEYS.includes(req.params.key) || (shared !== true && shared !== "true")) {
         return res.status(401).json({ error: "unauthorized" });
       }
+      if (!publicWriteAllowed(req)) return res.status(429).json({ error: "too many submissions from this connection, please try again in a few minutes" });
+      if (value.length > PUBLIC_MAX_VALUE_CHARS) return res.status(413).json({ error: "submission too large" });
       let incoming;
       try { incoming = JSON.parse(value); } catch (e) { return res.status(400).json({ error: "expected a JSON array for a public submission" }); }
       if (!Array.isArray(incoming)) return res.status(400).json({ error: "expected a JSON array" });
+      if (incoming.length > PUBLIC_MAX_ITEMS_PER_SUBMISSION) return res.status(413).json({ error: "too many items in one submission" });
       // Merge by id rather than trusting the anonymous client's array —
       // their local view of "existing records" is always empty (they
       // can't read this key back), so this only ever adds their genuinely
@@ -811,6 +884,7 @@ app.get("/public/find/:key", async (req, res) => {
 // by /public/find), so a guessed order ID alone isn't enough to act on
 // someone else's order.
 app.post("/public/orders/:orderId/respond", async (req, res) => {
+  if (!publicRespondAllowed(req)) return res.status(429).json({ error: "too many requests, please try again later" });
   try {
     const { email, decision } = req.body;
     if (!email || (decision !== "accept" && decision !== "decline")) {
