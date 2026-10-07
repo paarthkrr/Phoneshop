@@ -76,9 +76,9 @@ The default local database URL in `server.js` is a localhost test credential onl
 - Backend change: push to `main`, Render redeploys the web service.
 - Frontend change: push to `main`, Render rebuilds the static site.
 - Say in each change whether it is frontend, backend or both, and list any new env vars.
+- In Render, check a merge shows a deploy with trigger "New commit" within a few minutes. If it says "API" or nothing appears, auto-deploy isn't firing: reconnect GitHub in Render (Account Settings) and the Render app on GitHub (Settings → Applications), then use Manual Deploy → Deploy latest commit.
 
 ## Known gaps
 - Render Postgres backups are not configured in this repo.
 - No payment processing; payment methods and amounts are recorded only.
 - Digital marketing (Google Business Profile, Search Console, Google Ads, SEO) is deferred but must be done.
-- `DEPLOYMENT.md` still describes the old SQLite setup (`DB_PATH`) and needs the same update.
