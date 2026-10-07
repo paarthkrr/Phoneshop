@@ -269,7 +269,6 @@ function Nav() {
         {!isStaff ? (
           <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <Link to="/quote" className="mm-quote-btn desk">Get a Quote</Link>
-            <Link to="/portal/index.html" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
           </div>
         ) : (
           <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -305,9 +304,7 @@ function Nav() {
             </Link>
           );
         })}
-        {!isStaff ? (
-          <Link to="/portal/index.html" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>Staff login →</Link>
-        ) : (
+        {isStaff && (
           <>
             {window.shopAuth && window.shopAuth.currentUser() && (
               <a href="#" onClick={(e) => { e.preventDefault(); window.shopAuth.logout(window.SHOP_API_BASE_URL); window.location.reload(); }}
