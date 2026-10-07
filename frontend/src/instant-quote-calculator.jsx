@@ -507,7 +507,7 @@ export default function QuoteCalculator() {
   const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" });
   const [referralCodeEntered, setReferralCodeEntered] = useState("");
   const [myReferralCode, setMyReferralCode] = useState(null);
-  const [fulfillment, setFulfillment] = useState("post");
+  const [fulfillment, setFulfillment] = useState("pickup"); // home collection is the main offer
   // Cash is only possible face to face (home collection or drop-off).
   useEffect(() => { if (fulfillment === "post") setCustomer((c) => (c.payoutMethod === "cash" ? { ...c, payoutMethod: "bank" } : c)); }, [fulfillment]);
   const [address, setAddress] = useState("");
@@ -1335,7 +1335,7 @@ export default function QuoteCalculator() {
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>How will you send it?</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              {[{ id: "post", label: "Post it to us" }, { id: "dropoff", label: "Drop it off in store" }, { id: "pickup", label: "Home collection" }].map((opt) => (
+              {[{ id: "pickup", label: "Home collection" }, { id: "post", label: "Post it to us" }, { id: "dropoff", label: "Drop it off in store" }].map((opt) => (
                 <button key={opt.id} onClick={() => setFulfillment(opt.id)}
                   style={{ flex: 1, padding: "10px", borderRadius: 3, fontSize: 13, cursor: "pointer",
                     border: `1px solid ${fulfillment === opt.id ? brass : line}`, background: fulfillment === opt.id ? brassDim : "transparent",
@@ -1439,7 +1439,9 @@ export default function QuoteCalculator() {
               const post = submittedOrder.fulfillment === "post";
               const steps = [
                 ["Check your inbox", `We're emailing a confirmation to ${submittedOrder.customer.email}.`],
-                [post ? "Pop it in the post" : "Bring it to us", post ? "Send your phone to us using the details below." : "We'll be in touch to arrange a time that suits you."],
+                submittedOrder.fulfillment === "pickup"
+                  ? ["We'll come to you", "We'll call or email to book a collection time that suits you."]
+                  : [post ? "Pop it in the post" : "Bring it to us", post ? "Send your phone to us using the details below." : "We'll be in touch to arrange a time that suits you."],
                 ["Inspect, ID check, get paid", post ? "We inspect it when it arrives and confirm your ID, then pay you the way you chose." : "We check the phone with you, see your photo ID in person, then pay you the way you chose."],
               ];
               return (
