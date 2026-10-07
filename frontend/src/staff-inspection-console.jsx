@@ -282,7 +282,7 @@ export default function StaffInspectionConsole() {
                   <span style={{ fontSize: 12, color: STATUS_COLOR(o.status, brass, muted, red, green) }}>{STATUS_LABELS[o.status]}</span>
                 </div>
                 <div style={{ fontSize: 13, marginTop: 2 }}>{o.device.brand} {o.device.model} · {o.device.storage}</div>
-                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{o.customer.name} · {fmt(o.quotedTotal, o.region, regions)}</div>
+                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{o.customer.name} · {fmt(o.quotedTotal, o.region, regions)}{o.priceCheck && o.priceCheck.verified === false ? " · ⚠ check price" : ""}</div>
               </button>
             ))}
           </>
@@ -303,6 +303,15 @@ export default function StaffInspectionConsole() {
               <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>
                 Name on ID (customer entered): {open.customer.idOwnerName || "not given"}. Check their photo ID in person before paying.
               </div>
+              {open.priceCheck && open.priceCheck.verified === false && (
+                <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", marginTop: 4, fontWeight: 600 }}>
+                  ⚠ Price check: {open.priceCheck.quoteTooHigh
+                    ? `the quoted amount is above what the price list allows (about ${fmt(open.priceCheck.maxQuote, open.region, regions)} at most). Don't honour it without checking.`
+                    : open.priceCheck.reason
+                      ? `couldn't verify this quote (${open.priceCheck.reason}).`
+                      : "the price sent from the customer's browser didn't match the price list. Re-assessment below uses the shop's own price."}
+                </div>
+              )}
               {open.customer.payoutMethod && (
                 <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>
                   Payout via {open.customer.payoutMethod === "cash" ? "💵 CASH (pay on collection / drop-off)" : open.customer.payoutMethod === "bank" ? "bank transfer" : "PayPal"}{open.customer.payoutMethod === "cash" ? "" : ": "}{open.customer.payoutMethod === "cash" ? null : 

@@ -1,4 +1,5 @@
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
+import { DEFAULT_RETENTION_POINTS, retentionAt, DEFAULT_BRAND_FACTOR, ageMonths, CATEGORY_FACTOR, DEFAULT_REGIONS, DEFAULT_TIERS, ACCESSORY_BONUS_PCT, DEFAULT_HOLDING_COST_PCT, baseBuybackAUD } from "./pricing.js";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import InspectionSignature from "./inspection-signature.jsx";
 // Friendly validation shared by the customer forms
@@ -34,36 +35,6 @@ const useEffect = React.useEffect;
    verified per brand — that's the next thing worth data-checking.
 ================================================================= */
 
-const DEFAULT_RETENTION_POINTS = [
-  { m: 0, r: 0.66 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
-  { m: 36, r: 0.37 },  // recalibrated 28 Sep 2026 vs live Mobile Monster Brand New prices: 16 Pro 910/1799, 15 Pro 670/1849, 14 460/1399
-  { m: 48, r: 0.33 }, { m: 60, r: 0.233 },  // older ages scaled by the same ~0.75 the 4-yr point moved
-  { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 },
-  { m: 120, r: 0.045 },
-];
-
-function retentionAt(months, points) {
-  const pts = points || DEFAULT_RETENTION_POINTS;
-  if (months <= pts[0].m) return pts[0].r;
-  for (let i = 0; i < pts.length - 1; i++) {
-    if (months <= pts[i + 1].m) {
-      const t = (months - pts[i].m) / (pts[i + 1].m - pts[i].m);
-      return pts[i].r + t * (pts[i + 1].r - pts[i].r);
-    }
-  }
-  const last = pts[pts.length - 1];
-  return Math.max(0.04, last.r - (months - last.m) * 0.0015);
-}
-
-const DEFAULT_BRAND_FACTOR = {
-  Apple: 1.00, Samsung: 0.88, Google: 0.80, OnePlus: 0.72,
-  Xiaomi: 0.60, Oppo: 0.68, Vivo: 0.65, Motorola: 0.62, Nothing: 0.58,
-};
-
-function ageMonths(releaseDate) {
-  const ms = Date.now() - new Date(releaseDate).getTime();
-  return Math.max(0, ms / (1000 * 60 * 60 * 24 * 30));
-}
 
 /* =================================================================
    CATALOG — original AU launch retail price per storage (AUD).
@@ -79,19 +50,11 @@ function ageMonths(releaseDate) {
    wear). These are reasoned, not independently verified the way the
    phone retention curve is — worth checking against a real watch/
    tablet/laptop buyback listing before trusting them with real money. */
-const CATEGORY_FACTOR = { phone: 1.00, tablet: 1.05, laptop: 1.15, watch: 0.70 };
 const CATEGORIES = ["All", "phone", "tablet", "laptop", "watch"];
 const CATEGORY_LABEL = { phone: "Phones", tablet: "Tablets", laptop: "Laptops", watch: "Watches" };
 
 const BRANDS = ["All", "Apple", "Samsung", "Google", "OnePlus", "Xiaomi", "Oppo", "Vivo", "Motorola", "Nothing"];
 
-const DEFAULT_REGIONS = {
-  AU: { label: "Australia", currency: "AUD", symbol: "A$", mult: 1.00, round: 1 },
-  US: { label: "United States", currency: "USD", symbol: "$", mult: 0.70, round: 1 },
-  UK: { label: "United Kingdom", currency: "GBP", symbol: "£", mult: 0.46, round: 1 },
-  IN: { label: "India", currency: "INR", symbol: "₹", mult: 37, round: 10 },
-  AE: { label: "UAE", currency: "AED", symbol: "AED ", mult: 2.35, round: 1 },
-};
 
 /* Tier factors are now the average of two real, live Mobile Monster
    ladders (iPhone 15 Pro Max 256GB: 100/96/92/8, iPhone 13 128GB:
@@ -100,13 +63,6 @@ const DEFAULT_REGIONS = {
    work, not the tier. That's the fix: previously "Good" was docked
    22%, when real-world buyback only docks ~11% for cosmetic-only
    wear and lets faults do the rest. */
-const DEFAULT_TIERS = [
-  { id: "new", label: "Brand New", sub: "Sealed, unopened box", icon: "📦", factor: 1.00, mode: "sealed" },
-  { id: "asnew", label: "Like New", sub: "Used, no visible wear", icon: "✨", factor: 0.94, mode: "functional-only" },
-  { id: "good", label: "Good", sub: "Visible wear, fully working", icon: "👍", factor: 0.89, mode: "full" },
-  { id: "fair", label: "Fair", sub: "Noticeable damage, still usable", icon: "⚠️", factor: 0.75, mode: "full" },
-  { id: "parts", label: "Faulty / For Parts", sub: "Won't turn on or major damage", icon: "🔧", factor: 0.09, mode: "parts" },
-];
 
 const PHONE_FAULT_GROUPS = [
   { group: "Display", cosmetic: true, faults: [
@@ -288,8 +244,6 @@ const BLOCKERS = [
   { id: "imei_mismatch", label: "IMEI doesn't match device / duplicate IMEI" },
 ];
 
-const ACCESSORY_BONUS_PCT = 0.02;
-const DEFAULT_HOLDING_COST_PCT = 0.02; // flat refurb/overhead cost — age is already priced in via the curve
 const STEPS = ["Device", "Storage", "Condition", "Quote"];
 
 // One rounding rule for both display and storage, so the amount saved on an
@@ -304,17 +258,6 @@ function fmt(n, region, regionsMap) {
   return `${r.symbol}${val.toLocaleString()}`;
 }
 
-function baseBuybackAUD(device, storage, retentionPoints, brandFactors) {
-  const retail = device.retail[storage];
-  const months = ageMonths(device.release);
-  const brandF = (brandFactors || DEFAULT_BRAND_FACTOR)[device.brand] ?? 0.65;
-  const categoryF = CATEGORY_FACTOR[device.category] ?? 1.00;
-  // Per-model market correction set by staff in the Pricing Console
-  // (e.g. -8 when a model trades below what its age predicts). Clamped so a
-  // typo can't produce a wildly wrong quote.
-  const adj = Math.max(-60, Math.min(30, Number(device.marketAdjPct) || 0));
-  return retail * retentionAt(months, retentionPoints) * brandF * categoryF * (1 + adj / 100);
-}
 
 const CONFIG_KEY = "pricing-config";
 

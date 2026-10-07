@@ -277,6 +277,10 @@ function publicView(record) {
   if (Array.isArray(record.items)) out.items = record.items.map((i) => ({ name: i && i.name, qty: i && i.qty, price: i && i.price }));
   return out;
 }
+async function loadSharedValue(key) {
+  const r = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = $1", [key]);
+  try { return r.rows[0] ? JSON.parse(r.rows[0].value) : null; } catch (e) { return null; }
+}
 async function loadSharedList(key) {
   const r = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = $1", [key]);
   try { const v = r.rows[0] ? JSON.parse(r.rows[0].value) : []; return Array.isArray(v) ? v : []; } catch (e) { return []; }
@@ -380,6 +384,66 @@ function notifyNew(key, items, max = Infinity) {
   }
 }
 
+// ---- Prices on anonymous orders come from the shop, not the browser ----
+// A customer's browser can send any number. Before an order is saved:
+//  - trade-ins: the "Brand New" base that staff re-assessment pays from is
+//    recomputed with the same formula the calculator uses (frontend/src/pricing.js);
+//    a quote above what the price list allows is flagged for staff.
+//  - phone purchases: price comes from the listed inventory item.
+//  - accessories: prices from the catalogue, total recomputed.
+let pricingModule = null;
+const loadPricing = () => (pricingModule = pricingModule || import("../frontend/src/pricing.js"));
+const round2 = (n) => Math.round(n * 100) / 100;
+// Mirrors SHIPPING_FLAT / FREE_SHIPPING_OVER in frontend/src/parts.jsx.
+const ACCESSORY_SHIPPING_FLAT = 9.95, ACCESSORY_FREE_SHIPPING_OVER = 100;
+async function enforcePrices(key, records) {
+  if (key === "orders") {
+    const { brandNewBase, DEFAULT_TIERS, ACCESSORY_BONUS_PCT } = await loadPricing();
+    const config = (await loadSharedValue("pricing-config")) || {};
+    const tierOverrides = Object.fromEntries((Array.isArray(config.tiers) ? config.tiers : []).map((t) => [t.id, t.factor]));
+    const maxTier = Math.max(...DEFAULT_TIERS.map((t) => Number(tierOverrides[t.id] ?? t.factor) || 0));
+    return records.map((o) => {
+      const d = o.device || {};
+      const base = brandNewBase(config, { brand: d.brand, model: d.model, storage: d.storage, region: o.region });
+      if (base == null) return { ...o, priceCheck: { verified: false, reason: "device not in the price list" } };
+      const claimed = Number(o.brandNewBase);
+      const maxQuote = base * maxTier * (1 + ACCESSORY_BONUS_PCT);
+      const quoteTooHigh = !(Number(o.quotedTotal) <= maxQuote * 1.01 + 1);
+      const baseChanged = !(Math.abs(claimed - base) <= base * 0.01 + 0.5);
+      return { ...o, brandNewBase: base, priceCheck: quoteTooHigh || baseChanged
+        ? { verified: false, quoteTooHigh, claimedBase: Number.isFinite(claimed) ? round2(claimed) : null, serverBase: round2(base), maxQuote: Math.round(maxQuote) }
+        : { verified: true } };
+    });
+  }
+  if (key === "purchase_orders") {
+    const inventory = await loadSharedList("inventory");
+    return records.map((o) => {
+      const item = inventory.find((i) => i && i.id === o.itemId && i.status === "listed");
+      if (!item || !Number.isFinite(Number(item.listedPrice))) return { ...o, priceCheck: { verified: false, reason: "item is not currently listed" } };
+      return { ...o, brand: item.brand, model: item.model, storage: item.storage, gradeId: item.gradeId, price: Number(item.listedPrice),
+        priceCheck: Number(o.price) === Number(item.listedPrice) ? { verified: true } : { verified: false, clientPrice: o.price } };
+    });
+  }
+  if (key === "accessory_orders") {
+    const catalogue = await loadSharedList("accessories");
+    return records.map((o) => {
+      let unknown = 0;
+      const items = (Array.isArray(o.items) ? o.items : []).map((i) => {
+        const a = catalogue.find((x) => x && i && x.id === i.id);
+        const qty = Math.max(1, Math.floor(Number(i && i.qty) || 1));
+        if (!a || !Number.isFinite(Number(a.sellPrice))) { unknown++; return { ...i, qty }; }
+        return { ...i, name: a.name, category: a.category, price: Number(a.sellPrice), qty };
+      });
+      const subtotal = round2(items.reduce((n, i) => n + (Number(i.price) || 0) * i.qty, 0));
+      const shipping = o.fulfilment === "delivery" && subtotal < ACCESSORY_FREE_SHIPPING_OVER ? ACCESSORY_SHIPPING_FLAT : 0;
+      const total = round2(subtotal + shipping);
+      const ok = !unknown && Math.abs(Number(o.total) - total) < 0.01;
+      return { ...o, items, subtotal, shipping, total, priceCheck: ok ? { verified: true } : { verified: false, clientTotal: o.total, unknownItems: unknown } };
+    });
+  }
+  return records;
+}
+
 // ---- Customer confirmations for anonymous submissions ----
 // The site queues a confirmation after each public form. The server never
 // emails text or addresses supplied by an anonymous browser: it looks up
@@ -395,7 +459,7 @@ const deviceName = (r) => clip(`${(r.device && r.device.brand) || ""} ${(r.devic
 const CONFIRMATIONS = {
   order_confirmation: { key: "orders", email: (r) => r.customer && r.customer.email, name: (r) => r.customer && r.customer.name,
     subject: (r) => `Order ${clip(r.id)} received - thanks from Mobile Recellr`,
-    message: (r) => `Thanks for sending us your ${deviceName(r)} trade-in. We've received it (order ${clip(r.id)}) with a quote of ${money(r.quotedTotal, r.currency)}, subject to inspecting the device.` },
+    message: (r) => `Thanks for sending us your ${deviceName(r)} trade-in. We've received it (order ${clip(r.id)})${r.priceCheck && r.priceCheck.quoteTooHigh ? "" : ` with a quote of ${money(r.quotedTotal, r.currency)}`}, subject to inspecting the device.` },
   quote_lead: { key: "quote_leads", email: (r) => r.email, name: () => "",
     subject: (r) => `Your ${deviceName(r)} quote: ${money(r.quotedTotal, r.currency)}`,
     message: (r) => `We've held this price for you${dateAU(r.priceHeldUntil) ? ` until ${dateAU(r.priceHeldUntil)}` : ""}. Ready to sell? Come back anytime.` },
@@ -902,9 +966,27 @@ function keepCustomerDecisions(finalJson, existingJson) {
   } catch (e) { return finalJson; }
 }
 
+// When the browser says which records it actually changed since it last
+// loaded this list, every other record keeps the server's current version.
+// A staff screen left open can then only overwrite what that person edited.
+// Returns null when the lists aren't id'd records (caller falls back).
+function mergeOnlyChanged(incomingJson, existingJson, changedIds) {
+  let incoming, existing;
+  try { incoming = JSON.parse(incomingJson); existing = existingJson ? JSON.parse(existingJson) : []; } catch (e) { return null; }
+  if (!Array.isArray(incoming) || !Array.isArray(existing)) return null;
+  const isRecord = (r) => r && typeof r === "object" && r.id != null;
+  if (!incoming.every(isRecord) || !existing.every(isRecord)) return null;
+  const changed = new Set(changedIds.map(String));
+  const current = new Map(existing.map((r) => [String(r.id), r]));
+  const have = new Set(incoming.map((r) => String(r.id)));
+  const out = incoming.map((r) => (!changed.has(String(r.id)) && current.has(String(r.id)) ? current.get(String(r.id)) : r));
+  const missing = existing.filter((r) => !have.has(String(r.id)));
+  return JSON.stringify([...missing, ...out]);
+}
+
 app.put("/storage/:key", tryAuth, async (req, res) => {
   try {
-    const { value, shared } = req.body;
+    const { value, shared, changedIds } = req.body;
     if (typeof value !== "string") return res.status(400).json({ error: "value must be a string (JSON.stringify it client-side)" });
 
     if (!req.user) {
@@ -928,9 +1010,11 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
         // Same id, different content = two customers drew the same random id.
         // Refuse rather than silently dropping the second customer's submission.
         // (A retry of an already-saved submission is identical and just succeeds.)
+        const sameSubmission = (a, b) => JSON.stringify([a.createdAt, a.customer, a.email, a.business]) === JSON.stringify([b.createdAt, b.customer, b.email, b.business]);
         if (key !== "notification_queue" && key !== "referrals" &&
-            incoming.some((r) => r && r.id && byId.has(r.id) && JSON.stringify(byId.get(r.id)) !== JSON.stringify(r))) return { conflict: true };
+            incoming.some((r) => r && r.id && byId.has(r.id) && !sameSubmission(byId.get(r.id), r))) return { conflict: true };
         let fresh = incoming.filter((r) => r && r.id && !byId.has(r.id));
+        fresh = await enforcePrices(key, fresh);
         if (key === "notification_queue") fresh = await buildConfirmations(fresh, existing);
         if (key === "referrals") fresh = await enrichReferrals(fresh);
         if (fresh.length) await write(JSON.stringify([...fresh, ...existing]), "public");
@@ -946,8 +1030,10 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
     const scope = scopeFor(shared, req.user.username);
     let staffQueued = [];
     const saved = await withListLock(scope, req.params.key, async (existingValue, write) => {
-      let finalValue = scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)
-        ? mergeKeepingNewer(value, existingValue) : value;
+      let finalValue = value;
+      if (scope === "shared" && !DELETE_BY_OMISSION_KEYS.includes(req.params.key)) {
+        finalValue = (Array.isArray(changedIds) && mergeOnlyChanged(value, existingValue, changedIds)) || mergeKeepingNewer(value, existingValue);
+      }
       if (scope === "shared" && req.params.key === "orders") finalValue = keepCustomerDecisions(finalValue, existingValue);
       if (scope === "shared" && req.params.key === "notification_queue") {   // staff-sent customer updates (e.g. "repair ready")
         try { const had = new Set((existingValue ? JSON.parse(existingValue) : []).map((r) => r && r.id)); staffQueued = JSON.parse(finalValue).filter((r) => r && r.id && !had.has(r.id)); } catch (e) { staffQueued = []; }

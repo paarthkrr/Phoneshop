@@ -44,6 +44,15 @@ Visitors who are not logged in are limited per IP: 20 submissions per 10 minutes
 - Only an admin can delete a whole shared collection.
 - A customer's accept/decline on a revised offer survives a staff save from an older copy; a newer re-inspection still wins.
 
+## Prices on customer orders
+The server never trusts a price sent from a customer's browser:
+- Trade-ins: the "Brand New" base that staff re-assessment pays from is recomputed with the same formula as the calculator (`frontend/src/pricing.js`, shared by both). A quote above what the price list allows is flagged; staff see "⚠ check price" on the inspection screen, and the confirmation email leaves the amount out.
+- Phone purchases: the price comes from the listed inventory item.
+- Accessories: prices come from the catalogue and the total is recomputed (shipping rule mirrors `parts.jsx`; change both together).
+
+## Two staff screens at once
+`storage-shim.js` remembers what each screen last loaded and sends only the records that screen changed. The server keeps everyone else's newer edits, so a screen left open can't roll back other people's work. Two people editing the same record at the same moment: the last save wins for that record.
+
 ## Login protection
 5 failed attempts locks that username for 5 minutes (checked before the password). Sessions are signed tokens and can be revoked per user or everywhere. Admin recovery uses `ADMIN_RECOVERY_CODE` with `ADMIN_RECOVERY_EXPIRES`.
 
