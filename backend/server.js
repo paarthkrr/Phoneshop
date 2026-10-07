@@ -332,8 +332,10 @@ function summarise(item) {
   }
   return lines.slice(0, 40).join("\n");
 }
-function notifyNew(key, items) {
-  for (const item of (items || []).slice(0, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST)) {
+function notifyNew(key, items, max = Infinity) {
+  const list = items || [];
+  if (list.length > max) console.warn(`notifyNew(${key}): ${list.length} new items, only emailing the first ${max}`);
+  for (const item of list.slice(0, max)) {
     if (!item) continue;
     if (key === "notification_queue") {
       if (item.channel === "email" && item.recipientEmail) void sendEmail({ to: item.recipientEmail, subject: item.subject || "Update from Mobile Recellr", text: item.message || "", replyTo: OWNER_EMAIL(), customer: true, kind: item.type, name: item.recipientName });
@@ -809,7 +811,7 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
         await write(JSON.stringify([...fresh, ...existing]), "public");
         return fresh;
       });
-      notifyNew(req.params.key, newOnes);
+      notifyNew(req.params.key, newOnes, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST);
       // Never return the merged collection to an anonymous caller — only confirm what THEY submitted.
       return res.json({ key: req.params.key, submitted: newOnes.length });
     }
