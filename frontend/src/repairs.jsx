@@ -126,7 +126,7 @@ export default function Repairs() {
       const ok = await saveJSON("repair_requests", [entry, ...list], true);
       if (!ok) throw new Error("Couldn't submit — check your connection and try again.");
       await queueNotification({
-        type: "repair_request", channel: "email", recipientEmail: entry.email,
+        type: "repair_request", channel: "email", recipientEmail: entry.email, recipientName: entry.name,
         subject: `Repair request ${entry.id} received`,
         message: `We've received your repair request for your ${entry.deviceType.toLowerCase()} (${entry.model}). We'll reach out shortly to confirm details and turnaround.`,
         relatedId: entry.id,

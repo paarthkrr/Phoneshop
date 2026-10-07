@@ -8,7 +8,7 @@ provides it.
 
 `server.js` + `storage-shim.js` are that "something real." They
 implement the exact same get/set/delete/list contract over HTTP +
-SQLite, so **none of the 8 tool files need to change** — you're
+Postgres, so **none of the 8 tool files need to change** — you're
 replacing the storage backend, not rewriting the frontend.
 
 This was proven, not assumed: `admin-pricing-console.jsx` was run
@@ -18,21 +18,25 @@ behavior, same data landing in a real database.
 
 ## 1. Deploy the backend
 
-`server.js` needs a host with a **persistent disk** (the SQLite file
-must survive restarts) — Railway, Render, or Fly.io all support this;
-a serverless platform like Vercel's functions does not, so don't use
-those for this part.
+`backend/server.js` is a long-running Node server that stores everything in
+**Postgres**. This project runs it as a Render web service with a Render
+Postgres database (set `DATABASE_URL`). A serverless platform like Vercel's
+functions is not suitable for this part.
 
 ```bash
-cd shop-backend
+cd backend
 npm install
 npm start        # runs on :8787 locally — set PORT env var on your host
 ```
 
 Environment variables your host should set:
 - `PORT` — usually set automatically by the platform
-- `DB_PATH` — where the SQLite file lives; point this at your platform's
-  persistent volume mount (e.g. Railway volumes, Render disks)
+- `DATABASE_URL` — the Postgres connection string (Render Postgres). Set
+  `PGSSL=true` if your host requires SSL and the URL does not say so.
+- `RESEND_API_KEY`, `EMAIL_FROM`, `OWNER_EMAIL` — email via Resend. Verify a
+  sending domain in Resend and set `EMAIL_FROM` to an address on it;
+  the default `onboarding@resend.dev` only delivers to the Resend account owner.
+- `PUBLIC_WRITE_MAX` (optional, default 20) — anonymous submissions per IP per 10 minutes.
 - `SESSION_SECRET` — a long random string (e.g. `openssl rand -hex 32`).
   **Set this explicitly.** The server runs with an obviously-insecure
   default if you don't, and will only warn (not refuse to start) if
@@ -147,17 +151,17 @@ server logic of its own anymore, only API calls to your backend.
 
 ## 3. What's still not solved by this deployment
 
-- **Backups** — a single SQLite file on one disk is a single point of
-  failure. At minimum, set up your host's automatic disk snapshots.
+- **Backups** — set up Render Postgres backups (a paid-plan feature) or
+  schedule your own `pg_dump`. Backups are not configured by this repo.
 - **ID photo retention period** — the system enforces whatever
   `ID_PHOTO_RETENTION_DAYS` you set (default 90), but verifying that's
   the *correct* period for your jurisdiction is still on you, not this
   system — it's a legal question, not a technical one.
-- **Rate limiting is per-username, not per-IP.** Five failed logins
-  locks out that *account* for 15 minutes — it doesn't stop someone
+- **Login rate limiting is per-username, not per-IP.** Five failed logins
+  locks out that *account* for 5 minutes — it doesn't stop someone
   from trying five different accounts from the same IP in quick
-  succession. Good enough for a small shop; a high-traffic deployment
-  would want IP-based limiting layered on top.
+  succession. Anonymous public submissions (forms, offers) are separately
+  limited per IP.
 - **HSTS** isn't set by this app, deliberately — that's your hosting
   platform's job, since it terminates TLS, not this Node process.
   Most platforms (Railway, Render, etc.) handle this for you already.

@@ -775,9 +775,9 @@ export default function QuoteCalculator() {
     }
 
     await queueNotification({
-      type: "order_confirmation", channel: "email", recipientEmail: customer.email,
-      subject: `Order ${order.id} confirmed`,
-      message: `Your ${selected.brand} ${selected.model} trade-in is confirmed for ${fmt(calc.total, region, REGIONS_A)}. Order ${order.id}.`,
+      type: "order_confirmation", channel: "email", recipientEmail: customer.email, recipientName: customer.name,
+      subject: `Order ${order.id} received - thanks from Mobile Recellr`,
+      message: `Thanks for sending us your ${selected.brand} ${selected.model} trade-in. We've received it (order ${order.id}) with a quote of ${fmt(calc.total, region, REGIONS_A)}, subject to inspecting the device.`,
       relatedId: order.id,
     });
     setMyReferralCode(newCode);
@@ -895,7 +895,7 @@ export default function QuoteCalculator() {
     };
     await saveBulkRequest(request);
     await queueNotification({
-      type: "bulk_quote_request", channel: "email", recipientEmail: bulkBusiness.email,
+      type: "bulk_quote_request", channel: "email", recipientEmail: bulkBusiness.email, recipientName: bulkBusiness.contactName,
       subject: `Bulk trade-in request ${request.id} received`,
       message: `We've received your request for ${bulkItems.length} device(s), estimated at ${fmt(total, region, REGIONS_A)} total. A team member will follow up within 1-2 business days with a firm offer.`,
       relatedId: request.id,
