@@ -20,6 +20,7 @@ import Products from "./products.jsx";
 import SellBrand from "./sell-brand.jsx";
 import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
+import { NAV_CSS, DesktopMenu, MobileDrawer, MobileBackdrop } from "./site-nav.jsx";
 import DailyDashboard from "./daily-dashboard.jsx";
 import AdminPricingConsole from "./admin-pricing-console.jsx";
 import StaffInspectionConsole from "./staff-inspection-console.jsx";
@@ -103,10 +104,20 @@ function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
   // Close the mobile menu whenever the page changes, so tapping a link
   // doesn't leave the menu hanging open over the new page.
-  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+  useEffect(() => { setMenuOpen(false); }, [location.pathname, location.search]);
+  // While the mobile menu is open: stop the page behind it scrolling, and let Escape close it.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => { if (e.key === "Escape") setMenuOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+  }, [menuOpen]);
   useEffect(() => { document.body.classList.toggle("cs-staff-mode", isStaff); }, [isStaff]);
 
   return (
+    <>
     <nav style={{ borderBottom: `1px solid ${line}`, background: panel, position: "sticky", top: 0, zIndex: 50 }} aria-label="Main navigation">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
@@ -215,6 +226,7 @@ function Nav() {
         }
         .cs-announce-one { display: none; }
         @media (max-width: 900px) { .cs-announce-full { display: none; } .cs-announce-one { display: inline; } }
+        ${NAV_CSS}
       `}</style>
       {!isStaff && <AnnouncementBar />}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
@@ -223,7 +235,8 @@ function Nav() {
             <span style={{ display: "inline-flex", alignItems: "center", gap: 9, textTransform: "none" }}><img src="/logo-icon.svg" alt="" width="34" height="34" style={{ display: "block" }} /><span style={{ fontSize: 19, letterSpacing: "0.01em", lineHeight: 1 }}>MOBILE <span style={{ color: brass }}>RECELLR</span></span></span>{isStaff && <span style={{ fontSize: 12, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
           </Link>
           <div className="cs-nav-links" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {links.map((l) => {
+            {!isStaff && <DesktopMenu pathname={normPath(location.pathname)} />}
+            {isStaff && links.map((l) => {
               const active = normPath(location.pathname) === l.to;
               return (
                 <Link key={l.to} to={l.to} className={`cs-nav-link${active ? " active" : ""}`} aria-current={active ? "page" : undefined}
@@ -238,7 +251,10 @@ function Nav() {
           </div>
         </div>
         {!isStaff ? (
-          <Link to="/portal/index.html" className="cs-nav-aside" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
+          <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <Link to="/quote" className="mm-quote-btn desk">Get a Quote</Link>
+            <Link to="/portal/index.html" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>Staff login →</Link>
+          </div>
         ) : (
           <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 14 }}>
             {window.shopAuth && window.shopAuth.currentUser() && (
@@ -251,11 +267,18 @@ function Nav() {
             <Link to="/" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>← Exit to public site</Link>
           </div>
         )}
-        <button className="cs-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen} aria-controls="cs-mobile-menu" aria-label={menuOpen ? "Close menu" : "Open menu"}>
-          {menuOpen ? "✕" : "☰"}
-        </button>
+        {isStaff ? (
+          <button className="cs-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen} aria-controls="cs-mobile-menu" aria-label={menuOpen ? "Close menu" : "Open menu"}>
+            {menuOpen ? "✕" : "☰"}
+          </button>
+        ) : (
+          <button className={`cs-burger${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen} aria-controls="cs-mobile-menu" aria-label={menuOpen ? "Close menu" : "Open menu"}>
+            <span /><span /><span />
+          </button>
+        )}
       </div>
-      <div id="cs-mobile-menu" className={`cs-mobile-menu${menuOpen ? " open" : ""}`}
+      {!isStaff && <MobileDrawer open={menuOpen} />}
+      {isStaff && <div id="cs-mobile-menu" className={`cs-mobile-menu${menuOpen ? " open" : ""}`}
         style={{ flexDirection: "column", borderTop: `1px solid ${line}`, padding: "8px 16px 14px", fontFamily: "'Archivo', system-ui, sans-serif" }}>
         {links.map((l) => {
           const active = normPath(location.pathname) === l.to;
@@ -277,8 +300,10 @@ function Nav() {
             <Link to="/" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>← Exit to public site</Link>
           </>
         )}
-      </div>
+      </div>}
     </nav>
+    {!isStaff && <MobileBackdrop open={menuOpen} onClose={() => setMenuOpen(false)} />}
+    </>
   );
 }
 
