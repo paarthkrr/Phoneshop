@@ -9,6 +9,7 @@ import ContactUs from "./contact.jsx";
 import FAQ from "./faq.jsx";
 import Help from "./help.jsx";
 import ChatWidget from "./chat-widget.jsx";
+import SplashIntro from "./splash-intro.jsx";
 import Repairs from "./repairs.jsx";
 import Parts from "./parts.jsx";
 import Blog from "./blog.jsx";
@@ -261,7 +262,7 @@ function Nav() {
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
           <Link to={isStaff ? "/portal/index.html" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 9, textTransform: "none" }}><img src="/logo-icon.svg" alt="" width="34" height="34" style={{ display: "block" }} /><span style={{ fontSize: 19, letterSpacing: "0.01em", lineHeight: 1 }}>MOBILE <span style={{ color: brass }}>RECELLR</span></span></span>{isStaff && <span style={{ fontSize: 12, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, textTransform: "none" }}><img src="/logo-mark.svg" alt="" width="25" height="34" style={{ display: "block" }} /><span style={{ fontFamily: "'Outfit', 'Archivo', sans-serif", fontSize: 24, letterSpacing: "-0.015em", lineHeight: 1, whiteSpace: "nowrap" }}><span style={{ fontWeight: 400 }}>Mobile</span> <span style={{ fontWeight: 800, color: brass }}>Recellr</span></span></span>{isStaff && <span style={{ fontSize: 12, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
           </Link>
           <div className="cs-nav-links" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {!isStaff && <DesktopMenu pathname={normPath(location.pathname)} />}
@@ -531,6 +532,7 @@ export default function App() {
         <SiteSchema />
         <AnimatedRoutes />
         <ChatWidget />
+        <SplashIntro />
       </div>
     </BrowserRouter>
   );

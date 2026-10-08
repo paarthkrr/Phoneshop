@@ -68,13 +68,27 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
   const netProfit = grossProfit - totalExpenses - writeOffs + tillVariance;
 
   // Technicians: jobs completed in the period, time, pay; plus pay still owed (any period).
+  // Split by job type so efficiency can be judged separately:
+  //   customer = a customer's device repaired at the counter (earns takings)
+  //   shop     = a phone we bought, fixed up for our own stock (no takings; its cost goes on the phone)
+  // rework = warranty comebacks in the period on a job this technician did.
   const techs = new Map();
-  const tech = (name) => { if (!techs.has(name)) techs.set(name, { name, jobs: 0, minutes: 0, pay: 0, owed: 0, owedJobs: [] }); return techs.get(name); };
+  const blank = () => ({ jobs: 0, timed: 0, minutes: 0, pay: 0, revenue: 0, parts: 0 });
+  const tech = (name) => { if (!techs.has(name)) techs.set(name, { name, jobs: 0, minutes: 0, pay: 0, owed: 0, owedJobs: [], rework: 0, byType: { customer: blank(), shop: blank() } }); return techs.get(name); };
+  const byId = new Map(tickets.filter(Boolean).map((t) => [t.id, t]));
   for (const t of tickets) {
-    if (!t || t.status !== "completed") continue;
+    if (!t) continue;
+    if (t.warrantyOf && inPeriod(t.createdAt)) { const orig = byId.get(t.warrantyOf); if (orig && orig.assignedTo) tech(orig.assignedTo).rework += 1; }
+    if (t.status !== "completed") continue;
     const name = t.assignedTo || "Not assigned";
     const pay = num(t.techPay) || 0;
-    if (inPeriod(t.completedAt)) { const x = tech(name); x.jobs += 1; x.minutes += num(t.timeSpentMins) || 0; x.pay += pay; }
+    if (inPeriod(t.completedAt)) {
+      const x = tech(name), mins = num(t.timeSpentMins) || 0;
+      x.jobs += 1; x.minutes += mins; x.pay += pay;
+      const k = x.byType[t.jobType === "shop" ? "shop" : "customer"];
+      k.jobs += 1; if (mins) k.timed += 1; k.minutes += mins; k.pay += pay; k.parts += partsCostOf(t);
+      if (t.jobType !== "shop") k.revenue += num(t.finalPrice ?? t.quotedPrice) || 0;
+    }
     if (pay > 0 && !t.techPaidAt) { const x = tech(name); x.owed += pay; x.owedJobs.push(t.id); }
   }
   const technicians = [...techs.values()].sort((a, b) => b.pay + b.owed - (a.pay + a.owed));

@@ -40,7 +40,7 @@ export default function SiteFooter() {
         @media (prefers-reduced-motion: reduce) { .sf-link { transition: none; } .sf-link:hover { transform: none; } }
       `}</style>
       <div>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}><img src="/logo-icon.svg" alt="" width="26" height="26" style={{ borderRadius: 7 }} />Mobile Recellr</div>
+        <div style={{ fontFamily: "'Outfit', 'Archivo', sans-serif", fontSize: 20, letterSpacing: "-0.015em", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}><img src="/logo-mark.svg" alt="" width="19" height="26" /><span><span style={{ fontWeight: 400 }}>Mobile</span> <span style={{ fontWeight: 800, color: "#2150C8" }}>Recellr</span></span></div>
         <div style={{ color: muted, lineHeight: 1.7 }}>
           {businessSettings?.address || "Address on file at checkout"}<br />
           {businessSettings?.phone && <><a href={`tel:${businessSettings.phone.replace(/\s/g, "")}`} style={{ color: "inherit" }}>{businessSettings.phone}</a><br /></>}
@@ -88,7 +88,7 @@ export default function SiteFooter() {
       <div>
         <div className="sf-h">Why Mobile Recellr</div>
         <div style={{ color: muted, lineHeight: 1.9 }}>
-          ✓ Genuine or premium parts<br />
+          ✓ Genuine parts only<br />
           ✓ Price match guarantee<br />
           ✓ 1-year warranty on devices<br />
           ✓ Free express shipping on phones &amp; accessory orders $100+<br />

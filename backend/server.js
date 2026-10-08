@@ -366,7 +366,7 @@ function emailShell({ preheader, heading, bodyHtml, footerHtml }) {
  <tr><td style="padding:0 4px 14px 4px;">
    <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
      <td style="vertical-align:middle;"><img src="${LOGO_URL}" width="52" height="52" alt="Mobile Recellr" style="display:block;border:0;border-radius:12px;"></td>
-     <td style="vertical-align:middle;padding-left:12px;font-family:${E.font};font-size:20px;font-weight:800;letter-spacing:.6px;color:${E.navy};">MOBILE <span style="color:${E.blue};">RECELLR</span></td>
+     <td style="vertical-align:middle;padding-left:8px;font-family:${E.font};font-size:22px;font-weight:400;letter-spacing:-.2px;color:${E.navy};">Mobile <span style="font-weight:800;color:${E.blue};">Recellr</span></td>
    </tr></table>
  </td></tr>
  <tr><td style="background:#ffffff;border-radius:14px;border-top:4px solid ${E.blue};padding:28px 28px 22px 28px;font-family:${E.font};color:${E.navy};">
