@@ -359,7 +359,7 @@ function StaffGate({ children }) {
       if (!me) { setStatus("needs-login"); return; }
       applyLimits(me.limits);
       // Ask the server too: rules may have changed since this sign-in.
-      window.shopAuth.refreshMe(window.SHOP_API_BASE_URL).then((s) => { if (!s) setStatus("needs-login"); else applyLimits(s.limits); }).catch(() => {});
+      window.shopAuth.refreshMe(window.SHOP_API_BASE_URL).then((s) => { if (!s) setStatus("needs-login"); else { applyLimits(s.limits); window.dispatchEvent(new Event("mv-auth-change")); } }).catch(() => {});
     } catch (e) {
       console.error("Auth check failed, treating as logged out:", e);
       setStatus("needs-login");
@@ -433,8 +433,8 @@ function StaffGate({ children }) {
     if (!canSeeScreen(normPath(location.pathname), role)) {
       return (
         <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", fontFamily: "'Archivo', system-ui, sans-serif", color: "#111827" }}>
-          <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontWeight: 400, fontSize: 24, margin: "0 0 8px" }}>Not part of your role</h1>
-          <p style={{ color: "#5B6472", fontSize: 15, lineHeight: 1.6 }}>Your role is <strong>{ROLE_LABELS[role] || role}</strong>, which doesn't include this screen. Ask the Owner if you need it.</p>
+          <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontWeight: 400, fontSize: 24, margin: "0 0 8px" }}>Not part of your access</h1>
+          <p style={{ color: "#5B6472", fontSize: 15, lineHeight: 1.6 }}>Your role is <strong>{ROLE_LABELS[role] || role}</strong>, and your access doesn't include this screen. Ask the Owner if you need it.</p>
           <Link to="/portal" style={{ color: "#2150C8", fontWeight: 700 }}>Go to Today →</Link>
         </div>
       );

@@ -1,6 +1,7 @@
 // Staff roles are enforced by the server.
 // Run with: DATABASE_URL=postgres://... npm test   (drops all tables first)
-process.env.TWO_STEP_ROLES = ""; // two-step sign-in has its own tests (auth.test.js)
+process.env.TWO_STEP_ROLES = "";
+process.env.ACTIVITY_EMAIL_DELAY_MS = "50"; // two-step sign-in has its own tests (auth.test.js)
 const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 
@@ -83,6 +84,37 @@ test("what each role can open and change", async () => {
   }
   assert.equal((await call("GET", "/auth/users", tok.manager)).status, 403, "team list is Owner only");
   assert.equal((await call("DELETE", "/storage/inventory?shared=true", tok.manager)).status, 403, "wiping a list is Owner only");
+});
+
+test("the Owner can add or remove access for one person, live, without a sign-out", async () => {
+  const access = (u, areas, t = tok.owner) => call("POST", `/auth/users/${u}/access`, t, { areas });
+  assert.equal((await get("expenses", tok.counter)).status, 403);
+  assert.equal((await access("counter", ["register", "reports"], tok.manager)).status, 403, "Owner only");
+  assert.equal((await access("counter", ["register", "everything"])).status, 400);
+  assert.equal((await access("owner", ["register"])).status, 400, "Owner always has full access");
+
+  const r = await access("counter", ["register", "reports"]);
+  assert.deepEqual(r.body.areas, ["register", "reports"]);
+  assert.equal((await get("expenses", tok.counter)).status, 200, "granted, same sign-in");
+  assert.deepEqual((await call("GET", "/auth/me", tok.counter)).body.areas, ["register", "reports"]);
+  assert.match(JSON.parse((await get("orders", tok.counter)).body.value)[0].customer.bankAccountNumber, /^•••/, "bank still masked");
+
+  await access("counter", ["reports"]);   // take the register away
+  assert.equal((await put("inventory", [{ id: "x2" }], tok.counter)).status, 403);
+  assert.equal((await get("till_records", tok.counter)).status, 403);
+
+  const users = (await call("GET", "/auth/users", tok.owner)).body.users;
+  const c = users.find((u) => u.username === "counter");
+  assert.deepEqual(c.areas, ["reports"]);
+  assert.deepEqual(c.roleAreas, ["register"]);
+
+  await access("counter", ["register"]);  // back to the role's defaults = no custom access stored
+  assert.equal(users.length, 4);
+  assert.equal((await call("GET", "/auth/users", tok.owner)).body.users.find((u) => u.username === "counter").access, null);
+  assert.equal((await get("expenses", tok.counter)).status, 403);
+
+  const log = (await call("GET", "/activity?area=team", tok.owner)).body.entries;
+  assert.ok(log.some((e) => /counter's access: \+ Customers, reports & expenses/.test(e.summary) && e.important === "access changed"));
 });
 
 test("changing a role signs the person out; only the Owner can do it; one Owner always remains", async () => {

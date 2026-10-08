@@ -1,6 +1,6 @@
 import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useMemo } from "react";
-import { currentRole } from "./roles.js";
+import { currentRole, hasArea } from "./roles.js";
 
 /* =================================================================
    STAFF INSPECTION CONSOLE
@@ -118,7 +118,7 @@ const STATUS_COLOR = (s, brass, muted, red, green) => ({
 }[s] || muted);
 
 export default function StaffInspectionConsole() {
-  const viewOnly = currentRole() === "technician"; // Technicians can look; Owner, Manager and Counter act
+  const viewOnly = !!currentRole() && !hasArea("register"); // without the register area (e.g. Technicians) staff can look but not act
   const [orders, setOrders] = useState(null);
   const [config, setConfig] = useState(null);
   const [priceMatches, setPriceMatches] = useState([]);

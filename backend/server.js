@@ -143,6 +143,7 @@ const schemaReady = pool.query(`
   );
   CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username, attempted_at);
   ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS access JSONB;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_pending TEXT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled_at TIMESTAMPTZ;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_last_step BIGINT;
@@ -255,7 +256,7 @@ async function verifyToken(token) {
   // admin-revoked session must fail here even with a perfectly valid
   // signature and an unexpired exp claim.
   if (!payload.sid) return null;
-  const result = await pool.query("SELECT s.revoked_at, s.weak_password, u.totp_enabled_at FROM sessions s LEFT JOIN users u ON u.username = s.username WHERE s.session_id = $1", [payload.sid]);
+  const result = await pool.query("SELECT s.revoked_at, s.weak_password, u.totp_enabled_at, u.access FROM sessions s LEFT JOIN users u ON u.username = s.username WHERE s.session_id = $1", [payload.sid]);
   const session = result.rows[0];
   if (!session || session.revoked_at) return null;
   // Things this person must finish before the portal opens: a password that
@@ -263,7 +264,7 @@ async function verifyToken(token) {
   const limits = [];
   if (session.weak_password) limits.push("password");
   if (twoStepRequired(payload.role) && !session.totp_enabled_at) limits.push("two-step");
-  return { ...payload, limits }; // { username, role, sid, iat, exp, limits }
+  return { ...payload, limits, areas: areasFor(payload.role, session.access) }; // + limits, areas
 }
 // While a sign-in still has setup to finish, only these calls work.
 const SETUP_PATHS = new Set(["/auth/me", "/auth/logout", "/auth/change-password", "/auth/2fa", "/auth/2fa/setup", "/auth/2fa/enable", "/auth/recovery-code"]);
@@ -643,35 +644,52 @@ const ROLES = ["admin", "manager", "staff", "technician"];
 // is lost and no backup code was saved).
 const TWO_STEP_ROLES = (process.env.TWO_STEP_ROLES ?? "admin,manager").split(",").map((r) => r.trim()).filter(Boolean);
 function twoStepRequired(role) { return TWO_STEP_ROLES.includes(role); }
-const ALL = ROLES, OFFICE = ["admin", "manager"], COUNTER = ["admin", "manager", "staff"], PRICING = ["admin", "manager", "technician"];
-const ACCESS = {
-  orders: { read: ALL, write: COUNTER },
-  price_match_requests: { read: ALL, write: PRICING },
-  "pricing-config": { read: ALL, write: PRICING },
-  "pricing-history": { read: PRICING, write: PRICING },
-  inventory: { read: ALL, write: COUNTER },
-  sales: { read: ALL, write: ALL },               // the repair bench records repair payments as sales
-  repair_requests: { read: ALL, write: ALL },
-  repair_tickets: { read: ALL, write: ALL },
-  parts_stock: { read: ALL, write: ALL },
-  notification_queue: { read: ALL, write: ALL },
-  staff_on_shift: { read: ALL, write: ALL },
-  till_records: { read: COUNTER, write: COUNTER },
-  accessories: { read: ALL, write: COUNTER },
-  accessory_orders: { read: COUNTER, write: COUNTER },
-  purchase_orders: { read: COUNTER, write: COUNTER },
-  expenses: { read: OFFICE, write: OFFICE },
-  quote_leads: { read: OFFICE, write: OFFICE },
-  referrals: { read: OFFICE, write: OFFICE },
-  support_queries: { read: OFFICE, write: OFFICE },
-  bulk_quote_requests: { read: OFFICE, write: OFFICE },
+// Access is grouped into areas. Each role has default areas; the Owner can add
+// or remove areas for one person (users.access = { grant: [...], revoke: [...] }).
+// The Owner always has every area; the team itself and the activity log stay Owner-only.
+const AREAS = {
+  register: "Register, trade-ins, stock & till",
+  pricing: "Pricing console",
+  reports: "Customers, reports & expenses",
+  bank: "See customers' full bank details",
 };
-const DEFAULT_ACCESS = { read: OFFICE, write: OFFICE };   // anything not listed: Owner and Manager only
-const canAccess = (role, key, mode) => ((ACCESS[key] || DEFAULT_ACCESS)[mode] || []).includes(role);
+const ROLE_AREAS = { admin: Object.keys(AREAS), manager: ["register", "pricing", "reports", "bank"], staff: ["register"], technician: ["pricing"] };
+function areasFor(role, access) {
+  if (role === "admin") return Object.keys(AREAS);
+  const a = new Set(ROLE_AREAS[role] || []);
+  for (const g of (access && access.grant) || []) if (AREAS[g]) a.add(g);
+  for (const r of (access && access.revoke) || []) a.delete(r);
+  return Object.keys(AREAS).filter((k) => a.has(k));
+}
+const hasArea = (user, area) => !!user && (area === "all" || (user.areas || []).includes(area));
+// What each shared list needs: "all" = every signed-in staff member.
+const ACCESS = {
+  orders: { read: "all", write: "register" },
+  price_match_requests: { read: "all", write: "pricing" },
+  "pricing-config": { read: "all", write: "pricing" },
+  "pricing-history": { read: "pricing", write: "pricing" },
+  inventory: { read: "all", write: "register" },
+  sales: { read: "all", write: "all" },               // the repair bench records repair payments as sales
+  repair_requests: { read: "all", write: "all" },
+  repair_tickets: { read: "all", write: "all" },
+  parts_stock: { read: "all", write: "all" },
+  notification_queue: { read: "all", write: "all" },
+  staff_on_shift: { read: "all", write: "all" },
+  till_records: { read: "register", write: "register" },
+  accessories: { read: "all", write: "register" },
+  accessory_orders: { read: "register", write: "register" },
+  purchase_orders: { read: "register", write: "register" },
+  expenses: { read: "reports", write: "reports" },
+  quote_leads: { read: "reports", write: "reports" },
+  referrals: { read: "reports", write: "reports" },
+  support_queries: { read: "reports", write: "reports" },
+  bulk_quote_requests: { read: "reports", write: "reports" },
+};
+const DEFAULT_ACCESS = { read: "reports", write: "reports" };   // anything not listed
+const canAccess = (user, key, mode) => hasArea(user, (ACCESS[key] || DEFAULT_ACCESS)[mode]);
 
 // Full payout bank details are for Owner and Manager. Everyone else sees the last 3 digits,
 // and a save from them can never overwrite the real numbers with the masked ones.
-const SEES_BANK = OFFICE;
 const BANK_FIELDS = ["bankBsb", "bankAccountNumber", "paypalEmail"];
 const maskTail = (v) => { const t = String(v ?? ""); return t ? "•••" + t.slice(-3) : t; };
 function maskBank(json) {
@@ -964,7 +982,8 @@ app.post("/auth/login", async (req, res) => {
     const limits = [];
     if (weakPassword) limits.push("password");
     if (twoStepRequired(user.role) && !row.totp_enabled_at) limits.push("two-step");
-    res.json({ token, username: user.username, role: user.role, expiresAt: now + TOKEN_TTL_MS, limits });
+    const access = (await pool.query("SELECT access FROM users WHERE username = $1", [user.username])).rows[0].access;
+    res.json({ token, username: user.username, role: user.role, expiresAt: now + TOKEN_TTL_MS, limits, areas: areasFor(user.role, access) });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -998,7 +1017,7 @@ app.post("/auth/revoke-user/:username", requireAuth, async (req, res) => {
 const IMAGE_TYPES = { "image/jpeg": true, "image/png": true, "image/webp": true };
 app.post("/product-images", requireAuth, async (req, res) => {
   try {
-    if (!COUNTER.includes(req.user.role)) return res.status(403).json({ error: "your role can't upload product photos" });
+    if (!hasArea(req.user, "register")) return res.status(403).json({ error: "your access doesn't include uploading product photos" });
     const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(req.body.dataUrl || "");
     if (!m || !IMAGE_TYPES[m[1]]) return res.status(400).json({ error: "send a JPEG, PNG or WebP image" });
     const bytes = Buffer.from(m[2], "base64");
@@ -1095,8 +1114,8 @@ app.post("/auth/recover-admin", recoverHandler);
 // ---- Team management (admin only) ----
 app.get("/auth/users", requireAuth, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "admin only" });
-  const r = await pool.query("SELECT username, role, created_at, totp_enabled_at IS NOT NULL AS two_step FROM users ORDER BY created_at");
-  res.json({ users: r.rows });
+  const r = await pool.query("SELECT username, role, created_at, totp_enabled_at IS NOT NULL AS two_step, access FROM users ORDER BY created_at");
+  res.json({ users: r.rows.map((u) => ({ ...u, areas: areasFor(u.role, u.access), roleAreas: ROLE_AREAS[u.role] || [] })), areaNames: AREAS });
 });
 // Remove a team member: deletes the account and ends all their sessions.
 // Safety: you can't remove yourself, and the last admin can never be removed
@@ -1133,10 +1152,34 @@ app.post("/auth/users/:username/role", requireAuth, async (req, res) => {
       const admins = await pool.query("SELECT COUNT(*) AS n FROM users WHERE role = 'admin'");
       if (parseInt(admins.rows[0].n, 10) <= 1) return res.status(400).json({ error: "the shop needs at least one Owner" });
     }
-    await pool.query("UPDATE users SET role = $1 WHERE username = $2", [role, target]);
+    await pool.query("UPDATE users SET role = $1, access = NULL WHERE username = $2", [role, target]); // a new role starts from its defaults
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [target]);
     await teamEvent(req, target, `${target}: ${ROLE_NAMES[cur.role] || cur.role} → ${ROLE_NAMES[role]}`, "role changed");
     res.json({ username: target, role });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Owner adds or removes access areas for one person. Takes effect on their next
+// request (no sign-out needed); the portal menu updates when they reload.
+app.post("/auth/users/:username/access", requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ error: "owner only" });
+    const want = req.body && req.body.areas;
+    if (!Array.isArray(want) || want.some((a) => !AREAS[a])) return res.status(400).json({ error: "unknown access area" });
+    const target = await canonicalUsername(req.params.username);
+    if (!target) return res.status(404).json({ error: "no such user" });
+    const u = (await pool.query("SELECT role, access FROM users WHERE username = $1", [target])).rows[0];
+    if (u.role === "admin") return res.status(400).json({ error: "the Owner always has full access" });
+    const defaults = ROLE_AREAS[u.role] || [];
+    const access = { grant: want.filter((a) => !defaults.includes(a)), revoke: defaults.filter((a) => !want.includes(a)) };
+    const stored = access.grant.length || access.revoke.length ? access : null;
+    await pool.query("UPDATE users SET access = $1 WHERE username = $2", [stored && JSON.stringify(stored), target]);
+    const before = areasFor(u.role, u.access), after = areasFor(u.role, stored);
+    const added = after.filter((a) => !before.includes(a)), removed = before.filter((a) => !after.includes(a));
+    if (added.length || removed.length) {
+      await teamEvent(req, target, `${target}'s access: ${[...added.map((a) => `+ ${AREAS[a]}`), ...removed.map((a) => `− ${AREAS[a]}`)].join(", ")}`, "access changed");
+    }
+    res.json({ username: target, areas: after, custom: !!stored });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -1204,7 +1247,7 @@ app.post("/auth/reset-password", requireAuth, async (req, res) => {
 });
 
 app.get("/auth/me", requireAuth, (req, res) => {
-  res.json({ username: req.user.username, role: req.user.role, limits: req.user.limits });
+  res.json({ username: req.user.username, role: req.user.role, limits: req.user.limits, areas: req.user.areas });
 });
 
 // ---- Two-step sign-in (authenticator app) ----
@@ -1299,11 +1342,11 @@ app.get("/storage/:key", tryAuth, async (req, res) => {
       return res.json({ key: req.params.key, value: row.value, shared: true });
     }
     const scope = scopeFor(req.query.shared, req.user.username);
-    if (scope === "shared" && !canAccess(req.user.role, req.params.key, "read")) return res.status(403).json({ error: "your role can't open this" });
+    if (scope === "shared" && !canAccess(req.user, req.params.key, "read")) return res.status(403).json({ error: "your access doesn't include this" });
     const result = await pool.query("SELECT value FROM storage WHERE scope = $1 AND key = $2", [scope, req.params.key]);
     const row = result.rows[0];
     if (!row) return res.status(404).json({ error: "not_found" });
-    const value = scope === "shared" && req.params.key === "orders" && !SEES_BANK.includes(req.user.role) ? maskBank(row.value) : row.value;
+    const value = scope === "shared" && req.params.key === "orders" && !hasArea(req.user, "bank") ? maskBank(row.value) : row.value;
     res.json({ key: req.params.key, value, shared: scope === "shared" });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -1431,8 +1474,8 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
     }
 
     const scope = scopeFor(shared, req.user.username);
-    if (scope === "shared" && !canAccess(req.user.role, req.params.key, "write")) return res.status(403).json({ error: "your role can't change this" });
-    const hidesBank = scope === "shared" && req.params.key === "orders" && !SEES_BANK.includes(req.user.role);
+    if (scope === "shared" && !canAccess(req.user, req.params.key, "write")) return res.status(403).json({ error: "your access doesn't include changing this" });
+    const hidesBank = scope === "shared" && req.params.key === "orders" && !hasArea(req.user, "bank");
     let staffQueued = [], beforeValue = null;
     const saved = await withListLock(scope, req.params.key, async (existingValue, write) => {
       beforeValue = existingValue;
@@ -1582,7 +1625,7 @@ app.post("/id-photos", tryAuth, async (req, res) => {
 });
 
 app.get("/id-photos/:subjectKey", requireAuth, async (req, res) => {
-  if (!COUNTER.includes(req.user.role)) return res.status(403).json({ error: "your role can't view ID photos" });
+  if (!hasArea(req.user, "register")) return res.status(403).json({ error: "your access doesn't include ID photos" });
   if (!ID_PHOTO_KEY) return res.status(503).json({ error: "id_photo_storage_disabled" });
   try {
     await purgeExpiredIdPhotos();
@@ -1598,7 +1641,7 @@ app.get("/id-photos/:subjectKey", requireAuth, async (req, res) => {
 
 app.delete("/id-photos/:subjectKey", requireAuth, async (req, res) => {
   try {
-    if (!OFFICE.includes(req.user.role)) return res.status(403).json({ error: "owner or manager only" });
+    if (!hasArea(req.user, "reports")) return res.status(403).json({ error: "your access doesn't include this" });
     const result = await pool.query("DELETE FROM id_photos WHERE subject_key = $1", [req.params.subjectKey]);
     res.json({ subjectKey: req.params.subjectKey, deleted: result.rowCount });
   } catch (e) {
