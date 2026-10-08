@@ -20,7 +20,7 @@ const GRADES = { A: "Excellent", B: "Good", C: "Fair" };
 const money = (n) => `$${Math.round(Number(n) || 0).toLocaleString("en-AU")}`;
 
 const CSS = `
-  .rc-wrap { position: fixed; z-index: 55; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 396px; height: min(660px, calc(100dvh - 32px)); display: flex; flex-direction: column; background: #fff; border-radius: 24px; box-shadow: 0 30px 80px rgba(15,27,61,.34), 0 0 0 1px rgba(15,27,61,.06); overflow: hidden; transform-origin: bottom right; animation: rc-open .34s cubic-bezier(.16,1,.3,1) both; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #0F1B3D; }
+  .rc-wrap { position: fixed; z-index: 1000; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 396px; height: min(660px, calc(100dvh - 32px)); display: flex; flex-direction: column; background: #fff; border-radius: 24px; box-shadow: 0 30px 80px rgba(15,27,61,.34), 0 0 0 1px rgba(15,27,61,.06); overflow: hidden; transform-origin: bottom right; animation: rc-open .34s cubic-bezier(.16,1,.3,1) both; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #0F1B3D; }
   .rc-scrim { display: none; }
   .rc-head { display: flex; align-items: center; gap: 12px; padding: 14px 14px 14px 16px; color: #fff; background: radial-gradient(120% 140% at 0% 0%, #2150C8 0%, #1B3A8F 45%, #0F1B3D 100%); position: relative; overflow: hidden; }
   .rc-head::after { content: ""; position: absolute; right: -40px; top: -60px; width: 150px; height: 150px; border-radius: 50%; background: rgba(255,255,255,.08); pointer-events: none; }
@@ -114,7 +114,7 @@ const CSS = `
   @keyframes rc-slide { from { transform: translateY(100%); } to { transform: none; } }
   @keyframes rc-fade { from { opacity: 0; } to { opacity: 1; } }
   @media (max-width: 720px) {
-    .rc-scrim { display: block; position: fixed; inset: 0; z-index: 54; background: rgba(15,27,61,.45); animation: rc-fade .25s ease both; }
+    .rc-scrim { display: block; position: fixed; inset: 0; z-index: 999; background: rgba(15,27,61,.45); animation: rc-fade .25s ease both; }
     .rc-wrap { left: 0; right: 0; bottom: 0; width: auto; height: min(88dvh, 720px); border-radius: 24px 24px 0 0; transform-origin: bottom center; animation: rc-slide .38s cubic-bezier(.16,1,.3,1) both; }
   }
   @media (prefers-reduced-motion: reduce) { .rc-wrap, .rc-row, .rc-chips, .rc-scrim, .rc-tile, .rc-ph, .rc-reveal { animation: none !important; } .rc-typing i, .rc-live, .rc-av.busy::before, .rc-mic.on, .rc-tick circle, .rc-tick path { animation: none !important; } .rc-tick path { stroke-dashoffset: 0; } .rc-log { scroll-behavior: auto; } }
