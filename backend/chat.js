@@ -28,19 +28,49 @@ function pickProvider() {
   if (g) return { name: "groq", key: g };
   return null;
 }
+// Groq retires models from time to time. If the chosen one is gone, ask Groq
+// which models this key can use and pick a general chat model (cached 6 hours).
+const GROQ_DEFAULT = "llama-3.3-70b-versatile";
+const NOT_CHAT = /whisper|tts|guard|embed|orpheus|playai|distil|vision|compound|allam/i;
+const GROQ_PREFER = [/llama.*70b/i, /gpt-oss-120b/i, /llama-4/i, /qwen/i, /gpt-oss/i, /kimi/i, /llama/i];
+let groqPicked = { model: "", at: 0 };
+function pickGroqModel(list) {
+  const ids = (list || []).filter((m) => m && m.id && m.active !== false && !NOT_CHAT.test(m.id)).map((m) => m.id);
+  for (const re of GROQ_PREFER) { const hit = ids.find((id) => re.test(id)); if (hit) return hit; }
+  return ids[0] || "";
+}
+async function groqModels(key) {
+  const r = await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10000) });
+  if (!r.ok) return [];
+  try { return (JSON.parse(await r.text()).data) || []; } catch (e) { return []; }
+}
+async function groqChat(key, model, system, msgs) {
+  const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST", headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" }, signal: AbortSignal.timeout(20000),
+    body: JSON.stringify({ model, max_tokens: 420, temperature: 0.3, messages: [{ role: "system", content: system }, ...msgs] }),
+  });
+  return { status: r.status, body: await r.text() };
+}
+
 // One call, two shapes: Anthropic Messages API, or the OpenAI-style chat API that Groq uses.
 async function callModel(provider, system, msgs) {
   const signal = AbortSignal.timeout(20000);
   if (provider.name === "groq") {
-    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST", headers: { Authorization: `Bearer ${provider.key}`, "content-type": "application/json" }, signal,
-      body: JSON.stringify({ model: process.env.CHAT_MODEL || "llama-3.3-70b-versatile", max_tokens: 420, temperature: 0.3, messages: [{ role: "system", content: system }, ...msgs] }),
-    });
-    const body = await r.text();
-    if (!r.ok) return { error: `groq ${r.status}: ${body.slice(0, 200)}` };
-    const data = JSON.parse(body);
+    const fresh = groqPicked.model && Date.now() - groqPicked.at < 6 * 60 * 60 * 1000;
+    let model = process.env.CHAT_MODEL || (fresh ? groqPicked.model : GROQ_DEFAULT);
+    let res = await groqChat(provider.key, model, system, msgs);
+    if (res.status === 404 && /model_not_found|does not exist/.test(res.body)) {
+      const next = pickGroqModel(await groqModels(provider.key));
+      if (next && next !== model) {
+        console.warn(`chat: Groq model ${model} is not available; using ${next}${process.env.CHAT_MODEL ? " (CHAT_MODEL is set to a model Groq no longer offers)" : ""}`);
+        model = next; groqPicked = { model, at: Date.now() };
+        res = await groqChat(provider.key, model, system, msgs);
+      }
+    }
+    if (res.status < 200 || res.status >= 300) return { error: `groq ${res.status}: ${res.body.slice(0, 200)}` };
+    const data = JSON.parse(res.body);
     const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-    return { text: String(text || ""), inTok: data.usage && data.usage.prompt_tokens, outTok: data.usage && data.usage.completion_tokens };
+    return { text: String(text || ""), inTok: data.usage && data.usage.prompt_tokens, outTok: data.usage && data.usage.completion_tokens, model };
   }
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "x-api-key": provider.key, "anthropic-version": "2023-06-01", "content-type": "application/json" }, signal,
@@ -112,7 +142,7 @@ function register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey
       const text = out.text;
       const { reply, handoff } = cleanReply(text, waNum);
       if (!reply) return res.json({ mode: "faq", reply: null });
-      console.log(`chat reply (${provider.name}) ${Date.now() - started}ms in=${out.inTok} out=${out.outTok}`);
+      console.log(`chat reply (${provider.name}${out.model ? ` ${out.model}` : ""}) ${Date.now() - started}ms in=${out.inTok} out=${out.outTok}`);
       return res.json({ mode: "ai", reply, handoff });
     } catch (e) {
       console.error("chat error:", e.message);
@@ -121,4 +151,4 @@ function register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey
   });
 }
 
-module.exports = { register, cleanReply };
+module.exports = { register, cleanReply, pickGroqModel };

@@ -12,9 +12,17 @@ let modelReply = { status: 200, text: "Hello" };
 const realFetch = global.fetch;
 const groqCalls = [];
 let groqReply = { status: 200, text: "ok" };
+let groqRetired = [], groqModelList = [], groqModelsAsked = 0;
 global.fetch = async (url, opts) => {
+  if (String(url) === "https://api.groq.com/openai/v1/models") {
+    groqModelsAsked += 1;
+    return new Response(JSON.stringify({ object: "list", data: groqModelList }), { status: 200 });
+  }
   if (String(url).startsWith("https://api.groq.com/openai/v1/chat/completions")) {
     groqCalls.push({ headers: opts.headers, body: JSON.parse(opts.body) });
+    if (groqRetired.includes(JSON.parse(opts.body).model)) {
+      return new Response(JSON.stringify({ error: { message: "The model does not exist or you do not have access to it.", type: "invalid_request_error", code: "model_not_found" } }), { status: 404 });
+    }
     if (groqReply.status !== 200) return new Response("limit", { status: groqReply.status });
     return new Response(JSON.stringify({ choices: [{ message: { role: "assistant", content: groqReply.text } }], usage: { prompt_tokens: 12, completion_tokens: 6 } }), { status: 200 });
   }
@@ -167,6 +175,27 @@ test("when Groq's free limit is hit or it is down, the page falls back to built-
   process.env.ANTHROPIC_API_KEY = keep; delete process.env.GROQ_API_KEY;
   assert.equal(r.status, 502);
   assert.equal((await r.json()).mode, "faq");
+});
+
+test("a retired Groq model: the server asks Groq which models the key has, switches, and remembers", async () => {
+  const keep = process.env.ANTHROPIC_API_KEY; delete process.env.ANTHROPIC_API_KEY; process.env.GROQ_API_KEY = "gsk_test";
+  groqRetired = ["llama-3.3-70b-versatile"];
+  groqModelList = [{ id: "whisper-large-v3", active: true }, { id: "meta-llama/llama-guard-4-12b", active: true }, { id: "llama-3.1-8b-instant", active: true }, { id: "openai/gpt-oss-120b", active: true }];
+  groqCalls.length = 0; groqModelsAsked = 0; groqReply = { status: 200, text: "Screens start from $85." };
+  const first = await (await chat([user("screen price?")], visitor())).json();
+  const second = await (await chat([user("battery?")], visitor())).json();
+  groqRetired = []; process.env.ANTHROPIC_API_KEY = keep; delete process.env.GROQ_API_KEY;
+  assert.equal(first.mode, "ai"); assert.equal(first.reply, "Screens start from $85.");
+  assert.equal(second.mode, "ai");
+  assert.deepEqual(groqCalls.map((c) => c.body.model), ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-120b"], "retried once, then remembered");
+  assert.equal(groqModelsAsked, 1);
+});
+
+test("Groq model choice skips speech, safety and tiny models", () => {
+  const { pickGroqModel } = require("../chat.js");
+  assert.equal(pickGroqModel([{ id: "whisper-large-v3" }, { id: "llama-3.1-8b-instant" }, { id: "llama-3.3-70b-versatile", active: false }, { id: "qwen/qwen3-32b" }]), "qwen/qwen3-32b");
+  assert.equal(pickGroqModel([{ id: "playai-tts" }, { id: "meta-llama/llama-prompt-guard-2-86m" }]), "");
+  assert.equal(pickGroqModel([{ id: "llama-3.1-8b-instant" }]), "llama-3.1-8b-instant", "anything chat-capable beats nothing");
 });
 
 test("CHAT_PROVIDER chooses between providers when both keys are set", async () => {
