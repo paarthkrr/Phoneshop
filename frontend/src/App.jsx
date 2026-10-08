@@ -148,7 +148,12 @@ function Nav() {
 
         /* ---- Global interaction system — loaded once via Nav, applies site-wide ---- */
         * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+        /* Browsers add an 8px margin around the page and default to a serif font; without this
+           reset every page sat 8px off the screen edge and any text without its own font fell back to Times. */
+        html, body { margin: 0; padding: 0; }
+        body { font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; background: #FFFFFF; line-height: 1.45; }
+        img, svg, video { max-width: 100%; }
 
         /* ---- Mobile menu: desktop links collapse into a menu button under 720px ---- */
         .cs-menu-btn { display: none; background: none; border: 1px solid #E2E6EC; border-radius: 3px; padding: 5px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: #111827; }
@@ -163,12 +168,12 @@ function Nav() {
         @keyframes cs-fade-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes cs-spin { to { transform: rotate(360deg); } }
 
-        .cs-page-enter { animation: cs-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; overflow-x: clip; }
+        .cs-page-enter { animation: cs-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards; overflow-x: clip; }
         /* App-like page changes: forward slides in from the right, Back from the left. */
         @keyframes cs-slide-fwd { from { opacity: 0; transform: translateX(70px) scale(0.985); } to { opacity: 1; transform: none; } }
         @keyframes cs-slide-back { from { opacity: 0; transform: translateX(-70px) scale(0.985); } to { opacity: 1; transform: none; } }
-        .cs-page-enter.cs-slide-fwd { animation: cs-slide-fwd 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-        .cs-page-enter.cs-slide-back { animation: cs-slide-back 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .cs-page-enter.cs-slide-fwd { animation: cs-slide-fwd 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+        .cs-page-enter.cs-slide-back { animation: cs-slide-back 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
         /* Sections below the fold rise in gently as you scroll. */
         .mv-reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
         .mv-reveal.mv-in { opacity: 1; transform: none; }
@@ -177,7 +182,7 @@ function Nav() {
         @keyframes cs-bump { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
         .cs-bump { animation: cs-bump 0.35s ease; }
         /* Grids of cards cascade in one after another. */
-        .mv-stagger > * { animation: cs-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .mv-stagger > * { animation: cs-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
         .mv-stagger > *:nth-child(2) { animation-delay: 0.045s; }
         .mv-stagger > *:nth-child(3) { animation-delay: 0.090s; }
         .mv-stagger > *:nth-child(4) { animation-delay: 0.135s; }
@@ -633,8 +638,16 @@ function LinkInterceptor() {
       if (/\.(?!html$)[a-z0-9]+$/i.test(url.pathname)) return; // real files (images, pdf, xml...)
       if (url.pathname === window.location.pathname && url.hash) return; // same-page anchor
       e.preventDefault();
+      const samePath = url.pathname === window.location.pathname;
+      const sameQuery = url.search === window.location.search;
       navigate(url.pathname + url.search + url.hash);
-      window.scrollTo(0, 0);
+      // A different page starts at the top (AnimatedRoutes does that). Changing only the
+      // filters in the address (?cat=…) keeps your place. A #section link scrolls to it.
+      if (url.hash) {
+        setTimeout(() => { const t = document.getElementById(decodeURIComponent(url.hash.slice(1))); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120);
+      } else if (samePath && sameQuery) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
@@ -667,9 +680,10 @@ function AnimatedRoutes() {
   const slide = firstPage ? "" : navType === "POP" ? " cs-slide-back" : " cs-slide-fwd";
   useEffect(() => { firstPage = false; }, []);
   // New page (any link, incl. the menu) starts at the top; Back keeps the browser's spot.
-  useEffect(() => { if (navType !== "POP") window.scrollTo(0, 0); }, [location.pathname]);
+  useEffect(() => { if (navType !== "POP") window.scrollTo({ top: 0, left: 0, behavior: "instant" }); }, [location.pathname]);
   const isStaff = isStaffPath(normPath(location.pathname));
   return (
+    <>
     <main key={location.pathname} className={"cs-page-enter" + slide}>
       <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "#5B6472", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
@@ -717,7 +731,9 @@ function AnimatedRoutes() {
       </Routes>
       </React.Suspense>
       {!isStaff && <SiteFooter />}
-      <MobileCTA />
     </main>
+    {/* Outside <main> so position:fixed is always relative to the screen, never the animated page. */}
+    <MobileCTA />
+    </>
   );
 }

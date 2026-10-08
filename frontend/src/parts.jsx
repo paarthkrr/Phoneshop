@@ -84,8 +84,9 @@ export default function Parts() {
   const phoneBrands = [...new Set(DEFAULT_CATALOG.filter((d) => d.category === "phone").map((d) => d.brand))];
   const brandModels = DEFAULT_CATALOG.filter((d) => d.brand === phoneBrand && d.category === "phone").sort((x, y) => String(y.release).localeCompare(String(x.release))).map((d) => d.model);
   const setUrl = (key, val) => { try { const u = new URL(window.location.href); if (val) u.searchParams.set(key, val); else u.searchParams.delete(key); window.history.replaceState(window.history.state, "", u.pathname + u.search); } catch (e) {} };
-  const openProduct = (id) => { setProductId(id); try { const u = new URL(window.location.href); u.searchParams.set("p", id); window.history.pushState(window.history.state, "", u.pathname + u.search); } catch (e) {} window.scrollTo(0, 0); };
-  const closeProduct = () => { setProductId(""); setUrl("p", ""); };
+  const listScroll = React.useRef(0);
+  const openProduct = (id) => { listScroll.current = window.scrollY; setProductId(id); try { const u = new URL(window.location.href); u.searchParams.set("p", id); window.history.pushState(window.history.state, "", u.pathname + u.search); } catch (e) {} window.scrollTo({ top: 0, left: 0, behavior: "instant" }); };
+  const closeProduct = () => { setProductId(""); setUrl("p", ""); const y = listScroll.current; setTimeout(() => window.scrollTo({ top: y, left: 0, behavior: "instant" }), 0); };
   // After changing department/category/phone, bring the filters back into view if scrolled past them.
   useEffect(() => { const el = document.getElementById("mv-filters"); if (el && el.getBoundingClientRect().top < 0) window.scrollTo({ top: window.scrollY + el.getBoundingClientRect().top - 90, behavior: "smooth" }); }, [dept, categoryFilter, modelFilter]);
   const pct = (a) => (a.compareAtPrice > a.sellPrice ? Math.round((1 - a.sellPrice / a.compareAtPrice) * 100) : 0);

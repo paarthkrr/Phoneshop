@@ -9,7 +9,6 @@ const isStaffPath = (p) => /^\/(portal|staff)(\/|$)/.test(p);
 
 const CSS = `
   .rc-launch { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 39; display: flex; align-items: center; gap: 10px; flex-direction: row-reverse; }
-  body.has-mobile-cta .rc-launch { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
   .rc-launch.low { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
   .rc-fab { position: relative; width: 58px; height: 58px; border-radius: 50%; border: none; cursor: pointer; background: linear-gradient(135deg, #1B43AA, #2150C8); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 28px rgba(33,80,200,.45); animation: rc-in .5s cubic-bezier(.16,1,.3,1) both .6s; -webkit-tap-highlight-color: transparent; transition: transform .15s ease; }
   .rc-fab:hover { transform: translateY(-2px) scale(1.04); }
@@ -17,9 +16,9 @@ const CSS = `
   .rc-fab::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(33,80,200,.55); animation: rc-ring 2.4s ease-out 2.2s 3; }
   .rc-wa { position: fixed; right: 24px; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 39; width: 44px; height: 44px; border-radius: 50%; background: #25D366; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,.24); text-decoration: none; transition: transform .15s ease; animation: rc-in .5s cubic-bezier(.16,1,.3,1) both .9s; }
   .rc-wa:hover { transform: scale(1.08); }
-  body.has-mobile-cta .rc-wa { bottom: calc(154px + env(safe-area-inset-bottom, 0px)); }
   .rc-wa.low { bottom: calc(164px + env(safe-area-inset-bottom, 0px)); }
-  @media (min-width: 721px) { body.has-mobile-cta .rc-wa { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); } }
+  /* The bottom action bar exists on phones only, so only phones lift the buttons above it. */
+  @media (max-width: 720px) { body.has-mobile-cta .rc-launch { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); } body.has-mobile-cta .rc-wa { bottom: calc(154px + env(safe-area-inset-bottom, 0px)); } }
   .rc-dot { position: absolute; top: 4px; right: 4px; width: 13px; height: 13px; border-radius: 50%; background: #E5484D; border: 2px solid #fff; animation: rc-pop .35s cubic-bezier(.16,1,.3,1) both; }
   .rc-tease { max-width: 210px; padding: 10px 14px; background: #fff; color: #0F1B3D; border-radius: 16px 16px 4px 16px; font: 500 13.5px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 10px 28px rgba(17,24,39,.18); animation: rc-tease .45s cubic-bezier(.16,1,.3,1) both; cursor: pointer; }
   .rc-fab { animation: rc-in .5s cubic-bezier(.16,1,.3,1) both .6s, rc-wiggle 14s ease-in-out 9s infinite; }
