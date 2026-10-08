@@ -58,11 +58,11 @@ export const MENU = [
       { title: "Shop accessories", cols: 2, links: [{ label: "All accessories", to: "/accessories" + qs({ dept: "accessories" }) }, ...accessoryLinks] },
     ],
     promo: { icon: "zap", title: "Free express shipping", text: "On phones and accessory orders over $100.", cta: "Shop accessories", to: "/accessories" + qs({ dept: "accessories" }) } },
-  { id: "parts", icon: "chip", label: "Parts", blurb: "Genuine repair parts", to: "/parts" + qs({ dept: "parts" }), match: ["/parts"], cta: "Browse all parts →",
+  { id: "parts", icon: "chip", label: "Parts", blurb: "Genuine & premium repair parts", to: "/parts" + qs({ dept: "parts" }), match: ["/parts"], cta: "Browse all parts →",
     groups: [
       { title: "Repair parts", links: [{ label: "All parts", to: "/parts" + qs({ dept: "parts" }) }, ...partLinks] },
     ],
-    promo: { icon: "chip", title: "Genuine parts", text: "Screens, batteries, cameras and more for your repair.", cta: "Browse parts", to: "/parts" + qs({ dept: "parts" }) } },
+    promo: { icon: "chip", title: "Genuine & premium parts", text: "Screens, batteries, cameras and more for your repair.", cta: "Browse parts", to: "/parts" + qs({ dept: "parts" }) } },
   // Phone drawer only (the desktop bar keeps its simple top-right links).
   { id: "help", icon: "help", label: "Help", blurb: "FAQ, returns and contact", to: "/help", match: [], cta: "Ask a question →", mobileOnly: true,
     groups: [
