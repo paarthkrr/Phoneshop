@@ -1,5 +1,6 @@
 // Website chat assistant: POST /public/chat
-// - Works only when ANTHROPIC_API_KEY is set (otherwise answers { mode: "faq" } and the page uses its built-in answers).
+// - Works only when an AI key is set: ANTHROPIC_API_KEY (Claude Haiku by default) or GROQ_API_KEY (free tier, open models).
+//   Without a key it answers { mode: "faq" } and the page uses its built-in answers. CHAT_PROVIDER=anthropic|groq picks one if both are set.
 // - Cost and abuse limits: per-visitor limits, a daily cap for the whole site, short inputs, short outputs.
 // - Answers come only from chat-knowledge.js (site policies) plus the live refurbished stock list.
 const { buildSystemPrompt, ALLOWED_PATH } = require("./chat-knowledge.js");
@@ -15,6 +16,40 @@ function cleanReply(text, waNum) {
   out = out.replace(/https?:\/\/(?!wa\.me\/)\S+/gi, "").replace(/<[^>]*>/g, "");
   out = out.replace(/\n{3,}/g, "\n\n").trim().slice(0, 1200);
   return { reply: out, handoff };
+}
+
+// Which AI service to use, from the environment. Read on every request so a key added in Render takes effect after a redeploy.
+function pickProvider() {
+  const want = (process.env.CHAT_PROVIDER || "").toLowerCase();
+  const a = process.env.ANTHROPIC_API_KEY, g = process.env.GROQ_API_KEY;
+  if (want === "groq") return g ? { name: "groq", key: g } : null;
+  if (want === "anthropic") return a ? { name: "anthropic", key: a } : null;
+  if (a) return { name: "anthropic", key: a };
+  if (g) return { name: "groq", key: g };
+  return null;
+}
+// One call, two shapes: Anthropic Messages API, or the OpenAI-style chat API that Groq uses.
+async function callModel(provider, system, msgs) {
+  const signal = AbortSignal.timeout(20000);
+  if (provider.name === "groq") {
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST", headers: { Authorization: `Bearer ${provider.key}`, "content-type": "application/json" }, signal,
+      body: JSON.stringify({ model: process.env.CHAT_MODEL || "llama-3.3-70b-versatile", max_tokens: 420, temperature: 0.3, messages: [{ role: "system", content: system }, ...msgs] }),
+    });
+    const body = await r.text();
+    if (!r.ok) return { error: `groq ${r.status}: ${body.slice(0, 200)}` };
+    const data = JSON.parse(body);
+    const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    return { text: String(text || ""), inTok: data.usage && data.usage.prompt_tokens, outTok: data.usage && data.usage.completion_tokens };
+  }
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", headers: { "x-api-key": provider.key, "anthropic-version": "2023-06-01", "content-type": "application/json" }, signal,
+    body: JSON.stringify({ model: process.env.CHAT_MODEL || "claude-haiku-4-5-20251001", max_tokens: 420, temperature: 0.3, system, messages: msgs }),
+  });
+  const body = await r.text();
+  if (!r.ok) return { error: `anthropic ${r.status}: ${body.slice(0, 200)}` };
+  const data = JSON.parse(body);
+  return { text: (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n"), inTok: data.usage && data.usage.input_tokens, outTok: data.usage && data.usage.output_tokens };
 }
 
 function register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey }) {
@@ -48,8 +83,8 @@ function register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey
   });
 
   app.post("/public/chat", async (req, res) => {
-    const key = process.env.ANTHROPIC_API_KEY;
-    if (!key) return res.json({ mode: "faq", reply: null });
+    const provider = pickProvider();
+    if (!provider) return res.json({ mode: "faq", reply: null });
     if (!shortLimit(req) || !dayLimit(req)) return res.status(429).json({ mode: "limited", error: "too_many_messages" });
 
     const raw = req.body && Array.isArray(req.body.messages) ? req.body.messages : null;
@@ -72,19 +107,12 @@ function register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey
     if (process.env.CHAT_LOG === "1") console.log("chat question:", msgs[msgs.length - 1].content.replace(/\d/g, "#").slice(0, 160));
     const started = Date.now();
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model: process.env.CHAT_MODEL || "claude-haiku-4-5-20251001", max_tokens: 420, temperature: 0.3, system: buildSystemPrompt({ business: c.business, stock: c.stock, page }), messages: msgs }),
-        signal: AbortSignal.timeout(20000),
-      });
-      const body = await r.text();
-      if (!r.ok) { console.error("chat model error:", r.status, body.slice(0, 200)); return res.status(502).json({ mode: "faq", reply: null, error: "unavailable" }); }
-      const data = JSON.parse(body);
-      const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      const out = await callModel(provider, buildSystemPrompt({ business: c.business, stock: c.stock, page }), msgs);
+      if (out.error) { console.error("chat model error:", out.error); return res.status(502).json({ mode: "faq", reply: null, error: "unavailable" }); }
+      const text = out.text;
       const { reply, handoff } = cleanReply(text, waNum);
       if (!reply) return res.json({ mode: "faq", reply: null });
-      console.log(`chat reply ${Date.now() - started}ms in=${data.usage && data.usage.input_tokens} out=${data.usage && data.usage.output_tokens}`);
+      console.log(`chat reply (${provider.name}) ${Date.now() - started}ms in=${out.inTok} out=${out.outTok}`);
       return res.json({ mode: "ai", reply, handoff });
     } catch (e) {
       console.error("chat error:", e.message);

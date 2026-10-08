@@ -10,7 +10,14 @@ process.env.CHAT_DAILY_LIMIT = "1000";
 const calls = [];
 let modelReply = { status: 200, text: "Hello" };
 const realFetch = global.fetch;
+const groqCalls = [];
+let groqReply = { status: 200, text: "ok" };
 global.fetch = async (url, opts) => {
+  if (String(url).startsWith("https://api.groq.com/openai/v1/chat/completions")) {
+    groqCalls.push({ headers: opts.headers, body: JSON.parse(opts.body) });
+    if (groqReply.status !== 200) return new Response("limit", { status: groqReply.status });
+    return new Response(JSON.stringify({ choices: [{ message: { role: "assistant", content: groqReply.text } }], usage: { prompt_tokens: 12, completion_tokens: 6 } }), { status: 200 });
+  }
   if (String(url).startsWith("https://api.anthropic.com")) {
     calls.push(JSON.parse(opts.body));
     if (modelReply.status !== 200) return new Response("boom", { status: modelReply.status });
@@ -132,4 +139,43 @@ test("thumbs up/down feedback is accepted, validated and limited", async () => {
   assert.equal((await post({})).status, 400);
   let last; for (let i = 0; i < 30; i++) last = await post({ rating: "up" });
   assert.equal(last.status, 429);
+});
+
+test("Groq works as the (free) AI provider: key, model, system prompt, cleaned reply", async () => {
+  const keep = process.env.ANTHROPIC_API_KEY; delete process.env.ANTHROPIC_API_KEY; process.env.GROQ_API_KEY = "gsk_test";
+  groqCalls.length = 0; calls.length = 0;
+  groqReply = { status: 200, text: "Screens start from $85. See [repairs](/repairs) or [bad](https://evil.example/x).\n[[HANDOFF]]" };
+  const j = await (await chat([user("screen price?")], visitor(), { page: "/repairs" })).json();
+  process.env.ANTHROPIC_API_KEY = keep; delete process.env.GROQ_API_KEY;
+  assert.equal(calls.length, 0, "Claude not called");
+  assert.equal(groqCalls.length, 1);
+  const g = groqCalls[0];
+  assert.equal(g.headers.Authorization, "Bearer gsk_test");
+  assert.equal(g.body.model, "llama-3.3-70b-versatile");
+  assert.equal(g.body.messages[0].role, "system");
+  assert.ok(g.body.messages[0].content.includes("Screen replacement from $85") && g.body.messages[0].content.includes("iPhone 13 128GB, grade B, $449"));
+  assert.deepEqual(g.body.messages.slice(1), [{ role: "user", content: "screen price?" }]);
+  assert.equal(j.mode, "ai"); assert.equal(j.handoff, true);
+  assert.ok(j.reply.includes("[repairs](/repairs)") && !j.reply.includes("evil.example") && !j.reply.includes("[[HANDOFF]]"));
+});
+
+test("when Groq's free limit is hit or it is down, the page falls back to built-in answers", async () => {
+  const keep = process.env.ANTHROPIC_API_KEY; delete process.env.ANTHROPIC_API_KEY; process.env.GROQ_API_KEY = "gsk_test";
+  groqReply = { status: 429, text: "" };
+  const r = await chat([user("hi")], visitor());
+  groqReply = { status: 200, text: "ok" };
+  process.env.ANTHROPIC_API_KEY = keep; delete process.env.GROQ_API_KEY;
+  assert.equal(r.status, 502);
+  assert.equal((await r.json()).mode, "faq");
+});
+
+test("CHAT_PROVIDER chooses between providers when both keys are set", async () => {
+  process.env.GROQ_API_KEY = "gsk_test";
+  groqCalls.length = 0; calls.length = 0; modelReply = { status: 200, text: "claude says hi" };
+  process.env.CHAT_PROVIDER = "groq"; await chat([user("a")], visitor());
+  process.env.CHAT_PROVIDER = "anthropic"; await chat([user("b")], visitor());
+  delete process.env.CHAT_PROVIDER; await chat([user("c")], visitor());   // default: Claude when its key exists
+  delete process.env.GROQ_API_KEY;
+  assert.equal(groqCalls.length, 1);
+  assert.equal(calls.length, 2);
 });
