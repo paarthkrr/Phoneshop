@@ -300,7 +300,7 @@ export default function Parts() {
             style={{ flex: 1, padding: "10px 6px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700, background: dept === k ? "#fff" : "transparent", color: dept === k ? brass : paper, boxShadow: dept === k ? "0 1px 3px rgba(17,24,39,0.12)" : "none" }}>{l}</button>
         ))}
       </div>
-      {dept === "parts" && <div style={{ fontSize: 13, color: muted, marginBottom: 10 }}>Genuine-quality replacement parts. Parts are model-specific — pick your phone above to see only parts that fit. Want us to fit it? <a href="/repairs" style={{ color: brass }}>Book a repair</a> (90-day warranty).</div>}
+      {dept === "parts" && <div style={{ fontSize: 13, color: muted, marginBottom: 10 }}>Genuine and premium-quality replacement parts, clearly labelled. Parts are model-specific — pick your phone above to see only parts that fit. Want us to fit it? <a href="/repairs" style={{ color: brass }}>Book a repair</a> (90-day warranty).</div>}
       <div role="group" aria-label="Filter by category" style={{ display: "flex", gap: 8, margin: "4px 0 18px", flexWrap: "wrap" }}>
         {categories.map((c) => (
           <button key={c} onClick={() => setCategoryFilter(c)} aria-pressed={categoryFilter === c}

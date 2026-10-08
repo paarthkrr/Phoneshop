@@ -88,7 +88,7 @@ export default function SiteFooter() {
       <div>
         <div className="sf-h">Why Mobile Recellr</div>
         <div style={{ color: muted, lineHeight: 1.9 }}>
-          ✓ Genuine parts only<br />
+          ✓ Genuine or premium parts<br />
           ✓ Price match guarantee<br />
           ✓ 1-year warranty on devices<br />
           ✓ Free express shipping on phones &amp; accessory orders $100+<br />
