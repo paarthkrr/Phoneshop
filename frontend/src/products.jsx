@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { DEFAULT_CATALOG } from "./device-catalog.js";
 import { suggestCompatible, typeOf, ACCESSORY_CATEGORIES, PART_CATEGORIES } from "./compatibility.js";
+import { ScanButton } from "./barcode-scanner.jsx";
 
 // Products: built for adding THOUSANDS of accessories fast.
 //  • Quick add: photo + category + "fits" (tap a whole series) + price → one
@@ -134,6 +135,7 @@ function QuickAdd({ onSave }) {
   const [fits, setFits] = useState([]); const [find, setFind] = useState(""); const [perModel, setPerModel] = useState(true);
   const [cost, setCost] = useState(""); const [price, setPrice] = useState(""); const [compare, setCompare] = useState(""); const [stock, setStock] = useState("10");
   const [desc, setDesc] = useState(""); const [descEdited, setDescEdited] = useState(false);
+  const [barcode, setBarcode] = useState("");
   const models = useMemo(() => DEFAULT_CATALOG.slice().sort((a, b) => String(b.release).localeCompare(String(a.release))).map((d) => d.model), []);
   const series = useMemo(() => { const m = {}; models.forEach((x) => { const s = seriesOf(x); if (s) (m[s] = m[s] || []).push(x); }); return m; }, [models]);
   useEffect(() => { if (!descEdited) setDesc(autoDescription(category, perModel ? ["{model}"] : fits)); }, [category, fits, perModel, descEdited]);
@@ -161,11 +163,12 @@ function QuickAdd({ onSave }) {
   function save() {
     if (!name.trim()) return setErr("Give the product a name.");
     const p = parseFloat(price) || parseFloat(autoPrice(cost, category)); if (!p) return setErr("Enter a price (or a cost to auto-price).");
-    const base = { category, sellPrice: p, cost: parseFloat(cost) || 0, qtyOnHand: parseInt(stock, 10) || 0, imageUrl: photo, compareAtPrice: parseFloat(compare) || undefined, showOnline: true, createdAt: new Date().toISOString() };
+    if (barcode.trim() && perModel && fits.length > 1) return setErr("One barcode belongs to one product. Untick 'separate listing for each model', or leave the barcode empty.");
+    const base = { category, sellPrice: p, cost: parseFloat(cost) || 0, qtyOnHand: parseInt(stock, 10) || 0, imageUrl: photo, ...(barcode.trim() ? { barcode: barcode.trim() } : {}), compareAtPrice: parseFloat(compare) || undefined, showOnline: true, createdAt: new Date().toISOString() };
     const rows = perModel && fits.length
       ? fits.map((m) => ({ ...base, id: genId(), name: `${capFirst(name)} — ${m}`, compatibleWith: m, description: desc.split("{model}").join(m) }))
       : [{ ...base, id: genId(), name: capFirst(name), compatibleWith: fits.join(", "), description: desc.split("{model}").join(fits.join(", ") || "a range of devices") }];
-    onSave(rows); setName(""); setFits([]); setPhoto(""); setCompare(""); setDescEdited(false); setErr("");
+    onSave(rows); setName(""); setFits([]); setPhoto(""); setCompare(""); setBarcode(""); setDescEdited(false); setErr("");
   }
   const suggested = autoPrice(cost, category);
   return (
@@ -178,6 +181,10 @@ function QuickAdd({ onSave }) {
         <div>
           <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category" style={{ ...input, marginBottom: 8 }}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Product name, e.g. Clear MagSafe case" aria-label="Product name" style={input} />
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Barcode (optional, scan the pack)" aria-label="Barcode" style={{ ...input, minWidth: 0 }} />
+            <ScanButton onScan={setBarcode} title="Scan the product barcode" />
+          </div>
         </div>
       </div>
       <input value={photo.startsWith("data:") ? "" : photo} onChange={(e) => setPhoto(e.target.value.trim())} placeholder="…or paste a photo link" aria-label="Photo link" style={{ ...input, marginBottom: 14, fontSize: 13.5 }} />
@@ -265,14 +272,15 @@ function ProductList({ items, setItems, dirty, onSave, onSaveNow }) {
   const [editing, setEditing] = useState(null);
   const [q, setQ] = useState(""); const [cat, setCat] = useState("All"); const [page, setPage] = useState(0); const [sel, setSel] = useState([]); const [pct, setPct] = useState("");
   const live = items.filter((i) => !i.archived);
-  const shown = live.filter((i) => (cat === "All" || i.category === cat) && (!q.trim() || `${i.name} ${i.compatibleWith || ""}`.toLowerCase().includes(q.trim().toLowerCase())));
+  const shown = live.filter((i) => (cat === "All" || i.category === cat) && (!q.trim() || `${i.name} ${i.compatibleWith || ""} ${i.barcode || ""}`.toLowerCase().includes(q.trim().toLowerCase())));
   const PAGE = 50; const pageItems = shown.slice(page * PAGE, page * PAGE + PAGE);
   const upd = (id, patch) => setItems(items.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   const bulk = (fn) => { setItems(items.map((i) => (sel.includes(i.id) ? fn(i) : i))); setSel([]); };
   return (
     <Card>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Search name or model" aria-label="Search products" style={{ ...input, flex: 2, minWidth: 180 }} />
+        <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Search name, model or barcode" aria-label="Search products" style={{ ...input, flex: 2, minWidth: 180 }} />
+        <ScanButton onScan={(c) => { setQ(c); setPage(0); }} title="Scan to find a product" label="Find" />
         <select value={cat} onChange={(e) => { setCat(e.target.value); setPage(0); }} aria-label="Filter category" style={{ ...input, flex: 1, minWidth: 150 }}><option>All</option>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
       </div>
       {sel.length > 0 && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: panel2, borderRadius: 10, padding: 10, marginBottom: 10 }}>
@@ -348,6 +356,10 @@ function ProductEditor({ item, onCancel, onSave }) {
         </label>
         <div>
           <input value={p.name} onChange={(e) => set("name", e.target.value)} aria-label="Edit name" style={{ ...input, marginBottom: 8 }} />
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <input value={p.barcode || ""} onChange={(e) => set("barcode", e.target.value.trim())} placeholder="Barcode (optional)" aria-label="Edit barcode" style={{ ...input, minWidth: 0 }} />
+            <ScanButton onScan={(c) => set("barcode", c)} title="Scan the product barcode" />
+          </div>
           <select value={p.category} onChange={(e) => set("category", e.target.value)} aria-label="Edit category" style={input}>
             {[...new Set([...CATEGORIES, p.category])].map((c) => <option key={c}>{c}</option>)}
           </select>

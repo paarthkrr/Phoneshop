@@ -593,6 +593,7 @@ function PnlTab({ colors, fmt, sales, tickets, expenses, inventory, tillRecords,
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>🔧 {t.name}</div>
                 <div style={{ fontSize: 12.5, color: muted }}>{label(month)}: {t.jobs} job{t.jobs === 1 ? "" : "s"} done · {Math.round(t.minutes / 6) / 10} h · pay {money(t.pay)}</div>
+                <TechSplit t={t} muted={muted} red={red} money={money} />
               </div>
               {t.owed > 0 ? (
                 <button onClick={() => { if (window.confirm(`Mark ${money(t.owed)} as paid to ${t.name} for ${t.owedJobs.length} job(s)?`)) onMarkPaid(t.owedJobs); }}
@@ -640,3 +641,23 @@ function PnlTab({ colors, fmt, sales, tickets, expenses, inventory, tillRecords,
     </div>
   );
 }
+
+// Counter repairs and shop phones measured separately: what each job costs
+// in pay, how long it takes, and (for counter jobs) how much of the takings
+// goes on pay. Shop phones earn nothing until sold, so they show cost per phone.
+function TechSplit({ t, muted, red, money }) {
+  const b = t.byType || {};
+  const hrs = (m) => (m ? `${Math.round(m / 6) / 10} h` : "no time logged");
+  const perHour = (pay, m) => (m ? `${money(pay / (m / 60))}/h` : "—");
+  const avgMin = (x) => (x.timed ? `${Math.round(x.minutes / x.timed)} min/job${x.timed < x.jobs ? ` (${x.jobs - x.timed} with no time logged)` : ""}` : "no time logged");
+  const row = { fontSize: 12.5, color: muted, marginTop: 4, lineHeight: 1.5 };
+  const c = b.customer, s = b.shop;
+  return (
+    <div style={{ marginTop: 4 }}>
+      {c && c.jobs > 0 && <div style={row}><strong style={{ color: "#111827" }}>Counter repairs:</strong> {c.jobs} · {hrs(c.minutes)} · {avgMin(c)} · pay {money(c.pay)} ({money(c.pay / c.jobs)}/job, {perHour(c.pay, c.minutes)}) · takings {money(c.revenue)}{c.revenue ? ` · pay is ${Math.round((c.pay / c.revenue) * 100)}% of takings` : ""}</div>}
+      {s && s.jobs > 0 && <div style={row}><strong style={{ color: "#111827" }}>Shop phones:</strong> {s.jobs} · {hrs(s.minutes)} · {avgMin(s)} · pay {money(s.pay)} ({money(s.pay / s.jobs)}/phone, {perHour(s.pay, s.minutes)}) · parts {money(s.parts)} · repair cost {money((s.pay + s.parts) / s.jobs)}/phone</div>}
+      {t.rework > 0 && <div style={{ ...row, color: red }}>↩ {t.rework} warranty comeback{t.rework === 1 ? "" : "s"} this period on their jobs</div>}
+    </div>
+  );
+}
+

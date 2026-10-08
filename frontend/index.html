@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#FFFFFF" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&family=Outfit:wght@400;800&display=swap" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
@@ -20,15 +20,15 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://mobilerecellr.com.au/og-image.png" />
     <title>Mobile Recellr — Phone Repairs with Price Match, Same Day In Store | Sell & Buy Phones</title>
-    <meta name="description" content="Phone repairs with a price match guarantee, done same day in store with genuine or premium parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping." />
+    <meta name="description" content="Phone repairs with a price match guarantee, done same day in store with genuine parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping." />
 
     <!-- Open Graph — controls how the site looks when shared on social/messaging apps -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Mobile Recellr — Phone Repairs with Price Match, Same Day In Store | Sell & Buy Phones" />
-    <meta property="og:description" content="Phone repairs with a price match guarantee, done same day in store with genuine or premium parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping." />
+    <meta property="og:description" content="Phone repairs with a price match guarantee, done same day in store with genuine parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping." />
     <meta property="og:locale" content="en_AU" />
     <meta name="twitter:title" content="Mobile Recellr — Phone Repairs with Price Match, Same Day In Store | Sell & Buy Phones" />
-    <meta name="twitter:description" content="Phone repairs with a price match guarantee, done same day in store with genuine or premium parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping." />
+    <meta name="twitter:description" content="Phone repairs with a price match guarantee, done same day in store with genuine parts. Sell your phone for an instant quote, or buy refurbished with a 1-year warranty and free express shipping." />
 
     <!-- LocalBusiness structured data — this is what lets Google show rich
          results (star rating, address, hours) in search instead of a plain
@@ -40,11 +40,11 @@
       "@context": "https://schema.org",
       "@type": "ElectronicsStore",
       "name": "Mobile Recellr", "logo": "https://mobilerecellr.com.au/logo-512.png",
-      "description": "Phone, tablet, laptop and watch repair with genuine or premium parts (your choice), with a price match guarantee. Also buys, sells, and trades in devices.",
+      "description": "Phone, tablet, laptop and watch repair using genuine parts only, with a price match guarantee. Also buys, sells, and trades in devices.",
       "priceRange": "$",
       "areaServed": "AU",
       "makesOffer": [
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Phone, tablet, laptop and watch repair — genuine or premium parts, price match guarantee" } },
+        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Phone, tablet, laptop and watch repair — genuine parts, price match guarantee" } },
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Device trade-in / buyback" } },
         { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Refurbished device sales" } }
       ]
@@ -131,10 +131,31 @@
         }
       })();
     </script>
+    <style>html.mr-intro,html.mr-intro body{background:#0F1B3D}html.mr-intro #boot-msg{visibility:hidden}</style>
+    <script>
+      // First visit this session: paint the intro's navy from the very first frame,
+      // so there's no white flash before the logo animation starts (src/splash-intro.jsx).
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search).get("intro");
+          var forced = q === "5" || q === "6" || q === "8";
+          if (q === "0" || (q && !forced)) return;
+          if (!forced) {
+            if (/^\/(portal|staff)/.test(location.pathname)) return;
+            if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+            if (/bot|crawl|spider|slurp|lighthouse|pagespeed|headless/i.test(navigator.userAgent) || navigator.webdriver) return;
+            if (sessionStorage.getItem("mr_intro_seen") === "1") return;
+          }
+          document.documentElement.className += " mr-intro";
+          if (!q || q === "8") { var l = document.createElement("link"); l.rel = "preload"; l.as = "image"; l.href = "/intro-photo.webp"; document.head.appendChild(l); }
+          var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", "#0F1B3D");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root">
-      <div style="max-width:480px;margin:60px auto;padding:20px;font-family:system-ui,sans-serif;color:#5B6472;text-align:center;">
+      <div id="boot-msg" style="max-width:480px;margin:60px auto;padding:20px;font-family:system-ui,sans-serif;color:#5B6472;text-align:center;">
         Loading Mobile Recellr…
       </div>
     </div>

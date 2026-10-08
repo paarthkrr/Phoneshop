@@ -1,6 +1,7 @@
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useMemo } from "react";
+import { ScanButton } from "./barcode-scanner.jsx";
 
 /* =================================================================
    POS + INVENTORY
@@ -537,8 +538,11 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
             <span style={{ fontSize: 13, color: muted }}>Pay this customer</span>
             <span style={{ fontSize: 24, color: brass, fontFamily: "'Archivo Black', sans-serif" }}><Money n={calc.total} region={region} regions={regions} brass={brass} /></span>
           </div>
-          <input value={imei} onChange={(e) => setImei(e.target.value)} placeholder="IMEI (dial *#06#)"
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input value={imei} onChange={(e) => setImei(e.target.value)} placeholder="IMEI (dial *#06#)"
+              style={{ flex: 1, minWidth: 0, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            <ScanButton onScan={(c) => setImei(c)} title="Scan IMEI barcode (box or Settings > About)" />
+          </div>
           <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Photo ID — required by law</div>
           <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
             {[{ id: "license", label: "Licence" }, { id: "passport", label: "Passport" }, { id: "other", label: "Other" }].map((opt) => (
@@ -598,7 +602,8 @@ function ReceiveOrdersTab({ colors, orders, regions, onReceive }) {
           <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>{o.device.brand} {o.device.model} · {o.device.storage} · {o.customer.name}</div>
           <div style={{ display: "flex", gap: 8 }}>
             <input value={imeiDrafts[o.id] || ""} onChange={(e) => setImeiDrafts((s) => ({ ...s, [o.id]: e.target.value }))} placeholder="IMEI from device"
-              style={{ flex: 1, padding: "8px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
+              style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
+            <ScanButton onScan={(c) => setImeiDrafts((s) => ({ ...s, [o.id]: c }))} title="Scan IMEI barcode" />
             <button disabled={!imeiDrafts[o.id]?.trim()} onClick={() => onReceive(o, imeiDrafts[o.id].trim())}
               style={{ padding: "8px 14px", borderRadius: 3, border: "none", background: imeiDrafts[o.id]?.trim() ? brass : line, color: imeiDrafts[o.id]?.trim() ? "#1a1408" : muted, fontSize: 12.5, cursor: imeiDrafts[o.id]?.trim() ? "pointer" : "default" }}>
               Add to inventory

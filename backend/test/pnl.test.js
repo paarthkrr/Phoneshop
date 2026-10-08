@@ -21,6 +21,18 @@ assert.equal(p.grossProfit, 336); assert.equal(p.totalExpenses, 1000); assert.eq
 assert.equal(p.netProfit, 336 - 1000 - 50 - 5);
 const ravi = p.technicians.find((t) => t.name === "ravi");
 assert.deepEqual([ravi.jobs, ravi.minutes, ravi.pay, ravi.owed], [1, 75, 40, 65]);
+assert.deepEqual(ravi.byType.customer, { jobs: 1, timed: 1, minutes: 75, pay: 40, revenue: 0, parts: 65 });
+// Shop phones and counter repairs are counted apart; warranty comebacks count against the original technician.
+const t2 = [
+  { id: "J1", status: "completed", completedAt: "2026-10-02T00:00:00Z", assignedTo: "ravi", techPay: 30, timeSpentMins: 60, finalPrice: 150, parts: [{ cost: 40 }] },
+  { id: "J2", status: "completed", completedAt: "2026-10-03T00:00:00Z", assignedTo: "ravi", jobType: "shop", techPay: 20, timeSpentMins: 30, parts: [{ cost: 25 }] },
+  { id: "J3", status: "diagnosing", createdAt: "2026-10-04T00:00:00Z", warrantyOf: "J1", assignedTo: "sam" },
+];
+const r2 = buildPnl({ sales: [], tickets: t2, month: "2026-10" }).technicians.find((t) => t.name === "ravi");
+assert.deepEqual(r2.byType.customer, { jobs: 1, timed: 1, minutes: 60, pay: 30, revenue: 150, parts: 40 });
+assert.deepEqual(r2.byType.shop, { jobs: 1, timed: 1, minutes: 30, pay: 20, revenue: 0, parts: 25 });
+assert.equal(r2.rework, 1);
+assert.deepEqual([r2.jobs, r2.pay], [2, 50]);
 assert.equal(buildPnl({ sales, tickets, month: "all" }).rows.length, 5);
 assert.deepEqual(monthsIn({ sales, tickets }), ["2026-10", "2026-09"]);
 assert.match(toCsv(p.rows), /2026-10-06,Phones,Samsung S21,,400,unknown,,,unknown/);

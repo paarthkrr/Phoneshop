@@ -28,14 +28,14 @@ export default function AboutUs() {
         </div>
 
         <div style={{ fontSize: 16, lineHeight: 1.75, marginBottom: 20 }}>
-          We got tired of watching it happen. So we built a shop that does the opposite: we tell you honestly what's actually wrong, when a part really needs replacing we offer genuine or premium-quality parts and tell you exactly which one goes in, and we back every price with a real guarantee — if you find the same repair cheaper elsewhere, we'll match it.
+          We got tired of watching it happen. So we built a shop that does the opposite: we tell you honestly what's actually wrong, we only use genuine parts when a part genuinely needs replacing, and we back every price with a real guarantee — if you find the same repair cheaper elsewhere, we'll match it.
         </div>
 
         <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 24, margin: "36px 0", background: panel }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 14 }}>What that actually means for you</div>
           <div style={{ lineHeight: 2 }}>
             ✓ Honest diagnosis first — we tell you what's actually wrong before we quote you<br />
-            ✓ Genuine or premium parts — your choice, always labelled<br />
+            ✓ Genuine parts only — never unmarked aftermarket substitutes<br />
             ✓ Price match guarantee — found it cheaper? We'll match it, no argument<br />
             ✓ Every gadget — phones, tablets, laptops, and watches, not just one brand<br />
             ✓ 1-year warranty on every device we sell, 90 days on repairs, 6 months on parts and accessories
