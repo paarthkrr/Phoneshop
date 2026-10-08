@@ -65,7 +65,8 @@ export function PrivacyPolicy() {
       <p>Our pages load fonts from Google Fonts, some photos from Pexels, and video previews from YouTube on the Repair tutorials page, which means those services receive your device's IP address when you visit. Tutorial videos only start loading from YouTube when you tap play.</p>
 
       <h2>Who we share it with</h2>
-      <p>Only the service providers needed to run our business (such as our hosting provider), or where the law requires it — for example, a police request about stolen goods.</p>
+      <p>Only the service providers needed to run our business (such as our hosting and email providers), or where the law requires it — for example, a police request about stolen goods.</p>
+      <p>If you type a question into our chat assistant, your message (and the recent conversation) is sent to our AI service provider to write the reply. That provider may process it outside Australia. Please don't put card, bank or ID numbers in the chat.</p>
 
       <h2>How long we keep it</h2>
       <p>We keep transaction records for as long as the law requires. ID photos are automatically deleted after 90 days.</p>
