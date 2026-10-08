@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from "react";
 export const INTRO_VARIANT = 11; // 11 Phones merge, logo comes out, site opens like an app (default) · 10 Phones become the logo · 9 Two phones meet, dark · 8 Shop photo, dark · 6 Phone exchange, dark · 7 Phone zoom, blue · 5 Dark swap · 1 Swap slide · 2 Exchange cross · 3 Blue wipe · 4 Ring
 
 const SCALE = 1.8; // splash logo = header logo × this, so it lands exactly on it
-const TIMING = { 1: 1250, 2: 1350, 3: 1200, 4: 1300, 5: 1300, 6: 1650, 7: 1400, 8: 1650, 9: 2250, 10: 2700, 11: 2500 }; // ms before the exit starts
+const TIMING = { 1: 1250, 2: 1350, 3: 1200, 4: 1300, 5: 1300, 6: 1650, 7: 1400, 8: 1650, 9: 2250, 10: 2700, 11: 2650 }; // ms before the exit starts
 
 const CSS = `
 .mr-splash{position:fixed;inset:0;z-index:2000;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -146,7 +146,7 @@ const CSS = `
 .v11 .mr-lock{transform-origin:50% 50%;opacity:0;animation:m11Pop .6s cubic-bezier(.2,1.3,.4,1) 1.45s forwards}
 @keyframes m11Pop{from{opacity:0;transform:scale(.25)}to{opacity:1;transform:none}}
 .v11 .mr-arrow{stroke-dashoffset:0}
-.v11 .mr-word{max-width:none;opacity:1}
+.v11 .mr-word{animation:mrGrow .55s cubic-bezier(.16,1,.3,1) 1.8s forwards}
 /* 1 · Swap slide: the two phones slide in from opposite sides, the arrow draws, the name opens out */
 .v1 .mr-back{animation:mrInR .45s cubic-bezier(.16,1,.3,1) .05s both}
 .v1 .mr-front{animation:mrInL .45s cubic-bezier(.16,1,.3,1) .15s both}
