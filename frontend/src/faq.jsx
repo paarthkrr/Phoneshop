@@ -13,8 +13,8 @@ const FAQS = [
     a: "Find the same repair or the same device cheaper somewhere else? Show us the quote and we'll match it. This isn't a marketing line — you can submit a price match request directly through our quote tool, and a real person reviews it, not an algorithm.",
   },
   {
-    q: "Do you really only use genuine parts?",
-    a: "Yes. We started this business specifically because other shops were quoting expensive part replacements for problems that were often just dust or debris — a dishonest markup on something simple. We diagnose honestly first, and when a part genuinely needs replacing, it's a genuine part, never an unmarked aftermarket substitute.",
+    q: "What parts do you use?",
+    a: "Yes. We started this business specifically because other shops were quoting expensive part replacements for problems that were often just dust or debris — a dishonest markup on something simple. We diagnose honestly first. When a part really needs replacing, we offer a genuine part or a premium-quality aftermarket part, explain the difference and the price of each, and you choose. We always tell you exactly which part goes in, and every repair has our 90-day warranty.",
   },
   {
     q: "What devices do you repair?",

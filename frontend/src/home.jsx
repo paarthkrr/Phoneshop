@@ -235,14 +235,14 @@ const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
 const ACTIONS = [
   { href: "/quote", icon: "💰", title: "Sell your device", desc: "Instant quote, then we collect from your door anywhere in Sydney and pay you in cash.", cta: "Get a quote" },
   { href: "/shop", icon: "📱", title: "Buy refurbished", desc: "Graded, tested, 1-year warranty and free express shipping.", cta: "Shop now" },
-  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Price match guarantee, genuine parts, done same day in store.", cta: "Book a repair" },
+  { href: "/repairs", icon: "🔧", title: "Get it repaired", desc: "Price match guarantee, genuine or premium parts, done same day in store.", cta: "Book a repair" },
 ];
 
 const POPULAR = ["iPhone 16 Pro", "iPhone 15 Pro", "iPhone 14", "Galaxy S24 Ultra", "Pixel 9 Pro", "iPhone 13"];
 
 const TRUST = [
   { title: "Home collection across Sydney", desc: "We come to you, check your phone on the spot, and pay you — in cash if you like." },
-  { title: "Genuine parts only", desc: "Never unmarked aftermarket substitutes." },
+  { title: "Genuine or premium parts", desc: "You choose. We always tell you which part goes in." },
   { title: "Price match guarantee", desc: "Found it cheaper? We'll match it." },
   { title: "1-year warranty", desc: "On every device we sell. Repairs 90 days, parts & accessories 6 months." },
   { title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
@@ -397,7 +397,7 @@ export default function Home() {
       <div className="mvx-wide-only" style={{ ...section, marginBottom: 50 }}>
         <Photo name="workshop" height={320} overlay="linear-gradient(90deg, rgba(20,24,40,0.82) 0%, rgba(20,24,40,0.55) 55%, rgba(20,24,40,0.1) 100%)">
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%", padding: "0 clamp(20px, 5vw, 44px)", maxWidth: 480, color: "#fff" }}>
-            <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(22px, 4vw, 30px)", lineHeight: 1.15, marginBottom: 10 }}>Real technicians.<br />Genuine parts.</div>
+            <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(22px, 4vw, 30px)", lineHeight: 1.15, marginBottom: 10 }}>Real technicians.<br />Honest parts.</div>
             <div style={{ fontSize: 14.5, lineHeight: 1.6, opacity: 0.92, marginBottom: 18 }}>We diagnose first and tell you honestly what's wrong, before quoting anything.</div>
             <a href="/repairs" className="cs-btn" style={{ alignSelf: "flex-start", padding: "12px 22px", background: "#fff", color: "#111827", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 10 }}>Book a repair →</a>
           </div>
