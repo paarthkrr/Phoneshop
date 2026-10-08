@@ -1557,6 +1557,9 @@ app.post("/id-photos/purge-expired", requireAuth, async (req, res) => {
   res.json({ deleted });
 });
 
+// Website chat assistant (needs ANTHROPIC_API_KEY; answers { mode: "faq" } without it).
+require("./chat.js").register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey });
+
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 8787;

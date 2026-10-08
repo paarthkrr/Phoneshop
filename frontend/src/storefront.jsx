@@ -136,6 +136,13 @@ export default function Storefront() {
   const listed = useMemo(() => (inventory || []).filter((i) => i.status === "listed"), [inventory]);
   const brands = useMemo(() => ["All", ...new Set(listed.map((i) => i.brand))], [listed]);
   const featured = useMemo(() => [...listed].sort((a, b) => b.listedPrice - a.listedPrice).slice(0, 3), [listed]);
+  // Chat and other links like /shop?item=INV-123 open that phone straight away.
+  useEffect(() => {
+    const id = new URLSearchParams(routerLoc.search).get("item");
+    if (!id) return;
+    const it = listed.find((i) => String(i.id) === id);
+    if (it) { setSelectedItem(it); setView("detail"); }
+  }, [routerLoc.search, listed]);
   const filtered = listed.filter((i) => {
     const q = search.trim().toLowerCase();
     const brandOk = (brandFilter === "All" || i.brand === brandFilter) && (gradeFilter === "All" || i.gradeId === gradeFilter);

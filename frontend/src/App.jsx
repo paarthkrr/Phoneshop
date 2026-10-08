@@ -523,6 +523,7 @@ export default function App() {
         <ScrollReveal />
         <SiteSchema />
         <AnimatedRoutes />
+        <ChatWidget />
       </div>
     </BrowserRouter>
   );
@@ -713,7 +714,6 @@ function AnimatedRoutes() {
       </Routes>
       </React.Suspense>
       {!isStaff && <SiteFooter />}
-      {!isStaff && <ChatWidget />}
       <MobileCTA />
     </main>
   );
