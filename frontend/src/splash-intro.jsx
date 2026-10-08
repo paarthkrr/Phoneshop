@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 
 /* Opening animation: the logo builds itself, then flies into the header.
-   - Once per browser session, public pages only (never the staff portal).
+   - Every time the website is opened or reloaded, public pages only (never the staff portal).
    - Skipped for "reduce motion", search engines and speed-test bots.
    - Tap anywhere to skip. The page loads underneath the whole time.
-   - Preview any style on the live site with ?intro=1 to 9 (?intro=0 = off). */
+   - Preview any style on the live site with ?intro=1 to 10 (?intro=0 = off). */
 
-export const INTRO_VARIANT = 9; // 9 Two phones meet, dark (default) · 8 Shop photo, dark · 6 Phone exchange, dark · 7 Phone zoom, blue · 5 Dark swap · 1 Swap slide · 2 Exchange cross · 3 Blue wipe · 4 Ring
+export const INTRO_VARIANT = 10; // 10 Phones meet and become the logo, dark (default) · 9 Two phones meet, dark · 8 Shop photo, dark · 6 Phone exchange, dark · 7 Phone zoom, blue · 5 Dark swap · 1 Swap slide · 2 Exchange cross · 3 Blue wipe · 4 Ring
 
 const SCALE = 1.8; // splash logo = header logo × this, so it lands exactly on it
-const TIMING = { 1: 1250, 2: 1350, 3: 1200, 4: 1300, 5: 1300, 6: 1650, 7: 1400, 8: 1650, 9: 2250 }; // ms before the exit starts
+const TIMING = { 1: 1250, 2: 1350, 3: 1200, 4: 1300, 5: 1300, 6: 1650, 7: 1400, 8: 1650, 9: 2250, 10: 2700 }; // ms before the exit starts
 
 const CSS = `
 .mr-splash{position:fixed;inset:0;z-index:2000;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -115,7 +115,21 @@ const CSS = `
 .v9 .mr-arrow{stroke-dashoffset:0}
 .v9 .mr-word{animation:mrGrow .5s cubic-bezier(.16,1,.3,1) 1.35s forwards}
 .v9.leaving .m9-ph{transition:opacity .4s ease-in, transform .5s ease-in;opacity:0 !important}
+@media (min-width:900px){.m9-ph{width:190px;height:390px;margin:-195px 0 0 -95px}}
 @media (max-width:420px){.m9-ph{width:124px;height:255px;margin:-128px 0 0 -62px}.v9 .mr-lock{top:calc(44% + 150px)}}
+
+/* 10 · Phones become the logo (dark, default): the same two phones slide in from both sides and
+   meet, then shrink onto the two phones of our logo mark and turn into it (flat brand colours,
+   no glow or shine). The arrow draws, the name is revealed, and the logo glides into the header. */
+.m10-left{animation:m10L .8s cubic-bezier(.22,.9,.24,1) .05s both}
+@keyframes m10L{from{transform:translateX(-62vw) rotate(-16deg);opacity:0}to{transform:translateX(-40px) rotate(-7deg);opacity:1}}
+.m10-right{z-index:2;animation:m10R .8s cubic-bezier(.22,.9,.24,1) .05s both}
+@keyframes m10R{from{transform:translateX(62vw) rotate(16deg);opacity:0}to{transform:translateX(40px) rotate(7deg);opacity:1}}
+.v10 .mr-lock{position:absolute !important;left:0;right:0;margin:0 auto;width:max-content;top:calc(50% - 30px)}
+.v10 .mr-back,.v10 .mr-front{opacity:0}
+.v10 .mr-word{max-width:none;opacity:1;clip-path:inset(0 100% 0 0);-webkit-clip-path:inset(0 100% 0 0)}
+.v10 .mr-word.show{animation:m10Reveal .5s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes m10Reveal{to{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0)}}
 /* 1 · Swap slide: the two phones slide in from opposite sides, the arrow draws, the name opens out */
 .v1 .mr-back{animation:mrInR .45s cubic-bezier(.16,1,.3,1) .05s both}
 .v1 .mr-front{animation:mrInL .45s cubic-bezier(.16,1,.3,1) .15s both}
@@ -144,12 +158,10 @@ function shouldShow() {
   try {
     const q = new URLSearchParams(window.location.search).get("intro");
     if (q === "0") return 0;
-    if (/^[1-9]$/.test(q || "")) return Number(q);
+    if (/^([1-9]|10)$/.test(q || "")) return Number(q);
     if (/^\/(portal|staff)/.test(window.location.pathname)) return 0;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return 0;
     if (/bot|crawl|spider|slurp|lighthouse|pagespeed|headless/i.test(navigator.userAgent) || navigator.webdriver) return 0;
-    if (sessionStorage.getItem("mr_intro_seen") === "1") return 0;
-    sessionStorage.setItem("mr_intro_seen", "1");
   } catch (e) { return 0; }
   return INTRO_VARIANT;
 }
@@ -188,7 +200,7 @@ export default function SplashIntro() {
       return;
     }
     // 1, 2 and 5: fly the logo into the header logo's exact spot while the background fades.
-    const dark = variant === 5 || variant === 6 || variant === 8 || variant === 9;
+    const dark = variant === 5 || variant === 6 || variant === 8 || variant === 9 || variant === 10;
     if (dark) el.classList.add("leaving");
     const target = document.querySelector('nav img[src="/logo-mark.svg"]');
     const t = target && target.parentElement ? target.parentElement.getBoundingClientRect() : null;
@@ -197,7 +209,7 @@ export default function SplashIntro() {
     const fade = el.querySelector(".mr-bgfade");
     if (dark) {
       el.style.background = "transparent";
-      if (fade && variant !== 8 && variant !== 9) fade.style.opacity = "1";
+      if (fade && variant !== 8 && variant !== 9 && variant !== 10) fade.style.opacity = "1";
       el.querySelectorAll(".mr-bgfade, .mr-photo, .mr-shade, .m9").forEach((n) => n.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 560, easing: "ease-in", fill: "forwards" }));
     }
     else el.animate([{ backgroundColor: "rgba(255,255,255,1)" }, { backgroundColor: "rgba(255,255,255,0)" }], { duration: 560, easing: "ease-in", fill: "forwards" });
@@ -215,12 +227,38 @@ export default function SplashIntro() {
     document.documentElement.style.overflow = "hidden";
     const meta = document.querySelector('meta[name="theme-color"]');
     const oldTheme = meta && meta.getAttribute("content");
-    if (meta && (variant === 5 || variant === 6 || variant === 8 || variant === 9)) meta.setAttribute("content", "#0F1B3D");
+    if (meta && (variant === 5 || variant === 6 || variant === 8 || variant === 9 || variant === 10)) meta.setAttribute("content", "#0F1B3D");
     if (meta && variant === 7) meta.setAttribute("content", "#2150C8");
     const timer = setTimeout(() => exit(false), TIMING[variant] || 1200);
     const safety = setTimeout(() => setGone(true), 4000); // never stuck on screen
     return () => { clearTimeout(timer); clearTimeout(safety); document.documentElement.style.overflow = ""; if (meta && oldTheme) meta.setAttribute("content", oldTheme); };
   }, [gone]);
+
+  // 10: after the phones meet, shrink each one onto its phone in the logo mark and swap it for the mark.
+  useEffect(() => {
+    if (variant !== 10 || gone || !wrap.current) return undefined;
+    const el = wrap.current;
+    const t = setTimeout(() => {
+      const pairs = [[".m10-left", ".mr-front"], [".m10-right", ".mr-back"]];
+      for (const [ph, part] of pairs) {
+        const p = el.querySelector(ph), m = el.querySelector(part);
+        if (!p || !m) continue;
+        const a = p.getBoundingClientRect(), b = m.getBoundingClientRect();
+        const k = b.height / p.offsetHeight;
+        const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+        const from = getComputedStyle(p).transform;
+        const to = `translate(${dx}px, ${dy}px) ${from === "none" ? "" : from} scale(${k})`;
+        p.animate([{ transform: from === "none" ? "none" : from, opacity: 1 }, { transform: to, opacity: 1, offset: 0.78 }, { transform: to, opacity: 0 }],
+          { duration: 520, easing: "cubic-bezier(.65,0,.3,1)", fill: "forwards" });
+        m.animate([{ opacity: 0 }, { opacity: 0, offset: 0.7 }, { opacity: 1 }], { duration: 520, fill: "forwards" });
+      }
+      const arrow = el.querySelector(".mr-arrow");
+      if (arrow) arrow.animate([{ strokeDashoffset: 32 }, { strokeDashoffset: 0 }], { duration: 280, delay: 520, easing: "ease-out", fill: "forwards" });
+      const word = el.querySelector(".mr-word");
+      if (word) setTimeout(() => word.classList.add("show"), 600);
+    }, 1050);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!gone) return;
@@ -231,9 +269,9 @@ export default function SplashIntro() {
 
   if (gone) return null;
   return (
-    <div ref={wrap} className={`mr-splash v${variant}${variant === 5 || variant === 6 || variant === 8 || variant === 9 ? " dk" : ""}`} onClick={() => exit(true)} aria-hidden="true">
+    <div ref={wrap} className={`mr-splash v${variant}${variant === 5 || variant === 6 || variant === 8 || variant === 9 || variant === 10 ? " dk" : ""}`} onClick={() => exit(true)} aria-hidden="true">
       <style>{CSS}</style>
-      {(variant === 5 || variant === 6 || variant === 9) && <div className="mr-bgfade" style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 80% at 50% 45%,#1A2D63 0%,#0F1B3D 55%,#0A1330 100%)", opacity: 0, pointerEvents: "none" }} />}
+      {(variant === 5 || variant === 6 || variant === 9 || variant === 10) && <div className="mr-bgfade" style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 80% at 50% 45%,#1A2D63 0%,#0F1B3D 55%,#0A1330 100%)", opacity: 0, pointerEvents: "none" }} />}
       {variant === 8 && <><div className="mr-photo" /><div className="mr-shade" /></>}
       {variant === 6 && (
         <div className="mr-stage">
@@ -246,6 +284,12 @@ export default function SplashIntro() {
           <div className="m9-glow" />
           <Phone3D tone="black" className="m9-ph m9-left" />
           <Phone3D tone="blue" className="m9-ph m9-right" />
+        </div>
+      )}
+      {variant === 10 && (
+        <div className="mr-stage m9 m10">
+          <Phone3D tone="black" className="m9-ph m10-ph m10-left" />
+          <Phone3D tone="blue" className="m9-ph m10-ph m10-right" />
         </div>
       )}
       {variant === 7 && (
