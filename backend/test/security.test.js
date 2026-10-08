@@ -41,7 +41,7 @@ const ORDER = {
 before(async () => {
   const { Pool } = require("pg");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgres://postgres:testpass@localhost:5432/shoptest" });
-  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices");
+  await pool.query("DROP TABLE IF EXISTS storage, users, id_photos, recovery_uses, product_images, sessions, login_attempts, login_log, known_devices, activity_log");
   await pool.end();
   app = require("../server.js");
   await app.__schemaReady;
