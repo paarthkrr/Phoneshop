@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from "react";
 export const INTRO_VARIANT = 11; // 11 Phones merge, logo comes out, site opens like an app (default) · 10 Phones become the logo · 9 Two phones meet, dark · 8 Shop photo, dark · 6 Phone exchange, dark · 7 Phone zoom, blue · 5 Dark swap · 1 Swap slide · 2 Exchange cross · 3 Blue wipe · 4 Ring
 
 const SCALE = 1.8; // splash logo = header logo × this, so it lands exactly on it
-const TIMING = { 1: 1250, 2: 1350, 3: 1200, 4: 1300, 5: 1300, 6: 1650, 7: 1400, 8: 1650, 9: 2250, 10: 2700, 11: 2300 }; // ms before the exit starts
+const TIMING = { 1: 1250, 2: 1350, 3: 1200, 4: 1300, 5: 1300, 6: 1650, 7: 1400, 8: 1650, 9: 2250, 10: 2700, 11: 2500 }; // ms before the exit starts
 
 const CSS = `
 .mr-splash{position:fixed;inset:0;z-index:2000;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -136,14 +136,14 @@ const CSS = `
    other until they are gone, our logo comes out of the middle (flat colours, no glow), then the
    website opens out of the logo the way an app opens on a phone. */
 .m11-ph{top:50%}
-.m11-left{animation:m11L 1.3s cubic-bezier(.3,.8,.25,1) .05s both}
-@keyframes m11L{0%{transform:translateX(-78vw);opacity:1}46%{transform:translateX(-80px);opacity:1}68%{transform:translateX(-80px);opacity:1}100%{transform:translateX(0) scaleX(.1) scaleY(.8);opacity:0}}
-.m11-right{z-index:2;animation:m11R 1.3s cubic-bezier(.3,.8,.25,1) .05s both}
-@keyframes m11R{0%{transform:translateX(78vw);opacity:1}46%{transform:translateX(80px);opacity:1}68%{transform:translateX(80px);opacity:1}100%{transform:translateX(0) scaleX(.1) scaleY(.8);opacity:0}}
+.m11-left{animation:m11L 1.9s linear .05s both}
+.m11-right{z-index:2;animation:m11R 1.9s linear .05s both}
+@keyframes m11L{0%{transform:translateX(calc(-50vw + 50% + 14px));opacity:0;animation-timing-function:ease-out}8%{transform:translateX(calc(-50vw + 50% + 14px));opacity:1;animation-timing-function:cubic-bezier(.45,0,.3,1)}52%{transform:translateX(-56%);opacity:1;animation-timing-function:cubic-bezier(.5,0,.3,1)}70%{transform:translateX(0);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0);opacity:0}}
+@keyframes m11R{0%{transform:translateX(calc(50vw - 50% - 14px));opacity:0;animation-timing-function:ease-out}8%{transform:translateX(calc(50vw - 50% - 14px));opacity:1;animation-timing-function:cubic-bezier(.45,0,.3,1)}52%{transform:translateX(56%);opacity:1;animation-timing-function:cubic-bezier(.5,0,.3,1)}70%{transform:translateX(0) scale(1);opacity:1}76%{transform:translateX(0) scale(1.04);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0) scale(.9);opacity:0}}
 @media (min-width:900px){.m11-left{animation-name:m11Lw}.m11-right{animation-name:m11Rw}}
-@keyframes m11Lw{0%{transform:translateX(-60vw);opacity:1}46%{transform:translateX(-100px);opacity:1}68%{transform:translateX(-100px);opacity:1}100%{transform:translateX(0) scaleX(.1) scaleY(.8);opacity:0}}
-@keyframes m11Rw{0%{transform:translateX(60vw);opacity:1}46%{transform:translateX(100px);opacity:1}68%{transform:translateX(100px);opacity:1}100%{transform:translateX(0) scaleX(.1) scaleY(.8);opacity:0}}
-.v11 .mr-lock{transform-origin:50% 50%;opacity:0;animation:m11Pop .55s cubic-bezier(.2,1.35,.4,1) 1.2s forwards}
+@keyframes m11Lw{0%{transform:translateX(-38vw);opacity:0;animation-timing-function:ease-out}8%{transform:translateX(-38vw);opacity:1;animation-timing-function:cubic-bezier(.45,0,.3,1)}52%{transform:translateX(-56%);opacity:1;animation-timing-function:cubic-bezier(.5,0,.3,1)}70%{transform:translateX(0);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0);opacity:0}}
+@keyframes m11Rw{0%{transform:translateX(38vw);opacity:0;animation-timing-function:ease-out}8%{transform:translateX(38vw);opacity:1;animation-timing-function:cubic-bezier(.45,0,.3,1)}52%{transform:translateX(56%);opacity:1;animation-timing-function:cubic-bezier(.5,0,.3,1)}70%{transform:translateX(0) scale(1);opacity:1}76%{transform:translateX(0) scale(1.04);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0) scale(.9);opacity:0}}
+.v11 .mr-lock{transform-origin:50% 50%;opacity:0;animation:m11Pop .6s cubic-bezier(.2,1.3,.4,1) 1.45s forwards}
 @keyframes m11Pop{from{opacity:0;transform:scale(.25)}to{opacity:1;transform:none}}
 .v11 .mr-arrow{stroke-dashoffset:0}
 .v11 .mr-word{max-width:none;opacity:1}
@@ -208,20 +208,6 @@ export default function SplashIntro() {
       el.animate([{ backgroundColor: "rgba(33,80,200,1)", opacity: 1 }, { opacity: 1, offset: 0.62 }, { opacity: 0 }], { duration: 760, delay: 60, fill: "forwards" }).onfinish = done;
       return;
     }
-    if (variant === 11) {
-      const lk11 = lock.current;
-      lk11.animate([{ transform: "none", opacity: 1 }, { transform: "scale(7)", opacity: 0 }], { duration: 560, easing: "cubic-bezier(.55,0,.75,.2)", fill: "forwards" });
-      el.animate([{ opacity: 1 }, { opacity: 1, offset: 0.25 }, { opacity: 0 }], { duration: 600, easing: "ease-in", fill: "forwards" }).onfinish = done;
-      for (const n of el.parentElement ? el.parentElement.children : []) {
-        if (n === el || !n.animate) continue;
-        const r = n.getBoundingClientRect();
-        if (!r.height) continue;
-        n.style.transformOrigin = `${window.innerWidth / 2 - r.left}px ${window.innerHeight / 2 - r.top}px`;
-        n.animate([{ transform: "scale(.86)", opacity: 0 }, { transform: "scale(.86)", opacity: 0, offset: 0.2 }, { transform: "none", opacity: 1 }], { duration: 620, easing: "cubic-bezier(.2,.8,.2,1)" })
-          .onfinish = () => { n.style.transformOrigin = ""; };
-      }
-      return;
-    }
     if (variant === 3) {
       el.animate([{ transform: "none" }, { transform: "translateY(-100%)" }], { duration: 480, easing: "cubic-bezier(.7,0,.2,1)", fill: "forwards" }).onfinish = done;
       return;
@@ -235,13 +221,14 @@ export default function SplashIntro() {
     if (dark) el.classList.add("leaving");
     const target = document.querySelector('nav img[src="/logo-mark.svg"]');
     const t = target && target.parentElement ? target.parentElement.getBoundingClientRect() : null;
+    if (variant === 11) lk.style.transformOrigin = "0 0"; // its pop scaled from the centre; the flight maths needs the corner
     const s = lk.getBoundingClientRect();
     el.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1 }); // keep the logo fully visible
     const fade = el.querySelector(".mr-bgfade");
     if (dark) {
       el.style.background = "transparent";
       if (fade && variant !== 8 && variant !== 9 && variant !== 10) fade.style.opacity = "1";
-      el.querySelectorAll(".mr-bgfade, .mr-photo, .mr-shade, .m9").forEach((n) => n.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 560, easing: "ease-in", fill: "forwards" }));
+      el.querySelectorAll(".mr-bgfade, .mr-photo, .mr-shade, .m9, .m11").forEach((n) => n.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 560, easing: "ease-in", fill: "forwards" }));
     }
     else el.animate([{ backgroundColor: "rgba(255,255,255,1)" }, { backgroundColor: "rgba(255,255,255,0)" }], { duration: 560, easing: "ease-in", fill: "forwards" });
     if (t && t.width && t.top >= 0 && t.top < window.innerHeight) {
