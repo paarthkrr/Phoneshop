@@ -31,6 +31,7 @@ const SCREENS = {
   "/portal/pricing": "pricing",
   "/portal/products": "register",
   "/portal/team": "all",                 // everyone can change their own password; only the Owner manages people
+  "/portal/unlock": "register",    // counter staff + manager + admin can create unlock jobs
   "/portal/activity": "owner",
 };
 const ALIASES = { "/staff": "/portal", "/staff/admin": "/portal/pricing", "/staff/inspect": "/portal/inspect", "/staff/pos": "/portal/pos", "/staff/repairs": "/portal/repairs", "/staff/till": "/portal/till", "/staff/crm": "/portal/crm", "/staff/team": "/portal/team", "/staff/products": "/portal/products" };

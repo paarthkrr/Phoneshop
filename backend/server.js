@@ -1688,6 +1688,67 @@ require("./chat.js").register(app, { loadSharedList, loadSharedValue, makeLimite
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
+/* ── IMEI check proxy ────────────────────────────────────────────
+   Keeps CHECKMEND_API_KEY server-side only.
+   Checkmend API docs: https://www.checkmend.com/api
+
+   Set in Render environment variables:
+     CHECKMEND_API_KEY   — from your Checkmend account
+     CHECKMEND_SECRET    — from your Checkmend account (used for HMAC signing)
+     CHECKMEND_STORE_ID  — your store/partner ID
+
+   Returns:
+   { status, carrier, make, model, color, checkmend_ref }
+   status: "clean" | "blacklisted" | "reported_stolen" | "finance_outstanding"
+──────────────────────────────────────────────────────────────── */
+app.get("/api/imei-check", requireAuth, async (req, res) => {
+  const imei = (req.query.imei || "").replace(/\D/g, "");
+  if (imei.length < 14 || imei.length > 17) {
+    return res.status(400).json({ error: "IMEI must be 14–17 digits" });
+  }
+
+  const apiKey    = process.env.CHECKMEND_API_KEY;
+  const secret    = process.env.CHECKMEND_SECRET;
+  const storeId   = process.env.CHECKMEND_STORE_ID;
+
+  if (!apiKey || !secret || !storeId) {
+    // No credentials configured — return a clearly-marked mock so the
+    // frontend UI stays usable in dev without calling a real API.
+    return res.json({
+      _mock: true,
+      status: "clean",
+      carrier: "Telstra",
+      make: "Apple",
+      model: "iPhone (mock — add CHECKMEND_* env vars)",
+      color: "Unknown",
+      checkmend_ref: "MOCK-" + imei.slice(-4),
+    });
+  }
+
+  try {
+    // Checkmend HMAC-SHA256 signature: HMAC(secret, storeId + imei)
+    const sig = crypto.createHmac("sha256", secret).update(storeId + imei).digest("hex");
+    const url = `https://api.checkmend.com/check?store_id=${storeId}&imei=${imei}&sig=${sig}`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } });
+    if (!r.ok) {
+      const text = await r.text().catch(() => "");
+      return res.status(502).json({ error: "Checkmend API error", detail: text.slice(0, 200) });
+    }
+    const data = await r.json();
+    // Normalise Checkmend's response shape into what the frontend expects.
+    return res.json({
+      status: data.status || "clean",              // clean | blacklisted | reported_stolen | finance_outstanding
+      carrier: data.network || data.carrier || "Unknown",
+      make:    data.manufacturer || data.make || "",
+      model:   data.model || "",
+      color:   data.color || "",
+      checkmend_ref: data.certId || data.cert_id || data.ref || "",
+    });
+  } catch (err) {
+    return res.status(502).json({ error: "IMEI check failed", detail: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 8787;
 if (require.main === module) {
   schemaReady.then(() => purgeExpiredIdPhotos()).catch(() => {}); // enforce retention on every real server start

@@ -78,6 +78,7 @@ const TillReconciliation = staffScreen(() => import("./till-reconciliation.jsx")
 const CRMDashboard = staffScreen(() => import("./crm-dashboard.jsx"));
 const SecuritySetup = staffScreen(() => import("./security.jsx"));
 const Activity = staffScreen(() => import("./activity.jsx"));
+const UnlockChecker = staffScreen(() => import("./unlock-checker.jsx"));
 
 function isStaffPath(p) {
   return STAFF_BASES.some((b) => p === b || p.startsWith(b + "/"));
@@ -100,6 +101,7 @@ const STAFF_LINKS = [
   { to: "/portal/pricing", label: "Pricing Console" },
   { to: "/portal/products", label: "Products" },
   { to: "/portal/team", label: "Team" },
+  { to: "/portal/unlock", label: "Unlock Checker" },
   { to: "/portal/activity", label: "Activity" },
 ];
 
@@ -715,6 +717,7 @@ function AnimatedRoutes() {
         <Route path="/portal/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
         <Route path="/portal/team" element={<StaffGate><Team /></StaffGate>} />
         <Route path="/portal/activity" element={<StaffGate><Activity /></StaffGate>} />
+        <Route path="/portal/unlock" element={<StaffGate><UnlockChecker /></StaffGate>} />
         <Route path="/portal/products" element={<StaffGate><Products /></StaffGate>} />
         {/* Legacy /staff addresses — same pages */}
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
