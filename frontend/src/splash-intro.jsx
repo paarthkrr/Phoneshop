@@ -135,14 +135,14 @@ const CSS = `
    the black one from the middle of the right edge. They meet in the centre and slide into each
    other until they are gone, our logo comes out of the middle (flat colours, no glow), then the
    website opens out of the logo the way an app opens on a phone. */
-.m11-ph{top:50%}
+.m11-ph{top:50%;will-change:transform,opacity}
 .m11-left{animation:m11L 1.9s linear .05s both}
 .m11-right{z-index:2;animation:m11R 1.9s linear .05s both}
-@keyframes m11L{0%{transform:translateX(calc(-50vw + 50% + 14px));opacity:0;animation-timing-function:ease-out}8%{transform:translateX(calc(-50vw + 50% + 14px));opacity:1;animation-timing-function:cubic-bezier(.45,0,.3,1)}52%{transform:translateX(-56%);opacity:1;animation-timing-function:cubic-bezier(.5,0,.3,1)}70%{transform:translateX(0);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0);opacity:0}}
-@keyframes m11R{0%{transform:translateX(calc(50vw - 50% - 14px));opacity:0;animation-timing-function:ease-out}8%{transform:translateX(calc(50vw - 50% - 14px));opacity:1;animation-timing-function:cubic-bezier(.45,0,.3,1)}52%{transform:translateX(56%);opacity:1;animation-timing-function:cubic-bezier(.5,0,.3,1)}70%{transform:translateX(0) scale(1);opacity:1}76%{transform:translateX(0) scale(1.04);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0) scale(.9);opacity:0}}
+@keyframes m11L{0%{transform:translateX(calc(-50vw + 50% + 14px));opacity:0;animation-timing-function:ease-out}8%{transform:translateX(calc(-50vw + 50% + 14px));opacity:1;animation-timing-function:cubic-bezier(.55,0,.3,1)}70%{transform:translateX(0);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0);opacity:0}}
+@keyframes m11R{0%{transform:translateX(calc(50vw - 50% - 14px));opacity:0;animation-timing-function:ease-out}8%{transform:translateX(calc(50vw - 50% - 14px));opacity:1;animation-timing-function:cubic-bezier(.55,0,.3,1)}70%{transform:translateX(0);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0);opacity:0}}
 @media (min-width:900px){.m11-left{animation-name:m11Lw}.m11-right{animation-name:m11Rw}}
-@keyframes m11Lw{0%{transform:translateX(-38vw);opacity:0;animation-timing-function:ease-out}8%{transform:translateX(-38vw);opacity:1;animation-timing-function:cubic-bezier(.45,0,.3,1)}52%{transform:translateX(-56%);opacity:1;animation-timing-function:cubic-bezier(.5,0,.3,1)}70%{transform:translateX(0);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0);opacity:0}}
-@keyframes m11Rw{0%{transform:translateX(38vw);opacity:0;animation-timing-function:ease-out}8%{transform:translateX(38vw);opacity:1;animation-timing-function:cubic-bezier(.45,0,.3,1)}52%{transform:translateX(56%);opacity:1;animation-timing-function:cubic-bezier(.5,0,.3,1)}70%{transform:translateX(0) scale(1);opacity:1}76%{transform:translateX(0) scale(1.04);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0) scale(.9);opacity:0}}
+@keyframes m11Lw{0%{transform:translateX(-38vw);opacity:0;animation-timing-function:ease-out}8%{transform:translateX(-38vw);opacity:1;animation-timing-function:cubic-bezier(.55,0,.3,1)}70%{transform:translateX(0);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0);opacity:0}}
+@keyframes m11Rw{0%{transform:translateX(38vw);opacity:0;animation-timing-function:ease-out}8%{transform:translateX(38vw);opacity:1;animation-timing-function:cubic-bezier(.55,0,.3,1)}70%{transform:translateX(0);opacity:1;animation-timing-function:ease-in}100%{transform:translateX(0);opacity:0}}
 .v11 .mr-lock{transform-origin:50% 50%;opacity:0;animation:m11Pop .6s cubic-bezier(.2,1.3,.4,1) 1.45s forwards}
 @keyframes m11Pop{from{opacity:0;transform:scale(.25)}to{opacity:1;transform:none}}
 .v11 .mr-arrow{stroke-dashoffset:0}
