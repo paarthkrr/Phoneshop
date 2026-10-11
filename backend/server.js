@@ -872,6 +872,8 @@ const ACCESS = {
   support_queries: { read: "reports", write: "reports" },
   bulk_quote_requests: { read: "reports", write: "reports" },
   device_requests: { read: "pricing", write: "pricing" },
+  market_check: { read: "pricing", write: "pricing" },        // competitor price check + suggestions (backend/market.js)
+  market_decisions: { read: "pricing", write: "pricing" },    // accepted / ignored suggestions, so ignored ones aren't asked again
   unlock_jobs: { read: "register", write: "register" },     // Unlock Checker (counter staff)
   unlock_audit: { read: "register", write: "register" },      // "can't find my device" requests, handled in the Pricing Console
 };
@@ -1956,9 +1958,54 @@ app.get("/api/imei-check", requireAuth, async (req, res) => {
   }
 });
 
+// ---- Market price check (backend/market.js) ----
+// Reads what Mobile Monster and Phone Exchange pay, compares it with our own
+// quotes (same maths as the quote page) and stores suggested "market adj %"
+// changes for the Pricing Console. It never changes a price itself.
+const market = require("./market.js");
+let marketRunning = null, marketLastManual = 0;
+function runMarketCheck(by, fetchImpl) {
+  if (marketRunning) return marketRunning;
+  marketRunning = (async () => {
+    const [pricing, catalogMod] = await Promise.all([loadPricing(), import("../frontend/src/device-catalog.js")]);
+    const sources = await market.fetchSources(fetchImpl || fetch);
+    const config = (await loadSharedValue("pricing-config")) || {};
+    const decisions = await loadSharedList("market_decisions");
+    const result = market.buildSuggestions({ config, pricing: { ...pricing, mergeCatalog: catalogMod.mergeCatalog }, sources, decisions });
+    const prev = (await loadSharedValue("market_check")) || {};
+    const checkedAt = new Date().toISOString();
+    const record = {
+      checkedAt, by, position: result.position, limits: market.LIMITS,
+      sources: sources.map(({ prices, ...s }) => s),
+      suggestions: result.suggestions, inLine: result.inLine.length, notFound: result.notFound.length,
+      // How far each model was from the market at each check, for the trend.
+      history: [{ at: checkedAt, gaps: Object.fromEntries(result.suggestions.map((x) => [x.id, x.gapPct])) }, ...((prev && prev.history) || [])].slice(0, 12),
+    };
+    await withListLock("shared", "market_check", (_old, write) => write(JSON.stringify(record), by));
+    return record;
+  })().finally(() => { marketRunning = null; });
+  return marketRunning;
+}
+app.post("/market/check", requireAuth, async (req, res) => {
+  if (!hasArea(req.user, "pricing")) return res.status(403).json({ error: "your access doesn't include pricing" });
+  if (Date.now() - marketLastManual < 2 * 60 * 1000) return res.status(429).json({ error: "a check just ran, try again in a couple of minutes" });
+  marketLastManual = Date.now();
+  try { res.json(await runMarketCheck(req.user.username, app.__marketFetch)); }
+  catch (e) { console.error("market check failed:", e.message); res.status(502).json({ error: "the market check failed, try again later" }); }
+});
+async function weeklyMarketCheck() {
+  try {
+    const last = await loadSharedValue("market_check");
+    if (!last || !(Date.now() - Date.parse(last.checkedAt) < 7 * 864e5)) await runMarketCheck("weekly check");
+  } catch (e) { console.error("weekly market check failed:", e.message); }
+}
+
 const PORT = process.env.PORT || 8787;
 if (require.main === module) {
   schemaReady.then(() => purgeExpiredIdPhotos()).catch(() => {}); // enforce retention on every real server start
+  // Competitor prices: checked when the server wakes if the last check is a week old, then every 6 hours it looks again.
+  setTimeout(() => schemaReady.then(weeklyMarketCheck), 60 * 1000).unref();
+  setInterval(() => schemaReady.then(weeklyMarketCheck), 6 * 3600 * 1000).unref();
   const server = app.listen(PORT, () => console.log(`Shop backend listening on :${PORT} (postgres)`));
   process.on("SIGTERM", () => { pool.end(); server.close(() => process.exit(0)); });
 }
