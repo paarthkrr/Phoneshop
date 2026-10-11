@@ -6,7 +6,8 @@ const digits = (v) => (v || "").replace(/[\s-]/g, "");
 const isBsb = (v) => /^\d{6}$/.test(digits(v));
 const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { DOORSTEP, zoneForPostcode, doorstepFee, slotDays, expressAvailable } from "./doorstep.js";
 import { REPAIRS_BY_DEVICE } from "./repair-prices.js";
 
 async function findPublicRecord(key, query, localList, fields = ["id", "email"]) {
@@ -74,6 +75,17 @@ export default function Repairs() {
   const [model, setModel] = useState("");
   const [issue, setIssue] = useState("");
   const [method, setMethod] = useState("instore");
+  const [address, setAddress] = useState("");
+  const [postcode, setPostcode] = useState("");
+  const [express, setExpress] = useState(false);
+  const [slotDate, setSlotDate] = useState("");
+  const [slotWin, setSlotWin] = useState("");
+  const days = useMemo(() => slotDays(), []);
+  const canExpress = useMemo(() => expressAvailable(), []);
+  const zone = zoneForPostcode(postcode);
+  const fee = doorstepFee(zone, express && canExpress);
+  const door = method === "doorstep";
+  const doorOk = !door || (address.trim().length > 5 && zone && phone.trim().length >= 8 && (express && canExpress ? true : slotDate && slotWin));
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [error, setError] = useState("");
@@ -90,7 +102,7 @@ export default function Repairs() {
   }
 
   async function handleSubmit() {
-    if (!name.trim() || !isEmail(email) || !model.trim() || !issue.trim()) return;
+    if (!name.trim() || !isEmail(email) || !model.trim() || !issue.trim() || !doorOk) return;
     setSubmitting(true);
     setError("");
     try {
@@ -100,12 +112,20 @@ export default function Repairs() {
         name: name.trim(), email: email.trim(), phone: phone.trim(),
         deviceType, model: model.trim(), issue: issue.trim(), method,
       };
+      if (door) {
+        const isExp = express && canExpress;
+        const win = DOORSTEP.windows.find((w) => w.id === slotWin);
+        Object.assign(entry, { address: address.trim(), postcode: postcode.trim(), zone, travelFee: fee, express: isExp,
+          slotDate: isExp ? "" : slotDate, slotWindow: isExp ? "Express, within about 2 hours" : (win ? win.range : "") });
+      }
       const ok = await saveJSON("repair_requests", [entry, ...list], true);
       if (!ok) throw new Error("Couldn't submit — check your connection and try again.");
       await queueNotification({
         type: "repair_request", channel: "email", recipientEmail: entry.email, recipientName: entry.name,
         subject: `Repair request ${entry.id} received`,
-        message: `We've received your repair request for your ${entry.deviceType.toLowerCase()} (${entry.model}). We'll reach out shortly to confirm details and turnaround.`,
+        message: door
+          ? `We've received your at-your-door repair request for your ${entry.deviceType.toLowerCase()} (${entry.model}). Requested time: ${entry.express ? "express, within about 2 hours" : `${entry.slotDate}, ${entry.slotWindow}`}. ${entry.zone === "ask" ? "We'll confirm your area and travel fee by message before booking it in." : `Travel fee: $${entry.travelFee}, taken off your repair price if you go ahead.`} We'll message you to confirm the time and tell you which technician is coming. Nothing is booked until we confirm.`
+          : `We've received your repair request for your ${entry.deviceType.toLowerCase()} (${entry.model}). We'll reach out shortly to confirm details and turnaround.`,
         relatedId: entry.id,
       });
       setSubmitted(entry);
@@ -122,7 +142,7 @@ export default function Repairs() {
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
         <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", textAlign: "center" }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, marginBottom: 10 }}>Got it — {submitted.id}</div>
-          <div style={{ color: muted, fontSize: 14, marginBottom: 24 }}>We'll reach out at {submitted.email} to confirm details for your {submitted.deviceType.toLowerCase()}. {submitted.method === "mailin" ? "We'll email you the postal address for your mail-in repair." : "Pop in any time during opening hours — most repairs are done the same day."}</div>
+          <div style={{ color: muted, fontSize: 14, marginBottom: 24 }}>We'll reach out at {submitted.email} to confirm details for your {submitted.deviceType.toLowerCase()}. {submitted.method === "doorstep" ? "This is a request, not a confirmed booking yet. We'll message you shortly to confirm the time slot and the technician who is coming." : submitted.method === "mailin" ? "We'll email you the postal address for your mail-in repair." : "Pop in any time during opening hours — most repairs are done the same day."}</div>
           <a href="/" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Back to homepage</a>
         </div>
       </div>
@@ -188,7 +208,7 @@ export default function Repairs() {
 
           <div role="group" aria-label="Repair method" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
 
-            {[["instore", "In store — same day"], ["mailin", "Mail-in — 3–5 business days"]].map(([k, lbl]) => (
+            {[["instore", "In store — same day"], ["doorstep", "At my door"], ["mailin", "Mail-in — 3–5 days"]].map(([k, lbl]) => (
 
               <button key={k} type="button" onClick={() => setMethod(k)} aria-pressed={method === k}
 
@@ -202,12 +222,51 @@ export default function Repairs() {
 
           {method === "mailin" && <div style={{ fontSize: 12.5, color: muted, marginBottom: 12, lineHeight: 1.5 }}>We'll email you our postal address and a reference number. Post it tracked from any Australia Post outlet; it's usually back with you within 3–5 business days of arriving.</div>}
 
+          {door && (
+            <div style={{ border: `1px solid ${line}`, borderRadius: 10, padding: 14, marginBottom: 12, background: panel2 }}>
+              <div style={{ fontSize: 12.5, color: muted, lineHeight: 1.5, marginBottom: 10 }}>A technician comes to you in Sydney, repairs on the spot, you pay after. {DOORSTEP.creditNote} Inner zone ${DOORSTEP.zones.A.fee} (about 10 km of Sydney CBD, Blacktown or Macquarie Park), outer zone ${DOORSTEP.zones.B.fee}. Not every repair can be done at a doorstep (some need the bench); we'll tell you honestly before we come.</div>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street address" aria-label="Street address" autoComplete="street-address"
+                style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
+              <input value={postcode} onChange={(e) => setPostcode(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="Postcode" aria-label="Postcode" inputMode="numeric" autoComplete="postal-code"
+                style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
+              {postcode.length === 4 && (
+                <div role="status" style={{ fontSize: 13, marginBottom: 10, color: zone === "ask" ? red : green, fontWeight: 600 }}>
+                  {zone === "ask" ? "Outside our usual area. Send the request and we'll tell you if and what we can do." : `${DOORSTEP.zones[zone].label}: travel fee $${DOORSTEP.zones[zone].fee}${express && canExpress ? ` + $${DOORSTEP.expressExtra} express` : ""}, credited to your repair.`}
+                </div>
+              )}
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, marginBottom: 10, opacity: canExpress ? 1 : 0.55 }}>
+                <input type="checkbox" checked={express && canExpress} disabled={!canExpress} onChange={(e) => setExpress(e.target.checked)} style={{ marginTop: 3 }} />
+                <span><strong>Emergency, come now</strong> (+${DOORSTEP.expressExtra}). Technician on the way within about 2 hours.{!canExpress && " Available 9am to 5pm today only."}</span>
+              </label>
+              {!(express && canExpress) && (
+                <>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>Pick a day</div>
+                  <div role="group" aria-label="Day" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+                    {days.filter((d) => d.windows.length).map((d) => (
+                      <button key={d.date} type="button" aria-pressed={slotDate === d.date} onClick={() => { setSlotDate(d.date); setSlotWin(""); }}
+                        style={{ padding: "8px 11px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${slotDate === d.date ? brass : line}`, background: slotDate === d.date ? brassDim : panel, color: slotDate === d.date ? brass : paper }}>{d.label}</button>
+                    ))}
+                  </div>
+                  {slotDate && (
+                    <div role="group" aria-label="Time window" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {(days.find((d) => d.date === slotDate) || { windows: [] }).windows.map((w) => (
+                        <button key={w.id} type="button" aria-pressed={slotWin === w.id} onClick={() => setSlotWin(w.id)}
+                          style={{ padding: "8px 11px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: `1.5px solid ${slotWin === w.id ? brass : line}`, background: slotWin === w.id ? brassDim : panel, color: slotWin === w.id ? brass : paper }}>{w.label} · {w.range}</button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+              {phone.trim().length < 8 && <div style={{ fontSize: 12, color: muted, marginTop: 8 }}>A phone number is needed so the technician can reach you on the day.</div>}
+            </div>
+          )}
+
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" aria-label="Your name" autoComplete="name"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" aria-label="Email address" type="email" autoComplete="email" inputMode="email"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           {email && !isEmail(email) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That email address doesn't look right — we need it to reply to you.</div>}
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number (optional)" aria-label="Phone number" type="tel" autoComplete="tel" inputMode="tel"
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={door ? "Mobile number (needed for doorstep)" : "Phone number (optional)"} aria-label="Phone number" type="tel" autoComplete="tel" inputMode="tel"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           <input value={model} onChange={(e) => setModel(e.target.value)} placeholder={`${deviceType} model, e.g. "iPhone 14 Pro"`} aria-label="Device model"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
@@ -216,12 +275,12 @@ export default function Repairs() {
 
           {error && <div style={{ color: red, fontSize: 13, marginBottom: 10 }}>{error}</div>}
 
-          <button className="cs-btn" onClick={handleSubmit} disabled={!name.trim() || !isEmail(email) || !model.trim() || !issue.trim() || submitting}
+          <button className="cs-btn" onClick={handleSubmit} disabled={!name.trim() || !isEmail(email) || !model.trim() || !issue.trim() || !doorOk || submitting}
             style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              background: name.trim() && isEmail(email) && model.trim() && issue.trim() ? brass : line, color: name.trim() && isEmail(email) && model.trim() && issue.trim() ? "#fff" : muted,
-              fontSize: 14, fontWeight: 600, cursor: name.trim() && isEmail(email) && model.trim() && issue.trim() ? "pointer" : "default" }}>
+              background: name.trim() && isEmail(email) && model.trim() && issue.trim() && doorOk ? brass : line, color: name.trim() && isEmail(email) && model.trim() && issue.trim() && doorOk ? "#fff" : muted,
+              fontSize: 14, fontWeight: 600, cursor: name.trim() && isEmail(email) && model.trim() && issue.trim() && doorOk ? "pointer" : "default" }}>
             {submitting && <span className="cs-spinner"></span>}
-            {submitting ? "Sending…" : "Request this repair"}
+            {submitting ? "Sending…" : door ? "Request a doorstep repair" : "Request this repair"}
           </button>
         </div>
 
