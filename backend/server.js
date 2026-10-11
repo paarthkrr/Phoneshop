@@ -557,6 +557,25 @@ const loadPricing = () => (pricingModule = pricingModule || import("../frontend/
 const round2 = (n) => Math.round(n * 100) / 100;
 // Mirrors SHIPPING_FLAT / FREE_SHIPPING_OVER in frontend/src/parts.jsx.
 const ACCESSORY_SHIPPING_FLAT = 9.95, ACCESSORY_FREE_SHIPPING_OVER = 100;
+// Reserves the listed phone each new online order is for, all or nothing.
+// Customers can't write the stock list themselves (and only ever see the
+// public, trimmed copy of it), so the server does this under the stock lock.
+// false = a phone is no longer listed (sold, reserved, or never existed).
+async function reserveForOrders(orders) {
+  return withListLock("shared", "inventory", async (existingValue, write) => {
+    let list;
+    try { list = existingValue ? JSON.parse(existingValue) : []; } catch (e) { return false; }
+    if (!Array.isArray(list)) return false;
+    const at = new Date().toISOString();
+    for (const o of orders) {
+      const i = list.findIndex((it) => it && o && o.itemId && it.id === o.itemId);
+      if (i < 0 || list[i].status !== "listed") return false;
+      list[i] = { ...list[i], status: "reserved", reservedByOrderId: o.id, reservedAt: at };
+    }
+    await write(JSON.stringify(list), "public");
+    return true;
+  });
+}
 async function enforcePrices(key, records) {
   if (key === "orders") {
     const { brandNewBase, DEFAULT_TIERS, ACCESSORY_BONUS_PCT } = await loadPricing();
@@ -1547,12 +1566,15 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
             incoming.some((r) => r && r.id && byId.has(r.id) && !sameSubmission(byId.get(r.id), r))) return { conflict: true };
         let fresh = incoming.filter((r) => r && r.id && !byId.has(r.id));
         fresh = await enforcePrices(key, fresh);
+        // An online phone order holds the phone straight away, so two customers can't buy the same one.
+        if (key === "purchase_orders" && fresh.length && !(await reserveForOrders(fresh))) return { unavailable: true };
         if (key === "notification_queue") fresh = await buildConfirmations(fresh, existing);
         if (key === "referrals") fresh = await enrichReferrals(fresh);
         if (fresh.length) await write(JSON.stringify([...fresh, ...existing]), "public");
         return { fresh };
       });
       if (result.conflict) return res.status(409).json({ error: "id_conflict", detail: "that reference number is already in use, please submit again" });
+      if (result.unavailable) return res.status(409).json({ error: "item_unavailable", detail: "this phone has just been sold or reserved" });
       const newOnes = result.fresh;
       notifyNew(key, newOnes, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST);
       // Never return the merged collection to an anonymous caller — only confirm what THEY submitted.
