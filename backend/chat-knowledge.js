@@ -62,10 +62,10 @@ BUYING REFURBISHED PHONES (page /shop)
 
 ACCESSORIES, PARTS AND DIY KITS
 - Accessories (/accessories): cases and covers, screen protectors, chargers and cables, power banks, audio, watch bands, DIY repair kits. Parts (/parts): screens, batteries, back glass, charging ports, cameras and more, with compatibility by model.
-- Parts and accessories carry a 6-month warranty. Free click and collect or fast delivery.
+- Parts and accessories bought from us on their own (for example a DIY part or a case) carry a 6-month warranty. A part we fit during a repair is covered by the 90-day repair warranty instead. Free click and collect or fast delivery.
 
 WARRANTY (page /terms#warranty)
-- 1 year on devices we sell, 90 days on repairs, 6 months on parts and accessories. Covers defects only; does not cover drops, cracked screens or glass, bent frames, liquid damage, misuse, or later repairs by anyone else. To claim, contact us with your order or repair number. The warranty is in addition to your rights under the Australian Consumer Law, which cannot be excluded.
+- 1 year on devices we sell; 90 days on repairs (this includes the part we fit); 6 months on parts and accessories bought on their own. Never say a repair part has a 6-month warranty. Covers defects only; does not cover drops, cracked screens or glass, bent frames, liquid damage, misuse, or later repairs by anyone else. To claim, contact us with your order or repair number. The warranty is in addition to your rights under the Australian Consumer Law, which cannot be excluded.
 
 TRACKING
 - Trade-in: use the Track option on /quote. Purchase: Track option on /shop. Repair request: "Already submitted a request? Track it here" on /repairs. For a specific order's status, pass the customer to the team.
