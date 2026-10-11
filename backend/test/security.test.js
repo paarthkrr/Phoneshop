@@ -33,7 +33,7 @@ const getShared = async (key) => { const r = await call("GET", `/storage/${key}?
 
 const ORDER = {
   id: "ORD-111111", createdAt: "2026-10-01T00:00:00.000Z", status: "awaiting_shipment", region: "AU", currency: "AUD",
-  device: { brand: "Apple", model: "iPhone 15", storage: "128GB" }, quotedTotal: 410, referralCode: "JANE-AB12",
+  device: { brand: "Apple", model: "iPhone 15", storage: "128GB" }, quotedTotal: 410, referralCode: "JANE482",
   customer: { name: "Jane Citizen", email: "jane@example.com", phone: "0400000000", payoutMethod: "bank", bankBsb: "062000", bankAccountNumber: "12345678", idOwnerName: "Jane Citizen" },
   address: "1 Test St", inspection: null,
 };
@@ -77,7 +77,7 @@ test("public lookup returns only tracking fields", async () => {
 
 test("public lookup refuses arbitrary fields and private collections", async () => {
   assert.equal((await call("GET", "/public/find/orders?field=status&value=awaiting_shipment")).status, 400);
-  assert.equal((await call("GET", "/public/find/orders?field=referralCode&value=JANE-AB12")).status, 400);
+  assert.equal((await call("GET", "/public/find/orders?field=referralCode&value=JANE482")).status, 400);
   assert.equal((await call("GET", "/public/find/orders?field=customer.bankAccountNumber&value=12345678")).status, 400);
   assert.equal((await call("GET", "/public/find/notification_queue?field=id&value=x")).status, 401);
   assert.equal((await call("GET", "/public/find/referrals?field=id&value=x")).status, 401);
@@ -134,17 +134,27 @@ test("a clashing reference number is refused; an identical retry succeeds", asyn
 });
 
 test("referrals: server fills in the referrer and drops self-referrals", async () => {
-  await put("referrals", [{ id: "REF-1", code: "jane-ab12", referredEmail: "new@example.com", referredName: "New", referredOrderId: "ORD-9", referrerPaid: true }]);
-  await put("referrals", [{ id: "REF-2", code: "JANE-AB12", referredEmail: "JANE@example.com", referredName: "Jane" }]);
-  await put("referrals", [{ id: "REF-3", code: "NOPE-0000", referredEmail: "b@example.com" }]);
+  // The referred customer's own trade-in, placed on the site.
+  await put("orders", [{ ...ORDER, id: "ORD-900009", referralCode: "NEW123", customer: { name: "New", email: "new@example.com" } }]);
+  await put("referrals", [{ id: "REF-1", code: "jane482", referredEmail: "new@example.com", referredName: "New", referredOrderId: "ORD-900009", referrerPaid: true, rewardAmount: 5000 }]);
+  await put("referrals", [{ id: "REF-2", code: "JANE482", referredEmail: "JANE@example.com", referredName: "Jane" }]);
+  await put("referrals", [{ id: "REF-3", code: "NOPE000", referredEmail: "b@example.com" }]);
+  await put("referrals", [{ id: "REF-4", code: "JANE482", referredEmail: "fake@example.com", referredOrderId: "ORD-404404" }]);
+  await put("referrals", [{ id: "REF-5", code: "JANE482", referredEmail: "new@example.com", referredOrderId: "ORD-900009" }]);
+  // Someone else's order can't take over Jane's code.
+  await put("orders", [{ ...ORDER, id: "ORD-900010", referralCode: "JANE482", customer: { name: "Mal", email: "mal@example.com" } }]);
+  await put("referrals", [{ id: "REF-6", code: "JANE482", referredEmail: "x@example.com", referredOrderId: "ORD-900010" }]);
   const refs = await getShared("referrals");
-  assert.deepEqual(refs.map((r) => r.id), ["REF-1"]);
+  assert.deepEqual(refs.map((r) => r.id).sort(), ["REF-1"], "no real trade-in, self-referral, unknown code or a second claim: dropped");
   assert.equal(refs[0].referrerEmail, "jane@example.com");
   assert.equal(refs[0].referrerPaid, false);
+  assert.equal(refs[0].rewardAmount, 20, "the reward is the shop's, not the visitor's");
+  assert.equal((await getShared("orders")).find((o) => o.id === "ORD-900010").referralCode, undefined, "duplicate code dropped");
 });
 
 test("anonymous ID photo: only for an existing order, only once", async () => {
-  const img = Buffer.from("fake image").toString("base64");
+  const img = "data:image/png;base64," + Buffer.from("fake image").toString("base64");
+  assert.equal((await call("POST", "/id-photos", { body: { subjectKey: "order:ORD-111111", imageBase64: "not a photo" } })).status, 400);
   assert.equal((await call("POST", "/id-photos", { body: { subjectKey: "order:ORD-000000", imageBase64: img } })).status, 403);
   assert.equal((await call("POST", "/id-photos", { body: { subjectKey: "instore:INV-1", imageBase64: img } })).status, 403);
   assert.equal((await call("POST", "/id-photos", { body: { subjectKey: "order:ORD-111111", imageBase64: img } })).status, 200);
@@ -182,4 +192,20 @@ test("public lookups are rate limited", async () => {
   let last;
   for (let i = 0; i < 70; i++) last = await call("GET", "/public/find/orders?field=id&value=ORD-NONE");
   assert.equal(last.status, 429);
+});
+
+test("visitors can't approve their own price match or trade-in, send broken orders, or bloat lists", async () => {
+  await put("price_match_requests", [{ id: "PM-777777", customerEmail: "me@example.com", status: "approved", approvedPrice: 4999, staffNote: "ok", competitorName: "X",
+    device: { brand: "Apple", model: "iPhone 15" } }]);
+  const pm = (await getShared("price_match_requests")).find((r) => r.id === "PM-777777");
+  assert.deepEqual([pm.status, pm.approvedPrice, pm.staffNote], ["pending", null, ""]);
+
+  await put("orders", [{ ...ORDER, id: "ORD-777777", referralCode: "EVE777", status: "approved_paid", inspection: { confirmedTotal: 3000 }, receivedToInventory: true,
+    customer: { name: "Eve", email: "eve@example.com" } }]);
+  const o = (await getShared("orders")).find((r) => r.id === "ORD-777777");
+  assert.deepEqual([o.status, o.inspection, o.receivedToInventory], ["awaiting_shipment", null, undefined]);
+  assert.ok(o.receivedAt, "server stamps when it arrived");
+
+  assert.equal((await put("orders", [{ id: "ORD-777778", createdAt: "x" }])).status, 400, "an order without a device or email is refused");
+  assert.equal((await put("support_queries", [{ id: "HLP-777777", message: "x".repeat(60_000) }])).status, 400, "oversized record refused");
 });

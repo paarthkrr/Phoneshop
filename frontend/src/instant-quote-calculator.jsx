@@ -530,6 +530,8 @@ export default function QuoteCalculator() {
   const [pmCompetitor, setPmCompetitor] = useState("");
   const [pmPrice, setPmPrice] = useState("");
   const [pmNote, setPmNote] = useState("");
+  const [pmEmail, setPmEmail] = useState("");
+  const [pmError, setPmError] = useState("");
   const [pmSubmitted, setPmSubmitted] = useState(null);
   const [pmTrackMode, setPmTrackMode] = useState(false);
   const [pmTrackQuery, setPmTrackQuery] = useState("");
@@ -769,17 +771,18 @@ export default function QuoteCalculator() {
   }
 
   async function handlePriceMatchSubmit() {
-    if (!calc || !pmCompetitor.trim() || !pmPrice) return;
+    if (!calc || !pmCompetitor.trim() || !pmPrice || !isEmail(pmEmail)) return;
+    setPmError("");
     const request = {
       id: genPriceMatchId(),
       createdAt: new Date().toISOString(),
       device: selected ? { brand: selected.brand, model: selected.model, storage: selected.storage } : null,
       ourQuote: roundMoney(calc.total, region, REGIONS_A), region, currency: REGIONS_A[region].currency,
       competitorName: pmCompetitor.trim(), competitorPrice: parseFloat(pmPrice), note: pmNote.trim(),
-      customerEmail: customer.email || null,
+      customerEmail: pmEmail.trim(),
       status: "pending", approvedPrice: null, staffNote: "",
     };
-    await savePriceMatch(request);
+    if (!(await savePriceMatch(request))) { setPmError("We couldn't send your request. Please check your connection and try again."); return; }
     setPmSubmitted(request);
   }
 
@@ -1555,12 +1558,15 @@ export default function QuoteCalculator() {
               style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
             <input value={pmPrice} onChange={(e) => setPmPrice(e.target.value)} placeholder="Their quoted price" type="number"
               style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
+            <input value={pmEmail} onChange={(e) => setPmEmail(e.target.value)} placeholder="Your email (so we can reply)" type="email" autoComplete="email" inputMode="email" aria-label="Your email"
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
             <input value={pmNote} onChange={(e) => setPmNote(e.target.value)} placeholder="Anything else we should know (optional)"
               style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
-            <button disabled={!calc || !pmCompetitor.trim() || !pmPrice} onClick={handlePriceMatchSubmit}
+            {pmError && <div role="alert" style={{ fontSize: 12, color: red, marginBottom: 8 }}>{pmError}</div>}
+            <button disabled={!calc || !pmCompetitor.trim() || !pmPrice || !isEmail(pmEmail)} onClick={handlePriceMatchSubmit}
               style={{ width: "100%", padding: "11px", borderRadius: 3, border: "none",
-                background: calc && pmCompetitor.trim() && pmPrice ? green : line, color: calc && pmCompetitor.trim() && pmPrice ? "#fff" : muted,
-                fontSize: 13, fontWeight: 600, cursor: calc && pmCompetitor.trim() && pmPrice ? "pointer" : "default" }}>
+                background: calc && pmCompetitor.trim() && pmPrice && isEmail(pmEmail) ? green : line, color: calc && pmCompetitor.trim() && pmPrice && isEmail(pmEmail) ? "#fff" : muted,
+                fontSize: 13, fontWeight: 600, cursor: calc && pmCompetitor.trim() && pmPrice && isEmail(pmEmail) ? "pointer" : "default" }}>
               Submit for review
             </button>
           </div>
@@ -1568,7 +1574,7 @@ export default function QuoteCalculator() {
         {pmSubmitted && (
           <div style={{ border: `1px solid ${green}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
             <div style={{ fontSize: 13, marginBottom: 4 }}>Request {pmSubmitted.id} submitted</div>
-            <div style={{ fontSize: 12, color: muted }}>We'll compare it against {pmSubmitted.competitorName}'s quote of {fmt(pmSubmitted.competitorPrice, region, REGIONS_A)} and respond within 1 business day. Save this number to check back.</div>
+            <div style={{ fontSize: 12, color: muted }}>We'll compare it against {pmSubmitted.competitorName}'s quote of {fmt(pmSubmitted.competitorPrice, region, REGIONS_A)} and reply to {pmSubmitted.customerEmail} within 1 business day. Use the same email when you send your phone in, so the matched price is applied.</div>
             <button onClick={() => { setPmOpen(false); setPmSubmitted(null); setPmCompetitor(""); setPmPrice(""); setPmNote(""); }}
               style={{ marginTop: 10, background: "none", border: "none", color: brass, fontSize: 12, cursor: "pointer" }}>Close</button>
           </div>

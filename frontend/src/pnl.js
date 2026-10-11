@@ -8,10 +8,12 @@
 //   inventory      written-off stock (costBasis, writeOffAt)
 //   till_records   closed tills: over (+) / short (−)
 
+import { sydneyDay, sydneyMonth } from "./sydney-time.js";
+
 export const saleKind = (s) => (s.channel === "repair" ? "repair" : s.brand === "Accessory" ? "accessory" : "phone");
 export const KIND_LABELS = { phone: "Phones", repair: "Repairs", accessory: "Accessories" };
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
-const monthOf = (iso) => (typeof iso === "string" ? iso.slice(0, 7) : "");
+const monthOf = (iso) => (typeof iso === "string" ? sydneyMonth(iso) : ""); // Sydney calendar month
 export const partsCostOf = (t) => (t && Array.isArray(t.parts) ? t.parts.reduce((s, p) => s + (num(p && p.cost) || 0), 0) : 0);
 
 export function monthsIn({ sales = [], expenses = [], tickets = [] }) {
@@ -74,7 +76,7 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
   // rework = warranty comebacks in the period on a job this technician did.
   const techs = new Map();
   const blank = () => ({ jobs: 0, timed: 0, minutes: 0, pay: 0, revenue: 0, parts: 0 });
-  const tech = (name) => { if (!techs.has(name)) techs.set(name, { name, jobs: 0, minutes: 0, pay: 0, owed: 0, owedJobs: [], rework: 0, byType: { customer: blank(), shop: blank() } }); return techs.get(name); };
+  const tech = (name) => { if (!techs.has(name)) techs.set(name, { name, jobs: 0, minutes: 0, pay: 0, owed: 0, owedJobs: [], rework: 0, estJobs: 0, estMins: 0, estTookMins: 0, byType: { customer: blank(), shop: blank() } }); return techs.get(name); };
   const byId = new Map(tickets.filter(Boolean).map((t) => [t.id, t]));
   for (const t of tickets) {
     if (!t) continue;
@@ -85,6 +87,9 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
     if (inPeriod(t.completedAt)) {
       const x = tech(name), mins = num(t.timeSpentMins) || 0;
       x.jobs += 1; x.minutes += mins; x.pay += pay;
+      // Estimate vs actual, only for jobs that have both (so missing times don't skew it).
+      const est = num(t.estimateMins) || 0;
+      if (est > 0 && mins > 0) { x.estJobs += 1; x.estMins += est; x.estTookMins += mins; }
       const k = x.byType[t.jobType === "shop" ? "shop" : "customer"];
       k.jobs += 1; if (mins) k.timed += 1; k.minutes += mins; k.pay += pay; k.parts += partsCostOf(t);
       if (t.jobType !== "shop") k.revenue += num(t.finalPrice ?? t.quotedPrice) || 0;
@@ -100,6 +105,6 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
 export function toCsv(rows) {
   const esc = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const head = ["Date", "Type", "Item", "Customer", "Sold for", "Cost (phone / parts / item)", "Technician pay", "Technician", "Profit"];
-  return [head, ...rows.map((r) => [String(r.date || "").slice(0, 10), KIND_LABELS[r.kind], r.item, r.customer, r.sold, r.cost ?? "unknown", r.labour || "", r.technician, r.profit ?? "unknown"])]
+  return [head, ...rows.map((r) => [sydneyDay(r.date), KIND_LABELS[r.kind], r.item, r.customer, r.sold, r.cost ?? "unknown", r.labour || "", r.technician, r.profit ?? "unknown"])]
     .map((line) => line.map(esc).join(",")).join("\n");
 }

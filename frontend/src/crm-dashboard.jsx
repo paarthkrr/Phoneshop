@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { buildPnl, monthsIn, toCsv, KIND_LABELS } from "./pnl.js";
+import { sydneyMonth, sydneyToday } from "./sydney-time.js";
 
 /* =================================================================
    CRM + REPORTING
@@ -119,10 +120,10 @@ export default function CRMDashboard() {
       map.get(key)[field] += amt;
     };
     orders.filter((o) => o.status === "approved_paid").forEach((o) => {
-      const m = (o.inspection?.inspectedAt || o.createdAt).slice(0, 7);
+      const m = sydneyMonth(o.inspection?.inspectedAt || o.createdAt);
       bump(months, m, "payouts", o.inspection?.confirmedTotal ?? o.quotedTotal);
     });
-    sales.forEach((s) => { bump(months, s.soldAt.slice(0, 7), "revenue", s.salePrice); });
+    sales.forEach((s) => { bump(months, sydneyMonth(s.soldAt), "revenue", s.salePrice); });
     const monthly = [...months.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([m, v]) => ({ month: m, ...v }));
 
     // Realized margin from sales that carry a costBasis
@@ -341,7 +342,7 @@ export default function CRMDashboard() {
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{q.name}</span>
                   <span style={{ fontSize: 11, color: muted }}>{q.id}</span>
                 </div>
-                <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{q.email} · {q.category}</div>
+                <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{q.email || q.phone || "no contact left"} · {q.category}</div>
                 <div style={{ fontSize: 13, marginBottom: 8 }}>{q.message}</div>
                 {q.status === "open" ? (
                   <button onClick={async () => {
@@ -391,7 +392,7 @@ export default function CRMDashboard() {
                     <button onClick={async () => {
                         const next = referrals.map((x) => x.id === r.id ? { ...x, referrerPaid: true } : x);
                         await saveJSON("referrals", next, true); setReferrals(next);
-                        await addExpense({ category: "Marketing", description: `Referral reward — ${r.referrerName} (referred ${r.referredName})`, amount: r.rewardAmount, date: new Date().toISOString().slice(0, 10) });
+                        await addExpense({ category: "Marketing", description: `Referral reward — ${r.referrerName} (referred ${r.referredName})`, amount: r.rewardAmount, date: sydneyToday() });
                       }} style={{ padding: "5px 10px", borderRadius: 2, fontSize: 11.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
                       Mark {fmt(r.rewardAmount)} paid
                     </button>
@@ -403,7 +404,7 @@ export default function CRMDashboard() {
                     <button onClick={async () => {
                         const next = referrals.map((x) => x.id === r.id ? { ...x, referredPaid: true } : x);
                         await saveJSON("referrals", next, true); setReferrals(next);
-                        await addExpense({ category: "Marketing", description: `Referral reward — ${r.referredName} (referred by ${r.referrerName})`, amount: r.rewardAmount, date: new Date().toISOString().slice(0, 10) });
+                        await addExpense({ category: "Marketing", description: `Referral reward — ${r.referredName} (referred by ${r.referrerName})`, amount: r.rewardAmount, date: sydneyToday() });
                       }} style={{ padding: "5px 10px", borderRadius: 2, fontSize: 11.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
                       Mark {fmt(r.rewardAmount)} paid
                     </button>
@@ -469,7 +470,7 @@ function ExpensesTab({ colors, expenses, onAdd, onDelete, fmt }) {
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(sydneyToday());
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
   const byCategory = EXPENSE_CATEGORIES.map((c) => ({ category: c, total: expenses.filter((e) => e.category === c).reduce((s, e) => s + e.amount, 0) })).filter((c) => c.total > 0);
@@ -593,6 +594,12 @@ function PnlTab({ colors, fmt, sales, tickets, expenses, inventory, tillRecords,
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>🔧 {t.name}</div>
                 <div style={{ fontSize: 12.5, color: muted }}>{label(month)}: {t.jobs} job{t.jobs === 1 ? "" : "s"} done · {Math.round(t.minutes / 6) / 10} h · pay {money(t.pay)}</div>
+                {t.estJobs > 0 && (
+                  <div style={{ fontSize: 12.5, color: t.estTookMins > t.estMins ? red : green }}>
+                    ⏱ {t.estJobs} timed job{t.estJobs === 1 ? "" : "s"}: took {Math.round(t.estTookMins / 6) / 10} h vs {Math.round(t.estMins / 6) / 10} h estimated
+                    ({Math.round((t.estTookMins / t.estMins) * 100)}% of the estimate)
+                  </div>
+                )}
                 <TechSplit t={t} muted={muted} red={red} money={money} />
               </div>
               {t.owed > 0 ? (

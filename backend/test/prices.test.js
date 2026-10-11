@@ -151,3 +151,28 @@ test("customers can ask for a device we don't list, but can't read other request
   const list = await getShared("device_requests");
   assert.equal(list.find((x) => x.id === "DRQ-T1").model, "Galaxy Z Fold9");
 });
+
+test("an online phone order reserves the phone; a second order for it is refused", async () => {
+  const inv = await getShared("inventory");
+  await put("inventory", [...inv.filter((i) => !["INV-R1", "INV-R2"].includes(i.id)),
+    { id: "INV-R1", brand: "Apple", model: "iPhone 15", storage: "128GB", gradeId: "A", status: "listed", listedPrice: 900, currency: "$" },
+    { id: "INV-R2", brand: "Apple", model: "iPhone 12", storage: "64GB", gradeId: "B", status: "in_stock", listedPrice: 400, currency: "$" }], true);
+  const order = (id, itemId) => ({ id, createdAt: new Date().toISOString(), itemId, price: 900, customer: { name: "Kim", email: `${id.toLowerCase()}@example.com` }, status: "pending_payment" });
+
+  const first = await put("purchase_orders", [order("WEB-100001", "INV-R1")]);
+  assert.equal(first.status, 200);
+  const r1 = (await getShared("inventory")).find((i) => i.id === "INV-R1");
+  assert.equal(r1.status, "reserved");
+  assert.equal(r1.reservedByOrderId, "WEB-100001");
+
+  const second = await put("purchase_orders", [order("WEB-100002", "INV-R1")]);
+  assert.equal(second.status, 409, "already reserved");
+  assert.equal(second.body.error, "item_unavailable");
+  assert.equal((await put("purchase_orders", [order("WEB-100003", "INV-R2")])).status, 409, "not listed for sale");
+  assert.equal((await put("purchase_orders", [order("WEB-100004", "INV-NOPE")])).status, 409, "doesn't exist");
+
+  const orders = await getShared("purchase_orders");
+  assert.ok(orders.some((o) => o.id === "WEB-100001"));
+  assert.ok(!orders.some((o) => ["WEB-100002", "WEB-100003", "WEB-100004"].includes(o.id)), "refused orders are not saved");
+  assert.equal((await getShared("inventory")).find((i) => i.id === "INV-R1").reservedByOrderId, "WEB-100001", "first buyer keeps it");
+});

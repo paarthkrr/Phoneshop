@@ -598,6 +598,7 @@ function PriceMatchesTab({ colors, requests, regions, onApprove, onDeny }) {
             <div style={{ fontSize: 13, marginBottom: 4 }}>{r.device ? `${r.device.brand} ${r.device.model} · ${r.device.storage}` : "No device on file"}</div>
             <div style={{ fontSize: 12, color: muted, marginBottom: 8 }}>
               Our quote: {fmt(r.ourQuote, r.region)} · {r.competitorName} quoted: <span style={{ color: red }}>{fmt(r.competitorPrice, r.region)}</span>
+              <div style={{ marginTop: 4 }}>Customer: {r.customerEmail ? <a href={`mailto:${r.customerEmail}`} style={{ color: brass }}>{r.customerEmail}</a> : "no email left"}</div>
               {r.note && <div style={{ marginTop: 4 }}>Customer note: {r.note}</div>}
             </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>

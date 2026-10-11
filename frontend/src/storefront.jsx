@@ -179,7 +179,8 @@ export default function Storefront() {
     }
 
     const orderId = genOrderId();
-    const warrantyExpiresAt = new Date(Date.now() + WARRANTY_MONTHS * 30 * 24 * 60 * 60 * 1000).toISOString();
+    const until = new Date(); until.setMonth(until.getMonth() + WARRANTY_MONTHS); // calendar months, as advertised
+    const warrantyExpiresAt = until.toISOString();
     const order = {
       id: orderId, createdAt: new Date().toISOString(), itemId: liveItem.id,
       brand: liveItem.brand, model: liveItem.model, storage: liveItem.storage, gradeId: liveItem.gradeId,
@@ -190,10 +191,23 @@ export default function Storefront() {
     };
 
     const orders = await loadJSON("purchase_orders", true);
-    await saveJSON("purchase_orders", [order, ...orders], true);
-    // Reserve the item immediately so it can't be double-sold while payment is pending.
+    // The server reserves the phone as it saves the order (all or nothing), so it
+    // can't be sold twice while payment is pending. 409 = someone else got it first.
+    let saveError = "";
+    if (storageAvailable()) {
+      try { await window.storage.set("purchase_orders", JSON.stringify([order, ...orders]), true); }
+      catch (e) { saveError = /\b409\b/.test(String(e && e.message)) ? "sold" : "failed"; }
+    } else saveError = "failed";
+    if (saveError) {
+      setSubmitError(saveError === "sold"
+        ? "Sorry — this phone was just sold or reserved by someone else. Please pick another."
+        : "We couldn't place your order. Please check your connection and try again, or message us on WhatsApp.");
+      setSubmitting(false);
+      if (saveError === "sold") setInventory(await loadJSON("inventory", true));
+      return;
+    }
     const nextInventory = liveInventory.map((i) => i.id === liveItem.id ? { ...i, status: "reserved", reservedByOrderId: orderId } : i);
-    await saveJSON("inventory", nextInventory, true);
+    if (!window.SHOP_API_BASE_URL) await saveJSON("inventory", nextInventory, true); // local preview only: no server to reserve it
     setInventory(nextInventory);
     setConfirmedOrder(order);
     setView("confirmed");
