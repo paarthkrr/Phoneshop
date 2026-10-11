@@ -72,6 +72,9 @@ export const NAV_CSS = `
   .mm-drawer, .mm-backdrop { display: none; }
   @keyframes mm-pop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
   @keyframes mm-shine { from { transform: translateX(-120%); } to { transform: translateX(220%); } }
+  /* Tablets: the side promo made dropdowns wider than the screen, so the page scrolled sideways. */
+  @media (max-width: 1100px) { .dd-promo { display: none; } .dd-panel { max-width: calc(100vw - 32px); } }
+  @media (max-width: 900px) { .dd-panel { gap: 14px; padding: 16px; } .dd-link { white-space: normal; } }
   @media (max-width: 720px) {
     .cs-burger { display: block; }
     .mm-quote-btn.desk { display: none; }

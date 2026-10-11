@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { NumberTicker, useSpotlight, FX_CSS } from "./motion-fx.jsx";
+import React, { useState, useEffect, useRef } from "react";
 import DeviceArt from "./device-art.jsx";
 import Photo from "./photo.jsx";
 import DeviceArtCard, { inferDeviceType } from "./device-art.jsx";
@@ -188,7 +189,7 @@ function Hero({ quoteModels }) {
                   <div style={{ flex: 1 }}><span className="mvx-est-label">Yours could be worth up to</span><span key={cur.model + storage} className="mvx-price">${price.toLocaleString()}</span></div>
                   <span className="mvx-cash">💵 Paid in cash</span>
                 </div>
-                <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-quote-btn">Get my exact quote <span aria-hidden="true">→</span></a>
+                <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-quote-btn fx-shimmer">Get my exact quote <span aria-hidden="true">→</span></a>
                 <div className="mvx-quote-note">Top price for a flawless device. Final offer after our 49-point check.</div>
               </div>
             )}
@@ -241,16 +242,99 @@ const ACTIONS = [
 const POPULAR = ["iPhone 16 Pro", "iPhone 15 Pro", "iPhone 14", "Galaxy S24 Ultra", "Pixel 9 Pro", "iPhone 13"];
 
 const TRUST = [
-  { title: "Home collection across Sydney", desc: "We come to you, check your phone on the spot, and pay you — in cash if you like." },
-  { title: "Genuine or premium parts", desc: "You choose. We always tell you which part goes in." },
-  { title: "Price match guarantee", desc: "Found it cheaper? We'll match it." },
-  { title: "1-year warranty", desc: "On every device we sell. Repairs 90 days, parts & accessories 6 months." },
-  { title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
-  { title: "Any condition", desc: "Cracked, dead or water-damaged — we still make an offer." },
-  { title: "Data wiped securely", desc: "Every device is fully erased before it's resold." },
-  { title: "30-day returns", desc: "Changed your mind? Return online purchases within 30 days. Conditions apply." },
-  { title: "Battery 80%+ guaranteed", desc: "Every refurbished phone we sell. Conditions apply." },
+  { area: "big", ic: "home", title: "Home collection across Sydney", desc: "We come to you, check your phone on the spot, and pay you — in cash if you like." },
+  { area: "par", ic: "chip", title: "Genuine or premium parts", desc: "You choose. We always tell you which part goes in." },
+  { area: "pm", ic: "tag", title: "Price match guarantee", desc: "Found it cheaper? We'll match it." },
+  { area: "war", ic: "shield", title: "1-year warranty", desc: "On every device we sell. Repairs 90 days, parts & accessories 6 months." },
+  { area: "gad", ic: "devices", title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
+  { area: "any", ic: "crack", title: "Any condition", desc: "Cracked, dead or water-damaged — we still make an offer." },
+  { area: "dat", ic: "lock", title: "Data wiped securely", desc: "Every device is fully erased before it's resold." },
+  { area: "ret", ic: "return", title: "30-day returns", desc: "Changed your mind? Return online purchases within 30 days. Conditions apply." },
+  { area: "bat", ic: "battery", title: "Battery 80%+ guaranteed", desc: "Every refurbished phone we sell. Conditions apply." },
 ];
+
+const BENTO_ICONS = {
+  home: "<path d=\"M3 11l9-7 9 7\"/><path d=\"M5 10v10h14V10\"/><path d=\"M10 20v-6h4v6\"/>",
+  chip: "<rect x=\"6\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4\"/>",
+  tag: "<path d=\"M3 12V4h8l10 10-8 8z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\"1.5\"/>",
+  shield: "<path d=\"M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z\"/><path d=\"M8.5 12l2.5 2.5 4.5-5\"/>",
+  devices: "<rect x=\"2\" y=\"5\" width=\"13\" height=\"10\" rx=\"1.5\"/><path d=\"M5 19h7\"/><rect x=\"17\" y=\"8\" width=\"5\" height=\"11\" rx=\"1.2\"/>",
+  crack: "<rect x=\"6\" y=\"2\" width=\"12\" height=\"20\" rx=\"2.5\"/><path d=\"M10 6l3 4-3 3 4 5\"/>",
+  lock: "<rect x=\"5\" y=\"10\" width=\"14\" height=\"11\" rx=\"2\"/><path d=\"M8 10V7a4 4 0 0 1 8 0v3\"/>",
+  return: "<path d=\"M9 14L4 9l5-5\"/><path d=\"M4 9h11a5 5 0 0 1 0 10h-3\"/>",
+  battery: "<rect x=\"2\" y=\"7\" width=\"18\" height=\"10\" rx=\"2\"/><path d=\"M22 11v2\"/><path d=\"M5 10h9v4H5z\"/>",
+};
+function BentoIcon({ k, size = 22 }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{ __html: BENTO_ICONS[k] || "" }} />;
+}
+
+// "Why us" as a bento grid: the promise that wins the sale gets the big tile,
+// the rest are scannable at a glance.
+function BentoTrust() {
+  const gridRef = useRef(null);
+  useSpotlight(gridRef, ".bt-card");
+  return (
+    <section aria-label="Why choose Mobile Recellr" className="bt-wrap">
+      <style>{FX_CSS + `
+        .bt-wrap { max-width: 1140px; margin: 0 auto 50px; padding: 0 20px; }
+        .bt-head { font-family: 'Archivo Black', sans-serif; font-size: 24px; letter-spacing: -0.01em; text-align: center; margin: 0 0 18px; }
+        .bt-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-areas: "big big war war" "big big pm pm" "gad dat ret bat" "par par any any"; }
+        .bt-card { position: relative; border: 1px solid #E2E6EC; border-radius: 18px; padding: 18px; background: #fff; color: #111827; min-width: 0;
+          transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+        .bt-card:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(17,24,39,.08); border-color: #C9D5F5; }
+        .bt-ic { width: 42px; height: 42px; border-radius: 12px; background: #EEF3FF; color: #2150C8; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .bt-t { font-weight: 800; font-size: 15.5px; margin-bottom: 4px; }
+        .bt-d { color: #5B6472; font-size: 13.5px; line-height: 1.5; }
+        .bt-wide { display: flex; gap: 16px; align-items: center; }
+        .bt-wide .bt-ic { margin-bottom: 0; flex: 0 0 auto; }
+        .bt-war { background: #F5F8FF; border-color: #D9E3FB; }
+        .bt-big { overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; min-height: 280px; padding: 26px; border: none; color: #fff;
+          background: radial-gradient(120% 90% at 100% 0%, #3B6BE0 0%, rgba(59,107,224,0) 60%), linear-gradient(150deg, #0F1B3D 0%, #1B3A8F 70%, #2150C8 100%); }
+        .bt-big::before { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.08); }
+        .bt-big .bt-ic { position: absolute; top: 24px; left: 26px; width: 52px; height: 52px; border-radius: 15px; background: rgba(255,255,255,.14); color: #fff; }
+        .bt-big .bt-t { font-family: 'Archivo Black', sans-serif; font-weight: 400; font-size: clamp(22px, 2.6vw, 28px); line-height: 1.15; margin-bottom: 8px; position: relative; }
+        .bt-big .bt-d { color: rgba(255,255,255,.86); font-size: 15px; max-width: 420px; position: relative; }
+        .bt-cta { position: relative; align-self: flex-start; margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 18px; border-radius: 999px;
+          background: #fff; color: #1B43AA; font-weight: 800; font-size: 14px; text-decoration: none; transition: transform .15s ease; }
+        .bt-cta:hover { transform: translateX(3px); }
+        @media (max-width: 900px) {
+          .bt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: none; grid-auto-flow: row dense; }
+          .bt-grid > * { grid-area: auto !important; }
+          .bt-big, .bt-span2 { grid-column: span 2 !important; }
+          .bt-big { min-height: 0; }
+          .bt-big .bt-ic { position: relative; top: auto; left: auto; margin-bottom: 16px; }
+        }
+        @media (max-width: 520px) {
+          .bt-grid { gap: 10px; }
+          .bt-card { padding: 14px; border-radius: 16px; }
+          .bt-wide { align-items: flex-start; }
+          .bt-ic { width: 36px; height: 36px; border-radius: 11px; margin-bottom: 10px; }
+          .bt-t { font-size: 14.5px; }
+          .bt-d { font-size: 13px; }
+        }
+        @media (prefers-reduced-motion: reduce) { .bt-card, .bt-cta { transition: none; } .bt-card:hover { transform: none; } }
+      `}</style>
+      <h2 className="bt-head">Why people choose us</h2>
+      <div className="bt-grid" ref={gridRef}>
+        {TRUST.map((t, i) => {
+          const big = t.area === "big", wide = ["war", "pm", "par", "any"].includes(t.area);
+          return (
+            <div key={t.title} className={`bt-card mv-rise fx-scroll-in fx-spot${big ? " bt-big fx-spot-dark" : ""}${wide ? " bt-wide bt-span2" : ""}${t.area === "war" ? " bt-war" : ""}`}
+              style={{ gridArea: t.area, animationDelay: `${0.2 + i * 0.06}s` }}>
+              <div className="bt-ic"><BentoIcon k={t.ic} size={big ? 26 : 22} /></div>
+              <div>
+                <div className="bt-t">{t.title}</div>
+                <div className="bt-d">{t.desc}</div>
+              </div>
+              {big && <a href="/quote" className="bt-cta fx-shimmer fx-on-light">Get my quote <span aria-hidden="true">→</span></a>}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 const STEP_ICONS = {"1": "<rect x=\"7\" y=\"2\" width=\"10\" height=\"20\" rx=\"2.5\"/><path d=\"M11 18h2\"/>", "2": "<path d=\"M3 7h11v9H3zM14 10h4l3 3v3h-7z\"/><circle cx=\"7\" cy=\"17.5\" r=\"1.8\"/><circle cx=\"17\" cy=\"17.5\" r=\"1.8\"/>", "3": "<rect x=\"2\" y=\"6\" width=\"20\" height=\"12\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M6 9v.01M18 15v.01\"/>"};
 const STEPS = [
@@ -354,7 +438,7 @@ export default function Home() {
           <div style={{ display: "flex", gap: 34, justifyContent: "center", flexWrap: "wrap", marginTop: 34 }}>
             {stats.map((s) => (
               <div key={s.label}>
-                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, color: brass }}>{s.value}</div>
+                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, color: brass }}><NumberTicker value={s.value} /></div>
                 <div style={{ fontSize: 12, color: muted }}>{s.label}</div>
               </div>
             ))}
@@ -381,17 +465,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* ---- Trust strip ---- */}
-      <div style={{ borderTop: `1px solid ${line}`, borderBottom: `1px solid ${line}`, background: panel, padding: "26px 16px", marginBottom: 50 }}>
-        <div style={{ ...section, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 18 }}>
-          {TRUST.map((t, i) => (
-            <div key={t.title} className="mv-rise" style={{ animationDelay: `${0.45 + i * 0.08}s` }}>
-              <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 4 }}><span style={{ color: brass }}>✓</span> {t.title}</div>
-              <div style={{ color: muted, fontSize: 13 }}>{t.desc}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ---- Why us (bento) ---- */}
+      <BentoTrust />
 
       {/* ---- Photo feature band ---- */}
       <div className="mvx-wide-only" style={{ ...section, marginBottom: 50 }}>

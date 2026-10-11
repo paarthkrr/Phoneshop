@@ -145,7 +145,7 @@ function Nav() {
 
   return (
     <>
-    <nav style={{ borderBottom: `1px solid ${line}`, background: panel, position: "sticky", top: 0, zIndex: 50 }} aria-label="Main navigation">
+    <nav className="cs-glass-nav" style={{ borderBottom: `1px solid ${line}`, position: "sticky", top: 0, zIndex: 50 }} aria-label="Main navigation">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
 
@@ -155,8 +155,18 @@ function Nav() {
         /* Browsers add an 8px margin around the page and default to a serif font; without this
            reset every page sat 8px off the screen edge and any text without its own font fell back to Times. */
         html, body { margin: 0; padding: 0; }
+        /* Safety net: nothing wider than the screen can make the whole page slide sideways. */
+        body { overflow-x: clip; }
         body { font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; background: #FFFFFF; line-height: 1.45; }
         img, svg, video { max-width: 100%; }
+
+        /* Frosted header: the page shows through softly as it scrolls under.
+           The blur sits on a pseudo-element, not the nav itself, because a
+           backdrop-filter on the nav would trap the menu's fixed backdrop inside it. */
+        .cs-glass-nav::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+          background: rgba(255,255,255,0.82); -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px); }
+        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .cs-glass-nav::before { background: #FFFFFF; } }
+        @media (prefers-reduced-transparency: reduce) { .cs-glass-nav::before { background: #FFFFFF; -webkit-backdrop-filter: none; backdrop-filter: none; } }
 
         /* ---- Mobile menu: desktop links collapse into a menu button under 720px ---- */
         .cs-menu-btn { display: none; background: none; border: 1px solid #E2E6EC; border-radius: 3px; padding: 5px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: #111827; }

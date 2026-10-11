@@ -90,3 +90,47 @@ test("an accessories order uses catalogue prices and the shop's shipping rule", 
   assert.equal(o.total, 49.95);
   assert.equal(o.priceCheck.verified, false);
 });
+
+test("anonymous visitors see only listed phones and no private stock fields", async () => {
+  await put("inventory", [
+    { id: "INV-L1", brand: "Apple", model: "iPhone 14", storage: "128GB", gradeId: "A", status: "listed", listedPrice: 700, currency: "$",
+      imei: "356000000000001", costBasis: 410, sellerIdOwnerName: "Jane Citizen", sellerIdType: "licence", payMethod: "cash", staffHandled: "ravi",
+      priceHistory: [{ price: 760, from: "2026-01-01T00:00:00.000Z", by: "ravi" }, { price: 700, from: "2026-02-01T00:00:00.000Z" }] },
+    { id: "INV-S1", brand: "Apple", model: "iPhone 13", storage: "128GB", status: "in_stock", imei: "356000000000002", costBasis: 300, sellerIdOwnerName: "John Smith" },
+  ], true);
+  await put("accessories", [{ id: "ACC-1", name: "Case", sellPrice: 20, cost: 4, qtyOnHand: 3 }], true);
+  const anon = async (key) => JSON.parse((await realFetch(`${base}/storage/${key}?shared=true`).then((r) => r.json())).value);
+  const all = await anon("inventory");
+  assert.ok(all.every((i) => i.status === "listed"), "only listed stock is public");
+  const inv = all.filter((i) => i.id === "INV-L1" || i.id === "INV-S1");
+  assert.deepEqual(inv.map((i) => i.id), ["INV-L1"], "unlisted stock is hidden");
+  for (const k of ["imei", "costBasis", "sellerIdOwnerName", "sellerIdType", "payMethod", "staffHandled"]) assert.equal(inv[0][k], undefined, k);
+  assert.equal(inv[0].listedPrice, 700);
+  assert.deepEqual(inv[0].priceHistory[0], { price: 760, from: "2026-01-01T00:00:00.000Z" });
+  const acc = await anon("accessories");
+  assert.equal(acc[0].cost, undefined);
+  assert.equal(acc[0].sellPrice, 20);
+  // Staff still see everything.
+  const staffInv = await getShared("inventory");
+  assert.ok(staffInv.some((i) => i.id === "INV-S1"));
+  assert.equal(staffInv.find((i) => i.id === "INV-L1").costBasis, 410);
+});
+
+test("'Was' prices only appear when the listing history backs them", async () => {
+  const { wasPrice, pricePatch, publishPatch } = await import("../../frontend/src/price-history.js");
+  const day = 864e5, t0 = Date.parse("2026-01-01T00:00:00Z");
+  let item = { status: "in_stock", listedPrice: 800 };
+  item = { ...item, ...publishPatch(item, new Date(t0)) };
+  assert.equal(wasPrice(item, t0 + day), null, "no history, no was");
+  const early = { ...item, ...pricePatch(item, 700, new Date(t0 + 5 * day)) };
+  assert.equal(wasPrice(early, t0 + 6 * day), null, "old price was only live 5 days");
+  item = { ...item, ...pricePatch(item, 700, new Date(t0 + 20 * day)) };
+  assert.deepEqual(wasPrice(item, t0 + 21 * day), { was: 800, save: 100, pct: 13 });
+  assert.equal(wasPrice(item, t0 + 90 * day), null, "drop older than 60 days");
+  const up = { ...item, ...pricePatch(item, 900, new Date(t0 + 40 * day)) };
+  assert.equal(wasPrice(up, t0 + 41 * day), null, "a price rise never shows a was");
+  const legacy = { status: "listed", listedPrice: 800 };
+  const cut = { ...legacy, ...pricePatch(legacy, 600, new Date(t0)) };
+  assert.equal(wasPrice(cut, t0 + day), null, "listed before history: unknown start date");
+  assert.deepEqual(pricePatch({ status: "in_stock", listedPrice: 800 }, 700), { listedPrice: 700 }, "unpublished changes keep no history");
+});
