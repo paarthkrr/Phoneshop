@@ -1,6 +1,7 @@
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { DeviceRequestsTab, decodeAddLink } from "./device-requests.jsx";
 
 /* =================================================================
    ADMIN PRICING CONSOLE
@@ -110,14 +111,16 @@ async function savePriceMatches(list) {
   try { await window.storage.set(PRICE_MATCH_KEY, JSON.stringify(list), true); return true; } catch (e) { return false; }
 }
 
-const TABS = ["Business", "Catalog", "Age Curve", "Brand Factors", "Condition Tiers", "Faults", "Regions", "Price Matches", "History"];
+const TABS = ["Business", "Catalog", "Requests", "Age Curve", "Brand Factors", "Condition Tiers", "Faults", "Regions", "Price Matches", "History"];
 
 export default function AdminPricingConsole() {
   const [config, setConfig] = useState(null);
   const [draft, setDraft] = useState(null);
   const [history, setHistory] = useState([]);
   const [priceMatches, setPriceMatches] = useState([]);
-  const [tab, setTab] = useState("Catalog");
+  // A one-click link from the daily device-request email: /portal/pricing?addDevice=...
+  const addPrefill = useMemo(() => { try { const v = new URLSearchParams(window.location.search).get("addDevice"); return v ? decodeAddLink(v) : null; } catch (e) { return null; } }, []);
+  const [tab, setTab] = useState(addPrefill ? "Requests" : "Catalog");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [persisted, setPersisted] = useState(true);
@@ -353,6 +356,20 @@ export default function AdminPricingConsole() {
               </div>
             ))}
           </Section>
+        )}
+
+        {tab === "Requests" && (
+          <DeviceRequestsTab catalog={config && config.catalog} prefill={addPrefill} colors={{ panel2, paper, muted, brass, brassDim, red, green, line }}
+            onAddDevice={async (device) => {
+              const latest = (await loadConfig()) || config;
+              const next = { ...latest, catalog: [...(Array.isArray(latest.catalog) ? latest.catalog : []), device] };
+              if (!(await saveConfig(next))) return false;
+              const h = await pushHistory([{ ts: Date.now(), field: "catalog", note: `Added ${device.brand} ${device.model} (${Object.entries(device.retail).map(([k, v]) => `${k} $${v}`).join(", ")})${device.addedFrom !== "manual" ? ` from customer request ${device.addedFrom}` : ""}` }]);
+              setConfig(JSON.parse(JSON.stringify(next)));
+              setDraft((d) => (d ? { ...d, catalog: [...d.catalog, device] } : d));
+              setHistory(h);
+              return true;
+            }} />
         )}
 
         {tab === "Catalog" && (
