@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { sydneyDay, sydneyToday } from "./sydney-time.js";
 
 /* =================================================================
    TILL RECONCILIATION
@@ -40,13 +41,14 @@ function getAuthedUser() {
     return null;
   }
 }
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = sydneyToday;
 const fmt = (n) => `$${(Math.round((n || 0) * 100) / 100).toLocaleString()}`;
 
 export default function TillReconciliation() {
   const [sales, setSales] = useState(null);
   const [inventory, setInventory] = useState(null);
   const [records, setRecords] = useState(null);
+  const [tickets, setTickets] = useState(null);
   const [openingInput, setOpeningInput] = useState("");
   const [otherIn, setOtherIn] = useState("");
   const [otherInNote, setOtherInNote] = useState("");
@@ -60,8 +62,8 @@ export default function TillReconciliation() {
 
   useEffect(() => {
     (async () => {
-      const [s, inv, r, staff] = await Promise.all([loadJSON("sales", true), loadJSON("inventory", true), loadJSON(TILL_KEY, true), loadJSON(STAFF_KEY, false)]);
-      setSales(s || []); setInventory(inv || []); setRecords(r || []);
+      const [s, inv, r, staff, tk] = await Promise.all([loadJSON("sales", true), loadJSON("inventory", true), loadJSON(TILL_KEY, true), loadJSON(STAFF_KEY, false), loadJSON("repair_tickets", true)]);
+      setSales(s || []); setInventory(inv || []); setRecords(r || []); setTickets(tk || []);
       const authed = getAuthedUser();
       if (authed) { setAuthedUser(authed); setStaffName(authed.username); }
       else if (staff) setStaffName(staff);
@@ -72,18 +74,22 @@ export default function TillReconciliation() {
   const today = todayStr();
   const todayRecord = records?.find((r) => r.date === today);
 
+  // A repair deposit is cash in on the day it was taken; at completion only the balance comes in.
   const cashSalesToday = useMemo(() => (sales || [])
-    .filter((s) => s.soldAt?.slice(0, 10) === today && s.payMethod === "cash")
-    .reduce((sum, s) => sum + s.salePrice, 0), [sales, today]);
+    .filter((s) => sydneyDay(s.soldAt) === today && s.payMethod === "cash")
+    .reduce((sum, s) => sum + s.salePrice - (s.depositPayMethod === "cash" ? Number(s.depositPaid) || 0 : 0), 0), [sales, today]);
+  const cashDepositsToday = useMemo(() => (tickets || [])
+    .filter((t) => t && t.depositPayMethod === "cash" && sydneyDay(t.depositAt) === today)
+    .reduce((sum, t) => sum + (Number(t.deposit) || 0), 0), [tickets, today]);
 
   const cashBuysToday = useMemo(() => (inventory || [])
-    .filter((i) => i.receivedAt?.slice(0, 10) === today && i.sourceOrderId === null && i.payMethod === "cash")
+    .filter((i) => sydneyDay(i.receivedAt) === today && i.sourceOrderId === null && i.payMethod === "cash")
     .reduce((sum, i) => sum + i.costBasis, 0), [inventory, today]);
 
   const opening = todayRecord?.openingFloat ?? 0;
   const extraIn = todayRecord?.otherIn ?? 0;
   const extraOut = todayRecord?.otherOut ?? 0;
-  const expectedClosing = opening + cashSalesToday - cashBuysToday + extraIn - extraOut;
+  const expectedClosing = opening + cashSalesToday + cashDepositsToday - cashBuysToday + extraIn - extraOut;
 
   async function persist(next) { await saveJSON(TILL_KEY, next, true); setRecords(next); }
 
@@ -171,6 +177,7 @@ export default function TillReconciliation() {
               {[
                 ["Opening float", opening, muted],
                 ["Cash sales today (phones + accessories + repairs)", cashSalesToday, green],
+                ...(cashDepositsToday ? [["Repair deposits taken in cash today", cashDepositsToday, green]] : []),
                 ["Cash buys today", -cashBuysToday, red],
                 ["Other cash in", extraIn, green],
                 ["Other cash out", -extraOut, red],

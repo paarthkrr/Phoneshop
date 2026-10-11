@@ -179,7 +179,8 @@ export default function Storefront() {
     }
 
     const orderId = genOrderId();
-    const warrantyExpiresAt = new Date(Date.now() + WARRANTY_MONTHS * 30 * 24 * 60 * 60 * 1000).toISOString();
+    const until = new Date(); until.setMonth(until.getMonth() + WARRANTY_MONTHS); // calendar months, as advertised
+    const warrantyExpiresAt = until.toISOString();
     const order = {
       id: orderId, createdAt: new Date().toISOString(), itemId: liveItem.id,
       brand: liveItem.brand, model: liveItem.model, storage: liveItem.storage, gradeId: liveItem.gradeId,

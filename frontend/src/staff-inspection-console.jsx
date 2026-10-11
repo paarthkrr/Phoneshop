@@ -1,4 +1,5 @@
-import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
+import { PHONE_FAULT_GROUPS, FAULT_GROUPS_BY_CATEGORY } from "./instant-quote-calculator.jsx";
+import { DEFAULT_TIERS, ACCESSORY_BONUS_PCT } from "./pricing.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { currentRole, hasArea } from "./roles.js";
 
@@ -42,13 +43,6 @@ const RETENTION_POINTS = [
   { m: 72, r: 0.22 }, { m: 84, r: 0.15 }, { m: 96, r: 0.10 }, { m: 120, r: 0.06 },
 ];
 const BRAND_FACTOR = { Apple: 1.00, Samsung: 0.88, Google: 0.80, OnePlus: 0.72, Xiaomi: 0.60, Oppo: 0.68, Vivo: 0.65, Honor: 0.65, Motorola: 0.62, Sony: 0.68 };
-const TIERS = [
-  { id: "new", label: "Brand New", factor: 1.00 },
-  { id: "asnew", label: "Like New", factor: 0.94 },
-  { id: "good", label: "Good", factor: 0.89 },
-  { id: "fair", label: "Fair", factor: 0.75 },
-  { id: "parts", label: "Faulty / For Parts", factor: 0.09 },
-];
 const REGIONS = {
   AU: { symbol: "A$", mult: 1.00, round: 1 }, US: { symbol: "$", mult: 0.70, round: 1 },
   UK: { symbol: "£", mult: 0.46, round: 1 }, IN: { symbol: "₹", mult: 37, round: 10 }, AE: { symbol: "AED ", mult: 2.35, round: 1 },
@@ -140,19 +134,22 @@ export default function StaffInspectionConsole() {
 
   const retentionPts = config?.retentionPoints || RETENTION_POINTS;
   const brandFactors = { ...BRAND_FACTOR, ...(config?.brandFactors || {}) };
-  const tiers = TIERS.map((t) => ({ ...t, factor: config?.tiers?.find((x) => x.id === t.id)?.factor ?? t.factor }));
+  // Same tiers (with their quote "mode") as the customer quote, so re-assessment uses the same rules.
+  const tiers = DEFAULT_TIERS.map((t) => ({ ...t, factor: config?.tiers?.find((x) => x.id === t.id)?.factor ?? t.factor }));
   const regions = useMemo(() => {
     const m = {};
     Object.keys(REGIONS).forEach((c) => { m[c] = { ...REGIONS[c], ...(config?.regions?.[c] || {}) }; });
     return m;
   }, [config]);
+  const openCategory = orders?.find((o) => o.id === openId)?.device?.category;
   const faultList = useMemo(() => {
-    const groups = withSavedPcts(PHONE_FAULT_GROUPS, config?.faultGroups); // the full shared checklist (same as the customer quote)
+    // The same checklist the customer saw for this kind of device (phone, tablet, laptop, watch).
+    const groups = withSavedPcts(FAULT_GROUPS_BY_CATEGORY[openCategory] || PHONE_FAULT_GROUPS, config?.faultGroups);
     const list = [];
-    groups.forEach((g) => g.faults.forEach((f) => list.push(f)));
+    groups.forEach((g) => g.faults.forEach((f) => list.push({ ...f, cosmetic: !!g.cosmetic })));
     return list;
-  }, [config]);
-  const faultPctById = useMemo(() => Object.fromEntries(faultList.map((f) => [f.id, f.pct])), [faultList]);
+  }, [config, openCategory]);
+  const faultById = useMemo(() => Object.fromEntries(faultList.map((f) => [f.id, f])), [faultList]);
   const holdingPct = config?.holdingCostPct ?? HOLDING_COST_PCT;
 
   const open = orders?.find((o) => o.id === openId);
@@ -163,20 +160,27 @@ export default function StaffInspectionConsole() {
     // The order carries the exact Brand-New-tier base computed at quote time
     // (brandNewBase), so re-assessment uses precisely the same numbers the
     // customer saw — no reconstruction, no drift.
-    const tierBase = (open.brandNewBase ?? open.quotedTotal) * tier.factor;
+    // Mirrors the customer quote (instant-quote-calculator.jsx `calc`) step for step, so
+    // approving with nothing changed pays exactly what the customer was quoted.
+    const base = open.brandNewBase ?? open.quotedTotal;
+    const tierBase = base * tier.factor;
+    if (tier.mode === "parts") return { tier, tierBase, total: tierBase, lines: [] };
     let total = tierBase;
     const lines = [];
-    Object.keys(reassessFaults).forEach((fid) => {
-      if (reassessFaults[fid] && faultPctById[fid] != null) {
-        const amt = tierBase * faultPctById[fid];
+    if (tier.mode === "full" || tier.mode === "functional-only") {
+      Object.keys(reassessFaults).forEach((fid) => {
+        const f = faultById[fid];
+        if (!reassessFaults[fid] || !f || (tier.mode === "functional-only" && f.cosmetic)) return;
+        const amt = tierBase * f.pct;
         total -= amt;
         lines.push({ id: fid, amt });
-      }
-    });
+      });
+      if (open.hasAccessories) total += tierBase * ACCESSORY_BONUS_PCT;
+    }
     total -= tierBase * holdingPct;
-    total = Math.max(total, tierBase * 0.05);
+    total = Math.max(total, base * 0.05);
     return { tier, tierBase, total, lines };
-  }, [open, reassessFaults, reassessTier, tiers, faultPctById, holdingPct]);
+  }, [open, reassessFaults, reassessTier, tiers, faultById, holdingPct]);
 
   // A customer may have gotten an approved price-match promise before or
   // after this order was submitted — look it up independently by email +

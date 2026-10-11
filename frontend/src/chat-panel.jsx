@@ -188,12 +188,15 @@ const TRACKERS = [
     note: { revised_pending_customer: "We sent you a revised offer. Please accept or decline it on the Track page.", awaiting_shipment: "Bring it in, hand it over at collection or post it, then we'll inspect it." }, page: "/quote" },
   { key: "repair_requests", noun: "Repair request", steps: ["Received", "We've been in touch"], idx: { new: 0, contacted: 1 }, label: { new: "Received, we'll be in touch shortly", contacted: "We've reached out to you" }, page: "/repairs" },
   { key: "purchase_orders", noun: "Purchase", ...PURCHASE, page: "/shop" },
-  { key: "accessory_orders", noun: "Accessories order", ...PURCHASE, page: "/accessories?dept=accessories" },
+  { key: "accessory_orders", noun: "Accessories order", steps: ["Order placed", "Ready / sent", "Completed"], idx: { new: 0, ready: 1, completed: 2 },
+    label: { new: "Received, we're getting it ready", ready: "Ready to collect, or on its way", completed: "Completed", cancelled: "Cancelled" }, page: "/accessories?dept=accessories" },
   { key: "price_match_requests", noun: "Price match request", steps: ["Under review", "Decision"], idx: { pending: 0, approved: 1, denied: 1 }, label: { pending: "Under review, we respond within 1 business day", approved: "Approved, we'll match this price", denied: "Not matched" }, page: "/quote" },
 ];
 async function findByReference(ref) {
-  const prefix = ref.slice(0, 3).toUpperCase();
-  const order = [...TRACKERS].sort((a, b) => (prefix === "ORD" && a.key === "orders" ? -1 : prefix === "ORD" && b.key === "orders" ? 1 : prefix === "REP" && a.key === "repair_requests" ? -1 : prefix === "REP" && b.key === "repair_requests" ? 1 : 0));
+  // The prefix says which list a reference belongs to; look there first (lookups are rate limited).
+  const PREFIX_KEY = { ORD: "orders", RPR: "repair_requests", REP: "repair_requests", WEB: "purchase_orders", ACC: "accessory_orders", PM: "price_match_requests" };
+  const want = PREFIX_KEY[ref.split("-")[0].toUpperCase()];
+  const order = [...TRACKERS].sort((a, b) => (a.key === want ? -1 : b.key === want ? 1 : 0));
   for (const t of order) {
     try {
       const r = await fetch(`${window.SHOP_API_BASE_URL}/public/find/${t.key}?field=id&value=${encodeURIComponent(ref)}`);
@@ -358,7 +361,7 @@ export default function ChatPanel({ path, onClose }) {
     const m = text.match(/[A-Za-z]{2,5}-\d{4,8}/);
     if (!m) {
       if (text.includes("@")) return botSay({ text: "For privacy I only look up by reference number in this chat. If you only have your email, the Track page can find it.", chips: [{ label: "Open the Track page", k: "go", v: "/quote" }, { label: "Talk to a person", k: "flow", v: "person" }, { label: "Ask something else", k: "flow", v: "menu" }] });
-      return botSay({ text: "That doesn't look like a reference number. They look like **ORD-123456** or **REP-123456**. Try again?", chips: [{ label: "I can't find it", k: "faq", v: "track-help" }, { label: "Talk to a person", k: "flow", v: "person" }, { label: "Ask something else", k: "flow", v: "menu" }] });
+      return botSay({ text: "That doesn't look like a reference number. They look like **ORD-123456** (trade-in) or **RPR-123456** (repair). Try again?", chips: [{ label: "I can't find it", k: "faq", v: "track-help" }, { label: "Talk to a person", k: "flow", v: "person" }, { label: "Ask something else", k: "flow", v: "menu" }] });
     }
     setTyping(true);
     const r = await findByReference(m[0].toUpperCase());

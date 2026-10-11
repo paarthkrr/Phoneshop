@@ -567,7 +567,7 @@ function notifyNew(key, items, max = Infinity, fromPublic = false) {
       : door
         ? `${item.express === true ? "EMERGENCY doorstep repair (customer expects a technician within about 2 hours)" : `Doorstep repair request: ${doorstepWhen(item)}`}${who ? ` — ${who}` : ""}`
         : `${NEW_LABEL[key] || `New ${key.replace(/_/g, " ")}`}${who ? ` — ${who}` : ""}`;
-    const replyTo = item.email || (item.customer && item.customer.email) || undefined;
+    const replyTo = item.email || (item.customer && item.customer.email) || item.customerEmail || undefined;
     void sendEmail({ to: OWNER_EMAIL(), subject, alert: { key, item }, replyTo });
     // Optional copy of device requests to a second inbox (e.g. the one a daily Claude task reads
     // to research launch prices). Set DEVICE_REQUEST_COPY_EMAIL on the host to turn it on.
@@ -624,7 +624,8 @@ function sanitizePublic(key, records, existing) {
       r.warrantyMonths = 12;
       r.warrantyExpiresAt = until.toISOString();
     } else if (key === "price_match_requests") {
-      Object.assign(r, { status: "pending", approvedPrice: null, staffNote: "" });
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(r.customerEmail || "").trim())) return { error: "a price match needs your email so we can reply" };
+      Object.assign(r, { customerEmail: String(r.customerEmail).trim(), status: "pending", approvedPrice: null, staffNote: "" });
     } else if (key === "accessory_orders") {
       for (const k of Object.keys(r)) if (/^(paid|shipped|tracking|staff|refund|collected|completed|ready|cancel)/i.test(k)) delete r[k];
       r.status = "new";

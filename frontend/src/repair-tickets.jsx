@@ -187,6 +187,8 @@ export default function RepairTickets() {
       salePrice: finalPrice, costBasis: partsCost + labourCost, partsCost, labourCost, technician: t.assignedTo || "",
       brand: t.device.brand, model: t.device.model, storage: "repair",
       region: "AU", payMethod, soldAt: completedAt,
+      // Taken earlier at intake: the till expects only the balance today.
+      depositPaid: Number(t.deposit) || 0, depositPayMethod: t.depositPayMethod || null,
       staffHandled: staffName || "unattributed", channel: "repair",
     }, ...sales], true);
   }
@@ -237,6 +239,8 @@ export default function RepairTickets() {
       assignedTo: data.assignedTo || null, assignedAt: data.assignedTo ? now : null,
       issue: data.issue, repairTypeId: data.repairTypeId,
       quotedPrice: shop ? 0 : data.quotedPrice, deposit: shop ? 0 : data.deposit || 0,
+      // When and how the deposit was paid, so the till counts it on the day it was taken.
+      depositPayMethod: !shop && data.deposit > 0 ? data.depositPayMethod || "cash" : null, depositAt: !shop && data.deposit > 0 ? now : null,
       parts: [], finalPrice: null, warrantyDays: 90, warrantyOf: null,
       staffHandled: staffName || "unattributed", notifiedAt: null, completedAt: null,
       statusLog: [{ status: "dropped_off", at: now, by: staffName || "unattributed" }],
@@ -421,7 +425,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
   const [inventoryItemId, setInventoryItemId] = useState("");
   const [symptoms, setSymptoms] = useState([]);
   const [repairTypeId, setRepairTypeId] = useState(null); const [issue, setIssue] = useState("");
-  const [quotedPrice, setQuotedPrice] = useState(""); const [deposit, setDeposit] = useState("");
+  const [quotedPrice, setQuotedPrice] = useState(""); const [deposit, setDeposit] = useState(""); const [depositPayMethod, setDepositPayMethod] = useState("cash");
   const [assignedTo, setAssignedTo] = useState(""); const [priority, setPriority] = useState("normal"); const [dueAt, setDueAt] = useState("");
   const [scanNote, setScanNote] = useState("");
 
@@ -520,13 +524,18 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
         <div style={{ display: "flex", gap: 10 }}>
           <input value={quotedPrice} onChange={(e) => setQuotedPrice(e.target.value)} placeholder="Quoted price" type="number" style={inputStyle} />
           <input value={deposit} onChange={(e) => setDeposit(e.target.value)} placeholder="Deposit taken (optional)" type="number" style={inputStyle} />
+          {parseFloat(deposit) > 0 && (
+            <select value={depositPayMethod} onChange={(e) => setDepositPayMethod(e.target.value)} aria-label="Deposit paid by" style={inputStyle}>
+              <option value="cash">Deposit paid in cash</option><option value="card">Deposit paid by card</option>
+            </select>
+          )}
         </div>
       )}
       {!ready && <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Needs: {[!shop && !name.trim() && "name", !shop && !phone.trim() && "phone", !brand.trim() && "brand", !model.trim() && "model", !repairTypeId && "repair type", !shop && !quotedPrice && "quote"].filter(Boolean).join(", ")}</div>}
 
       <button disabled={!ready} onClick={() => onCreate({ jobType, name, phone, email, brand: brand.trim(), model: model.trim(), imei: imei.trim(), storage: storage.trim(), colour: colour.trim(), condition: condition.trim(),
           inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, dueAt: dueAt ? new Date(dueAt + "T17:00:00").toISOString() : null,
-          quotedPrice: parseFloat(quotedPrice) || 0, deposit: parseFloat(deposit) || 0 })}
+          quotedPrice: parseFloat(quotedPrice) || 0, deposit: parseFloat(deposit) || 0, depositPayMethod })}
         style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 6,
           background: ready ? brass : line, color: ready ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
         {shop ? "Create shop job" : "Create job ticket"}
@@ -664,7 +673,12 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
 
       {completingPayMethod && ticket.status !== "completed" && (
         <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, marginBottom: 8 }}>How did the customer pay? (needed so this shows up correctly in the till and reports)</div>
+          {Number(ticket.deposit) > 0 && (
+            <div style={{ fontSize: 13, marginBottom: 8, padding: "8px 10px", background: brassDim, borderRadius: 3 }}>
+              Deposit already paid: <strong>{fmt(ticket.deposit)}</strong>{ticket.depositPayMethod ? ` (${ticket.depositPayMethod})` : ""}. Collect the balance: <strong>{fmt(Math.max(0, (parseFloat(finalPrice) || ticket.quotedPrice) - Number(ticket.deposit)))}</strong>
+            </div>
+          )}
+          <div style={{ fontSize: 13, marginBottom: 8 }}>How did the customer pay{Number(ticket.deposit) > 0 ? " the balance" : ""}? (needed so this shows up correctly in the till and reports)</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             {["cash", "card"].map((m) => (
               <button key={m} onClick={() => setCompletingPayMethod(m)} style={{ flex: 1, padding: "9px", borderRadius: 3, fontSize: 12.5, cursor: "pointer",

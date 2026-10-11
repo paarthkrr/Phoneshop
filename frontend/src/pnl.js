@@ -8,10 +8,12 @@
 //   inventory      written-off stock (costBasis, writeOffAt)
 //   till_records   closed tills: over (+) / short (−)
 
+import { sydneyDay, sydneyMonth } from "./sydney-time.js";
+
 export const saleKind = (s) => (s.channel === "repair" ? "repair" : s.brand === "Accessory" ? "accessory" : "phone");
 export const KIND_LABELS = { phone: "Phones", repair: "Repairs", accessory: "Accessories" };
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
-const monthOf = (iso) => (typeof iso === "string" ? iso.slice(0, 7) : "");
+const monthOf = (iso) => (typeof iso === "string" ? sydneyMonth(iso) : ""); // Sydney calendar month
 export const partsCostOf = (t) => (t && Array.isArray(t.parts) ? t.parts.reduce((s, p) => s + (num(p && p.cost) || 0), 0) : 0);
 
 export function monthsIn({ sales = [], expenses = [], tickets = [] }) {
@@ -100,6 +102,6 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
 export function toCsv(rows) {
   const esc = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const head = ["Date", "Type", "Item", "Customer", "Sold for", "Cost (phone / parts / item)", "Technician pay", "Technician", "Profit"];
-  return [head, ...rows.map((r) => [String(r.date || "").slice(0, 10), KIND_LABELS[r.kind], r.item, r.customer, r.sold, r.cost ?? "unknown", r.labour || "", r.technician, r.profit ?? "unknown"])]
+  return [head, ...rows.map((r) => [sydneyDay(r.date), KIND_LABELS[r.kind], r.item, r.customer, r.sold, r.cost ?? "unknown", r.labour || "", r.technician, r.profit ?? "unknown"])]
     .map((line) => line.map(esc).join(",")).join("\n");
 }

@@ -36,4 +36,7 @@ assert.deepEqual([r2.jobs, r2.pay], [2, 50]);
 assert.equal(buildPnl({ sales, tickets, month: "all" }).rows.length, 5);
 assert.deepEqual(monthsIn({ sales, tickets }), ["2026-10", "2026-09"]);
 assert.match(toCsv(p.rows), /2026-10-06,Phones,Samsung S21,,400,unknown,,,unknown/);
+// 6am on 1 October in Sydney is still 30 September in UTC: it belongs to October.
+const early = buildPnl({ sales: [{ id: "E1", soldAt: "2026-09-30T20:00:00Z", brand: "Apple", model: "iPhone 11", salePrice: 300, costBasis: 200 }], month: "2026-10" });
+assert.equal(early.rows.length, 1, "Sydney month, not UTC month");
 });

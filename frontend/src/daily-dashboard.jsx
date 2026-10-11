@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { sydneyDay, sydneyToday } from "./sydney-time.js";
 
 /* =================================================================
    DAILY DASHBOARD
@@ -20,7 +21,7 @@ async function loadJSON(key, shared) {
     return [];
   }
 }
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const todayStr = sydneyToday;
 const fmt = (n) => `$${Math.round(n || 0).toLocaleString()}`;
 const daysSince = (iso) => (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24);
 
@@ -54,7 +55,7 @@ export default function DailyDashboard() {
     const repairsStale = repairsOpen.filter((t) => daysSince(t.createdAt) > 5);
 
     const todayTill = till.find((r) => r.date === today);
-    const todaySales = sales.filter((s) => s.soldAt?.slice(0, 10) === today);
+    const todaySales = sales.filter((s) => sydneyDay(s.soldAt) === today);
     const todayRevenue = todaySales.reduce((s, x) => s + x.salePrice, 0);
 
     // Merge a recent activity feed across everything
