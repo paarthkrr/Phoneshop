@@ -453,8 +453,8 @@ const FIELD_HIDE = new Set(["tierId", "brandNewBase", "category", "region", "cur
 // Bank, payout-account and ID details stay in the portal; email is not a safe place for them.
 const SENSITIVE_KEY = /bank|bsb|accountnumber|paypal|idtype|idowner|idnumber|licen[cs]e|passport|birth|dob|password|token/i;
 const FIELD_MASK = new Set(["bankAccountNumber", "idNumber", "licenceNumber", "licenseNumber", "passportNumber"]);
-const MONEY_KEYS = new Set(["quotedTotal", "total", "rewardAmount", "subtotal", "amount", "price", "deposit"]);
-const VALUE_MAP = { dropoff: "Drop-off in store", post: "Post / mail-in", pickup: "Pickup", delivery: "Delivery", collect: "Collect in store", cash: "Cash", bank: "Bank transfer",
+const MONEY_KEYS = new Set(["quotedTotal", "total", "rewardAmount", "subtotal", "amount", "price", "deposit", "travelFee"]);
+const VALUE_MAP = { instore: "In store", mailin: "Mail-in", doorstep: "At the customer's door", dropoff: "Drop-off in store", post: "Post / mail-in", pickup: "Pickup", delivery: "Delivery", collect: "Collect in store", cash: "Cash", bank: "Bank transfer",
   license: "Driver licence", passport: "Passport", other: "Other photo ID" };
 const humanise = (k) => FIELD_LABEL[k] || String(k).replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase());
 function fmtValue(k, v, currency) {
@@ -530,9 +530,12 @@ function notifyNew(key, items, max = Infinity) {
       continue;
     }
     const who = item.name || (item.customer && item.customer.name) || item.email || (item.customer && item.customer.email) || item.id || "";
+    const door = key === "repair_requests" && item.method === "doorstep";
     const subject = key === "device_requests"
       ? `Device request ${clip(item.id)}: ${clip(item.brand)} ${clip(item.model)}${item.storage ? ` ${clip(item.storage)}` : ""}`
-      : `${NEW_LABEL[key] || `New ${key.replace(/_/g, " ")}`}${who ? ` — ${who}` : ""}`;
+      : door
+        ? `${item.express === true ? "EMERGENCY doorstep repair (customer expects a technician within about 2 hours)" : `Doorstep repair request: ${doorstepWhen(item)}`}${who ? ` — ${who}` : ""}`
+        : `${NEW_LABEL[key] || `New ${key.replace(/_/g, " ")}`}${who ? ` — ${who}` : ""}`;
     const replyTo = item.email || (item.customer && item.customer.email) || undefined;
     void sendEmail({ to: OWNER_EMAIL(), subject, alert: { key, item }, replyTo });
     // Optional copy of device requests to a second inbox (e.g. the one a daily Claude task reads
@@ -612,6 +615,32 @@ function money(n, currency) {
   if (!Number.isFinite(Number(n))) return "";
   try { return new Intl.NumberFormat("en-AU", { style: "currency", currency: /^[A-Z]{3}$/.test(currency || "") ? currency : "AUD" }).format(Number(n)); } catch (e) { return `$${Number(n).toFixed(2)}`; }
 }
+// "Repair at my door" requests (see frontend/src/doorstep.js). Everything here
+// comes from the customer's browser, so only known values are repeated back:
+// a real date, one of the three time windows, and a travel fee that matches the
+// zone ($15 inner / $30 outer, +$30 emergency). Anything else: "we'll confirm".
+const DOOR_WINDOWS = ["9am \u2013 12pm", "12pm \u2013 3pm", "3pm \u2013 6pm"];
+const DOOR_FEES = { A: 15, B: 30 }, DOOR_EXPRESS_EXTRA = 30;
+function doorstepWhen(r) {
+  if (r.express === true) return "as soon as possible (emergency, within about 2 hours)";
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(String(r.slotDate || "")) ? new Date(`${r.slotDate}T00:00:00Z`) : null;
+  const day = d && !isNaN(d) ? d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }) : "";
+  const win = DOOR_WINDOWS.includes(r.slotWindow) ? r.slotWindow : "";
+  return [day, win].filter(Boolean).join(", ") || "a time we'll agree with you";
+}
+function doorstepFeeOf(r) {
+  const base = DOOR_FEES[r.zone];
+  if (!base) return null;
+  const fee = base + (r.express === true ? DOOR_EXPRESS_EXTRA : 0);
+  return Number(r.travelFee) === fee ? fee : null;
+}
+function doorstepMessage(r) {
+  const fee = doorstepFeeOf(r);
+  return `We've received your request for a repair at your door for your ${clip(r.deviceType).toLowerCase() || "device"}${clip(r.model) ? ` (${clip(r.model)})` : ""}.\n\n`
+    + `Requested time: ${doorstepWhen(r)}.\n`
+    + (fee != null ? `Travel fee: $${fee}, taken off your repair price if you go ahead.\n\n` : "We'll confirm that we cover your area, and the travel fee, before booking it in.\n\n")
+    + "This is a request, not a confirmed booking yet. We'll message you to confirm the time and tell you which technician is coming.";
+}
 const dateAU = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-AU"); };
 const deviceName = (r) => clip(`${(r.device && r.device.brand) || ""} ${(r.device && r.device.model) || ""}`) || "device";
 const CONFIRMATIONS = {
@@ -626,7 +655,8 @@ const CONFIRMATIONS = {
     message: (r) => `We've received your request for ${Number(r.itemCount) || (Array.isArray(r.items) ? r.items.length : 0)} device(s), estimated at ${money(r.estimatedTotal, r.currency)} total. A team member will follow up within 1-2 business days with a firm offer.` },
   repair_request: { key: "repair_requests", email: (r) => r.email, name: (r) => r.name,
     subject: (r) => `Repair request ${clip(r.id)} received`,
-    message: (r) => `We've received your repair request for your ${clip(r.deviceType).toLowerCase() || "device"}${clip(r.model) ? ` (${clip(r.model)})` : ""}. We'll reach out shortly to confirm details and turnaround.` },
+    message: (r) => r.method === "doorstep" ? doorstepMessage(r)
+      : `We've received your repair request for your ${clip(r.deviceType).toLowerCase() || "device"}${clip(r.model) ? ` (${clip(r.model)})` : ""}. We'll reach out shortly to confirm details and turnaround.` },
   support_query: { key: "support_queries", email: (r) => r.email, name: (r) => r.name,
     subject: (r) => `We've received your question — ${clip(r.id)}`,
     message: () => "Thanks for reaching out. We've received your message and will get back to you shortly." },

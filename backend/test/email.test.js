@@ -55,6 +55,34 @@ test("customer confirmation uses the new layout and server wording", async () =>
   assert.ok(mail.text.startsWith("Hi Ann,") && !mail.text.includes("evil"));
 });
 
+test("doorstep repair: emergency flagged to the owner; customer told it's a request, with checked time and fee", async () => {
+  sent.length = 0;
+  await put("repair_requests", [
+    { id: "REP-D1", createdAt: "2026-10-07T00:00:00Z", status: "new", name: "Dev Patel", email: "dev@example.com", phone: "0400 111 222", deviceType: "Phone", model: "iPhone 13",
+      issue: "Screen", method: "doorstep", address: "1 George St", postcode: "2000", zone: "A", travelFee: 45, express: true, slotDate: "", slotWindow: "Express, within about 2 hours" },
+    { id: "REP-D2", createdAt: "2026-10-07T00:00:00Z", status: "new", name: "Mia Wong", email: "mia@example.com", phone: "0400 333 444", deviceType: "Phone", model: "Pixel 8",
+      issue: "Battery", method: "doorstep", address: "2 Pitt St", postcode: "2100", zone: "B", travelFee: 1, express: false, slotDate: "2026-10-14", slotWindow: "12pm \u2013 3pm" },
+  ]);
+  await settle();
+  const owner = sent.filter((m) => m.to[0] === "owner@example.com").map((m) => m.subject);
+  assert.ok(owner.some((s) => /^EMERGENCY doorstep repair/.test(s) && /Dev Patel/.test(s)), "emergency is obvious in the subject");
+  assert.ok(owner.some((s) => /^Doorstep repair request: Wednesday 14 October, 12pm – 3pm/.test(s)), "booked time in the subject");
+
+  sent.length = 0;
+  await put("notification_queue", [
+    { id: "NTF-D1", type: "repair_request", relatedId: "REP-D1", message: "ignored" },
+    { id: "NTF-D2", type: "repair_request", relatedId: "REP-D2", message: "ignored" },
+  ]);
+  await settle();
+  const d1 = sent.find((m) => m.to[0] === "dev@example.com"), d2 = sent.find((m) => m.to[0] === "mia@example.com");
+  assert.ok(d1 && d2, "both customers emailed");
+  assert.match(d1.text, /emergency, within about 2 hours/);
+  assert.match(d1.text, /Travel fee: \$45, taken off your repair price/);
+  assert.match(d1.text, /not a confirmed booking yet/);
+  assert.match(d2.text, /Wednesday 14 October, 12pm – 3pm/);
+  assert.ok(!/Travel fee: \$1\b/.test(d2.text) && /confirm that we cover your area, and the travel fee/.test(d2.text), "a fee that doesn't match the zone is never repeated back");
+});
+
 test("rate limits are per real visitor (Cloudflare header); True-Client-IP is ignored", async () => {
   const a = { "CF-Connecting-IP": "203.0.113.1" }, b = { "CF-Connecting-IP": "203.0.113.2" };
   let last;
