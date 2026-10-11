@@ -520,16 +520,47 @@ async function sendEmail({ to, subject, text, replyTo, customer, kind, name, ale
     return { ok: r.ok };
   } catch (e) { console.error("email error:", e.message); return { ok: false }; }
 }
-function notifyNew(key, items, max = Infinity) {
+// Emails triggered by website visitors are rationed, so a flood of fake
+// submissions can't email strangers over and over or use up the sending
+// quota (which would also stop real confirmations and security alerts).
+const EMAIL_LIMITS = { ownerPerHour: 60, customerPerHour: 120, perRecipientPerDay: 5 };
+const emailBudget = { hour: 0, owner: 0, customer: 0, pausedNoticeSent: false, recipients: new Map() };
+function allowPublicEmail(kind, to) {
+  const now = Date.now(), hour = Math.floor(now / 3600e3);
+  if (hour !== emailBudget.hour) {
+    Object.assign(emailBudget, { hour, owner: 0, customer: 0, pausedNoticeSent: false });
+    for (const [addr, times] of emailBudget.recipients) { const recent = times.filter((t) => now - t < 864e5); if (recent.length) emailBudget.recipients.set(addr, recent); else emailBudget.recipients.delete(addr); }
+  }
+  if (kind === "owner") {
+    if (emailBudget.owner >= EMAIL_LIMITS.ownerPerHour) {
+      if (!emailBudget.pausedNoticeSent) {
+        emailBudget.pausedNoticeSent = true;
+        void sendEmail({ to: OWNER_EMAIL(), subject: "Website alerts paused for this hour (unusually many submissions)",
+          text: `More than ${EMAIL_LIMITS.ownerPerHour} website submissions arrived in the last hour, so alert emails are paused until the hour is up. Everything is still saved: check the staff portal. If you don't recognise these, someone may be spamming the forms.` });
+      }
+      return false;
+    }
+    emailBudget.owner++;
+    return true;
+  }
+  const addr = String(to || "").trim().toLowerCase();
+  const times = emailBudget.recipients.get(addr) || [];
+  if (emailBudget.customer >= EMAIL_LIMITS.customerPerHour || times.filter((t) => now - t < 864e5).length >= EMAIL_LIMITS.perRecipientPerDay) return false;
+  emailBudget.customer++;
+  emailBudget.recipients.set(addr, [...times, now]);
+  return true;
+}
+function notifyNew(key, items, max = Infinity, fromPublic = false) {
   const list = items || [];
   if (list.length > max) console.warn(`notifyNew(${key}): ${list.length} new items, only emailing the first ${max}`);
   for (const item of list.slice(0, max)) {
     if (!item) continue;
     if (key === "notification_queue") {
-      if (item.channel === "email" && item.recipientEmail) void sendEmail({ to: item.recipientEmail, subject: item.subject || "Update from Mobile Recellr", text: item.message || "", replyTo: OWNER_EMAIL(), customer: true, kind: item.type, name: item.recipientName });
+      if (item.channel === "email" && item.recipientEmail && (!fromPublic || allowPublicEmail("customer", item.recipientEmail))) void sendEmail({ to: item.recipientEmail, subject: item.subject || "Update from Mobile Recellr", text: item.message || "", replyTo: OWNER_EMAIL(), customer: true, kind: item.type, name: item.recipientName });
       continue;
     }
-    const who = item.name || (item.customer && item.customer.name) || item.email || (item.customer && item.customer.email) || item.id || "";
+    if (fromPublic && !allowPublicEmail("owner")) continue;
+    const who = clip(item.name || (item.customer && item.customer.name)) || item.email || (item.customer && item.customer.email) || clip(item.id) || "";
     const door = key === "repair_requests" && item.method === "doorstep";
     const subject = key === "device_requests"
       ? `Device request ${clip(item.id)}: ${clip(item.brand)} ${clip(item.model)}${item.storage ? ` ${clip(item.storage)}` : ""}`
@@ -557,6 +588,59 @@ const loadPricing = () => (pricingModule = pricingModule || import("../frontend/
 const round2 = (n) => Math.round(n * 100) / 100;
 // Mirrors SHIPPING_FLAT / FREE_SHIPPING_OVER in frontend/src/parts.jsx.
 const ACCESSORY_SHIPPING_FLAT = 9.95, ACCESSORY_FREE_SHIPPING_OVER = 100;
+// ---- What an anonymous visitor may put in a submission ----
+// Customers create records; only staff move them along. So on every public
+// submission the server keeps the fields the website's own form sends, puts
+// the "staff" fields (status, inspection, approved price...) back to where a
+// new record starts, and refuses oversized records.
+const pick = (o, keys) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
+const isStr = (v, max = 200) => typeof v === "string" && v.trim() !== "" && v.length <= max;
+const PUBLIC_FIELDS = {
+  orders: ["id", "createdAt", "priceLockExpires", "device", "region", "currency", "tierId", "tierLabel", "faultLabels", "hasAccessories",
+    "quotedTotal", "brandNewBase", "customer", "fulfillment", "address", "referralCode"],
+  purchase_orders: ["id", "createdAt", "itemId", "brand", "model", "storage", "gradeId", "price", "currency", "region", "customer", "paymentMethod", "warrantyMonths"],
+  price_match_requests: ["id", "createdAt", "device", "ourQuote", "region", "currency", "competitorName", "competitorPrice", "note", "customerEmail"],
+};
+function sanitizePublic(key, records, existing) {
+  const now = new Date();
+  const out = [];
+  for (const raw of records) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { error: "each submission must be an object" };
+    if (JSON.stringify(raw).length > PUBLIC_MAX_RECORD_CHARS) return { error: "submission too large" };
+    let r = PUBLIC_FIELDS[key] ? pick(raw, PUBLIC_FIELDS[key]) : { ...raw };
+    r.receivedAt = now.toISOString();
+    if (key === "orders") {
+      const d = r.device || {}, c = r.customer || {};
+      if (!isStr(d.brand) || !isStr(d.model) || !isStr(c.email)) return { error: "an order needs the device and the customer's email" };
+      r.status = "awaiting_shipment";
+      r.inspection = null;
+      const code = String(r.referralCode || "").toUpperCase();
+      // Codes are short (name + 3 digits); a code already held by another order stays with that order.
+      if (!/^[A-Z]{1,6}\d{3}$/.test(code) || existing.some((o) => o && String(o.referralCode || "").toUpperCase() === code)) delete r.referralCode;
+      else r.referralCode = code;
+    } else if (key === "purchase_orders") {
+      r.status = r.paymentMethod === "cash_on_pickup" ? "pending_pickup" : "pending_payment";
+      const until = new Date(now); until.setMonth(until.getMonth() + 12);
+      r.warrantyMonths = 12;
+      r.warrantyExpiresAt = until.toISOString();
+    } else if (key === "price_match_requests") {
+      Object.assign(r, { status: "pending", approvedPrice: null, staffNote: "" });
+    } else if (key === "accessory_orders") {
+      for (const k of Object.keys(r)) if (/^(paid|shipped|tracking|staff|refund|collected|completed|ready|cancel)/i.test(k)) delete r[k];
+      r.status = "new";
+    } else if (key === "repair_requests" || key === "bulk_quote_requests") {
+      r.status = "new";
+      if (key === "bulk_quote_requests") r.staffNote = "";
+    } else if (key === "support_queries" || key === "device_requests") {
+      r.status = "open";
+    } else if (key === "quote_leads") {
+      r.contacted = false;
+    }
+    out.push(r);
+  }
+  return { records: out };
+}
+
 // Reserves the listed phone each new online order is for, all or nothing.
 // Customers can't write the stock list themselves (and only ever see the
 // public, trimmed copy of it), so the server does this under the stock lock.
@@ -595,6 +679,19 @@ async function enforcePrices(key, records) {
         : { verified: true } };
     });
   }
+  if (key === "quote_leads") {
+    // A saved quote is emailed to the address given, so its amount must be one our price list can produce.
+    const { brandNewBase, DEFAULT_TIERS, ACCESSORY_BONUS_PCT } = await loadPricing();
+    const config = (await loadSharedValue("pricing-config")) || {};
+    const tierOverrides = Object.fromEntries((Array.isArray(config.tiers) ? config.tiers : []).map((t) => [t.id, t.factor]));
+    const maxTier = Math.max(...DEFAULT_TIERS.map((t) => Number(tierOverrides[t.id] ?? t.factor) || 0));
+    return records.map((l) => {
+      const d = l.device || {};
+      const base = brandNewBase(config, { brand: d.brand, model: d.model, storage: d.storage, region: l.region });
+      const ok = base != null && Number(l.quotedTotal) >= 0 && Number(l.quotedTotal) <= base * maxTier * (1 + ACCESSORY_BONUS_PCT) * 1.01 + 1;
+      return { ...l, priceCheck: ok ? { verified: true } : { verified: false, reason: base == null ? "device not in the price list" : "quote above what our prices allow" } };
+    });
+  }
   if (key === "purchase_orders") {
     const inventory = await loadSharedList("inventory");
     return records.map((o) => {
@@ -629,7 +726,7 @@ async function enforcePrices(key, records) {
 // emails text or addresses supplied by an anonymous browser: it looks up
 // the record the confirmation is about, sends to the email ON that record,
 // writes the wording itself, and sends at most one per record.
-const clip = (v) => String(v ?? "").replace(/(https?:\/\/|www\.)\S*/gi, "").replace(/\b[\w-]+\.(com|net|org|au|io|co|xyz|info|link|app|me|ly|ru|top)\b\S*/gi, "").replace(/\s+/g, " ").trim().slice(0, 60);
+const clip = (v) => String(v ?? "").replace(/(https?:\/\/|www\.)\S*/gi, "").replace(/\b[\w-]+(\.[\w-]+)*\.[a-z]{2,}\b\S*/gi, "").replace(/\s+/g, " ").trim().slice(0, 60);
 function money(n, currency) {
   if (!Number.isFinite(Number(n))) return "";
   try { return new Intl.NumberFormat("en-AU", { style: "currency", currency: /^[A-Z]{3}$/.test(currency || "") ? currency : "AUD" }).format(Number(n)); } catch (e) { return `$${Number(n).toFixed(2)}`; }
@@ -667,7 +764,7 @@ const CONFIRMATIONS = {
     subject: (r) => `Order ${clip(r.id)} received`,
     message: (r) => `Thanks for sending us your ${deviceName(r)} trade-in. We've received it (order ${clip(r.id)})${r.priceCheck && r.priceCheck.quoteTooHigh ? "" : ` with a quote of ${money(r.quotedTotal, r.currency)}`}, subject to inspecting the device.` },
   quote_lead: { key: "quote_leads", email: (r) => r.email, name: () => "",
-    subject: (r) => `Your ${deviceName(r)} quote: ${money(r.quotedTotal, r.currency)}`,
+    subject: (r) => (r.priceCheck && r.priceCheck.verified === false ? `Your ${deviceName(r)} quote` : `Your ${deviceName(r)} quote: ${money(r.quotedTotal, r.currency)}`),
     message: (r) => `We've held this price for you${dateAU(r.priceHeldUntil) ? ` until ${dateAU(r.priceHeldUntil)}` : ""}. Ready to sell? Come back anytime.` },
   bulk_quote_request: { key: "bulk_quote_requests", email: (r) => r.business && r.business.email, name: (r) => r.business && r.business.contactName,
     subject: (r) => `Bulk trade-in request ${clip(r.id)} received`,
@@ -703,14 +800,23 @@ async function buildConfirmations(items, existingQueue) {
 }
 // A referral names only the code it used; the server fills in who owns that
 // code, so the public site never needs to look up another customer's order.
-async function enrichReferrals(items) {
+const REFERRAL_REWARD = 20; // flat, both sides; matches the site (instant-quote-calculator.jsx)
+async function enrichReferrals(items, existing = []) {
   const orders = await loadSharedList("orders");
+  const used = new Set(existing.map((r) => r && r.referredOrderId).filter(Boolean));
+  const lc = (v) => String(v || "").trim().toLowerCase();
   return items.map((ref) => {
     const code = String(ref.code || "").trim().toUpperCase();
     const referrer = code && orders.find((o) => o && String(o.referralCode || "").toUpperCase() === code);
     const referrerEmail = referrer && referrer.customer && referrer.customer.email;
-    if (!referrerEmail || referrerEmail.toLowerCase() === String(ref.referredEmail || "").trim().toLowerCase()) return null;
-    return { ...ref, code, referrerEmail, referrerName: referrer.customer.name || "", referrerPaid: false, referredPaid: false };
+    if (!referrerEmail || lc(referrerEmail) === lc(ref.referredEmail)) return null;
+    // A referral needs the referred customer's real trade-in, and pays once per trade-in.
+    const referred = orders.find((o) => o && o.id === ref.referredOrderId);
+    if (!referred || !referred.customer || lc(referred.customer.email) !== lc(ref.referredEmail) || used.has(referred.id)) return null;
+    used.add(referred.id);
+    return { id: ref.id, createdAt: ref.createdAt, receivedAt: ref.receivedAt, code, referredEmail: referred.customer.email, referredName: referred.customer.name || "",
+      referredOrderId: referred.id, rewardAmount: REFERRAL_REWARD, currency: referred.currency || "$",
+      referrerEmail, referrerName: referrer.customer.name || "", referrerPaid: false, referredPaid: false };
   }).filter(Boolean);
 }
 
@@ -764,7 +870,9 @@ const ACCESS = {
   referrals: { read: "reports", write: "reports" },
   support_queries: { read: "reports", write: "reports" },
   bulk_quote_requests: { read: "reports", write: "reports" },
-  device_requests: { read: "pricing", write: "pricing" },      // "can't find my device" requests, handled in the Pricing Console
+  device_requests: { read: "pricing", write: "pricing" },
+  unlock_jobs: { read: "register", write: "register" },     // Unlock Checker (counter staff)
+  unlock_audit: { read: "register", write: "register" },      // "can't find my device" requests, handled in the Pricing Console
 };
 const DEFAULT_ACCESS = { read: "reports", write: "reports" };   // anything not listed
 const canAccess = (user, key, mode) => hasArea(user, (ACCESS[key] || DEFAULT_ACCESS)[mode]);
@@ -863,6 +971,8 @@ const publicRespondAllowed = makeLimiter(30, 10 * 60 * 1000);
 const publicFindAllowed = makeLimiter(60, 10 * 60 * 1000);       // a tracking search tries up to 4 fields
 const publicIdPhotoAllowed = makeLimiter(10, 10 * 60 * 1000);
 const PUBLIC_MAX_ITEMS_PER_SUBMISSION = 20;
+const PUBLIC_MAX_RECORD_CHARS = 50_000;       // one customer submission (an order with contact + payout details is ~2 KB)
+const PUBLIC_MAX_LIST_CHARS = 6_000_000;      // a public list stays well under the 10 MB staff save limit
 const PUBLIC_MAX_VALUE_CHARS = 2_000_000;   // anonymous JSON payload cap (staff are not capped below the 10mb body limit)
 const PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST = 5;
 
@@ -1565,18 +1675,27 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
         if (key !== "notification_queue" && key !== "referrals" &&
             incoming.some((r) => r && r.id && byId.has(r.id) && !sameSubmission(byId.get(r.id), r))) return { conflict: true };
         let fresh = incoming.filter((r) => r && r.id && !byId.has(r.id));
+        const clean = sanitizePublic(key, fresh, existing);
+        if (clean.error) return { invalid: clean.error };
+        fresh = clean.records;
+        if (fresh.length && (existingValue || "").length + JSON.stringify(fresh).length > PUBLIC_MAX_LIST_CHARS) {
+          console.error(`public list ${key} is over ${PUBLIC_MAX_LIST_CHARS} chars; refusing new submissions until staff tidy it`);
+          return { full: true };
+        }
         fresh = await enforcePrices(key, fresh);
         // An online phone order holds the phone straight away, so two customers can't buy the same one.
         if (key === "purchase_orders" && fresh.length && !(await reserveForOrders(fresh))) return { unavailable: true };
         if (key === "notification_queue") fresh = await buildConfirmations(fresh, existing);
-        if (key === "referrals") fresh = await enrichReferrals(fresh);
+        if (key === "referrals") fresh = await enrichReferrals(fresh, existing);
         if (fresh.length) await write(JSON.stringify([...fresh, ...existing]), "public");
         return { fresh };
       });
       if (result.conflict) return res.status(409).json({ error: "id_conflict", detail: "that reference number is already in use, please submit again" });
       if (result.unavailable) return res.status(409).json({ error: "item_unavailable", detail: "this phone has just been sold or reserved" });
+      if (result.invalid) return res.status(400).json({ error: "invalid_submission", detail: result.invalid });
+      if (result.full) return res.status(503).json({ error: "temporarily_unavailable", detail: "please try again later or message us on WhatsApp" });
       const newOnes = result.fresh;
-      notifyNew(key, newOnes, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST);
+      notifyNew(key, newOnes, PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST, true);
       // Never return the merged collection to an anonymous caller — only confirm what THEY submitted.
       return res.json({ key: req.params.key, submitted: newOnes.length });
     }
@@ -1711,7 +1830,10 @@ app.post("/id-photos", tryAuth, async (req, res) => {
       // They can't add or replace a photo on anyone else's record.
       if (!publicIdPhotoAllowed(req)) return res.status(429).json({ error: "too many uploads, please try again later" });
       const m = /^order:([A-Za-z0-9-]{1,40})$/.exec(String(subjectKey));
-      if (!m || !(await loadSharedList("orders")).some((o) => o && o.id === m[1])) return res.status(403).json({ error: "unknown order" });
+      if (typeof imageBase64 !== "string" || imageBase64.length > 3_000_000 || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(imageBase64)) return res.status(400).json({ error: "a JPEG, PNG or WebP photo under about 2 MB is needed" });
+      // Only to an order this visitor has just placed (received by the server in the last hour).
+      const order = m && (await loadSharedList("orders")).find((o) => o && o.id === m[1]);
+      if (!order || !(Date.now() - Date.parse(order.receivedAt) < 60 * 60 * 1000)) return res.status(403).json({ error: "unknown order" });
       if ((await pool.query("SELECT 1 FROM id_photos WHERE subject_key = $1 LIMIT 1", [subjectKey])).rows[0]) return res.status(409).json({ error: "an ID photo is already on file for this order" });
     }
     await purgeExpiredIdPhotos();
