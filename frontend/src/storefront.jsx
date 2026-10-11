@@ -1,5 +1,6 @@
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import { mergeCatalog } from "./device-catalog.js";
+import { wasPrice } from "./price-history.js";
 // Friendly validation shared by the customer forms
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
 const digits = (v) => (v || "").replace(/[\s-]/g, "");
@@ -94,6 +95,18 @@ const REPAIR_PRICE_TEASERS = [
   { name: "Charging port (any device)", from: 80 },
   { name: "Watch screen or battery", from: 90 },
 ];
+
+// "Was" line, shown only when the listing's own price history backs it (see price-history.js).
+function WasLine({ item, size = 12.5 }) {
+  const w = wasPrice(item);
+  if (!w) return null;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: size, lineHeight: 1.3 }}>
+      <span style={{ color: "#5B6472" }}>Was <s>{fmt(w.was, item.currency)}</s></span>
+      <span style={{ background: "#B42318", color: "#fff", fontWeight: 800, borderRadius: 999, padding: "2px 8px", fontSize: size - 1 }}>Save {fmt(w.save, item.currency)}</span>
+    </span>
+  );
+}
 
 function fmt(n, currency) {
   return `${currency || "$"}${Math.round(n || 0).toLocaleString()}`;
@@ -287,6 +300,7 @@ export default function Storefront() {
                       <div style={{ fontSize: 14, fontWeight: 500 }}>{item.brand} {item.model}</div>
                       <div style={{ fontSize: 12, color: muted, marginBottom: 8 }}>{item.storage} · Grade {item.gradeId}</div>
                       <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, color: brass }}>{fmt(item.listedPrice, item.currency)}</div>
+                      <WasLine item={item} />
                     </button>
                   ))}
                 </div>
@@ -334,8 +348,9 @@ export default function Storefront() {
                   </span>
                   <span style={{ fontSize: 16, color: brass, fontFamily: "'Archivo Black', sans-serif" }}>{fmt(item.listedPrice, item.currency)}</span>
                 </div>
-                <div style={{ fontSize: 12, color: muted, marginTop: 3 }}>
-                  {item.storage} · {GRADE_LABELS[item.gradeId]?.label || item.gradeId} condition
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", fontSize: 12, color: muted, marginTop: 3 }}>
+                  <span>{item.storage} · {GRADE_LABELS[item.gradeId]?.label || item.gradeId} condition</span>
+                  <WasLine item={item} size={12} />
                 </div>
               </button>
             ))}
@@ -416,7 +431,10 @@ export default function Storefront() {
               <div style={{ fontSize: 13, color: muted, marginBottom: 16 }}>{selectedItem.storage}</div>
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
-                <div style={{ fontSize: 36, color: brass, fontFamily: "'Archivo Black', sans-serif" }}>{fmt(selectedItem.listedPrice, selectedItem.currency)}</div>
+                <div>
+                  <div style={{ fontSize: 36, color: brass, fontFamily: "'Archivo Black', sans-serif" }}>{fmt(selectedItem.listedPrice, selectedItem.currency)}</div>
+                  <WasLine item={selectedItem} size={14} />
+                </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 13, color: green }}>{WARRANTY_MONTHS}-month warranty included</div>
                   <div style={{ fontSize: 12.5, color: muted, marginTop: 4, lineHeight: 1.6 }}>

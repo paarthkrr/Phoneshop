@@ -294,6 +294,33 @@ async function tryAuth(req, res, next) {
 // Customers need to browse stock and get quotes without a staff login —
 // these two are genuinely public catalog data, not anyone's private info.
 const PUBLIC_READ_KEYS = ["inventory", "pricing-config", "accessories"];
+// What a visitor without a login may see of those. Stock records also hold the
+// IMEI, what we paid, and the seller's name and ID type; none of that is for
+// the public. Only phones actually listed for sale, and only shop-window fields.
+const PUBLIC_INVENTORY_FIELDS = ["id", "brand", "model", "storage", "category", "colour", "color", "gradeId", "listedPrice", "currency", "region", "status", "photoUrl", "listedAt", "priceHistory"];
+const PRIVATE_ACCESSORY_FIELDS = ["cost", "costPrice", "supplier", "supplierSku", "supplierNote"];
+function publicCatalogView(key, value) {
+  if (key !== "inventory" && key !== "accessories") return value;
+  let list;
+  try { list = JSON.parse(value); } catch (e) { return value; }
+  if (!Array.isArray(list)) return value;
+  if (key === "inventory") {
+    list = list.filter((i) => i && i.status === "listed").map((i) => {
+      const out = {};
+      for (const k of PUBLIC_INVENTORY_FIELDS) if (i[k] !== undefined) out[k] = i[k];
+      if (Array.isArray(out.priceHistory)) out.priceHistory = out.priceHistory.map((p) => ({ price: p && p.price, from: p && p.from }));
+      return out;
+    });
+  } else {
+    list = list.map((a) => {
+      if (!a || typeof a !== "object") return a;
+      const out = { ...a };
+      for (const k of PRIVATE_ACCESSORY_FIELDS) delete out[k];
+      return out;
+    });
+  }
+  return JSON.stringify(list);
+}
 // Customers need to SUBMIT to these (a trade-in order, a purchase, a
 // price-match request, a bulk quote, a lead, a referral) without a staff
 // login — but they must never be able to READ them back in bulk, since
@@ -1363,7 +1390,7 @@ app.get("/storage/:key", tryAuth, async (req, res) => {
       const result = await pool.query("SELECT value FROM storage WHERE scope = 'shared' AND key = $1", [req.params.key]);
       const row = result.rows[0];
       if (!row) return res.status(404).json({ error: "not_found" });
-      return res.json({ key: req.params.key, value: row.value, shared: true });
+      return res.json({ key: req.params.key, value: publicCatalogView(req.params.key, row.value), shared: true });
     }
     const scope = scopeFor(req.query.shared, req.user.username);
     if (scope === "shared" && !canAccess(req.user, req.params.key, "read")) return res.status(403).json({ error: "your access doesn't include this" });

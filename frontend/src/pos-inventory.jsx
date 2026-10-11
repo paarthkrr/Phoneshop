@@ -2,6 +2,7 @@ import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useMemo } from "react";
 import { ScanButton } from "./barcode-scanner.jsx";
+import { publishPatch, pricePatch, wasPrice, MIN_DAYS_AT_OLD_PRICE } from "./price-history.js";
 
 /* =================================================================
    POS + INVENTORY
@@ -805,6 +806,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
   const [writeOffReason, setWriteOffReason] = useState("Damaged");
   const [writeOffNote, setWriteOffNote] = useState("");
   const [visibleCount, setVisibleCount] = useState(30);
+  const [priceEdit, setPriceEdit] = useState(null); // { id, value }
   const filtered = inventory.filter((i) => filter === "all" || i.status === filter);
   const visible = filtered.slice(0, visibleCount);
   const WRITE_OFF_REASONS = ["Damaged", "Stolen", "Lost", "Unsellable", "Other"];
@@ -896,7 +898,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
           {item.status !== "sold" && item.status !== "written_off" && item.status !== "reserved" && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               {GRADES.map((g) => (
-                <button key={g.id} onClick={() => onUpdate(item.id, { gradeId: g.id, listedPrice: Math.round(item.costBasis * g.markup) })}
+                <button key={g.id} onClick={() => onUpdate(item.id, { gradeId: g.id, ...(pricePatch(item, Math.round(item.costBasis * g.markup)) || { listedPrice: Math.round(item.costBasis * g.markup) }) })}
                   style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, cursor: "pointer",
                     border: `1px solid ${item.gradeId === g.id ? brass : line}`, background: item.gradeId === g.id ? brassDim : "transparent", color: item.gradeId === g.id ? brass : paper }}>
                   {g.id}
@@ -905,11 +907,29 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
               {item.listedPrice != null && (
                 <span style={{ fontSize: 12.5, color: green, marginLeft: 6 }}>list {fmt(item.listedPrice, item.region, regions)}</span>
               )}
+              {item.status === "listed" && wasPrice(item) && (
+                <span style={{ fontSize: 12, color: brass }}>shows "Was {fmt(wasPrice(item).was, item.region, regions)}" online</span>
+              )}
+              {item.status === "listed" && item.listedPrice != null && (priceEdit && priceEdit.id === item.id ? (
+                <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                  <input value={priceEdit.value} onChange={(e) => setPriceEdit({ id: item.id, value: e.target.value })} inputMode="decimal" aria-label="New price"
+                    style={{ width: 80, padding: "5px 8px", fontSize: 12.5, border: `1px solid ${line}`, borderRadius: 2 }} />
+                  <button onClick={() => { const p = pricePatch(item, parseFloat(String(priceEdit.value).replace(/[$,]/g, ""))); if (p) onUpdate(item.id, p); setPriceEdit(null); }}
+                    style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${brass}`, background: brassDim, color: brass, cursor: "pointer" }}>Save</button>
+                  <button onClick={() => setPriceEdit(null)} style={{ padding: "6px 8px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>Cancel</button>
+                </span>
+              ) : (
+                <button onClick={() => setPriceEdit({ id: item.id, value: String(item.listedPrice) })}
+                  title={`A lower price shows "Was" online only if the old price was live ${MIN_DAYS_AT_OLD_PRICE}+ days (Australian Consumer Law).`}
+                  style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
+                  Change price
+                </button>
+              ))}
               <button onClick={() => setLabelItem(item)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
                 Print label
               </button>
               {item.gradeId && item.status === "in_stock" && (
-                <button onClick={() => onUpdate(item.id, { status: "listed" })} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: "transparent", color: green, cursor: "pointer" }}>
+                <button onClick={() => onUpdate(item.id, publishPatch(item))} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: "transparent", color: green, cursor: "pointer" }}>
                   Publish listing
                 </button>
               )}
