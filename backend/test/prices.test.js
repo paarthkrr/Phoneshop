@@ -134,3 +134,20 @@ test("'Was' prices only appear when the listing history backs them", async () =>
   assert.equal(wasPrice(cut, t0 + day), null, "listed before history: unknown start date");
   assert.deepEqual(pricePatch({ status: "in_stock", listedPrice: 800 }, 700), { listedPrice: 700 }, "unpublished changes keep no history");
 });
+
+test("customers can ask for a device we don't list, but can't read other requests", async () => {
+  const req = { id: "DRQ-T1", createdAt: new Date().toISOString(), status: "open", brand: "Samsung", model: "Galaxy Z Fold9", storage: "512GB", name: "Sam", email: "sam@example.com" };
+  process.env.DEVICE_REQUEST_COPY_EMAIL = "automation@example.com";
+  const before = sent.length;
+  const r = await put("device_requests", [req]);
+  await settle();
+  delete process.env.DEVICE_REQUEST_COPY_EMAIL;
+  const mails = sent.slice(before).filter((m) => /Device request DRQ-T1: Samsung Galaxy Z Fold9 512GB/.test(m.subject));
+  assert.deepEqual(mails.map((m) => m.to[0]).sort(), ["automation@example.com", "mobilerecellr@outlook.com"].sort(), "owner alert plus the optional copy");
+  assert.equal(r.status, 200);
+  assert.equal(r.body.submitted, 1);
+  const anon = await realFetch(`${base}/storage/device_requests?shared=true`);
+  assert.equal(anon.status, 401, "requests hold customer contact details");
+  const list = await getShared("device_requests");
+  assert.equal(list.find((x) => x.id === "DRQ-T1").model, "Galaxy Z Fold9");
+});

@@ -2,6 +2,7 @@ import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { DEFAULT_RETENTION_POINTS, retentionAt, DEFAULT_BRAND_FACTOR, ageMonths, CATEGORY_FACTOR, DEFAULT_REGIONS, DEFAULT_TIERS, ACCESSORY_BONUS_PCT, DEFAULT_HOLDING_COST_PCT, baseBuybackAUD } from "./pricing.js";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import InspectionSignature from "./inspection-signature.jsx";
+import { DeviceRequestForm } from "./device-requests.jsx";
 // Friendly validation shared by the customer forms
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
 const digits = (v) => (v || "").replace(/[\s-]/g, "");
@@ -496,6 +497,7 @@ export default function QuoteCalculator() {
   const [brandFilter, setBrandFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   // Pre-filled from links like /quote?q=iPhone%2015%20Pro (homepage shortcuts)
+  const [askDevice, setAskDevice] = useState(false);
   const [search, setSearch] = useState(() => { try { return new URLSearchParams(window.location.search).get("q") || ""; } catch (e) { return ""; } });
   const [selected, setSelected] = useState(null);
   const [tierId, setTierId] = useState(null);
@@ -590,7 +592,10 @@ export default function QuoteCalculator() {
       const qOk = !q || d.brand.toLowerCase().includes(q) || d.model.toLowerCase().includes(q);
       return brandOk && categoryOk && qOk;
     });
-  }, [search, brandFilter, categoryFilter]);
+    // `live` too: the shop's own price list arrives after the first render, and models
+    // staff added (e.g. from a customer's request) must show up without retyping the search.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, brandFilter, categoryFilter, live]);
 
   const tier = TIERS_A.find((t) => t.id === tierId);
   const activeBlocker = Object.keys(blockers).find((k) => blockers[k]);
@@ -1092,8 +1097,17 @@ export default function QuoteCalculator() {
                   Show all {filtered.length} models
                 </button>
               )}
-              {filtered.length === 0 && <div style={{ padding: 14, color: muted, fontSize: 14 }}>No matches — try another brand or model.</div>}
+              {filtered.length === 0 && <div style={{ padding: 14, color: muted, fontSize: 14 }}>We don't list that one yet. Tell us below and we'll price it for you.</div>}
             </div>
+            {(filtered.length === 0 && search.trim()) || askDevice ? (
+              <DeviceRequestForm key={search.trim()} initialQuery={search} onClose={filtered.length === 0 && search.trim() ? undefined : () => setAskDevice(false)} />
+            ) : (
+              <button type="button" onClick={() => setAskDevice(true)}
+                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 48, marginTop: 12, padding: "0 14px", borderRadius: 14, border: "1px dashed #B9C6E8", background: "#F7F9FF", color: brass, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                Can't find your device? We'll price it for you
+              </button>
+            )}
           </>
         )}
 

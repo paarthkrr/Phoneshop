@@ -329,7 +329,7 @@ function publicCatalogView(key, value) {
 // merge-by-id (see the PUT handler) — an anonymous client's local view
 // of "existing records" is always empty, so this only ever adds their
 // own new submission, never overwrites anyone else's data.
-const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries", "repair_requests", "accessory_orders"];
+const PUBLIC_WRITE_KEYS = ["orders", "purchase_orders", "price_match_requests", "bulk_quote_requests", "quote_leads", "referrals", "notification_queue", "support_queries", "repair_requests", "accessory_orders", "device_requests"];
 
 // ---- What an anonymous visitor may look up ----
 // Tracking pages find ONE record by its id or the customer's email, and get
@@ -445,7 +445,7 @@ function customerEmailHtml(subject, text, kind, name) {
 
 // ---- Owner alert (new order / repair / message): grouped, readable, sensitive numbers masked ----
 const NEW_LABEL = { orders: "New order", purchase_orders: "New trade-in / sell order", price_match_requests: "New price-match request", bulk_quote_requests: "New bulk quote request",
-  quote_leads: "New sell quote", referrals: "New referral", support_queries: "New customer message", repair_requests: "New repair request", accessory_orders: "New accessories order" };
+  quote_leads: "New sell quote", referrals: "New referral", support_queries: "New customer message", repair_requests: "New repair request", accessory_orders: "New accessories order", device_requests: "Customer wants a price for a device we don't list" };
 const FIELD_LABEL = { id: "Reference", createdAt: "Received", priceLockExpires: "Price held until", quotedTotal: "Quoted total", total: "Total", tierLabel: "Condition",
   hasAccessories: "Accessories included", idType: "ID type", idOwnerName: "Name on ID", payoutMethod: "Payout method", bankBsb: "BSB", bankAccountNumber: "Account number",
   bankAccountName: "Account name", paypalEmail: "PayPal email", fulfillment: "Fulfilment", faultLabels: "Faults reported", release: "Released", name: "Name", email: "Email", phone: "Phone" };
@@ -530,11 +530,15 @@ function notifyNew(key, items, max = Infinity) {
       continue;
     }
     const who = item.name || (item.customer && item.customer.name) || item.email || (item.customer && item.customer.email) || item.id || "";
-    void sendEmail({
-      to: OWNER_EMAIL(), subject: `${NEW_LABEL[key] || `New ${key.replace(/_/g, " ")}`}${who ? ` — ${who}` : ""}`,
-      alert: { key, item },
-      replyTo: item.email || (item.customer && item.customer.email) || undefined,
-    });
+    const subject = key === "device_requests"
+      ? `Device request ${clip(item.id)}: ${clip(item.brand)} ${clip(item.model)}${item.storage ? ` ${clip(item.storage)}` : ""}`
+      : `${NEW_LABEL[key] || `New ${key.replace(/_/g, " ")}`}${who ? ` — ${who}` : ""}`;
+    const replyTo = item.email || (item.customer && item.customer.email) || undefined;
+    void sendEmail({ to: OWNER_EMAIL(), subject, alert: { key, item }, replyTo });
+    // Optional copy of device requests to a second inbox (e.g. the one a daily Claude task reads
+    // to research launch prices). Set DEVICE_REQUEST_COPY_EMAIL on the host to turn it on.
+    const copyTo = key === "device_requests" && String(process.env.DEVICE_REQUEST_COPY_EMAIL || "").trim();
+    if (copyTo && copyTo.toLowerCase() !== String(OWNER_EMAIL()).toLowerCase()) void sendEmail({ to: copyTo, subject, alert: { key, item }, replyTo });
   }
 }
 
@@ -711,6 +715,7 @@ const ACCESS = {
   referrals: { read: "reports", write: "reports" },
   support_queries: { read: "reports", write: "reports" },
   bulk_quote_requests: { read: "reports", write: "reports" },
+  device_requests: { read: "pricing", write: "pricing" },      // "can't find my device" requests, handled in the Pricing Console
 };
 const DEFAULT_ACCESS = { read: "reports", write: "reports" };   // anything not listed
 const canAccess = (user, key, mode) => hasArea(user, (ACCESS[key] || DEFAULT_ACCESS)[mode]);
