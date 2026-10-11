@@ -297,7 +297,7 @@ const PUBLIC_READ_KEYS = ["inventory", "pricing-config", "accessories"];
 // What a visitor without a login may see of those. Stock records also hold the
 // IMEI, what we paid, and the seller's name and ID type; none of that is for
 // the public. Only phones actually listed for sale, and only shop-window fields.
-const PUBLIC_INVENTORY_FIELDS = ["id", "brand", "model", "storage", "category", "colour", "color", "gradeId", "listedPrice", "currency", "region", "status", "photoUrl", "listedAt", "priceHistory"];
+const PUBLIC_INVENTORY_FIELDS = ["id", "brand", "model", "storage", "category", "colour", "color", "gradeId", "listedPrice", "currency", "region", "status", "photoUrl", "spinUrls", "listedAt", "priceHistory"];
 const PRIVATE_ACCESSORY_FIELDS = ["cost", "costPrice", "supplier", "supplierSku", "supplierNote"];
 function publicCatalogView(key, value) {
   if (key !== "inventory" && key !== "accessories") return value;
@@ -308,6 +308,7 @@ function publicCatalogView(key, value) {
     list = list.filter((i) => i && i.status === "listed").map((i) => {
       const out = {};
       for (const k of PUBLIC_INVENTORY_FIELDS) if (i[k] !== undefined) out[k] = i[k];
+      if (out.spinUrls !== undefined) out.spinUrls = Array.isArray(out.spinUrls) ? out.spinUrls.filter((u) => typeof u === "string" && /^(https?:\/\/|data:image\/)/.test(u)).slice(0, 36) : undefined;
       if (Array.isArray(out.priceHistory)) out.priceHistory = out.priceHistory.map((p) => ({ price: p && p.price, from: p && p.from }));
       return out;
     });

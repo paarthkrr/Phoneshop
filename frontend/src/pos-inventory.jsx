@@ -1,3 +1,4 @@
+import { UnitPhotos } from "./spin-360.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useMemo } from "react";
@@ -807,6 +808,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
   const [writeOffNote, setWriteOffNote] = useState("");
   const [visibleCount, setVisibleCount] = useState(30);
   const [priceEdit, setPriceEdit] = useState(null); // { id, value }
+  const [photoItemId, setPhotoItemId] = useState(null);
   const filtered = inventory.filter((i) => filter === "all" || i.status === filter);
   const visible = filtered.slice(0, visibleCount);
   const WRITE_OFF_REASONS = ["Damaged", "Stolen", "Lost", "Unsellable", "Other"];
@@ -887,6 +889,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
             IMEI {item.imei} · cost {fmt(item.costBasis, item.region, regions)} {item.sourceOrderId ? `· from ${item.sourceOrderId}` : "· in-store buy"}
             {item.sellerIdNumber && ` · ID ${item.sellerIdType} ending ${item.sellerIdNumber.slice(-4).padStart(item.sellerIdNumber.length, "•")}`}
           </div>
+          {photoItemId === item.id && <UnitPhotos item={item} colors={colors} onSave={(patch) => onUpdate(item.id, patch)} onClose={() => setPhotoItemId(null)} />}
           {item.status === "written_off" && (
             <div style={{ fontSize: 12, color: red }}>Written off — {item.writeOffReason}{item.writeOffNote && `: ${item.writeOffNote}`}</div>
           )}
@@ -927,6 +930,9 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
               ))}
               <button onClick={() => setLabelItem(item)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
                 Print label
+              </button>
+              <button onClick={() => setPhotoItemId(photoItemId === item.id ? null : item.id)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
+                {Array.isArray(item.spinUrls) && item.spinUrls.length ? "Photos + 360° ✓" : item.photoUrl ? "Photos ✓" : "Photos"}
               </button>
               {item.gradeId && item.status === "in_stock" && (
                 <button onClick={() => onUpdate(item.id, publishPatch(item))} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: "transparent", color: green, cursor: "pointer" }}>

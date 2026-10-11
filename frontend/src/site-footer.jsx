@@ -1,4 +1,4 @@
-import { withBusinessDefaults, waLink, mailLink } from "./business-info.js";
+import { withBusinessDefaults, waLink, mailLink, GOOGLE_REVIEW_URL } from "./business-info.js";
 import React, { useState, useEffect } from "react";
 import { FOOTER_SHOP } from "./site-menu.js";
 
@@ -43,7 +43,7 @@ export default function SiteFooter() {
   const col = (title, links) => (
     <nav aria-label={title} className="sf-col">
       <div className="sf-h">{title}</div>
-      {links.map(([label, to]) => <a key={label} href={to} className="sf-link">{label}</a>)}
+      {links.map(([label, to]) => /^https?:/.test(to) ? <a key={label} href={to} className="sf-link" target="_blank" rel="noopener noreferrer">{label}</a> : <a key={label} href={to} className="sf-link">{label}</a>)}
     </nav>
   );
 
@@ -95,7 +95,7 @@ export default function SiteFooter() {
           </div>
           {col("Shop", FOOTER_SHOP.map((l) => [l.label, l.to]))}
           {col("Sell", [["Sell iPhone", "/sell/apple"], ["Sell Samsung", "/sell/samsung"], ["Sell Google Pixel", "/sell/google"], ["All devices", "/quote"]])}
-          {col("Company", [["About us", "/about"], ["Guides", "/blog"], ["Repair tutorials", "/tutorials"], ["FAQ", "/faq"]])}
+          {col("Company", [["About us", "/about"], ["At your door", "/home-service"], ["Guides", "/blog"], ["Repair tutorials", "/tutorials"], ["FAQ", "/faq"], ["Review us on Google", GOOGLE_REVIEW_URL]])}
           {col("Support", [["Help / Ask a question", "/help"], ["Contact us", "/contact"], ["30-day returns", "/terms#returns"], ["Warranty", "/terms#warranty"], ["Shipping & postage", "/terms#shipping"], ["Terms", "/terms"], ["Privacy policy", "/privacy"]])}
         </div>
         <div className="sf-bar">

@@ -231,7 +231,7 @@ export default function Repairs() {
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
               {postcode.length === 4 && (
                 <div role="status" style={{ fontSize: 13, marginBottom: 10, color: zone === "ask" ? red : green, fontWeight: 600 }}>
-                  {zone === "ask" ? "Outside our usual area. Send the request and we'll tell you if and what we can do." : `${DOORSTEP.zones[zone].label}: travel fee $${DOORSTEP.zones[zone].fee}${express && canExpress ? ` + $${DOORSTEP.expressExtra} express` : ""}, credited to your repair.`}
+                  {zone === "ask" ? "Outside our Sydney zones. Send the request and we'll tell you honestly if and what we can do." : `${DOORSTEP.zones[zone].label}: travel fee $${DOORSTEP.zones[zone].fee}${express && canExpress ? ` + $${DOORSTEP.expressExtra} express` : ""}, credited to your repair.`}
                 </div>
               )}
               <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, marginBottom: 10, opacity: canExpress ? 1 : 0.55 }}>

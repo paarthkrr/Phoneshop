@@ -7,6 +7,7 @@ import Storefront from "./storefront.jsx";
 import AboutUs from "./about.jsx";
 import ContactUs from "./contact.jsx";
 import FAQ from "./faq.jsx";
+import HomeService from "./home-service.jsx";
 import Help from "./help.jsx";
 import ChatWidget from "./chat-widget.jsx";
 import SplashIntro from "./splash-intro.jsx";
@@ -225,6 +226,22 @@ function Nav() {
         button, input, select, textarea, optgroup { font-family: inherit; }
         /* Staff tools were written with small (11-13px) text; scale the whole staff
            area up proportionally so it's comfortable to read on a phone or tablet. */
+
+        /* ---- Staff portal look: graphite header with a chrome active tab, silver page, softer cards.
+           Styling only (scoped to body.cs-staff-mode); no layout or logic changes. ---- */
+        body.cs-staff-mode { background: linear-gradient(180deg, #EEF1F6 0%, #E4E8F0 100%) fixed; }
+        body.cs-staff-mode .cs-glass-nav { border-bottom: 1px solid #2A2F3C !important; box-shadow: 0 6px 24px rgba(5,6,8,.25); }
+        body.cs-staff-mode .cs-glass-nav::before { background: linear-gradient(180deg, #232733 0%, #0E0F13 100%); -webkit-backdrop-filter: none; backdrop-filter: none; }
+        body.cs-staff-mode .cs-glass-nav a, body.cs-staff-mode .cs-glass-nav span { color: #D6DCE8 !important; }
+        body.cs-staff-mode .cs-glass-nav a:hover { color: #FFFFFF !important; }
+        body.cs-staff-mode .cs-glass-nav .cs-nav-link.active { background: linear-gradient(180deg, #FFFFFF, #C9D0DC); color: #0E0F13 !important; border-radius: 999px; font-weight: 700; }
+        body.cs-staff-mode .cs-glass-nav .cs-nav-link.active::after { display: none; }
+        body.cs-staff-mode .cs-glass-nav .cs-nav-link { border-radius: 999px; }
+        body.cs-staff-mode .cs-glass-nav .cs-menu-btn { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.25); color: #FFFFFF; }
+        body.cs-staff-mode .cs-glass-nav .cs-mobile-menu { background: #0E0F13; border-top-color: #2A2F3C !important; }
+        body.cs-staff-mode .cs-glass-nav .cs-mobile-menu a { border-bottom-color: #232733 !important; }
+        body.cs-staff-mode main div[style*="border: 1px solid rgb(226, 230, 236)"] { border-radius: 14px !important; box-shadow: 0 8px 26px rgba(15,27,61,.07); }
+        body.cs-staff-mode main > div[style*="background: rgb(255, 255, 255)"] { background: transparent !important; }
         .cs-staff-mode main { zoom: 1.06; }
         @media (max-width: 720px) { .cs-staff-mode main { zoom: 1.12; } }
         ::selection { background: rgba(33,80,200,0.18); }
@@ -714,6 +731,7 @@ function AnimatedRoutes() {
         <Route path="/blog/:slug" element={<Blog />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/faq" element={<FAQ />} />
+        <Route path="/home-service" element={<HomeService />} />
         <Route path="/help" element={<Help />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />

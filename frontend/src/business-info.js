@@ -15,3 +15,6 @@ export function waNumber(n) {
 }
 export const waLink = (number, text) => `https://wa.me/${waNumber(number)}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 export const mailLink = (email, subject, body) => `mailto:${email || DEFAULT_BUSINESS.email}?subject=${encodeURIComponent(subject || "Enquiry from mobilerecellr.com.au")}${body ? `&body=${encodeURIComponent(body)}` : ""}`;
+
+// Google Business Profile "write a review" link (owner-provided).
+export const GOOGLE_REVIEW_URL = "https://g.page/r/CZCxExc--m79ECE/review";
