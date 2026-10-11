@@ -39,4 +39,11 @@ assert.match(toCsv(p.rows), /2026-10-06,Phones,Samsung S21,,400,unknown,,,unknow
 // 6am on 1 October in Sydney is still 30 September in UTC: it belongs to October.
 const early = buildPnl({ sales: [{ id: "E1", soldAt: "2026-09-30T20:00:00Z", brand: "Apple", model: "iPhone 11", salePrice: 300, costBasis: 200 }], month: "2026-10" });
 assert.equal(early.rows.length, 1, "Sydney month, not UTC month");
+// Estimate vs actual per technician, only counting jobs with both numbers.
+const est = buildPnl({ sales: [], month: "2026-10", tickets: [
+  { id: "E1", status: "completed", completedAt: "2026-10-02T01:00:00Z", assignedTo: "ravi", estimateMins: 60, timeSpentMins: 45 },
+  { id: "E2", status: "completed", completedAt: "2026-10-03T01:00:00Z", assignedTo: "ravi", estimateMins: 30, timeSpentMins: 50 },
+  { id: "E3", status: "completed", completedAt: "2026-10-04T01:00:00Z", assignedTo: "ravi", estimateMins: 45 },
+] }).technicians.find((t) => t.name === "ravi");
+assert.deepEqual([est.estJobs, est.estMins, est.estTookMins], [2, 90, 95]);
 });

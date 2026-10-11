@@ -65,17 +65,28 @@ async function queueNotification(entry) {
   }
 }
 
+// typicalMins: a starting estimate of how long the job should take; staff change it per job.
 const REPAIR_TYPES = [
-  { id: "screen", label: "Screen replacement", typicalPrice: 150 },
-  { id: "battery", label: "Battery replacement", typicalPrice: 60 },
-  { id: "charge_port", label: "Charging port repair", typicalPrice: 80 },
-  { id: "back_glass", label: "Back glass replacement", typicalPrice: 90 },
-  { id: "camera", label: "Camera repair", typicalPrice: 100 },
-  { id: "speaker_mic", label: "Speaker / mic repair", typicalPrice: 55 },
-  { id: "water_damage", label: "Water damage treatment", typicalPrice: 70 },
-  { id: "software", label: "Software / data issue", typicalPrice: 40 },
-  { id: "other", label: "Other", typicalPrice: 0 },
+  { id: "screen", label: "Screen replacement", typicalPrice: 150, typicalMins: 60 },
+  { id: "battery", label: "Battery replacement", typicalPrice: 60, typicalMins: 45 },
+  { id: "charge_port", label: "Charging port repair", typicalPrice: 80, typicalMins: 45 },
+  { id: "back_glass", label: "Back glass replacement", typicalPrice: 90, typicalMins: 90 },
+  { id: "camera", label: "Camera repair", typicalPrice: 100, typicalMins: 45 },
+  { id: "speaker_mic", label: "Speaker / mic repair", typicalPrice: 55, typicalMins: 45 },
+  { id: "water_damage", label: "Water damage treatment", typicalPrice: 70, typicalMins: 120 },
+  { id: "software", label: "Software / data issue", typicalPrice: 40, typicalMins: 30 },
+  { id: "other", label: "Other", typicalPrice: 0, typicalMins: 0 },
 ];
+
+const hm = (m) => (m ? `${Math.floor(m / 60) ? `${Math.floor(m / 60)}h ` : ""}${m % 60 ? `${m % 60}m` : ""}`.trim() : "—");
+// "Took 50m · estimated 1h (10m under)" once both are known.
+function estimateVsActual(t) {
+  const est = Number(t.estimateMins) || 0, took = Number(t.timeSpentMins) || 0;
+  if (!est) return took ? `Took ${hm(took)} · no estimate set` : "No estimate set";
+  if (!took) return `Estimated ${hm(est)}`;
+  const d = took - est;
+  return `Took ${hm(took)} · estimated ${hm(est)} (${d === 0 ? "on time" : d > 0 ? `${hm(d)} over` : `${hm(-d)} under`})`;
+}
 
 const STATUSES = ["dropped_off", "diagnosing", "awaiting_parts", "in_repair", "ready_for_pickup", "completed", "not_repairable"];
 const STATUS_LABELS = {
@@ -237,7 +248,7 @@ export default function RepairTickets() {
       inventoryItemId: shop ? data.inventoryItemId || null : null,
       symptoms: data.symptoms || [], partsNeeded: [], priority: data.priority || "normal", dueAt: data.dueAt || null,
       assignedTo: data.assignedTo || null, assignedAt: data.assignedTo ? now : null,
-      issue: data.issue, repairTypeId: data.repairTypeId,
+      issue: data.issue, repairTypeId: data.repairTypeId, estimateMins: Number(data.estimateMins) || 0,
       quotedPrice: shop ? 0 : data.quotedPrice, deposit: shop ? 0 : data.deposit || 0,
       // When and how the deposit was paid, so the till counts it on the day it was taken.
       depositPayMethod: !shop && data.deposit > 0 ? data.depositPayMethod || "cash" : null, depositAt: !shop && data.deposit > 0 ? now : null,
@@ -372,7 +383,7 @@ export default function RepairTickets() {
                 </div>
                 <div style={{ fontSize: 13, marginTop: 2 }}>{t.device.brand} {t.device.model} — {REPAIR_TYPES.find((r) => r.id === t.repairTypeId)?.label}</div>
                 {(t.symptoms || []).length > 0 && <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.symptoms.map((id) => SYMPTOMS.find((x) => x.id === id)?.label).filter(Boolean).join(" · ")}</div>}
-                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.jobType === "shop" ? "Shop phone" : t.customer.name}{t.jobType === "shop" ? "" : ` · ${fmt(t.finalPrice ?? t.quotedPrice)}`}{t.dueAt ? ` · due ${new Date(t.dueAt).toLocaleDateString("en-AU")}` : ""}{t.warrantyOf && " · warranty job"}{t.assignedTo ? ` · 🔧 ${t.assignedTo}` : " · not assigned"}</div>
+                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.jobType === "shop" ? "Shop phone" : t.customer.name}{t.jobType === "shop" ? "" : ` · ${fmt(t.finalPrice ?? t.quotedPrice)}`}{t.dueAt ? ` · due ${new Date(t.dueAt).toLocaleDateString("en-AU")}` : ""}{t.warrantyOf && " · warranty job"}{t.assignedTo ? ` · 🔧 ${t.assignedTo}` : " · not assigned"}{Number(t.estimateMins) > 0 || Number(t.timeSpentMins) > 0 ? ` · ⏱ ${estimateVsActual(t)}` : ""}</div>
               </button>
             ))}
           </>
@@ -424,7 +435,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
   const [imei, setImei] = useState(""); const [storage, setStorage] = useState(""); const [colour, setColour] = useState(""); const [condition, setCondition] = useState("");
   const [inventoryItemId, setInventoryItemId] = useState("");
   const [symptoms, setSymptoms] = useState([]);
-  const [repairTypeId, setRepairTypeId] = useState(null); const [issue, setIssue] = useState("");
+  const [repairTypeId, setRepairTypeId] = useState(null); const [issue, setIssue] = useState(""); const [estimateMins, setEstimateMins] = useState("");
   const [quotedPrice, setQuotedPrice] = useState(""); const [deposit, setDeposit] = useState(""); const [depositPayMethod, setDepositPayMethod] = useState("cash");
   const [assignedTo, setAssignedTo] = useState(""); const [priority, setPriority] = useState("normal"); const [dueAt, setDueAt] = useState("");
   const [scanNote, setScanNote] = useState("");
@@ -498,7 +509,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
       <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Repair type</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
         {repairTypes.map((r) => (
-          <button key={r.id} type="button" onClick={() => { setRepairTypeId(r.id); if (!shop) setQuotedPrice(String(r.typicalPrice || "")); }} style={chip(repairTypeId === r.id)}>
+          <button key={r.id} type="button" onClick={() => { setRepairTypeId(r.id); if (!shop) setQuotedPrice(String(r.typicalPrice || "")); setEstimateMins(r.typicalMins ? String(r.typicalMins) : ""); }} style={chip(repairTypeId === r.id)}>
             {r.label}
           </button>
         ))}
@@ -518,6 +529,9 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
         <label style={{ flex: "1 1 150px", fontSize: 12, color: muted }}>Due by
           <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} style={inputStyle} />
         </label>
+        <label style={{ flex: "1 1 150px", fontSize: 12, color: muted }}>Estimated time (minutes)
+          <input type="number" min="0" value={estimateMins} onChange={(e) => setEstimateMins(e.target.value)} placeholder="e.g. 60" style={inputStyle} />
+        </label>
       </div>
 
       {!shop && (
@@ -534,7 +548,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
       {!ready && <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Needs: {[!shop && !name.trim() && "name", !shop && !phone.trim() && "phone", !brand.trim() && "brand", !model.trim() && "model", !repairTypeId && "repair type", !shop && !quotedPrice && "quote"].filter(Boolean).join(", ")}</div>}
 
       <button disabled={!ready} onClick={() => onCreate({ jobType, name, phone, email, brand: brand.trim(), model: model.trim(), imei: imei.trim(), storage: storage.trim(), colour: colour.trim(), condition: condition.trim(),
-          inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, dueAt: dueAt ? new Date(dueAt + "T17:00:00").toISOString() : null,
+          inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, estimateMins, dueAt: dueAt ? new Date(dueAt + "T17:00:00").toISOString() : null,
           quotedPrice: parseFloat(quotedPrice) || 0, deposit: parseFloat(deposit) || 0, depositPayMethod })}
         style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 6,
           background: ready ? brass : line, color: ready ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
@@ -617,6 +631,8 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
   const [completingPayMethod, setCompletingPayMethod] = useState(null); // null = not confirming yet
   const [unknownCode, setUnknownCode] = useState("");
   const [shopDoneNote, setShopDoneNote] = useState("");
+  const [editing, setEditing] = useState(false);
+  useEffect(() => { setEditing(false); }, [ticket.id]);
   const shop = ticket.jobType === "shop";
   const symptoms = ticket.symptoms || [];
   const needed = ticket.partsNeeded || [];
@@ -653,8 +669,12 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         <div style={{ fontSize: 13 }}>{shop ? "Shop phone (fixing to sell)" : `${ticket.customer.name} · ${ticket.customer.phone}`}</div>
         {ticket.dueAt && <div style={{ fontSize: 12.5, color: new Date(ticket.dueAt) < new Date() && !["completed", "not_repairable"].includes(ticket.status) ? red : muted, marginTop: 4 }}>Due {new Date(ticket.dueAt).toLocaleDateString("en-AU")}</div>}
         <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>{shop ? "Notes" : "Issue"}: {ticket.issue || "—"}</div>
+        <div style={{ fontSize: 12.5, marginTop: 6 }}>🔧 {ticket.assignedTo ? `Assigned to ${ticket.assignedTo}` : <span style={{ color: red }}>Not assigned yet</span>}{ticket.priority === "urgent" ? <span style={{ color: red }}> · urgent</span> : ""}</div>
+        <div style={{ fontSize: 12.5, marginTop: 2 }}>⏱ {estimateVsActual(ticket)}</div>
         <div style={{ fontSize: 12, color: muted, marginTop: 4 }}>Handled by {ticket.staffHandled}</div>
+        {!editing && <button type="button" onClick={() => setEditing(true)} style={{ marginTop: 10, padding: "7px 12px", borderRadius: 3, fontSize: 12.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit job details</button>}
       </div>
+      {editing && <EditJob colors={colors} ticket={ticket} repairTypes={repairTypes} team={team} me={me} onCancel={() => setEditing(false)} onSave={(patch) => { onUpdate(patch); setEditing(false); }} />}
 
       <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Status</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
@@ -840,7 +860,6 @@ function TechJob({ colors, ticket, team, me, onUpdate }) {
   const names = team.length ? [...team].sort((a, b) => (a.role === "technician" ? -1 : 0) - (b.role === "technician" ? -1 : 0)) : (me ? [{ username: me, role: "" }] : []);
   const inputStyle = { padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none", boxSizing: "border-box" };
   const saveMins = (v) => { const n = Math.max(0, Math.round(Number(v) || 0)); setMins(String(n)); if (n !== (ticket.timeSpentMins || 0)) onUpdate({ timeSpentMins: n }); };
-  const hm = (m) => (m ? `${Math.floor(m / 60) ? `${Math.floor(m / 60)}h ` : ""}${m % 60 ? `${m % 60}m` : ""}`.trim() : "—");
   return (
     <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
       <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>🔧 Technician job</div>
@@ -866,7 +885,7 @@ function TechJob({ colors, ticket, team, me, onUpdate }) {
             style={{ ...inputStyle, cursor: "pointer", background: green, color: "#fff", border: "none", fontWeight: 700 }}>▶ Start work timer</button>
         )}
       </div>
-      <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }} htmlFor={`mins-${ticket.id}`}>Time spent: <strong style={{ color: paper }}>{hm(Number(ticket.timeSpentMins) || 0)}</strong></label>
+      <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }} htmlFor={`mins-${ticket.id}`}>Time spent: <strong style={{ color: paper }}>{hm(Number(ticket.timeSpentMins) || 0)}</strong>{Number(ticket.estimateMins) > 0 && <> · <span style={{ color: (Number(ticket.timeSpentMins) || 0) > Number(ticket.estimateMins) ? red : green }}>estimated {hm(Number(ticket.estimateMins))}</span></>}</label>
       <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
         <input id={`mins-${ticket.id}`} value={mins} onChange={(e) => setMins(e.target.value)} onBlur={() => saveMins(mins)} type="number" min="0" placeholder="Minutes" style={{ ...inputStyle, width: 100 }} />
         {[15, 30, 60].map((d) => <button key={d} onClick={() => saveMins((Number(ticket.timeSpentMins) || 0) + d)} style={{ ...inputStyle, cursor: "pointer", background: "transparent" }}>+{d === 60 ? "1h" : `${d}m`}</button>)}
@@ -1066,6 +1085,83 @@ function DoorstepDetails({ r, colors }) {
         {zone === "A" || zone === "B" ? `${DOORSTEP.zones[zone].label}: travel fee $${fee}, credited to the repair if they go ahead` : "Outside our usual area: confirm the area and fee with the customer before booking"}
       </div>
       <div style={{ color: muted }}>Request only. Confirm the time with the customer and tell them which technician is coming.</div>
+    </div>
+  );
+}
+
+// Change a job's details after it was booked in: who it's for, the device, what's
+// being done, the quote, due date, priority, technician and estimated time.
+function EditJob({ colors, ticket, repairTypes, team, me, onCancel, onSave }) {
+  const { panel2, paper, muted, brass, brassDim, line } = colors;
+  const shop = ticket.jobType === "shop";
+  const c = ticket.customer || {}, d = ticket.device || {};
+  const dueDay = ticket.dueAt ? new Date(ticket.dueAt).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) : "";
+  const [f, setF] = useState({
+    name: c.name || "", phone: c.phone || "", email: c.email || "",
+    brand: d.brand || "", model: d.model || "", storage: d.storage || "", colour: d.colour || "", imei: d.imei || "", condition: d.condition || "",
+    repairTypeId: ticket.repairTypeId || "", issue: ticket.issue || "", quotedPrice: String(ticket.quotedPrice ?? ""),
+    dueAt: dueDay, priority: ticket.priority || "normal", assignedTo: ticket.assignedTo || "", estimateMins: String(ticket.estimateMins || ""),
+  });
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const names = (team || []).length ? [...team].sort((x, y) => (x.role === "technician" ? -1 : 0) - (y.role === "technician" ? -1 : 0)) : (me ? [{ username: me, role: "" }] : []);
+  const input = { width: "100%", padding: "9px 11px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13.5, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
+  const field = (label, el) => <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 8 }}>{label}{el}</label>;
+  const row = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0 10px" };
+  const ok = f.brand.trim() && f.model.trim() && (shop || (f.name.trim() && f.phone.trim()));
+
+  function save() {
+    const patch = {
+      device: { ...d, brand: f.brand.trim(), model: f.model.trim(), storage: f.storage.trim(), colour: f.colour.trim(), imei: f.imei.trim(), condition: f.condition.trim() },
+      repairTypeId: f.repairTypeId || ticket.repairTypeId, issue: f.issue, priority: f.priority,
+      dueAt: f.dueAt ? new Date(f.dueAt + "T17:00:00").toISOString() : null,
+      estimateMins: Math.max(0, Math.round(Number(f.estimateMins) || 0)),
+    };
+    if (!shop) {
+      patch.customer = { ...c, name: f.name.trim(), phone: f.phone.trim(), email: f.email.trim() };
+      patch.quotedPrice = parseFloat(f.quotedPrice) || 0;
+    }
+    if ((f.assignedTo || null) !== (ticket.assignedTo || null)) { patch.assignedTo = f.assignedTo || null; patch.assignedAt = f.assignedTo ? new Date().toISOString() : null; }
+    onSave(patch);
+  }
+
+  return (
+    <div style={{ border: `1px solid ${brass}`, background: brassDim, borderRadius: 3, padding: 14, marginBottom: 16 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>Edit job details</div>
+      {!shop && <div style={row}>
+        {field("Customer name", <input value={f.name} onChange={set("name")} style={input} />)}
+        {field("Phone", <input value={f.phone} onChange={set("phone")} type="tel" style={input} />)}
+        {field("Email", <input value={f.email} onChange={set("email")} type="email" style={input} />)}
+      </div>}
+      <div style={row}>
+        {field("Brand", <input value={f.brand} onChange={set("brand")} style={input} />)}
+        {field("Model", <input value={f.model} onChange={set("model")} style={input} />)}
+        {field("Storage", <input value={f.storage} onChange={set("storage")} style={input} />)}
+        {field("Colour", <input value={f.colour} onChange={set("colour")} style={input} />)}
+        {field("IMEI / serial", <input value={f.imei} onChange={set("imei")} style={input} />)}
+      </div>
+      {field("Condition on arrival", <input value={f.condition} onChange={set("condition")} style={input} />)}
+      <div style={row}>
+        {field("Repair type", <select value={f.repairTypeId} onChange={(e) => {
+          const rt = repairTypes.find((r) => r.id === e.target.value);
+          setF({ ...f, repairTypeId: e.target.value, estimateMins: f.estimateMins || (rt && rt.typicalMins ? String(rt.typicalMins) : "") });
+        }} style={input}>{repairTypes.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}</select>)}
+        {!shop && field("Quoted price ($)", <input value={f.quotedPrice} onChange={set("quotedPrice")} type="number" min="0" style={input} />)}
+        {field("Estimated time (minutes)", <input value={f.estimateMins} onChange={set("estimateMins")} type="number" min="0" placeholder="e.g. 60" style={input} />)}
+      </div>
+      {field(shop ? "Notes for the technician" : "Issue", <textarea value={f.issue} onChange={set("issue")} style={{ ...input, minHeight: 56 }} />)}
+      <div style={row}>
+        {field("Technician", <select value={f.assignedTo} onChange={set("assignedTo")} style={input}>
+          <option value="">Not assigned</option>
+          {names.map((u) => <option key={u.username} value={u.username}>{u.username}{u.role === "technician" ? " (technician)" : ""}</option>)}
+          {f.assignedTo && !names.some((u) => u.username === f.assignedTo) && <option value={f.assignedTo}>{f.assignedTo}</option>}
+        </select>)}
+        {field("Priority", <select value={f.priority} onChange={set("priority")} style={input}><option value="normal">Normal</option><option value="urgent">Urgent</option></select>)}
+        {field("Due by", <input type="date" value={f.dueAt} onChange={set("dueAt")} style={input} />)}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+        <button type="button" onClick={onCancel} style={{ padding: "9px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+        <button type="button" disabled={!ok} onClick={save} style={{ flex: 1, padding: "9px", borderRadius: 3, border: "none", background: ok ? brass : line, color: ok ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: ok ? "pointer" : "default", fontFamily: "inherit" }}>Save changes</button>
+      </div>
     </div>
   );
 }

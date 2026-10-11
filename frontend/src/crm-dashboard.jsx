@@ -594,6 +594,12 @@ function PnlTab({ colors, fmt, sales, tickets, expenses, inventory, tillRecords,
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>🔧 {t.name}</div>
                 <div style={{ fontSize: 12.5, color: muted }}>{label(month)}: {t.jobs} job{t.jobs === 1 ? "" : "s"} done · {Math.round(t.minutes / 6) / 10} h · pay {money(t.pay)}</div>
+                {t.estJobs > 0 && (
+                  <div style={{ fontSize: 12.5, color: t.estTookMins > t.estMins ? red : green }}>
+                    ⏱ {t.estJobs} timed job{t.estJobs === 1 ? "" : "s"}: took {Math.round(t.estTookMins / 6) / 10} h vs {Math.round(t.estMins / 6) / 10} h estimated
+                    ({Math.round((t.estTookMins / t.estMins) * 100)}% of the estimate)
+                  </div>
+                )}
                 <TechSplit t={t} muted={muted} red={red} money={money} />
               </div>
               {t.owed > 0 ? (

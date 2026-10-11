@@ -76,7 +76,7 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
   // rework = warranty comebacks in the period on a job this technician did.
   const techs = new Map();
   const blank = () => ({ jobs: 0, timed: 0, minutes: 0, pay: 0, revenue: 0, parts: 0 });
-  const tech = (name) => { if (!techs.has(name)) techs.set(name, { name, jobs: 0, minutes: 0, pay: 0, owed: 0, owedJobs: [], rework: 0, byType: { customer: blank(), shop: blank() } }); return techs.get(name); };
+  const tech = (name) => { if (!techs.has(name)) techs.set(name, { name, jobs: 0, minutes: 0, pay: 0, owed: 0, owedJobs: [], rework: 0, estJobs: 0, estMins: 0, estTookMins: 0, byType: { customer: blank(), shop: blank() } }); return techs.get(name); };
   const byId = new Map(tickets.filter(Boolean).map((t) => [t.id, t]));
   for (const t of tickets) {
     if (!t) continue;
@@ -87,6 +87,9 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
     if (inPeriod(t.completedAt)) {
       const x = tech(name), mins = num(t.timeSpentMins) || 0;
       x.jobs += 1; x.minutes += mins; x.pay += pay;
+      // Estimate vs actual, only for jobs that have both (so missing times don't skew it).
+      const est = num(t.estimateMins) || 0;
+      if (est > 0 && mins > 0) { x.estJobs += 1; x.estMins += est; x.estTookMins += mins; }
       const k = x.byType[t.jobType === "shop" ? "shop" : "customer"];
       k.jobs += 1; if (mins) k.timed += 1; k.minutes += mins; k.pay += pay; k.parts += partsCostOf(t);
       if (t.jobType !== "shop") k.revenue += num(t.finalPrice ?? t.quotedPrice) || 0;
