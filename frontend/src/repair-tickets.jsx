@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { hasArea } from "./roles.js";
 import { partsCostOf } from "./pnl.js";
 import { ScanButton } from "./barcode-scanner.jsx";
+import { DOORSTEP, zoneForPostcode, doorstepFee } from "./doorstep.js";
 import { SYMPTOMS, PARTS, diagnose, stockFor, LIKELIHOOD_LABEL } from "./diagnosis-guide.js";
 
 /* =================================================================
@@ -327,13 +328,14 @@ export default function RepairTickets() {
             {repairRequests.filter((r) => r.status === "new").length > 0 && (
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Incoming repair requests ({repairRequests.filter((r) => r.status === "new").length} new)</div>
-                {repairRequests.filter((r) => r.status === "new").map((r) => (
-                  <div key={r.id} style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 12, marginBottom: 8 }}>
+                {repairRequests.filter((r) => r.status === "new").sort((a, b) => (b.express === true) - (a.express === true)).map((r) => (
+                  <div key={r.id} style={{ border: `${r.express === true ? 2 : 1}px solid ${r.express === true ? red : brass}`, borderRadius: 3, padding: 12, marginBottom: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{r.name} — {r.deviceType}: {r.model}</span>
                       <span style={{ fontSize: 11, color: muted }}>{r.id}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{r.email}{r.phone && ` · ${r.phone}`}{` · ${r.method === "mailin" ? "📮 Mail-in" : "🏪 In store"}`}</div>
+                    <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{r.email}{r.phone && ` · ${r.phone}`}{` · ${r.method === "mailin" ? "📮 Mail-in" : r.method === "doorstep" ? "🚗 At their door" : "🏪 In store"}`}</div>
+                    {r.method === "doorstep" && <DoorstepDetails r={r} colors={{ red, green, muted, brassDim }} />}
                     <div style={{ fontSize: 13, marginBottom: 8 }}>{r.issue}</div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={() => setView("intake")} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
@@ -1029,6 +1031,27 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, prefillBarcode, onPrefi
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// What staff need to plan a "Repair at my door" visit. The zone and travel fee
+// are worked out again from the postcode here, not taken from what the
+// customer's browser sent.
+function DoorstepDetails({ r, colors }) {
+  const { red, green, muted, brassDim } = colors;
+  const zone = zoneForPostcode(r.postcode);
+  const fee = doorstepFee(zone, r.express === true);
+  const when = r.express === true ? "EMERGENCY: come now (customer was told within about 2 hours)" : [r.slotDate, r.slotWindow].filter(Boolean).join(", ") || "No time picked";
+  const map = r.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.address} ${r.postcode || ""} NSW`)}` : "";
+  return (
+    <div style={{ background: r.express === true ? "rgba(139,46,46,0.08)" : brassDim, borderRadius: 3, padding: "8px 10px", marginBottom: 8, fontSize: 12.5, lineHeight: 1.6 }}>
+      <div style={{ fontWeight: 700, color: r.express === true ? red : "inherit" }}>{when}</div>
+      <div>{r.address || "No address"}{r.postcode ? ` ${r.postcode}` : ""}{map && <> · <a href={map} target="_blank" rel="noopener noreferrer">Map</a></>}</div>
+      <div style={{ color: zone === "ask" || !zone ? red : green }}>
+        {zone === "A" || zone === "B" ? `${DOORSTEP.zones[zone].label}: travel fee $${fee}, credited to the repair if they go ahead` : "Outside our usual area: confirm the area and fee with the customer before booking"}
+      </div>
+      <div style={{ color: muted }}>Request only. Confirm the time with the customer and tell them which technician is coming.</div>
     </div>
   );
 }
