@@ -176,3 +176,15 @@ test("an online phone order reserves the phone; a second order for it is refused
   assert.ok(!orders.some((o) => ["WEB-100002", "WEB-100003", "WEB-100004"].includes(o.id)), "refused orders are not saved");
   assert.equal((await getShared("inventory")).find((i) => i.id === "INV-R1").reservedByOrderId, "WEB-100001", "first buyer keeps it");
 });
+
+test("public inventory keeps real-photo 360 frames but drops junk entries", async () => {
+  const good = Array.from({ length: 8 }, (_, k) => `https://example.com/public/product-images/f${k}`);
+  await put("inventory", [{ id: "INV-SPIN", brand: "Apple", model: "iPhone 14", storage: "128GB", status: "listed", gradeId: "A", listedPrice: 700, costBasis: 400, imei: "356000000000009",
+    spinUrls: [...good, "javascript:alert(1)", 5] }], true);
+  const all = JSON.parse((await realFetch(`${base}/storage/inventory?shared=true`).then((r) => r.json())).value);
+  const item = all.find((x) => x.id === "INV-SPIN");
+  assert.equal(item.spinUrls.length, 8);
+  assert.ok(item.spinUrls.every((u) => u.startsWith("https://")));
+  assert.equal(item.costBasis, undefined);
+  assert.equal(item.imei, undefined);
+});

@@ -1,6 +1,7 @@
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import { mergeCatalog } from "./device-catalog.js";
 import { wasPrice } from "./price-history.js";
+import { SpinViewer, hasSpin } from "./spin-360.jsx";
 // Friendly validation shared by the customer forms
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((v || "").trim());
 const digits = (v) => (v || "").replace(/[\s-]/g, "");
@@ -440,6 +441,7 @@ export default function Storefront() {
               <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "#FFFFFF", borderRadius: 3, marginBottom: 16 }}>
                 <DeviceArt type={inferDeviceType(selectedItem.model, selectedItem.category)} size={110} brand={selectedItem.brand} model={selectedItem.model} imageUrl={selectedItem.photoUrl || modelPhotos[`${selectedItem.brand}|${selectedItem.model}`]} label={`${selectedItem.brand} ${selectedItem.model}`} />
               </div>
+              {hasSpin(selectedItem) && <SpinViewer frames={selectedItem.spinUrls} poster={selectedItem.photoUrl} alt={`${selectedItem.brand} ${selectedItem.model}`} />}
               {!selectedItem.photoUrl && modelPhotos[`${selectedItem.brand}|${selectedItem.model}`] && <div style={{ fontSize: 12, color: muted, textAlign: "center", margin: "-10px 0 14px" }}>Stock photo of this model — condition matches the grade shown.</div>}
               <div style={{ fontSize: 20, marginBottom: 4 }}>{selectedItem.brand} {selectedItem.model}</div>
               <div style={{ fontSize: 13, color: muted, marginBottom: 16 }}>{selectedItem.storage}</div>
