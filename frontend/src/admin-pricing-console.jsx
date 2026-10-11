@@ -2,6 +2,8 @@ import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { DeviceRequestsTab, decodeAddLink } from "./device-requests.jsx";
+import MarketTab from "./market-tab.jsx";
+import { sydneyToday } from "./sydney-time.js";
 
 /* =================================================================
    ADMIN PRICING CONSOLE
@@ -111,7 +113,7 @@ async function savePriceMatches(list) {
   try { await window.storage.set(PRICE_MATCH_KEY, JSON.stringify(list), true); return true; } catch (e) { return false; }
 }
 
-const TABS = ["Business", "Catalog", "Requests", "Age Curve", "Brand Factors", "Condition Tiers", "Faults", "Regions", "Price Matches", "History"];
+const TABS = ["Business", "Catalog", "Market", "Requests", "Age Curve", "Brand Factors", "Condition Tiers", "Faults", "Regions", "Price Matches", "History"];
 
 export default function AdminPricingConsole() {
   const [config, setConfig] = useState(null);
@@ -356,6 +358,32 @@ export default function AdminPricingConsole() {
               </div>
             ))}
           </Section>
+        )}
+
+        {tab === "Market" && (
+          <MarketTab colors={{ panel2, paper, muted, brass, brassDim, red, green, line }} position={Number(config && config.marketPositionPct) || 0}
+            onApply={async (changes) => {
+              // Re-read the price list first so a change someone else saved meanwhile isn't lost.
+              const latest = (await loadConfig()) || config;
+              const today = sydneyToday();
+              const byKey = new Map(changes.map((c) => [`${c.brand}|${c.model}`, c]));
+              const catalog = mergeCatalog(latest.catalog).map((d) => { const c = byKey.get(`${d.brand}|${d.model}`); return c ? { ...d, marketAdjPct: c.to, marketCheckedAt: today } : d; });
+              const next = { ...latest, catalog };
+              if (!(await saveConfig(next))) return false;
+              const h = await pushHistory(changes.map((c) => ({ ts: Date.now(), field: "catalog", note: `${c.brand} ${c.model} market adjustment: ${c.from}% → ${c.to}% (${c.note})` })));
+              setConfig(JSON.parse(JSON.stringify(next)));
+              setDraft((d) => (d ? { ...d, catalog: d.catalog.map((x) => { const c = byKey.get(`${x.brand}|${x.model}`); return c ? { ...x, marketAdjPct: c.to, marketCheckedAt: today } : x; }) } : d));
+              setHistory(h);
+              return true;
+            }}
+            onPosition={async (pct) => {
+              const latest = (await loadConfig()) || config;
+              const next = { ...latest, marketPositionPct: pct };
+              if (!(await saveConfig(next))) return false;
+              setHistory(await pushHistory([{ ts: Date.now(), field: "market", note: `Market position: pay ${pct}% vs competitors` }]));
+              setConfig(JSON.parse(JSON.stringify(next)));
+              return true;
+            }} />
         )}
 
         {tab === "Requests" && (
