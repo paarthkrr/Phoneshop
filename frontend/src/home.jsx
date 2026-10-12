@@ -100,8 +100,8 @@ const HERO_CSS = `
 .mvx-pills span{display:flex;align-items:center;gap:7px}.mvx-pills svg{width:17px;height:17px;color:#A9BDF5}
 .mvx-stage{position:relative;height:520px;perspective:1400px}
 .mvx-glow{position:absolute;left:8%;right:0;bottom:22px;height:90px;border-radius:50%;background:radial-gradient(closest-side,rgba(120,150,255,.28),rgba(120,150,255,0));opacity:0;animation:mvx-fade 1.6s ease .5s forwards}
-.mvx-phone{position:absolute;right:0;top:-6px;width:230px;height:478px;object-fit:contain;opacity:0;transform:translateX(70px) rotate(14deg);animation:mvx-phone 1.5s cubic-bezier(.16,1,.3,1) .2s forwards}
-@keyframes mvx-phone{to{opacity:1;transform:rotate(14deg)}}
+.mvx-phone{position:absolute;right:-40px;top:-20px;width:320px;height:580px;object-fit:contain;opacity:0;transform:translateX(40px) rotate(6deg);animation:mvx-phone 1.5s cubic-bezier(.16,1,.3,1) .2s forwards;z-index:0}
+@keyframes mvx-phone{to{opacity:1;transform:rotate(6deg)}}
 .mvx-card{position:absolute;left:0;top:44px;width:390px;border-radius:30px;padding:2px;background:conic-gradient(from 200deg,#8B3A4C,#C97A8A,#F5E6EA,#A0485C,#8B3A4C);opacity:0;transform:rotateY(46deg) rotateX(10deg) translateZ(-180px);animation:mvx-card 1.7s cubic-bezier(.16,1,.3,1) .4s forwards;box-shadow:0 50px 100px rgba(0,0,0,.55)}
 @keyframes mvx-card{to{opacity:1;transform:rotateY(-10deg) rotateX(5deg)}}
 .mvx-quote{position:relative;overflow:hidden;border-radius:28px;padding:24px;background:linear-gradient(160deg,rgba(30,34,46,.97),rgba(14,16,22,.97));text-align:left}
