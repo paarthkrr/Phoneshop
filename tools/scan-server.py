@@ -89,8 +89,30 @@ class Handler(BaseHTTPRequestHandler):
             except:
                 pass
             
+            # Find My and Activation
+            findmy = ''
+            activation = ''
+            try:
+                full = subprocess.check_output(['ideviceinfo', '-u', udid], text=True)
+                import re, base64
+                # Find My status from NonVolatileRAM
+                fm_m = re.search(r'fm-activation-locked:\s*(\S+)', full)
+                if fm_m:
+                    try:
+                        findmy = base64.b64decode(fm_m.group(1)).decode()
+                    except:
+                        findmy = fm_m.group(1)
+                # Activation state
+                act_m = re.search(r'ActivationState:\s*(\S+)', full)
+                if act_m:
+                    activation = act_m.group(1)
+            except:
+                pass
+            
             return {
                 'imei': imei,
+                'findmy': findmy,
+                'activation': activation,
                 'serial': serial,
                 'model': model,
                 'year': year,
