@@ -1,0 +1,24 @@
+/* Luxury homepage touches */
+.mvx-hero {
+  background: radial-gradient(70% 80% at 75% 40%, #2A1520 0%, #12080C 55%, #050304 100%) !important;
+}
+.mvx-chrome {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8D5D8 40%, #C97A8A 54%, #F5E6EA 66%, #A0485C 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+.mvx-cta {
+  background: linear-gradient(180deg, #A0485C, #6B2D3C) !important;
+  box-shadow: 0 14px 30px rgba(107,45,60,.4), inset 0 1px 0 rgba(255,255,255,.3) !important;
+}
+.mvx-price {
+  color: #C97A8A !important;
+}
+.mvt-card {
+  border: 1px solid rgba(139,58,76,.25) !important;
+  box-shadow: 0 8px 24px rgba(107,45,60,.08) !important;
+}
+.mvt-card:hover {
+  border-color: #8B3A4C !important;
+  box-shadow: 0 16px 36px rgba(107,45,60,.18) !important;
+}
