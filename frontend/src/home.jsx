@@ -76,10 +76,10 @@ function upToFor(d, cfg) {
 const HERO_CSS = `
 /* Chrome hero (design option 15): graphite stage, chrome type, holographic live-quote card.
    Motion runs once on load and uses only transform/opacity, so it stays smooth on older phones. */
-.mvx-hero{position:relative;overflow:hidden;color:#fff;background:radial-gradient(60% 75% at 78% 42%,#252B3D 0%,#11141B 55%,#07080B 100%)}
+.mvx-hero{position:relative;overflow:hidden;color:#fff;background:radial-gradient(70% 80% at 75% 40%,#2A1520 0%,#12080C 55%,#050304 100%)}
 .mvx-hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(214,220,232,.35),rgba(255,255,255,0))}
 .mvx-hero-inner{position:relative;max-width:1180px;margin:0 auto;padding:64px 22px 60px;display:grid;grid-template-columns:1.05fr 1fr;gap:30px;align-items:center}
-.mvx-chrome{background:linear-gradient(180deg,#FFFFFF 0%,#CDD3DE 40%,#737C8C 54%,#ECEFF4 66%,#9AA3B2 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mvx-chrome{background:linear-gradient(180deg,#FFFFFF 0%,#E8D5D8 35%,#C97A8A 50%,#F5E6EA 65%,#A0485C 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mvx-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.3em;color:rgba(214,220,232,.7);margin-bottom:20px}
 .mvx-eyebrow i{width:26px;height:1px;background:linear-gradient(90deg,#A9BDF5,rgba(169,189,245,0));display:block}
 .mvx-h1{font-family:'Outfit','Archivo',sans-serif;font-weight:800;font-size:clamp(44px,6.6vw,84px);line-height:.98;letter-spacing:-.045em;margin:0 0 20px}
@@ -92,7 +92,7 @@ const HERO_CSS = `
 @media (max-width:720px){.mvx-wide-only{display:none!important}}
 .mvx-sub{font-size:18px;line-height:1.6;color:rgba(255,255,255,.72);max-width:460px;margin:0 0 28px;font-weight:300}
 .mvx-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:30px}
-.mvx-cta{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 26px;border-radius:999px;background:linear-gradient(180deg,#FFFFFF,#C9D0DC);color:#0E0F13;font-weight:800;font-size:15.5px;text-decoration:none;box-shadow:0 14px 30px rgba(0,0,0,.35),inset 0 1px 0 #fff;transition:transform .2s ease}
+.mvx-cta{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 26px;border-radius:999px;background:linear-gradient(180deg,#A0485C,#6B2D3C);color:#fff;font-weight:800;font-size:15.5px;text-decoration:none;box-shadow:0 14px 30px rgba(107,45,60,.45),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .2s ease}
 .mvx-cta:hover{transform:translateY(-2px)}
 .mvx-cta2{display:inline-flex;align-items:center;min-height:50px;padding:0 24px;border-radius:999px;border:1px solid rgba(255,255,255,.3);color:#fff;font-weight:700;font-size:15.5px;text-decoration:none;transition:background-color .2s ease}
 .mvx-cta2:hover{background:rgba(255,255,255,.08)}
@@ -102,7 +102,7 @@ const HERO_CSS = `
 .mvx-glow{position:absolute;left:8%;right:0;bottom:22px;height:90px;border-radius:50%;background:radial-gradient(closest-side,rgba(120,150,255,.28),rgba(120,150,255,0));opacity:0;animation:mvx-fade 1.6s ease .5s forwards}
 .mvx-phone{position:absolute;right:0;top:-6px;width:230px;height:478px;object-fit:contain;opacity:0;transform:translateX(70px) rotate(14deg);animation:mvx-phone 1.5s cubic-bezier(.16,1,.3,1) .2s forwards}
 @keyframes mvx-phone{to{opacity:1;transform:rotate(14deg)}}
-.mvx-card{position:absolute;left:0;top:44px;width:390px;border-radius:30px;padding:2px;background:conic-gradient(from 200deg,#A9BDF5,#F3B6E8,#9FF0DE,#F5E3A9,#A9BDF5);opacity:0;transform:rotateY(46deg) rotateX(10deg) translateZ(-180px);animation:mvx-card 1.7s cubic-bezier(.16,1,.3,1) .4s forwards;box-shadow:0 50px 100px rgba(0,0,0,.55)}
+.mvx-card{position:absolute;left:0;top:44px;width:390px;border-radius:30px;padding:2px;background:conic-gradient(from 200deg,#8B3A4C,#C97A8A,#F5E6EA,#A0485C,#8B3A4C);opacity:0;transform:rotateY(46deg) rotateX(10deg) translateZ(-180px);animation:mvx-card 1.7s cubic-bezier(.16,1,.3,1) .4s forwards;box-shadow:0 50px 100px rgba(0,0,0,.55)}
 @keyframes mvx-card{to{opacity:1;transform:rotateY(-10deg) rotateX(5deg)}}
 .mvx-quote{position:relative;overflow:hidden;border-radius:28px;padding:24px;background:linear-gradient(160deg,rgba(30,34,46,.97),rgba(14,16,22,.97));text-align:left}
 .mvx-sheen{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,0) 30%,rgba(170,200,255,.2) 45%,rgba(255,180,240,.14) 52%,rgba(255,255,255,0) 66%);transform:translateX(-90%);animation:mvx-sheen 1.6s cubic-bezier(.4,0,.2,1) 1.8s forwards;pointer-events:none}
