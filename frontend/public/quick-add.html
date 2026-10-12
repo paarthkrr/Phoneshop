@@ -86,7 +86,18 @@
     </div>
     <div>
       <label>Cycle Count</label>
-      <input id="cycles" placeholder="Auto" readonly>
+      <input id="cycles" placeholder="Auto">
+    </div>
+  </div>
+  
+  <div class="row">
+    <div>
+      <label>Find My</label>
+      <input id="findmy" placeholder="Auto" readonly style="color:#f66">
+    </div>
+    <div>
+      <label>Activation</label>
+      <input id="activation" placeholder="Auto" readonly>
     </div>
   </div>
 
@@ -146,7 +157,9 @@
         if (data.color) document.getElementById('color').value = data.color;
         if (data.ios) document.getElementById('ios').value = data.ios;
         if (data.battery) document.getElementById('battery').value = data.battery + '%'; else document.getElementById('battery').value = 'N/A';
-        if (data.cycles) document.getElementById('cycles').value = data.cycles; else document.getElementById('cycles').value = 'N/A';
+        if (data.cycles) document.getElementById('cycles').value = data.cycles;
+        if (data.findmy) document.getElementById('findmy').value = data.findmy;
+        if (data.activation) document.getElementById('activation').value = data.activation; else document.getElementById('cycles').value = 'N/A';
         if (data.model) {
           const sel = document.getElementById('model');
           for (let opt of sel.options) if (opt.value === data.model) sel.value = opt.value;
