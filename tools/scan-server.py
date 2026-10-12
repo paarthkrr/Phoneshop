@@ -43,7 +43,15 @@ class Handler(BaseHTTPRequestHandler):
             product = get('ProductType')
             version = get('ProductVersion')
             color = get('DeviceColor')
-            capacity = get('TotalDiskCapacity')
+            # Get storage from disk_usage domain
+            try:
+                disk = subprocess.check_output(['ideviceinfo', '-u', udid, '-q', 'com.apple.disk_usage'], text=True)
+                import re
+                cap_m = re.search(r'TotalDiskCapacity:\s*(\d+)', disk)
+                capacity = cap_m.group(1) if cap_m else ''
+            except:
+                capacity = ''
+
             
             # Model mapping
             models = {
