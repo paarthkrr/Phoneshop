@@ -145,8 +145,8 @@
         if (data.year) document.getElementById('year').value = data.year;
         if (data.color) document.getElementById('color').value = data.color;
         if (data.ios) document.getElementById('ios').value = data.ios;
-        if (data.battery) document.getElementById('battery').value = data.battery + '%';
-        if (data.cycles) document.getElementById('cycles').value = data.cycles;
+        if (data.battery) document.getElementById('battery').value = data.battery + '%'; else document.getElementById('battery').value = 'N/A';
+        if (data.cycles) document.getElementById('cycles').value = data.cycles; else document.getElementById('cycles').value = 'N/A';
         if (data.model) {
           const sel = document.getElementById('model');
           for (let opt of sel.options) if (opt.value === data.model) sel.value = opt.value;
