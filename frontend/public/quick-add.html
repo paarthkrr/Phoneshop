@@ -20,8 +20,10 @@
 <body>
   <h1>Quick Add Device</h1>
   
-  <label>IMEI / Serial</label>
-  <input id="imei" placeholder="Scan or type IMEI">
+  <label>IMEI</label>
+  <input id="imei" placeholder="Auto-detected">
+  <label>Serial</label>
+  <input id="serial" placeholder="Auto-detected" readonly style="opacity:0.7">
   
   <label>Model</label>
   <select id="model">
@@ -67,6 +69,11 @@
     // Prefill from URL params
     const params = new URLSearchParams(location.search);
     if (params.get('imei')) document.getElementById('imei').value = params.get('imei');
+    if (params.get('serial')) document.getElementById('serial').value = params.get('serial');
+    if (params.get('storage')) {
+      const st = document.getElementById('storage');
+      for (let opt of st.options) if (opt.value === params.get('storage')) st.value = opt.value;
+    }
     if (params.get('model')) {
       const sel = document.getElementById('model');
       for (let opt of sel.options) {
