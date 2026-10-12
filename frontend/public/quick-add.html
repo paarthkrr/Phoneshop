@@ -31,8 +31,12 @@
     Terminal mein run karo:<br><code>~/Desktop/usb-scan.sh</code>
   </div>
 
+  
   <label>IMEI</label>
   <input id="imei" placeholder="Auto-detected">
+  <button class="secondary" onclick="checkStolen()" style="margin-top:8px">🔍 Check Stolen Status</button>
+  <div id="stolen-result"></div>
+
   
   <div class="row">
     <div>
@@ -115,7 +119,22 @@
       document.getElementById('scan-help').style.display = 'block';
     }
     
+    
+    async function checkStolen() {
+      const imei = document.getElementById('imei').value;
+      const result = document.getElementById('stolen-result');
+      if (!imei || imei.length < 15) {
+        result.innerHTML = '<div class="status" style="background:#3a1a1a;color:#f66">Enter 15-digit IMEI</div>';
+        return;
+      }
+      result.innerHTML = '<div class="status info">Checking AMTA database...</div>';
+      // Open AMTA check in new tab (no public API, so direct link)
+      window.open('https://www.amtacheck.com.au/?imei=' + imei, '_blank');
+      result.innerHTML = '<div class="status info">AMTA check opened in new tab. Look for "NOT reported as lost or stolen"</div>';
+    }
+    
     function addDevice() {
+
       const data = {
         imei: document.getElementById('imei').value,
         model: document.getElementById('model').value,
