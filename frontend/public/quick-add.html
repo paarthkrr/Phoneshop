@@ -62,8 +62,23 @@
   <button onclick="addDevice()">Add to Inventory</button>
   <div id="status"></div>
 
+  
   <script>
+    // Prefill from URL params
+    const params = new URLSearchParams(location.search);
+    if (params.get('imei')) document.getElementById('imei').value = params.get('imei');
+    if (params.get('model')) {
+      const sel = document.getElementById('model');
+      for (let opt of sel.options) {
+        if (opt.value.toLowerCase().includes(params.get('model').toLowerCase().replace('iphone','').trim())) {
+          sel.value = opt.value;
+          break;
+        }
+      }
+    }
+    
     async function addDevice() {
+
       const status = document.getElementById('status');
       const data = {
         imei: document.getElementById('imei').value,
