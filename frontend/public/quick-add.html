@@ -280,9 +280,18 @@
         document.getElementById('status').innerHTML = '<div class="status" style="background:#3a1a1a;color:#f66">Model and price required</div>';
         return;
       }
-      const inv = JSON.parse(localStorage.getItem('quick-adds') || '[]');
-      inv.push({ ...data, id: 'QA-' + Date.now() });
-      localStorage.setItem('quick-adds', JSON.stringify(inv));
+      const id = 'QA-' + Date.now();
+      const item = { ...data, id, status: 'available', brand: 'Apple', barcode: data.imei };
+      
+      // Save to quick-adds
+      const qa = JSON.parse(localStorage.getItem('quick-adds') || '[]');
+      qa.push(item);
+      localStorage.setItem('quick-adds', JSON.stringify(qa));
+      
+      // Save to main inventory (for shop listing)
+      const inventory = JSON.parse(localStorage.getItem('inventory') || '[]');
+      inventory.push(item);
+      localStorage.setItem('inventory', JSON.stringify(inventory));
       document.getElementById('status').innerHTML = '<div class="status ok">✓ Added to inventory</div>';
     }
   </script>
