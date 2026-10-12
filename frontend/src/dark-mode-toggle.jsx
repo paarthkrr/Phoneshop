@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./dark-mode.css";
 import "./burgundy-theme.css";
+import "./luxury-home.css";
 
 export default function DarkModeToggle() {
   const [dark, setDark] = useState(() => {
