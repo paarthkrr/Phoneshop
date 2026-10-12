@@ -69,15 +69,15 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 diag = subprocess.check_output(['idevicediagnostics', '-u', udid, 'diagnostics', 'GasGauge'], text=True, stderr=subprocess.DEVNULL)
                 import re
-                cycle_m = re.search(r'CycleCount.*?(\d+)', diag)
-                design_m = re.search(r'DesignCapacity.*?(\d+)', diag)
-                full_m = re.search(r'FullChargeCapacity.*?(\d+)', diag)
+                # Parse XML plist format
+                cycle_m = re.search(r'<key>CycleCount</key>\s*<integer>(\d+)</integer>', diag)
+                full_m = re.search(r'<key>FullChargeCapacity</key>\s*<integer>(\d+)</integer>', diag)
                 if cycle_m:
                     cycles = cycle_m.group(1)
-                if design_m and full_m:
-                    d, f = int(design_m.group(1)), int(full_m.group(1))
-                    if d > 0:
-                        battery_health = str(f * 100 // d)
+                if full_m:
+                    # FullChargeCapacity appears to be percentage on some devices
+                    val = int(full_m.group(1))
+                    battery_health = str(val) if val <= 100 else str(val)
             except:
                 pass
             
