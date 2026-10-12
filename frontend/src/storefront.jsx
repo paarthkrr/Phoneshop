@@ -1,5 +1,5 @@
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
-import { mergeCatalog } from "./device-catalog.js";
+import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { wasPrice } from "./price-history.js";
 import { SpinViewer, hasSpin } from "./spin-360.jsx";
 // Friendly validation shared by the customer forms
@@ -148,7 +148,8 @@ export default function Storefront() {
   }, []);
 
   const listed = useMemo(() => (inventory || []).filter((i) => i.status === "listed"), [inventory]);
-  const brands = useMemo(() => ["All", ...new Set(listed.map((i) => i.brand))], [listed]);
+  const brands = useMemo(() => ["All", ...new Set(DEFAULT_CATALOG.map((d) => d.brand))], []);
+  const [showAllModels, setShowAllModels] = useState(true);
   const featured = useMemo(() => [...listed].sort((a, b) => b.listedPrice - a.listedPrice).slice(0, 3), [listed]);
   // Chat and other links like /shop?item=INV-123 open that phone straight away.
   useEffect(() => {
