@@ -3,55 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MR Quick Add</title>
+  <title>Quick Add Device</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 20px; background: #111; color: #fff; max-width: 480px; margin: 0 auto; }
-    h1 { font-size: 22px; margin: 0 0 20px; }
-    label { display: block; font-size: 13px; color: #888; margin: 12px 0 4px; }
-    input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 16px; }
-    button { width: 100%; padding: 14px; border-radius: 8px; border: none; background: #8B3A4C; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 16px; }
-    button:hover { background: #6B2D3C; }
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 20px; background: #111; color: #fff; max-width: 500px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    .subtitle { color: #888; font-size: 14px; margin-bottom: 20px; }
+    label { display: block; font-size: 12px; color: #888; margin: 14px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 15px; }
+    input:read-only { opacity: 0.6; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    button { width: 100%; padding: 14px; border-radius: 8px; border: none; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+    .primary { background: #8B3A4C; color: #fff; }
+    .primary:hover { background: #6B2D3C; }
+    .secondary { background: #333; color: #fff; }
     .status { padding: 12px; border-radius: 8px; margin-top: 16px; font-size: 14px; }
     .ok { background: #1a3a1a; color: #6f6; }
-    .err { background: #3a1a1a; color: #f66; }
+    .info { background: #1a2a3a; color: #6cf; }
   </style>
 </head>
 <body>
   <h1>Quick Add Device</h1>
+  <p class="subtitle">Connect phone via USB, then click scan or details auto-fill</p>
   
+  <button class="secondary" onclick="showScanHelp()">📱 Scan USB Device</button>
+  <div id="scan-help" style="display:none" class="status info">
+    Terminal mein run karo:<br><code>~/Desktop/usb-scan.sh</code>
+  </div>
+
   <label>IMEI</label>
   <input id="imei" placeholder="Auto-detected">
+  
+  <div class="row">
+    <div>
+      <label>Model</label>
+      <select id="model">
+        <option value="">Select...</option>
+        <option>iPhone 16 Pro Max</option>
+        <option>iPhone 16 Pro</option>
+        <option>iPhone 15 Pro Max</option>
+        <option>iPhone 15 Pro</option>
+        <option>iPhone 14 Pro Max</option>
+        <option>iPhone 14 Pro</option>
+        <option>iPhone 13 Pro Max</option>
+      </select>
+    </div>
+    <div>
+      <label>Year</label>
+      <input id="year" placeholder="Auto" readonly>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div>
+      <label>Storage</label>
+      <select id="storage">
+        <option>128GB</option>
+        <option>256GB</option>
+        <option>512GB</option>
+        <option>1TB</option>
+      </select>
+    </div>
+    <div>
+      <label>Color</label>
+      <input id="color" placeholder="Auto-detected" readonly>
+    </div>
+  </div>
+  
   <label>Serial</label>
-  <input id="serial" placeholder="Auto-detected" readonly style="opacity:0.7">
+  <input id="serial" placeholder="Auto-detected" readonly>
   
-  <label>Model</label>
-  <select id="model">
-    <option value="">Select model...</option>
-    <option>iPhone 18 Pro Max</option>
-    <option>iPhone 18 Pro</option>
-    <option>iPhone 17 Pro Max</option>
-    <option>iPhone 17 Pro</option>
-    <option>iPhone 16 Pro Max</option>
-    <option>iPhone 16 Pro</option>
-    <option>iPhone 15 Pro Max</option>
-    <option>iPhone 15 Pro</option>
-    <option>Galaxy S26 Ultra</option>
-    <option>Galaxy S25 Ultra</option>
-    <option>Pixel 10 Pro</option>
-  </select>
-  
-  <label>Storage</label>
-  <select id="storage">
-    <option>128GB</option>
-    <option>256GB</option>
-    <option>512GB</option>
-    <option>1TB</option>
-    <option>2TB</option>
-  </select>
+  <label>iOS Version</label>
+  <input id="ios" placeholder="Auto-detected" readonly>
   
   <label>Buy Price ($)</label>
-  <input id="price" type="number" placeholder="e.g. 800">
+  <input id="price" type="number" placeholder="Enter price">
   
   <label>Condition</label>
   <select id="condition">
@@ -61,56 +87,55 @@
     <option>Poor</option>
   </select>
   
-  <button onclick="addDevice()">Add to Inventory</button>
+  <button class="primary" onclick="addDevice()">Add to Inventory</button>
   <div id="status"></div>
 
-  
   <script>
-    // Prefill from URL params
     const params = new URLSearchParams(location.search);
-    if (params.get('imei')) document.getElementById('imei').value = params.get('imei');
-    if (params.get('serial')) document.getElementById('serial').value = params.get('serial');
-    if (params.get('storage')) {
-      const st = document.getElementById('storage');
-      for (let opt of st.options) if (opt.value === params.get('storage')) st.value = opt.value;
-    }
+    const set = (id, key) => { if (params.get(key)) document.getElementById(id).value = params.get(key); };
+    set('imei', 'imei');
+    set('year', 'year');
+    set('color', 'color');
+    set('serial', 'serial');
+    set('ios', 'ios');
     if (params.get('model')) {
       const sel = document.getElementById('model');
       for (let opt of sel.options) {
-        if (opt.value.toLowerCase().includes(params.get('model').toLowerCase().replace('iphone','').trim())) {
-          sel.value = opt.value;
-          break;
-        }
+        if (opt.value === params.get('model')) { sel.value = opt.value; break; }
+      }
+    }
+    if (params.get('storage')) {
+      const sel = document.getElementById('storage');
+      for (let opt of sel.options) {
+        if (opt.value === params.get('storage')) { sel.value = opt.value; break; }
       }
     }
     
-    async function addDevice() {
-
-      const status = document.getElementById('status');
+    function showScanHelp() {
+      document.getElementById('scan-help').style.display = 'block';
+    }
+    
+    function addDevice() {
       const data = {
         imei: document.getElementById('imei').value,
         model: document.getElementById('model').value,
+        year: document.getElementById('year').value,
         storage: document.getElementById('storage').value,
+        color: document.getElementById('color').value,
+        serial: document.getElementById('serial').value,
+        ios: document.getElementById('ios').value,
         price: Number(document.getElementById('price').value),
         condition: document.getElementById('condition').value,
         addedAt: new Date().toISOString()
       };
-      
       if (!data.model || !data.price) {
-        status.innerHTML = '<div class="status err">Model and price required</div>';
+        document.getElementById('status').innerHTML = '<div class="status" style="background:#3a1a1a;color:#f66">Model and price required</div>';
         return;
       }
-      
-      // Save to localStorage (portal will sync)
       const inv = JSON.parse(localStorage.getItem('quick-adds') || '[]');
       inv.push({ ...data, id: 'QA-' + Date.now() });
       localStorage.setItem('quick-adds', JSON.stringify(inv));
-      
-      status.innerHTML = '<div class="status ok">Added! Check portal inventory.</div>';
-      
-      // Clear form
-      document.getElementById('imei').value = '';
-      document.getElementById('price').value = '';
+      document.getElementById('status').innerHTML = '<div class="status ok">✓ Added to inventory</div>';
     }
   </script>
 </body>
