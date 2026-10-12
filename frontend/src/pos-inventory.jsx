@@ -816,9 +816,9 @@ function QuickAddTab({ colors, onAdd }) {
   const { panel, panel2, paper, muted, brass, brassDim, green, line } = colors;
   const [items, setItems] = useState([]);
   const [pending, setPending] = useState(null);
-  
+  const [editing, setEditing] = useState(null);
+
   useEffect(() => {
-    // Check URL params for USB scan
     const params = new URLSearchParams(location.search);
     if (params.get('quickadd')) {
       setPending({
@@ -828,6 +828,9 @@ function QuickAddTab({ colors, onAdd }) {
         storage: params.get('storage') || '',
         color: params.get('color') || '',
         year: params.get('year') || '',
+        ios: params.get('ios') || '',
+        battery: params.get('battery') || '',
+        cycles: params.get('cycles') || '',
       });
     }
     try {
@@ -835,48 +838,119 @@ function QuickAddTab({ colors, onAdd }) {
       setItems(local.filter(i => i.status === 'available'));
     } catch {}
   }, []);
-  
+
+  const getCategory = (model) => {
+    if (!model) return 'Other';
+    if (model.includes('iPhone 18')) return 'iPhone 18';
+    if (model.includes('iPhone 17')) return 'iPhone 17';
+    if (model.includes('iPhone 16')) return 'iPhone 16';
+    if (model.includes('iPhone 15')) return 'iPhone 15';
+    if (model.includes('iPhone 14')) return 'iPhone 14';
+    if (model.includes('iPhone 13')) return 'iPhone 13';
+    if (model.includes('Galaxy')) return 'Samsung';
+    if (model.includes('Pixel')) return 'Google';
+    return 'Other';
+  };
+
+  const grouped = items.reduce((acc, item) => {
+    const cat = getCategory(item.model);
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(item);
+    return acc;
+  }, {});
+
+  const handleAddPending = () => {
+    const price = document.getElementById('qa-price')?.value;
+    const grade = document.getElementById('qa-grade')?.value || 'A';
+    if (!price) return alert('Enter buy price');
+    const item = {
+      ...pending,
+      model: document.getElementById('qa-model')?.value || pending.model,
+      storage: document.getElementById('qa-storage')?.value || pending.storage,
+      color: document.getElementById('qa-color')?.value || pending.color,
+      year: document.getElementById('qa-year')?.value || pending.year,
+      imei: document.getElementById('qa-imei')?.value || pending.imei,
+      serial: document.getElementById('qa-serial')?.value || pending.serial,
+      price: Number(price),
+      grade,
+      status: 'available',
+      id: 'QA-' + Date.now(),
+      category: getCategory(document.getElementById('qa-model')?.value || pending.model),
+    };
+    onAdd(item);
+    setPending(null);
+  };
+
   if (pending) {
     return (
       <div style={{ background: panel2, border: `1px solid ${line}`, borderRadius: 6, padding: 16 }}>
-        <div style={{ fontWeight: 600, marginBottom: 12 }}>USB Scanned Device</div>
-        <div style={{ fontSize: 14, marginBottom: 8 }}>{pending.model} · {pending.storage || 'Unknown storage'}</div>
-        <div style={{ fontSize: 12, color: muted, marginBottom: 12 }}>IMEI: •••{pending.imei?.slice(-4)} · Serial: {pending.serial}</div>
-        <input id="qa-price" type="number" placeholder="Buy Price ($)" style={{ width: "100%", padding: 10, marginBottom: 10, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} />
-        <select id="qa-grade" style={{ width: "100%", padding: 10, marginBottom: 10, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }}>
-          <option value="A">Grade A</option>
-          <option value="B">Grade B</option>
-          <option value="C">Grade C</option>
-          <option value="D">Grade D</option>
-        </select>
-        <button onClick={() => {
-          const price = document.getElementById('qa-price').value;
-          const grade = document.getElementById('qa-grade').value;
-          if (!price) return alert('Enter buy price');
-          onAdd({ ...pending, price: Number(price), grade, status: 'available', id: 'QA-' + Date.now() });
-          setPending(null);
-        }} style={{ width: "100%", padding: 12, background: green, color: "#fff", border: "none", borderRadius: 4, fontWeight: 600, cursor: "pointer" }}>
+        <div style={{ fontWeight: 600, marginBottom: 12 }}>USB Scanned Device — Edit details then add</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, color: muted }}>Model</label>
+            <input id="qa-model" defaultValue={pending.model} style={{ width: '100%', padding: 8, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper, marginTop: 4 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: muted }}>Storage</label>
+            <input id="qa-storage" defaultValue={pending.storage} placeholder="128GB" style={{ width: '100%', padding: 8, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper, marginTop: 4 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: muted }}>Color</label>
+            <input id="qa-color" defaultValue={pending.color} style={{ width: '100%', padding: 8, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper, marginTop: 4 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: muted }}>Year</label>
+            <input id="qa-year" defaultValue={pending.year} style={{ width: '100%', padding: 8, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper, marginTop: 4 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: muted }}>IMEI</label>
+            <input id="qa-imei" defaultValue={pending.imei} style={{ width: '100%', padding: 8, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper, marginTop: 4 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: muted }}>Serial</label>
+            <input id="qa-serial" defaultValue={pending.serial} style={{ width: '100%', padding: 8, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper, marginTop: 4 }} />
+          </div>
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 12, color: muted }}>Buy Price ($)</label>
+          <input id="qa-price" type="number" placeholder="Enter buy price" style={{ width: '100%', padding: 10, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} />
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, color: muted }}>Grade</label>
+          <select id="qa-grade" style={{ width: '100%', padding: 10, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }}>
+            <option value="A">Grade A - Like New</option>
+            <option value="B">Grade B - Excellent</option>
+            <option value="C">Grade C - Good</option>
+            <option value="D">Grade D - Fair</option>
+          </select>
+        </div>
+        <button onClick={handleAddPending} style={{ width: '100%', padding: 12, background: green, color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600, cursor: 'pointer' }}>
           Add to Inventory
         </button>
       </div>
     );
   }
-  
-  if (!items.length) return <div style={{ color: muted, padding: 20 }}>No devices from USB scan. Connect phone and use quick-add page.</div>;
-  
+
+  if (!items.length) return <div style={{ color: muted, padding: 20 }}>No devices from USB scan. Connect phone via USB.</div>;
+
   return (
     <div>
-      <div style={{ fontSize: 13, color: muted, marginBottom: 12 }}>Devices scanned via USB — click to add to inventory</div>
-      {items.map((item, i) => (
-        <div key={i} style={{ background: panel2, border: `1px solid ${line}`, borderRadius: 6, padding: 14, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontWeight: 600 }}>{item.model} {item.storage}</div>
-            <div style={{ fontSize: 12, color: muted }}>Color: {item.color} · Cycles: {item.cycles || 'N/A'} · Grade: {item.grade || 'A'}</div>
-            <div style={{ fontSize: 11, color: muted, marginTop: 4 }}>IMEI: •••{item.imei?.slice(-4) || '••••'}</div>
-          </div>
-          <button onClick={() => onAdd(item)} style={{ padding: "8px 16px", background: green, color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 600 }}>
-            Add to Inventory
-          </button>
+      <div style={{ fontSize: 13, color: muted, marginBottom: 12 }}>USB scanned devices by category</div>
+      {Object.entries(grouped).map(([cat, catItems]) => (
+        <div key={cat} style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8, color: brass }}>{cat}</div>
+          {catItems.map((item, i) => (
+            <div key={item.id || i} style={{ background: panel2, border: `1px solid ${line}`, borderRadius: 6, padding: 14, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 600 }}>{item.model} {item.storage}</div>
+                <div style={{ fontSize: 12, color: muted }}>Color: {item.color || 'N/A'} · Grade: {item.grade || 'A'} · Year: {item.year || ''}</div>
+                <div style={{ fontSize: 11, color: muted, marginTop: 4 }}>IMEI: •••{item.imei?.slice(-4) || '••••'}</div>
+              </div>
+              <button onClick={() => onAdd(item)} style={{ padding: '8px 16px', background: green, color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>
+                Add to Inventory
+              </button>
+            </div>
+          ))}
         </div>
       ))}
     </div>
