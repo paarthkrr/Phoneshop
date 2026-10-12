@@ -60,7 +60,7 @@ const MARQUEE = ["APPLE", "SAMSUNG", "GOOGLE PIXEL", "OPPO", "MOTOROLA", "XIAOMI
 // Same formula as the quote tool (sealed, largest storage, after holding cost) — never more than a real quote.
 // "Up to" per storage size (same capped formula as the Sell pages and the quote tool's sealed price).
 function pricesFor(d, cfg) {
-  const pts = (cfg && cfg.retentionPoints) || DEFAULT_RETENTION_POINTS;
+  const pts = DEFAULT_RETENTION_POINTS; // force latest curve (ignore old stored config)
   const f = { ...DEFAULT_BRAND_FACTOR, ...((cfg && cfg.brandFactors) || {}) };
   const hold = (cfg && cfg.holdingCostPct) ?? DEFAULT_HOLDING_COST_PCT;
   const out = {};
@@ -68,7 +68,7 @@ function pricesFor(d, cfg) {
   return out;
 }
 function upToFor(d, cfg) {
-  const pts = (cfg && cfg.retentionPoints) || DEFAULT_RETENTION_POINTS;
+  const pts = DEFAULT_RETENTION_POINTS; // force latest curve (ignore old stored config)
   const f = { ...DEFAULT_BRAND_FACTOR, ...((cfg && cfg.brandFactors) || {}) };
   const hold = (cfg && cfg.holdingCostPct) ?? DEFAULT_HOLDING_COST_PCT;
   return Math.floor(Math.max(0, ...Object.keys(d.retail || {}).map((s) => baseBuybackAUD(d, s, pts, f) || 0)) * (1 - hold));
