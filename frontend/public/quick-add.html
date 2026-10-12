@@ -105,13 +105,19 @@
   <label>Buy Price ($)</label>
   <input id="price" type="number" placeholder="Enter price">
   
-  <label>Condition</label>
-  <select id="condition">
-    <option>Excellent</option>
-    <option>Good</option>
-    <option>Fair</option>
-    <option>Poor</option>
+  <label>Grade</label>
+  <select id="grade">
+    <option value="A">Grade A - Like New (100%)</option>
+    <option value="B">Grade B - Excellent (90%)</option>
+    <option value="C">Grade C - Good (80%)</option>
+    <option value="D">Grade D - Fair (70%)</option>
   </select>
+  
+  <label>Sell Price ($)</label>
+  <input id="sellprice" type="number" placeholder="Auto-calculated" readonly style="color:#6f6">
+  
+  <label>Buy Price ($)</label>
+  <input id="price" type="number" placeholder="Enter buy price">
   
   <button class="primary" onclick="addDevice()">Add to Inventory</button>
   <div id="status"></div>
@@ -193,7 +199,19 @@
       result.innerHTML = '<div class="status info">AMTA check opened in new tab. Look for "NOT reported as lost or stolen"</div>';
     }
     
+    
+    function calcPrice() {
+      const buy = Number(document.getElementById('price').value) || 0;
+      const grade = document.getElementById('grade').value;
+      const multipliers = { A: 1.0, B: 0.9, C: 0.8, D: 0.7 };
+      const sell = Math.round(buy * multipliers[grade]);
+      document.getElementById('sellprice').value = sell || '';
+    }
+    document.getElementById('price').addEventListener('input', calcPrice);
+    document.getElementById('grade').addEventListener('change', calcPrice);
+    
     function addDevice() {
+
 
       const data = {
         imei: document.getElementById('imei').value,
