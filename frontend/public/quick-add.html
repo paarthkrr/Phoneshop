@@ -77,8 +77,21 @@
   <label>Serial</label>
   <input id="serial" placeholder="Auto-detected" readonly>
   
+  
   <label>iOS Version</label>
-  <input id="ios" placeholder="Auto-detected" readonly>
+  <input id="ios" placeholder="Auto-detected">
+  
+  <div class="row">
+    <div>
+      <label>Battery Health</label>
+      <input id="battery" placeholder="Auto %" readonly style="color:#6f6">
+    </div>
+    <div>
+      <label>Cycle Count</label>
+      <input id="cycles" placeholder="Auto" readonly>
+    </div>
+  </div>
+
   
   <label>Buy Price ($)</label>
   <input id="price" type="number" placeholder="Enter price">
@@ -102,6 +115,8 @@
     set('color', 'color');
     set('serial', 'serial');
     set('ios', 'ios');
+    set('battery', 'battery');
+    set('cycles', 'cycles');
     if (params.get('model')) {
       const sel = document.getElementById('model');
       for (let opt of sel.options) {
