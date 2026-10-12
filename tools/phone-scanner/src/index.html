@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>MR Scanner</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 20px; background: #111; color: #fff; }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    button { background: #8B3A4C; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; }
+    button:hover { background: #6B2D3C; }
+    .device { background: #1a1a1a; border-radius: 12px; padding: 16px; margin: 12px 0; border: 1px solid #333; }
+    .device h3 { margin: 0 0 8px; font-size: 16px; }
+    .device p { margin: 4px 0; color: #888; font-size: 13px; }
+    .status { padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
+    .status.ok { background: #1a3a1a; color: #6f6; }
+    .status.err { background: #3a1a1a; color: #f66; }
+    input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; margin: 6px 0; font-size: 14px; }
+    label { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>MR Scanner</h1>
+  <button id="scan">Scan USB Devices</button>
+  <div id="status"></div>
+  <div id="devices"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    
+    document.getElementById('scan').onclick = async () => {
+      const status = document.getElementById('status');
+      const devices = document.getElementById('devices');
+      status.innerHTML = '<div class="status">Scanning...</div>';
+      devices.innerHTML = '';
+      
+      try {
+        const found = await ipcRenderer.invoke('detect-devices');
+        if (!found.length) {
+          status.innerHTML = '<div class="status err">No devices found. Connect phone via USB.</div>';
+          return;
+        }
+        status.innerHTML = `<div class="status ok">${found.length} device(s) found</div>`;
+        found.forEach((d, i) => {
+          devices.innerHTML += `
+            <div class="device">
+              <h3>${d.model || 'Unknown'} (${d.type})</h3>
+              <p>IMEI: ${d.imei || 'N/A'}</p>
+              <p>Serial: ${d.serial || 'N/A'}</p>
+              <label>Buy Price</label>
+              <input type="number" id="price-${i}" placeholder="Enter price">
+              <label>Condition</label>
+              <input type="text" id="cond-${i}" placeholder="e.g. Good, Excellent">
+              <button onclick="send(${i})">Add to Inventory</button>
+            </div>
+          `;
+        });
+        window._devices = found;
+      } catch (e) {
+        status.innerHTML = `<div class="status err">Error: ${e.message}</div>`;
+      }
+    };
+
+    async function send(i) {
+      const d = window._devices[i];
+      d.price = document.getElementById(`price-${i}`).value;
+      d.condition = document.getElementById(`cond-${i}`).value;
+      const res = await ipcRenderer.invoke('send-to-portal', d);
+      alert(res.ok ? 'Added to inventory!' : 'Failed: ' + (res.error || res.status));
+    }
+  </script>
+</body>
+</html>
