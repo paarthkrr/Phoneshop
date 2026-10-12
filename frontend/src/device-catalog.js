@@ -5,8 +5,8 @@
 // Pricing Console. Previously each kept its own copy and they drifted apart —
 // the Register only knew 17 models while the calculator had 91.
 export const DEFAULT_CATALOG = [
-  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699, "1TB": 3099, "2TB": 3899 }, category: "phone", marketAdjPct: 2 },
-  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro", release: "2026-09-18", retail: { "256GB": 2099, "512GB": 2499, "1TB": 2899 }, category: "phone", marketAdjPct: 2 },
+  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro Max", release: "2026-09-18", retail: { "256GB": 2299, "512GB": 2699, "1TB": 3099, "2TB": 3899 }, category: "phone", marketAdjPct: 0 },
+  { brand: "Apple", icon: "🍎", model: "iPhone 18 Pro", release: "2026-09-18", retail: { "256GB": 2099, "512GB": 2499, "1TB": 2899 }, category: "phone", marketAdjPct: 0 },
   { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro Max", release: "2025-09-19", retail: { "256GB": 2199, "512GB": 2599, "1TB": 2999, "2TB": 3799 }, category: "phone", marketAdjPct: 8 },
   { brand: "Apple", icon: "🍎", model: "iPhone 17 Pro", release: "2025-09-19", retail: { "256GB": 1999, "512GB": 2399, "1TB": 2799 }, category: "phone", marketAdjPct: 8 },
   { brand: "Apple", icon: "🍎", model: "iPhone 17", release: "2025-09-19", retail: { "256GB": 1399, "512GB": 1799 }, category: "phone" },
