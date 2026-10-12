@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MR Quick Add</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 20px; background: #111; color: #fff; max-width: 480px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 20px; }
+    label { display: block; font-size: 13px; color: #888; margin: 12px 0 4px; }
+    input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 16px; }
+    button { width: 100%; padding: 14px; border-radius: 8px; border: none; background: #8B3A4C; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+    button:hover { background: #6B2D3C; }
+    .status { padding: 12px; border-radius: 8px; margin-top: 16px; font-size: 14px; }
+    .ok { background: #1a3a1a; color: #6f6; }
+    .err { background: #3a1a1a; color: #f66; }
+  </style>
+</head>
+<body>
+  <h1>Quick Add Device</h1>
+  
+  <label>IMEI / Serial</label>
+  <input id="imei" placeholder="Scan or type IMEI">
+  
+  <label>Model</label>
+  <select id="model">
+    <option value="">Select model...</option>
+    <option>iPhone 18 Pro Max</option>
+    <option>iPhone 18 Pro</option>
+    <option>iPhone 17 Pro Max</option>
+    <option>iPhone 17 Pro</option>
+    <option>iPhone 16 Pro Max</option>
+    <option>iPhone 16 Pro</option>
+    <option>iPhone 15 Pro Max</option>
+    <option>iPhone 15 Pro</option>
+    <option>Galaxy S26 Ultra</option>
+    <option>Galaxy S25 Ultra</option>
+    <option>Pixel 10 Pro</option>
+  </select>
+  
+  <label>Storage</label>
+  <select id="storage">
+    <option>128GB</option>
+    <option>256GB</option>
+    <option>512GB</option>
+    <option>1TB</option>
+    <option>2TB</option>
+  </select>
+  
+  <label>Buy Price ($)</label>
+  <input id="price" type="number" placeholder="e.g. 800">
+  
+  <label>Condition</label>
+  <select id="condition">
+    <option>Excellent</option>
+    <option>Good</option>
+    <option>Fair</option>
+    <option>Poor</option>
+  </select>
+  
+  <button onclick="addDevice()">Add to Inventory</button>
+  <div id="status"></div>
+
+  <script>
+    async function addDevice() {
+      const status = document.getElementById('status');
+      const data = {
+        imei: document.getElementById('imei').value,
+        model: document.getElementById('model').value,
+        storage: document.getElementById('storage').value,
+        price: Number(document.getElementById('price').value),
+        condition: document.getElementById('condition').value,
+        addedAt: new Date().toISOString()
+      };
+      
+      if (!data.model || !data.price) {
+        status.innerHTML = '<div class="status err">Model and price required</div>';
+        return;
+      }
+      
+      // Save to localStorage (portal will sync)
+      const inv = JSON.parse(localStorage.getItem('quick-adds') || '[]');
+      inv.push({ ...data, id: 'QA-' + Date.now() });
+      localStorage.setItem('quick-adds', JSON.stringify(inv));
+      
+      status.innerHTML = '<div class="status ok">Added! Check portal inventory.</div>';
+      
+      // Clear form
+      document.getElementById('imei').value = '';
+      document.getElementById('price').value = '';
+    }
+  </script>
+</body>
+</html>
