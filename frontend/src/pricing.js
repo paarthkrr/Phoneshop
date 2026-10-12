@@ -4,11 +4,11 @@
 import { mergeCatalog } from "./device-catalog.js";
 
 export const DEFAULT_RETENTION_POINTS = [
-  { m: 0, r: 0.72 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
-  { m: 36, r: 0.37 },  // recalibrated 28 Sep 2026 vs live Mobile Monster Brand New prices: 16 Pro 910/1799, 15 Pro 670/1849, 14 460/1399
-  { m: 48, r: 0.33 }, { m: 60, r: 0.233 },  // older ages scaled by the same ~0.75 the 4-yr point moved
-  { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 },
-  { m: 120, r: 0.045 },
+  { m: 0, r: 0.72 }, { m: 12, r: 0.56 }, { m: 24, r: 0.49 },
+  { m: 36, r: 0.35 },  // modestly lowered after month 0 so older models sit closer to PhoneExchange / Mobile Monster
+  { m: 48, r: 0.31 }, { m: 60, r: 0.22 },
+  { m: 72, r: 0.155 }, { m: 84, r: 0.105 }, { m: 96, r: 0.07 },
+  { m: 120, r: 0.04 },
 ];
 
 export function retentionAt(months, points) {
