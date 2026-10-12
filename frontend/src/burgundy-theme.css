@@ -1,0 +1,31 @@
+/* Burgundy iPhone-style accents (deep wine red) */
+.cs-announce {
+  background: linear-gradient(90deg, #6B2D3C 0%, #8B3A4C 50%, #6B2D3C 100%) !important;
+  color: #FFFFFF !important;
+}
+.cs-announce a { color: #F5E6EA !important; }
+
+/* Burgundy accent on active nav links and quote button */
+.dd-trigger.active, .cs-nav-link.active {
+  color: #6B2D3C !important;
+}
+.mm-quote-btn, .mvx-cta {
+  background: linear-gradient(180deg, #8B3A4C, #6B2D3C) !important;
+  color: #FFFFFF !important;
+}
+.mm-quote-btn:hover, .mvx-cta:hover {
+  background: linear-gradient(180deg, #A0485C, #7A3344) !important;
+}
+
+/* Subtle burgundy on featured price numbers */
+.mvt-price {
+  color: #6B2D3C !important;
+}
+
+/* Dark mode burgundy adjustments */
+body.dark-mode .cs-announce {
+  background: linear-gradient(90deg, #4A1E28, #6B2D3C) !important;
+}
+body.dark-mode .mvt-price {
+  color: #C97A8A !important;
+}
