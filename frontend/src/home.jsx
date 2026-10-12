@@ -17,7 +17,7 @@ const TOP_CSS = `
 .mvt-wrap:hover .mvt-track,.mvt-track:focus-within{animation-play-state:paused}
 @keyframes mvt-scroll{to{transform:translateX(-50%)}}
 .mvt-card{flex:0 0 200px;background:#fff;border:1px solid #E2E6EC;border-radius:18px;padding:14px;text-decoration:none;color:#111827;box-shadow:0 6px 20px rgba(17,24,39,.06);transition:transform .25s ease,box-shadow .25s ease}
-.mvt-card:hover{transform:translateY(-6px);box-shadow:0 16px 34px rgba(33,80,200,.16)}
+.mvt-card:hover{transform:translateY(-8px) rotateX(4deg) rotateY(-2deg);box-shadow:0 24px 48px rgba(120,20,40,.2)}
 .mvt-img{height:190px;border-radius:14px;background:linear-gradient(180deg,#F7F9FC,#EEF2F8);display:flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden}
 .mvt-img img{max-height:170px;max-width:90%;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(17,24,39,.18))}.mvt-img svg{max-height:96%;max-width:96%;width:auto;height:auto}
 .mvt-name{font-weight:800;font-size:15px;margin-bottom:4px}
