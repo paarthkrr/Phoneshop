@@ -4,10 +4,17 @@ import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 const INVENTORY_KEY = "inventory";
 
 async function loadInventory() {
-  if (typeof window === "undefined" || !window.storage) return [];
+  // Try window.storage first (Claude artifact)
+  if (typeof window !== "undefined" && window.storage) {
+    try {
+      const r = await window.storage.get(INVENTORY_KEY, true);
+      if (r) return JSON.parse(r.value);
+    } catch {}
+  }
+  // Fallback to localStorage (quick-add)
   try {
-    const r = await window.storage.get(INVENTORY_KEY, true);
-    return r ? JSON.parse(r.value) : [];
+    const local = localStorage.getItem(INVENTORY_KEY);
+    return local ? JSON.parse(local) : [];
   } catch { return []; }
 }
 
