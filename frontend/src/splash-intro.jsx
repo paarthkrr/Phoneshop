@@ -6,12 +6,22 @@ import React, { useEffect, useRef, useState } from "react";
    - Tap anywhere to skip. The page loads underneath the whole time.
    - Preview any style on the live site with ?intro=1 to 11 (?intro=0 = off). */
 
-export const INTRO_VARIANT = 11; // 11 Phones merge, logo comes out, site opens like an app (default) · 10 Phones become the logo · 9 Two phones meet, dark · 8 Shop photo, dark · 6 Phone exchange, dark · 7 Phone zoom, blue · 5 Dark swap · 1 Swap slide · 2 Exchange cross · 3 Blue wipe · 4 Ring
+export const INTRO_VARIANT = 12; // 12 Luxury burgundy reveal // 11 Phones merge, logo comes out, site opens like an app (default) · 10 Phones become the logo · 9 Two phones meet, dark · 8 Shop photo, dark · 6 Phone exchange, dark · 7 Phone zoom, blue · 5 Dark swap · 1 Swap slide · 2 Exchange cross · 3 Blue wipe · 4 Ring
 
 const SCALE = 1.8; // splash logo = header logo × this, so it lands exactly on it
-const TIMING = { 1: 1250, 2: 1350, 3: 1200, 4: 1300, 5: 1300, 6: 1650, 7: 1400, 8: 1650, 9: 2250, 10: 2700, 11: 2650 }; // ms before the exit starts
+const TIMING = { 1: 1250, 2: 1350, 3: 1200, 4: 1300, 5: 1300, 6: 1650, 7: 1400, 8: 1650, 9: 2250, 10: 2700, 11: 2650, 12: 2800 }; // ms before the exit starts
 
 const CSS = `
+/* 12 · Luxury burgundy reveal: soft dark stage, logo builds with light sweep, burgundy accent line, then glides into header */
+.v12.mr-splash{background:radial-gradient(80% 60% at 50% 40%,#1A0E14 0%,#0A0608 70%,#050304 100%)}
+.v12 .mr-lock{opacity:0;animation:m12In .7s cubic-bezier(.16,1,.3,1) .4s forwards}
+@keyframes m12In{from{opacity:0;transform:scale(.92) translateY(12px)}to{opacity:1;transform:none}}
+.v12 .mr-arrow{stroke:#C97A8A;animation:mrDraw .4s ease-out .9s forwards}
+.v12 .mr-word{animation:mrGrow .6s cubic-bezier(.16,1,.3,1) 1.1s forwards;color:#F5E6EA}
+.v12 .mr-w2{color:#C97A8A;text-shadow:0 0 20px rgba(201,122,138,.4)}
+.v12::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,#8B3A4C,transparent);animation:m12Line 1.2s ease-out .2s both}
+@keyframes m12Line{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
 .mr-splash{position:fixed;inset:0;z-index:2000;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mr-lock{display:flex;align-items:center;gap:${7 * SCALE}px;transform-origin:0 0;will-change:transform}
 .mr-mark{display:block;overflow:visible}
