@@ -1,0 +1,9 @@
+/* Dark mode */
+body.dark-mode { background: #0E0F13; color: #E5E7EB; }
+body.dark-mode .cs-glass-nav::before { background: rgba(14,15,19,0.88); }
+body.dark-mode .cs-card { background: #1A1D27; border-color: #2A2F3C; color: #E5E7EB; }
+body.dark-mode .mvt-card { background: #1A1D27; color: #E5E7EB; border-color: #2A2F3C; }
+body.dark-mode .mvx-benefits { background: #161922; color: #E5E7EB; }
+body.dark-mode .mvx-benefits-inner div { color: #E5E7EB; }
+.dark-toggle { margin-left: 10px; padding: 5px 10px; border-radius: 999px; border: 1px solid #E2E6EC; background: transparent; cursor: pointer; font-size: 13px; color: inherit; }
+body.dark-mode .dark-toggle { border-color: #3A4050; color: #E5E7EB; }
