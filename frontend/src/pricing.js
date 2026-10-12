@@ -4,7 +4,7 @@
 import { mergeCatalog } from "./device-catalog.js";
 
 export const DEFAULT_RETENTION_POINTS = [
-  { m: 0, r: 0.72 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
+  { m: 0, r: 0.76 }, { m: 12, r: 0.58 }, { m: 24, r: 0.51 },
   { m: 36, r: 0.37 },  // recalibrated 28 Sep 2026 vs live Mobile Monster Brand New prices: 16 Pro 910/1799, 15 Pro 670/1849, 14 460/1399
   { m: 48, r: 0.33 }, { m: 60, r: 0.233 },  // older ages scaled by the same ~0.75 the 4-yr point moved
   { m: 72, r: 0.165 }, { m: 84, r: 0.113 }, { m: 96, r: 0.075 },
