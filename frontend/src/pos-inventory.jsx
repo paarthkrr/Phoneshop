@@ -360,7 +360,7 @@ export default function POSInventory() {
         )}
 
         {tab === "Quick Add" && (
-          <QuickAddTab colors={colors} onAdd={async (item) => {
+          <QuickAddTab colors={{ panel, panel2, paper, muted, brass, brassDim, green, line }} onAdd={async (item) => {
             await persistInventory([{ ...item, staffHandled: staffName || "unattributed" }, ...inventory]);
             setTab("Inventory");
           }} />
