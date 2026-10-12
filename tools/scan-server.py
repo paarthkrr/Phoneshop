@@ -28,13 +28,13 @@ class Handler(BaseHTTPRequestHandler):
     
     def scan_device(self):
         try:
-            udid = subprocess.check_output(['idevice_id', '-l'], text=True).strip().split('\n')[0]
+            udid = subprocess.check_output(['/opt/homebrew/bin/idevice_id', '-l'], text=True).strip().split('\n')[0]
             if not udid:
                 return {'error': 'No device connected'}
             
             def get(key):
                 try:
-                    return subprocess.check_output(['ideviceinfo', '-u', udid, '-k', key], text=True).strip()
+                    return subprocess.check_output(['/opt/homebrew/bin/ideviceinfo', '-u', udid, '-k', key], text=True).strip()
                 except:
                     return ''
             
@@ -45,7 +45,7 @@ class Handler(BaseHTTPRequestHandler):
             color = get('DeviceColor')
             # Get storage from disk_usage domain
             try:
-                disk = subprocess.check_output(['ideviceinfo', '-u', udid, '-q', 'com.apple.disk_usage'], text=True)
+                disk = subprocess.check_output(['/opt/homebrew/bin/ideviceinfo', '-u', udid, '-q', 'com.apple.disk_usage'], text=True)
                 import re
                 cap_m = re.search(r'TotalDiskCapacity:\s*(\d+)', disk)
                 capacity = cap_m.group(1) if cap_m else ''
@@ -75,7 +75,7 @@ class Handler(BaseHTTPRequestHandler):
             battery_health = ''
             cycles = ''
             try:
-                diag = subprocess.check_output(['idevicediagnostics', '-u', udid, 'diagnostics', 'GasGauge'], text=True, stderr=subprocess.DEVNULL)
+                diag = subprocess.check_output(['/opt/homebrew/bin/idevicediagnostics', '-u', udid, 'diagnostics', 'GasGauge'], text=True, stderr=subprocess.DEVNULL)
                 import re
                 # Parse XML plist format
                 cycle_m = re.search(r'<key>CycleCount</key>\s*<integer>(\d+)</integer>', diag)
@@ -93,7 +93,7 @@ class Handler(BaseHTTPRequestHandler):
             findmy = ''
             activation = ''
             try:
-                full = subprocess.check_output(['ideviceinfo', '-u', udid], text=True)
+                full = subprocess.check_output(['/opt/homebrew/bin/ideviceinfo', '-u', udid], text=True)
                 import re, base64
                 # Find My status from NonVolatileRAM
                 fm_m = re.search(r'fm-activation-locked:\s*(\S+)', full)
