@@ -25,8 +25,8 @@ STORAGE=""
 
 # Model mapping
 case "$PRODUCT" in
-  iPhone17,1|iPhone17,2) MODEL="iPhone 16 Pro Max"; YEAR="2024" ;;
-  iPhone17,3|iPhone17,4) MODEL="iPhone 16 Pro"; YEAR="2024" ;;
+  iPhone17,1|iPhone17,2) MODEL="iPhone 16 Pro"; YEAR="2024" ;;
+  iPhone17,3|iPhone17,4) MODEL="iPhone 16 Pro Max"; YEAR="2024" ;;
   iPhone16,1|iPhone16,2) MODEL="iPhone 15 Pro Max"; YEAR="2023" ;;
   iPhone16,3|iPhone16,4) MODEL="iPhone 15 Pro"; YEAR="2023" ;;
   iPhone15,2|iPhone15,3) MODEL="iPhone 14 Pro Max"; YEAR="2022" ;;
