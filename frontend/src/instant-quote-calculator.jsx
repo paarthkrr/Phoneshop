@@ -569,7 +569,7 @@ export default function QuoteCalculator() {
     });
     return merged;
   }, [live]);
-  const RETENTION_A = live?.retentionPoints || DEFAULT_RETENTION_POINTS;
+  const RETENTION_A = DEFAULT_RETENTION_POINTS; // force latest curve (ignore old stored config)
   const BRAND_FACTOR_A = useMemo(() => ({ ...DEFAULT_BRAND_FACTOR, ...(live?.brandFactors || {}) }), [live]);
   const TIERS_A = useMemo(() => {
     const byId = Object.fromEntries((live?.tiers || []).map((t) => [t.id, t]));
