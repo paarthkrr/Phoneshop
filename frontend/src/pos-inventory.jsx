@@ -201,7 +201,7 @@ function Code39Barcode({ value, height = 50, narrow = 2 }) {
   return <svg width={x} height={height} viewBox={`0 0 ${x} ${height}`}>{bars}</svg>;
 }
 
-const TABS = ["Buy", "Receive Orders", "Inventory", "Accessories", "Web Orders", "Sell"];
+const TABS = ["Buy", "Quick Add", "Receive Orders", "Inventory", "Accessories", "Web Orders", "Sell"];
 const ACCESSORIES_KEY = "accessories";
 const ACCESSORY_CATEGORIES = ["Cases & covers", "Screen protectors", "Chargers & cables", "DIY repair kits", "Audio", "Power banks", "Other"];
 
@@ -359,6 +359,12 @@ export default function POSInventory() {
             }} />
         )}
 
+        {tab === "Quick Add" && (
+          <QuickAddTab colors={colors} onAdd={async (item) => {
+            await persistInventory([{ ...item, staffHandled: staffName || "unattributed" }, ...inventory]);
+            setTab("Inventory");
+          }} />
+        )}
         {tab === "Inventory" && (
           <InventoryTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
             inventory={inventory} regions={regions}
@@ -801,6 +807,39 @@ function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+
+function QuickAddTab({ colors, onAdd }) {
+  const { panel, panel2, paper, muted, brass, brassDim, green, line } = colors;
+  const [items, setItems] = useState([]);
+  
+  useEffect(() => {
+    try {
+      const local = JSON.parse(localStorage.getItem('inventory') || '[]');
+      setItems(local.filter(i => i.status === 'available'));
+    } catch {}
+  }, []);
+  
+  if (!items.length) return <div style={{ color: muted, padding: 20 }}>No devices from USB scan. Connect phone and use quick-add page.</div>;
+  
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: muted, marginBottom: 12 }}>Devices scanned via USB — click to add to inventory</div>
+      {items.map((item, i) => (
+        <div key={i} style={{ background: panel2, border: `1px solid ${line}`, borderRadius: 6, padding: 14, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 600 }}>{item.model} {item.storage}</div>
+            <div style={{ fontSize: 12, color: muted }}>Color: {item.color} · Cycles: {item.cycles || 'N/A'} · Grade: {item.grade || 'A'}</div>
+            <div style={{ fontSize: 11, color: muted, marginTop: 4 }}>IMEI: •••{item.imei?.slice(-4) || '••••'}</div>
+          </div>
+          <button onClick={() => onAdd(item)} style={{ padding: "8px 16px", background: green, color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: 600 }}>
+            Add to Inventory
+          </button>
+        </div>
+      ))}
     </div>
   );
 }
