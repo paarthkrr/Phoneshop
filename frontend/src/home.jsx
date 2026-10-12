@@ -74,54 +74,75 @@ function upToFor(d, cfg) {
   return Math.floor(Math.max(0, ...Object.keys(d.retail || {}).map((s) => baseBuybackAUD(d, s, pts, f) || 0)) * (1 - hold));
 }
 const HERO_CSS = `
-.mvx-hero{position:relative;overflow:hidden;color:#0F1B3D;background:linear-gradient(118deg,#F3F7FF,#E6EEFC)}
-.mvx-hero-inner{max-width:1180px;margin:0 auto;padding:58px 22px 46px;display:grid;grid-template-columns:1.05fr 1fr;gap:26px;align-items:center}
-.mvx-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:.16em;color:#0F1B3D;margin-bottom:20px}
-.mvx-eyebrow i{width:26px;height:2px;background:#2150C8;display:block}
-.mvx-h1{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,6.4vw,68px);line-height:1.04;letter-spacing:-.02em;margin:0 0 18px}
-.mvx-h1 .mvx-blue{color:#2150C8}
+/* Chrome hero (design option 15): graphite stage, chrome type, holographic live-quote card.
+   Motion runs once on load and uses only transform/opacity, so it stays smooth on older phones. */
+.mvx-hero{position:relative;overflow:hidden;color:#fff;background:radial-gradient(60% 75% at 78% 42%,#252B3D 0%,#11141B 55%,#07080B 100%)}
+.mvx-hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(214,220,232,.35),rgba(255,255,255,0))}
+.mvx-hero-inner{position:relative;max-width:1180px;margin:0 auto;padding:64px 22px 60px;display:grid;grid-template-columns:1.05fr 1fr;gap:30px;align-items:center}
+.mvx-chrome{background:linear-gradient(180deg,#FFFFFF 0%,#CDD3DE 40%,#737C8C 54%,#ECEFF4 66%,#9AA3B2 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mvx-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.3em;color:rgba(214,220,232,.7);margin-bottom:20px}
+.mvx-eyebrow i{width:26px;height:1px;background:linear-gradient(90deg,#A9BDF5,rgba(169,189,245,0));display:block}
+.mvx-h1{font-family:'Outfit','Archivo',sans-serif;font-weight:800;font-size:clamp(44px,6.6vw,84px);line-height:.98;letter-spacing:-.045em;margin:0 0 20px}
+.mvx-line{display:block;overflow:hidden;padding-bottom:.06em}
+.mvx-line>span{display:block;transform:translateY(105%);animation:mvx-rise 1s cubic-bezier(.16,1,.3,1) forwards}
+.mvx-in{opacity:0;animation:mvx-up .8s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes mvx-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes mvx-rise{to{transform:none}}
 /* Phones: skip sections that repeat what's in the menu or later steps, so the page stays short. */
 @media (max-width:720px){.mvx-wide-only{display:none!important}}
-.mvx-word{display:inline-block;opacity:0;transform:translateY(45%);animation:mvx-up .75s cubic-bezier(.16,1,.3,1) forwards}
-.mvx-in{opacity:0;animation:mvx-up .75s cubic-bezier(.16,1,.3,1) forwards}
-@keyframes mvx-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
-.mvx-sub{font-size:17px;line-height:1.65;color:#5B6472;max-width:440px;margin:0 0 24px}
-.mvx-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
-.mvx-cta{position:relative;overflow:hidden;background:#2150C8;color:#fff;font-weight:800;padding:15px 22px;border-radius:12px;text-decoration:none;font-size:15.5px;box-shadow:0 12px 28px rgba(33,80,200,.28);transition:transform .2s ease}
+.mvx-sub{font-size:18px;line-height:1.6;color:rgba(255,255,255,.72);max-width:460px;margin:0 0 28px;font-weight:300}
+.mvx-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:30px}
+.mvx-cta{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 26px;border-radius:999px;background:linear-gradient(180deg,#FFFFFF,#C9D0DC);color:#0E0F13;font-weight:800;font-size:15.5px;text-decoration:none;box-shadow:0 14px 30px rgba(0,0,0,.35),inset 0 1px 0 #fff;transition:transform .2s ease}
 .mvx-cta:hover{transform:translateY(-2px)}
-.mvx-shine::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:mvx-shine 3.2s ease-in-out infinite}
-@keyframes mvx-shine{0%{left:-60%}60%,100%{left:130%}}
-.mvx-cta2{color:#0F1B3D;font-weight:800;padding:15px 20px;border-radius:12px;border:1.5px solid #C9D3E6;background:#fff;text-decoration:none;font-size:15.5px}
-.mvx-pills{display:flex;flex-wrap:wrap;gap:16px;font-size:13.5px;font-weight:700}
-.mvx-pills span{display:flex;align-items:center;gap:6px}.mvx-pills svg{width:17px;height:17px;color:#2150C8}
-.mvx-stage{position:relative;height:470px}
-.mvx-stage::before{content:"";position:absolute;width:380px;height:380px;border-radius:50%;border:1px solid rgba(33,80,200,.14);background:radial-gradient(closest-side,rgba(255,255,255,.9),rgba(255,255,255,0));top:22px;left:4%}
-.mvx-phones{position:absolute;inset:0}
-.mvx-phone{position:absolute;filter:drop-shadow(10px 18px 22px rgba(15,27,61,.12));transform:rotate(var(--r));animation:mvx-float 6s ease-in-out infinite}
-.mvx-phone svg{width:100%!important;height:auto!important}.mvx-ph-back{width:210px;left:2%;top:70px;--r:-10deg;opacity:.92}
-.mvx-ph-front{width:235px;left:27%;top:6px;--r:6deg;animation-delay:.9s}
-@keyframes mvx-float{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-12px)}}
-.mvx-sticker{position:absolute;top:18px;right:2%;background:#fff;border:1px solid #E2E6EC;border-radius:8px;padding:10px 13px;font-size:13px;font-weight:800;transform:rotate(4deg);box-shadow:0 8px 20px rgba(15,27,61,.08);z-index:3}
-.mvx-quote{position:absolute;right:0;bottom:0;width:300px;background:#fff;border:1px solid #E2E6EC;border-radius:16px;box-shadow:0 22px 60px rgba(15,27,61,.16);padding:18px;z-index:4;text-align:left}
-.mvx-quote-top{display:flex;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.08em;color:#5B6472;margin-bottom:12px}
-.mvx-live{display:flex;align-items:center;gap:6px;color:#0F1B3D}.mvx-live i{width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 0 4px rgba(16,185,129,.15);display:block;animation:mvx-pulse 1.8s ease-in-out infinite}
-@keyframes mvx-pulse{50%{box-shadow:0 0 0 7px rgba(16,185,129,0)}}
-.mvx-quote label{display:grid;gap:5px;font-size:12px;color:#5B6472;font-weight:700}
-.mvx-quote select{width:100%;height:40px;border:1px solid #E2E6EC;background:#F4F6F9;border-radius:10px;padding:0 10px;font-size:14px;font-weight:700;color:#0F1B3D;font-family:inherit}
-.mvx-quote-row{display:grid;grid-template-columns:1.6fr 1fr;gap:8px}
-.mvx-est{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:14px 0}.mvx-quote-img{width:62px;flex-shrink:0;background:#F4F6F9;border-radius:12px;padding:4px;animation:mvx-flip .45s cubic-bezier(.16,1,.3,1)}.mvx-quote-img svg{width:100%!important;height:auto!important}
-.mvx-est-label{font-size:12px;color:#5B6472}.mvx-price{display:block;font-family:'Archivo Black',sans-serif;font-size:34px;line-height:1.1;color:#0F1B3D;animation:mvx-flip .45s cubic-bezier(.16,1,.3,1)}
+.mvx-cta2{display:inline-flex;align-items:center;min-height:50px;padding:0 24px;border-radius:999px;border:1px solid rgba(255,255,255,.3);color:#fff;font-weight:700;font-size:15.5px;text-decoration:none;transition:background-color .2s ease}
+.mvx-cta2:hover{background:rgba(255,255,255,.08)}
+.mvx-pills{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.62)}
+.mvx-pills span{display:flex;align-items:center;gap:7px}.mvx-pills svg{width:17px;height:17px;color:#A9BDF5}
+.mvx-stage{position:relative;height:520px;perspective:1400px}
+.mvx-glow{position:absolute;left:8%;right:0;bottom:22px;height:90px;border-radius:50%;background:radial-gradient(closest-side,rgba(120,150,255,.28),rgba(120,150,255,0));opacity:0;animation:mvx-fade 1.6s ease .5s forwards}
+.mvx-phone{position:absolute;right:0;top:-6px;width:230px;height:478px;object-fit:contain;opacity:0;transform:translateX(70px) rotate(14deg);animation:mvx-phone 1.5s cubic-bezier(.16,1,.3,1) .2s forwards}
+@keyframes mvx-phone{to{opacity:1;transform:rotate(14deg)}}
+.mvx-card{position:absolute;left:0;top:44px;width:390px;border-radius:30px;padding:2px;background:conic-gradient(from 200deg,#A9BDF5,#F3B6E8,#9FF0DE,#F5E3A9,#A9BDF5);opacity:0;transform:rotateY(46deg) rotateX(10deg) translateZ(-180px);animation:mvx-card 1.7s cubic-bezier(.16,1,.3,1) .4s forwards;box-shadow:0 50px 100px rgba(0,0,0,.55)}
+@keyframes mvx-card{to{opacity:1;transform:rotateY(-10deg) rotateX(5deg)}}
+.mvx-quote{position:relative;overflow:hidden;border-radius:28px;padding:24px;background:linear-gradient(160deg,rgba(30,34,46,.97),rgba(14,16,22,.97));text-align:left}
+.mvx-sheen{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,0) 30%,rgba(170,200,255,.2) 45%,rgba(255,180,240,.14) 52%,rgba(255,255,255,0) 66%);transform:translateX(-90%);animation:mvx-sheen 1.6s cubic-bezier(.4,0,.2,1) 1.8s forwards;pointer-events:none}
+@keyframes mvx-sheen{to{transform:translateX(95%)}}
+.mvx-quote-top{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:700;letter-spacing:.22em;color:rgba(255,255,255,.55);margin-bottom:14px}
+.mvx-live{display:flex;align-items:center;gap:7px;letter-spacing:.04em;color:#9FF0DE}.mvx-live i{width:7px;height:7px;border-radius:50%;background:#9FF0DE;display:block}
+.mvx-quote label{display:grid;gap:6px;font-size:12px;color:rgba(255,255,255,.6);font-weight:600}
+.mvx-quote select{width:100%;height:48px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.35);border-radius:14px;padding:0 12px;font-size:16px;font-weight:700;color:#fff;font-family:inherit;color-scheme:dark}
+.mvx-sizes{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.mvx-size{min-height:40px;padding:0 15px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:transparent;color:#fff;font:600 13.5px inherit;cursor:pointer;font-family:inherit;transition:background-color .15s ease,color .15s ease}
+.mvx-size[aria-pressed="true"]{background:rgba(255,255,255,.92);color:#0E0F13;border-color:transparent}
+.mvx-est{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin:18px 0 0;padding-top:16px;border-top:1px solid rgba(255,255,255,.1)}
+.mvx-est-label{display:block;font-size:12.5px;color:rgba(255,255,255,.6)}
+.mvx-price{display:block;font-family:'Outfit','Archivo',sans-serif;font-weight:800;font-size:46px;line-height:1.05;letter-spacing:-.03em;animation:mvx-flip .45s cubic-bezier(.16,1,.3,1)}
 @keyframes mvx-flip{from{opacity:0;transform:translateY(40%)}to{opacity:1;transform:none}}
-.mvx-cash{font-size:12px;font-weight:800;color:#047857;background:#ECFDF5;border-radius:8px;padding:6px 8px;white-space:nowrap}
-.mvx-quote-btn{display:flex;justify-content:space-between;align-items:center;width:100%;background:#0F1B3D;color:#fff;border-radius:10px;padding:12px 14px;font-weight:800;font-size:14.5px;text-decoration:none;box-sizing:border-box}
-.mvx-quote-note{font-size:11.5px;color:#5B6472;margin-top:9px;line-height:1.45}
-.mvx-benefits{border-top:1px solid #DCE4F2;background:#fff}
+.mvx-cash{font-size:12px;font-weight:800;color:#9FF0DE;background:rgba(159,240,222,.1);border:1px solid rgba(159,240,222,.25);border-radius:999px;padding:6px 10px;white-space:nowrap}
+.mvx-quote-btn{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:52px;margin-top:16px;background:linear-gradient(180deg,#FFFFFF,#C9D0DC);color:#0E0F13;border-radius:16px;padding:0 18px;font-weight:800;font-size:15.5px;text-decoration:none;box-sizing:border-box}
+.mvx-quote-note{font-size:11.5px;color:rgba(255,255,255,.5);margin-top:10px;line-height:1.45}
+@keyframes mvx-fade{to{opacity:1}}
+/* Silver strip under the hero (design option 17) */
+.mvx-benefits{background:linear-gradient(180deg,#EEF1F6,#E3E7EE);border-bottom:1px solid #D5DAE3}
 .mvx-benefits-inner{max-width:1180px;margin:0 auto;padding:18px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.mvx-benefits-inner div{display:flex;align-items:center;justify-content:center;gap:9px;font-size:13.5px;font-weight:700}
+.mvx-benefits-inner div{display:flex;align-items:center;justify-content:center;gap:9px;font-size:13.5px;font-weight:700;color:#1F2430}
 .mvx-benefits-inner svg{width:19px;height:19px;color:#2150C8;flex-shrink:0}
-@media(max-width:860px){.mvx-hero-inner{grid-template-columns:1fr;padding:34px 18px 26px}.mvx-stage{height:430px;max-width:420px;width:100%;margin:0 auto}.mvx-stage::before{width:290px;height:290px;left:6px}.mvx-ph-back{width:150px;left:0;top:52px}.mvx-ph-front{width:170px;left:24%;top:4px}.mvx-quote{width:250px;padding:14px}.mvx-price{font-size:28px}.mvx-sticker{font-size:11.5px;top:4px}.mvx-benefits-inner{grid-template-columns:1fr 1fr}.mvx-benefits-inner div{justify-content:flex-start;font-size:12.5px}}
-@media(prefers-reduced-motion:reduce){.mvx-phone,.mvx-shine::after,.mvx-live i{animation:none}.mvx-word,.mvx-in{animation:mvx-fade .6s ease forwards;transform:none}.mvx-price{animation:mvx-fade .3s ease}}
-@keyframes mvx-fade{from{opacity:0}to{opacity:1}}
+@media(max-width:860px){
+  .mvx-hero-inner{grid-template-columns:1fr;padding:36px 18px 34px;gap:8px}
+  .mvx-stage{height:auto;perspective:none;padding-top:8px}
+  .mvx-phone{display:none}
+  .mvx-card{position:relative;top:auto;width:auto;max-width:440px;transform:translateY(40px);animation-name:mvx-card-m}
+  .mvx-glow{display:none}
+  .mvx-price{font-size:38px}
+  .mvx-benefits-inner{grid-template-columns:repeat(2,1fr);padding:14px 16px}
+  .mvx-benefits-inner div{justify-content:flex-start;font-size:12.5px}
+}
+@keyframes mvx-card-m{to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  .mvx-line>span,.mvx-in,.mvx-phone,.mvx-card,.mvx-glow,.mvx-price{animation:none!important;opacity:1}
+  .mvx-line>span{transform:none}.mvx-phone{transform:rotate(14deg)}.mvx-card{transform:rotateY(-10deg) rotateX(5deg)}.mvx-sheen{display:none}
+}
+@media(prefers-reduced-motion:reduce) and (max-width:860px){.mvx-card{transform:none}}
 `;
 const IC = {
   truck: <path d="M3 7h11v9H3zM14 10h4l3 3v3h-7zM7 19.3a1.8 1.8 0 1 0 0-.1M17 19.3a1.8 1.8 0 1 0 0-.1" />,
@@ -132,8 +153,8 @@ const IC = {
 };
 const Ico = ({ k }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{IC[k]}</svg>;
 
-// Lovable-inspired hero: light canvas, the shop's own phones, and a live quote card.
-// Prices use the same capped "up to" formula as the quote tool (never above a real quote).
+// Chrome hero (design option 15). Same live quote as before: pick a model and size,
+// see the capped "up to" price from the quote tool's formula, then go to the full quote.
 function Hero({ quoteModels }) {
   const [mi, setMi] = useState(0);
   const [si, setSi] = useState(0);
@@ -141,56 +162,51 @@ function Hero({ quoteModels }) {
   const storages = cur ? Object.keys(cur.prices) : [];
   const storage = storages[Math.min(si, storages.length - 1)];
   const price = cur && storage ? cur.prices[storage] : 0;
-  const words = [["Sell", 0], ["your", 0], ["phone.", 0], ["Get", 1], ["paid", 1], ["today.", 1]];
   return (
     <>
       <section className="mvx-hero" aria-label="Sell your phone">
         <style>{HERO_CSS}</style>
         <div className="mvx-hero-inner">
           <div>
-            <div className="mvx-eyebrow mvx-in"><i />SYDNEY · SELL · REPAIR · BUY</div>
+            <div className="mvx-eyebrow mvx-in" style={{ animationDelay: "0.1s" }}><i />SYDNEY · SELL · REPAIR · BUY</div>
             <h1 className="mvx-h1">
-              {words.map(([w, hl], n) => <span key={n} className={"mvx-word" + (hl ? " mvx-blue" : "")} style={{ animationDelay: `${0.15 + n * 0.07}s` }}>{w}{n === 2 ? <br /> : "\u00a0"}</span>)}
+              <span className="mvx-line"><span className="mvx-chrome" style={{ animationDelay: "0.2s" }}>Sell your phone.</span></span>
+              <span className="mvx-line"><span className="mvx-chrome" style={{ animationDelay: "0.34s" }}>Get paid today.</span></span>
             </h1>
             <p className="mvx-sub mvx-in" style={{ animationDelay: "0.6s" }}>Sell it. Fix it. Find your next one. We collect from your door anywhere in Sydney and pay you in cash.</p>
-            <div className="mvx-ctas mvx-in" style={{ animationDelay: "0.7s" }}>
-              <a href="/quote" className="mvx-cta mvx-shine">Sell my phone ↗</a>
-              <a href="/shop" className="mvx-cta2">Shop refurbished ↗</a>
+            <div className="mvx-ctas mvx-in" style={{ animationDelay: "0.72s" }}>
+              <a href="/quote" className="mvx-cta">Sell my phone <span aria-hidden="true">→</span></a>
+              <a href="/shop" className="mvx-cta2">Shop refurbished</a>
             </div>
-            <div className="mvx-pills mvx-in" style={{ animationDelay: "0.8s" }}>
-              <span><Ico k="truck" />Home collection across Sydney</span>
+            <div className="mvx-pills mvx-in" style={{ animationDelay: "0.85s" }}>
+              <span><Ico k="truck" />Home collection</span>
               <span><Ico k="cash" />Paid in cash</span>
               <span><Ico k="shield" />49-point check</span>
             </div>
           </div>
           <div className="mvx-stage">
-            <div className="mvx-phones" aria-hidden="true">
-              <div className="mvx-phone mvx-ph-back"><DeviceArtCard type="phone" size={240} brand="Samsung" model="Galaxy S26 Ultra" /></div>
-              <div className="mvx-phone mvx-ph-front"><DeviceArtCard type="phone" size={260} brand="Apple" model="iPhone 17 Pro Max" /></div>
-            </div>
-            <div className="mvx-sticker">♻ Good phones. More life.</div>
+            <div className="mvx-glow" aria-hidden="true" />
+            <img className="mvx-phone" src="/photos/real/iphone-18-pro.webp" alt="" aria-hidden="true" width="230" height="478" decoding="async" />
             {cur && (
-              <div className="mvx-quote mvx-in" style={{ animationDelay: "0.5s" }}>
-                <div className="mvx-quote-top"><span className="mvx-live"><i />LIVE QUOTE</span><span>SYDNEY</span></div>
-                <div className="mvx-quote-row">
+              <div className="mvx-card">
+                <div className="mvx-quote">
+                  <div className="mvx-quote-top"><span>YOUR DEVICE</span><span className="mvx-live"><i />Live price</span></div>
                   <label>Model
                     <select aria-label="Phone model" value={mi} onChange={(e) => { setMi(+e.target.value); setSi(0); }}>
                       {quoteModels.map((q, n) => <option key={q.model} value={n}>{q.model}</option>)}
                     </select>
                   </label>
-                  <label>Storage
-                    <select aria-label="Storage" value={si} onChange={(e) => setSi(+e.target.value)}>
-                      {storages.map((s, n) => <option key={s} value={n}>{s}</option>)}
-                    </select>
-                  </label>
+                  <div className="mvx-sizes" role="group" aria-label="Storage">
+                    {storages.map((s, n) => <button key={s} type="button" className="mvx-size" aria-pressed={n === Math.min(si, storages.length - 1)} onClick={() => setSi(n)}>{s}</button>)}
+                  </div>
+                  <div className="mvx-est">
+                    <div><span className="mvx-est-label">Yours could be worth up to</span><span key={cur.model + storage} className="mvx-price mvx-chrome">${price.toLocaleString()}</span></div>
+                    <span className="mvx-cash">Paid in cash</span>
+                  </div>
+                  <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-quote-btn">Get my exact quote <span aria-hidden="true">→</span></a>
+                  <div className="mvx-quote-note">Top price for a flawless device. Final offer after our 49-point check.</div>
+                  <div className="mvx-sheen" aria-hidden="true" />
                 </div>
-                <div className="mvx-est">
-                  <div key={"img" + cur.model} className="mvx-quote-img" aria-hidden="true"><DeviceArtCard type="phone" size={74} brand={cur.brand} model={cur.model} /></div>
-                  <div style={{ flex: 1 }}><span className="mvx-est-label">Yours could be worth up to</span><span key={cur.model + storage} className="mvx-price">${price.toLocaleString()}</span></div>
-                  <span className="mvx-cash">💵 Paid in cash</span>
-                </div>
-                <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-quote-btn fx-shimmer">Get my exact quote <span aria-hidden="true">→</span></a>
-                <div className="mvx-quote-note">Top price for a flawless device. Final offer after our 49-point check.</div>
               </div>
             )}
           </div>
@@ -274,13 +290,15 @@ function BentoTrust() {
   const gridRef = useRef(null);
   useSpotlight(gridRef, ".bt-card");
   return (
+    <div className="bt-band">
     <section aria-label="Why choose Mobile Recellr" className="bt-wrap">
       <style>{FX_CSS + `
-        .bt-wrap { max-width: 1140px; margin: 0 auto 50px; padding: 0 20px; }
-        .bt-head { font-family: 'Archivo Black', sans-serif; font-size: 24px; letter-spacing: -0.01em; text-align: center; margin: 0 0 18px; }
+        .bt-band { background: linear-gradient(180deg, #F4F6F9 0%, #E6EAF0 100%); padding: 52px 0 56px; margin-bottom: 50px; }
+        .bt-wrap { max-width: 1140px; margin: 0 auto; padding: 0 20px; }
+        .bt-head { font-family: 'Outfit', 'Archivo', sans-serif; font-weight: 800; font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.035em; text-align: center; margin: 0 0 22px; background: linear-gradient(180deg, #3A404D 0%, #11141B 45%, #5B6373 60%, #1A1E27 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .bt-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr));
           grid-template-areas: "big big war war" "big big pm pm" "gad dat ret bat" "par par any any"; }
-        .bt-card { position: relative; border: 1px solid #E2E6EC; border-radius: 18px; padding: 18px; background: #fff; color: #111827; min-width: 0;
+        .bt-card { position: relative; border: 1px solid rgba(255,255,255,.95); border-radius: 22px; padding: 18px; background: linear-gradient(150deg, rgba(255,255,255,.92), rgba(255,255,255,.7)); box-shadow: 0 18px 40px rgba(31,36,48,.08), inset 0 1px 0 #fff; color: #111827; min-width: 0;
           transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
         .bt-card:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(17,24,39,.08); border-color: #C9D5F5; }
         .bt-ic { width: 42px; height: 42px; border-radius: 12px; background: #EEF3FF; color: #2150C8; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
@@ -290,10 +308,10 @@ function BentoTrust() {
         .bt-wide .bt-ic { margin-bottom: 0; flex: 0 0 auto; }
         .bt-war { background: #F5F8FF; border-color: #D9E3FB; }
         .bt-big { overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; min-height: 280px; padding: 26px; border: none; color: #fff;
-          background: radial-gradient(120% 90% at 100% 0%, #3B6BE0 0%, rgba(59,107,224,0) 60%), linear-gradient(150deg, #0F1B3D 0%, #1B3A8F 70%, #2150C8 100%); }
+          background: radial-gradient(90% 90% at 85% 15%, #2A3046 0%, rgba(42,48,70,0) 60%), linear-gradient(150deg, #0B0C10 0%, #161A24 60%, #222838 100%); }
         .bt-big::before { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.08); }
         .bt-big .bt-ic { position: absolute; top: 24px; left: 26px; width: 52px; height: 52px; border-radius: 15px; background: rgba(255,255,255,.14); color: #fff; }
-        .bt-big .bt-t { font-family: 'Archivo Black', sans-serif; font-weight: 400; font-size: clamp(22px, 2.6vw, 28px); line-height: 1.15; margin-bottom: 8px; position: relative; }
+        .bt-big .bt-t { font-family: 'Outfit', 'Archivo', sans-serif; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(180deg, #FFFFFF 0%, #CDD3DE 40%, #8A93A3 56%, #ECEFF4 70%, #AEB6C4 100%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: clamp(22px, 2.6vw, 28px); line-height: 1.15; margin-bottom: 8px; position: relative; }
         .bt-big .bt-d { color: rgba(255,255,255,.86); font-size: 15px; max-width: 420px; position: relative; }
         .bt-cta { position: relative; align-self: flex-start; margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 18px; border-radius: 999px;
           background: #fff; color: #1B43AA; font-weight: 800; font-size: 14px; text-decoration: none; transition: transform .15s ease; }
@@ -333,6 +351,7 @@ function BentoTrust() {
         })}
       </div>
     </section>
+    </div>
   );
 }
 
@@ -392,13 +411,13 @@ export default function Home() {
         .mv-rise { animation: mv-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .mv-hero { position: relative; overflow: hidden; }
         .mv-hero::before { content: ""; position: absolute; top: -140px; left: 50%; width: 620px; height: 620px; margin-left: -310px;
-          background: radial-gradient(circle, rgba(33,80,200,0.16) 0%, rgba(33,80,200,0) 65%); animation: mv-glow 7s ease-in-out infinite; pointer-events: none; }
+          background: radial-gradient(circle, rgba(33,80,200,0.16) 0%, rgba(33,80,200,0) 65%); pointer-events: none; }
         .mv-hero > * { position: relative; }
         .mv-action:hover { border-color: #2150C8 !important; }
         .mv-action:hover .mv-arrow { transform: translateX(5px); }
         .mv-arrow { display: inline-block; transition: transform 0.2s ease; }
         @keyframes mv-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
-        .mv-float { animation: mv-float 4.5s ease-in-out infinite; }
+        .mv-float { }
         .mv-chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #fff;
           border: 1px solid rgba(32,28,24,0.16); color: #111827; text-decoration: none; font-size: 14px; font-weight: 600;
           transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease; }
