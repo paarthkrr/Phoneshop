@@ -4,7 +4,7 @@
 import { mergeCatalog } from "./device-catalog.js";
 
 export const DEFAULT_RETENTION_POINTS = [
-  { m: 0, r: 0.72 }, { m: 12, r: 0.56 }, { m: 24, r: 0.49 },
+  { m: 0, r: 0.74 }, { m: 12, r: 0.56 }, { m: 24, r: 0.49 },
   { m: 36, r: 0.35 },  // modestly lowered after month 0 so older models sit closer to PhoneExchange / Mobile Monster
   { m: 48, r: 0.31 }, { m: 60, r: 0.22 },
   { m: 72, r: 0.155 }, { m: 84, r: 0.105 }, { m: 96, r: 0.07 },
