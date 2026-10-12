@@ -26,10 +26,8 @@
   <h1>Quick Add Device</h1>
   <p class="subtitle">Connect phone via USB, then click scan or details auto-fill</p>
   
-  <button class="secondary" onclick="showScanHelp()">📱 Scan USB Device</button>
-  <div id="scan-help" style="display:none" class="status info">
-    Terminal mein run karo:<br><code>~/Desktop/usb-scan.sh</code>
-  </div>
+  <button class="secondary" onclick="scanUSB()">📱 Scan USB Device</button>
+  <div id="scan-status"></div>
 
   
   <label>IMEI</label>
@@ -130,7 +128,41 @@
       }
     }
     
+    
+    async function scanUSB() {
+      const status = document.getElementById('scan-status');
+      status.innerHTML = '<div class="status info">Scanning...</div>';
+      try {
+        const res = await fetch('http://localhost:19876/scan');
+        const data = await res.json();
+        if (data.error) {
+          status.innerHTML = '<div class="status" style="background:#3a1a1a;color:#f66">' + data.error + '</div>';
+          return;
+        }
+        // Fill form
+        if (data.imei) document.getElementById('imei').value = data.imei;
+        if (data.serial) document.getElementById('serial').value = data.serial;
+        if (data.year) document.getElementById('year').value = data.year;
+        if (data.color) document.getElementById('color').value = data.color;
+        if (data.ios) document.getElementById('ios').value = data.ios;
+        if (data.battery) document.getElementById('battery').value = data.battery + '%';
+        if (data.cycles) document.getElementById('cycles').value = data.cycles;
+        if (data.model) {
+          const sel = document.getElementById('model');
+          for (let opt of sel.options) if (opt.value === data.model) sel.value = opt.value;
+        }
+        if (data.storage) {
+          const sel = document.getElementById('storage');
+          for (let opt of sel.options) if (opt.value === data.storage) sel.value = opt.value;
+        }
+        status.innerHTML = '<div class="status ok">✓ Device scanned</div>';
+      } catch (e) {
+        status.innerHTML = '<div class="status" style="background:#3a1a1a;color:#f66">Server not running. Start: python3 ~/Desktop/scan-server.py</div>';
+      }
+    }
+    
     function showScanHelp() {
+
       document.getElementById('scan-help').style.display = 'block';
     }
     
