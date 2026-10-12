@@ -105,6 +105,27 @@
   <label>Buy Price ($)</label>
   <input id="price" type="number" placeholder="Enter price">
   
+  
+  <label>Condition Checklist</label>
+  <div style="background:#1a1a1a;padding:12px;border-radius:8px;margin-bottom:12px">
+    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
+      <input type="checkbox" id="c-screen" onchange="updateGrade()"> Screen scratches
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
+      <input type="checkbox" id="c-body" onchange="updateGrade()"> Body dents/scratches
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
+      <input type="checkbox" id="c-battery" onchange="updateGrade()"> Battery below 85%
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
+      <input type="checkbox" id="c-crack" onchange="updateGrade()"> Screen crack
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
+      <input type="checkbox" id="c-water" onchange="updateGrade()"> Water damage
+    </label>
+    <div id="grade-hint" style="margin-top:10px;padding:8px;background:#2a2a2a;border-radius:6px;font-size:13px;color:#6f6"></div>
+  </div>
+
   <label>Grade</label>
   <select id="grade">
     <option value="A">Grade A - Like New (100%)</option>
@@ -200,7 +221,37 @@
     }
     
     
+    
+    function updateGrade() {
+      const issues = [
+        document.getElementById('c-screen').checked,
+        document.getElementById('c-body').checked,
+        document.getElementById('c-battery').checked,
+        document.getElementById('c-crack').checked,
+        document.getElementById('c-water').checked
+      ].filter(Boolean).length;
+      
+      const gradeSel = document.getElementById('grade');
+      const hint = document.getElementById('grade-hint');
+      
+      if (issues === 0) {
+        gradeSel.value = 'A';
+        hint.textContent = 'Suggested: Grade A (Like New) - Full price';
+      } else if (issues === 1) {
+        gradeSel.value = 'B';
+        hint.textContent = 'Suggested: Grade B (Excellent) - 10% off';
+      } else if (issues === 2) {
+        gradeSel.value = 'C';
+        hint.textContent = 'Suggested: Grade C (Good) - 20% off';
+      } else {
+        gradeSel.value = 'D';
+        hint.textContent = 'Suggested: Grade D (Fair) - 30% off';
+      }
+      calcPrice();
+    }
+    
     function calcPrice() {
+
       const buy = Number(document.getElementById('price').value) || 0;
       const grade = document.getElementById('grade').value;
       const multipliers = { A: 1.0, B: 0.9, C: 0.8, D: 0.7 };
