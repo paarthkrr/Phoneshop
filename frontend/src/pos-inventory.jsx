@@ -965,7 +965,8 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
   const [writeOffReason, setWriteOffReason] = useState("Damaged");
   const [writeOffNote, setWriteOffNote] = useState("");
   const [visibleCount, setVisibleCount] = useState(30);
-  const [priceEdit, setPriceEdit] = useState(null); // { id, value }
+  const [priceEdit, setPriceEdit] = useState(null);
+  const [sellPriceEdit, setSellPriceEdit] = useState(null); // { id, value }
   const [photoItemId, setPhotoItemId] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const filtered = inventory.filter((i) => filter === "all" || i.status === filter);
@@ -1129,8 +1130,25 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
               <button onClick={() => setEditItem(item)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
                 Edit
               </button>
-              {(item.status === "available" || item.status === "in_stock") && item.price > 0 && (
-                <button onClick={() => onUpdate(item.id, { status: "listed", listedAt: new Date().toISOString(), listedPrice: item.price })} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer", fontWeight: 600 }}>
+              {sellPriceEdit && sellPriceEdit.id === item.id ? (
+                <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                  <input value={sellPriceEdit.value} onChange={(e) => setSellPriceEdit({ id: item.id, value: e.target.value })} placeholder="Sell price" inputMode="decimal"
+                    style={{ width: 80, padding: "5px 8px", fontSize: 12.5, border: `1px solid ${line}`, borderRadius: 2 }} />
+                  <button onClick={() => { 
+                    const p = parseFloat(String(sellPriceEdit.value).replace(/[$,]/g, ""));
+                    if (p > 0) onUpdate(item.id, { price: p, listedPrice: p });
+                    setSellPriceEdit(null);
+                  }} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer" }}>Save</button>
+                  <button onClick={() => setSellPriceEdit(null)} style={{ padding: "6px 8px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>Cancel</button>
+                </span>
+              ) : (
+                <button onClick={() => setSellPriceEdit({ id: item.id, value: String(item.listedPrice || item.price || "") })}
+                  style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
+                  Sell Price
+                </button>
+              )}
+              {(item.status === "available" || item.status === "in_stock") && (item.price > 0 || item.listedPrice > 0) && (
+                <button onClick={() => onUpdate(item.id, { status: "listed", listedAt: new Date().toISOString(), listedPrice: item.listedPrice || item.price })} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer", fontWeight: 600 }}>
                   List on Website
                 </button>
               )}
