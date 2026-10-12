@@ -69,9 +69,9 @@ export const FX_CSS = `
   .fx-shimmer { position: relative; overflow: hidden; isolation: isolate; }
   .fx-shimmer::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
     background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.28) 48%, transparent 66%);
-    transform: translateX(-120%); animation: fx-sweep 3.6s cubic-bezier(.4,0,.2,1) 1.2s infinite; }
+    transform: translateX(-120%); animation: fx-sweep 1.6s cubic-bezier(.4,0,.2,1) 1.4s 1 forwards; }
   .fx-shimmer.fx-on-light::after { background: linear-gradient(110deg, transparent 30%, rgba(33,80,200,.16) 48%, transparent 66%); }
-  @keyframes fx-sweep { 0% { transform: translateX(-120%); } 45%, 100% { transform: translateX(120%); } }
+  @keyframes fx-sweep { to { transform: translateX(120%); } }
 
   .fx-spot { position: relative; }
   .fx-spot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .25s ease;
