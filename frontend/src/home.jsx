@@ -186,7 +186,7 @@ function Hero({ quoteModels }) {
           </div>
           <div className="mvx-stage">
             <div className="mvx-glow" aria-hidden="true" />
-            <img className="mvx-phone" src="/photos/real/iphone-18-pro.webp" alt="" aria-hidden="true" width="230" height="478" decoding="async" />
+            <img className="mvx-phone" src="/photos/real/iphone-18-burgundy.jpg" alt="" aria-hidden="true" width="230" height="478" decoding="async" />
             {cur && (
               <div className="mvx-card">
                 <div className="mvx-quote">
