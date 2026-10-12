@@ -3,6 +3,7 @@ import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useMemo } from "react";
 import { ScanButton } from "./barcode-scanner.jsx";
+import { generateBarcode } from "./barcode-gen.js";
 import { publishPatch, pricePatch, wasPrice, MIN_DAYS_AT_OLD_PRICE } from "./price-history.js";
 
 /* =================================================================
@@ -41,6 +42,7 @@ async function saveJSON(key, value, shared) {
   }
 }
 const genId = (prefix) => `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
+const ensureBarcode = (item) => item.barcode || item.imei || generateBarcode(item.brand?.slice(0,2) || "MR");
 const ACCESSORY_LOW_STOCK_THRESHOLD = 2;
 async function queueNotification(entry) {
   if (!storageAvailable()) return false;
