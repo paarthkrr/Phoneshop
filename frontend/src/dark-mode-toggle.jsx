@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./dark-mode.css";
+import "./burgundy-theme.css";
 
 export default function DarkModeToggle() {
   const [dark, setDark] = useState(() => {
@@ -17,6 +18,7 @@ export default function DarkModeToggle() {
       onClick={() => setDark((d) => !d)}
       aria-label="Toggle dark mode"
       title="Toggle dark mode"
+      style={{ marginLeft: 8 }}
     >
       {dark ? "☀️" : "🌙"}
     </button>
