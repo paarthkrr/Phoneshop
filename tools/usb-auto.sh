@@ -15,6 +15,17 @@ while true; do
       PRODUCT=$(ideviceinfo -u "$UDID" -k ProductType 2>/dev/null)
       VERSION=$(ideviceinfo -u "$UDID" -k ProductVersion 2>/dev/null)
       COLOR=$(ideviceinfo -u "$UDID" -k DeviceColor 2>/dev/null)
+
+      # Battery
+      BATTERY=$(idevicediagnostics -u "$UDID" diagnostics GasGauge 2>/dev/null)
+      CYCLE=$(echo "$BATTERY" | grep -i "CycleCount" | grep -o '[0-9]*' | head -1)
+      DESIGN=$(echo "$BATTERY" | grep -i "DesignCapacity" | grep -o '[0-9]*' | head -1)
+      FULL=$(echo "$BATTERY" | grep -i "FullChargeCapacity" | grep -o '[0-9]*' | head -1)
+      HEALTH=""
+      if [ -n "$DESIGN" ] && [ -n "$FULL" ] && [ "$DESIGN" -gt 0 ]; then
+        HEALTH=$((FULL * 100 / DESIGN))
+      fi
+
       
       case "$PRODUCT" in
         iPhone17,1|iPhone17,2) MODEL="iPhone 16 Pro"; YEAR="2024" ;;
@@ -27,7 +38,7 @@ while true; do
         1) COLORNAME="Black" ;; 2) COLORNAME="White" ;; *) COLORNAME="" ;;
       esac
       
-      PARAMS="imei=$IMEI&model=$(echo $MODEL|sed 's/ /%20/g')&serial=$SERIAL&color=$COLORNAME&year=$YEAR&ios=$VERSION"
+      PARAMS="imei=$IMEI&model=$(echo $MODEL|sed 's/ /%20/g')&serial=$SERIAL&color=$COLORNAME&year=$YEAR&ios=$VERSION&battery=$HEALTH&cycles=$CYCLE"
       URL="https://mobilerecellr.com.au/quick-add.html?$PARAMS"
       
       echo "URL: $URL" >> "$LOG"
