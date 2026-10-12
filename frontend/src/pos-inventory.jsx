@@ -238,7 +238,11 @@ export default function POSInventory() {
       const [c, o, inv, s, staff, acc, po, ao] = await Promise.all([
         loadJSON(CONFIG_KEY, true), loadJSON(ORDERS_KEY, true), loadJSON(INVENTORY_KEY, true), loadJSON(SALES_KEY, true), loadJSON(STAFF_KEY, false), loadJSON(ACCESSORIES_KEY, true), loadJSON("purchase_orders", true), loadJSON("accessory_orders", true),
       ]);
-      setConfig(c); setOrders(o || []); setInventory(inv || []); setSales(s || []);
+      setConfig(c); setOrders(o || []); // Merge with localStorage (quick-add)
+        let localInv = [];
+        try { localInv = JSON.parse(localStorage.getItem('inventory') || '[]'); } catch {}
+        const merged = [...(inv || []), ...localInv.filter(l => !(inv || []).some(i => i.id === l.id))];
+        setInventory(merged); setSales(s || []);
       const authed = getAuthedUser();
       if (authed) { setAuthedUser(authed); setStaffName(authed.username); } // real login overrides free text entirely
       else if (staff) setStaffName(staff);
