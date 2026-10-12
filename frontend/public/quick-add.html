@@ -292,7 +292,7 @@
       const inventory = JSON.parse(localStorage.getItem('inventory') || '[]');
       inventory.push(item);
       localStorage.setItem('inventory', JSON.stringify(inventory));
-      document.getElementById('status').innerHTML = '<div class="status ok">✓ Added to inventory</div>';
+      document.getElementById('status').innerHTML = '<div class="status ok">✓ Added to inventory<br><a href="/shop" style="color:#6f6;margin-top:8px;display:inline-block">View in Shop →</a></div>';
     }
   </script>
 </body>
