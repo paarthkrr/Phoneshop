@@ -815,13 +815,52 @@ function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
 function QuickAddTab({ colors, onAdd }) {
   const { panel, panel2, paper, muted, brass, brassDim, green, line } = colors;
   const [items, setItems] = useState([]);
+  const [pending, setPending] = useState(null);
   
   useEffect(() => {
+    // Check URL params for USB scan
+    const params = new URLSearchParams(location.search);
+    if (params.get('quickadd')) {
+      setPending({
+        imei: params.get('imei') || '',
+        model: params.get('model') || '',
+        serial: params.get('serial') || '',
+        storage: params.get('storage') || '',
+        color: params.get('color') || '',
+        year: params.get('year') || '',
+      });
+    }
     try {
       const local = JSON.parse(localStorage.getItem('inventory') || '[]');
       setItems(local.filter(i => i.status === 'available'));
     } catch {}
   }, []);
+  
+  if (pending) {
+    return (
+      <div style={{ background: panel2, border: `1px solid ${line}`, borderRadius: 6, padding: 16 }}>
+        <div style={{ fontWeight: 600, marginBottom: 12 }}>USB Scanned Device</div>
+        <div style={{ fontSize: 14, marginBottom: 8 }}>{pending.model} · {pending.storage || 'Unknown storage'}</div>
+        <div style={{ fontSize: 12, color: muted, marginBottom: 12 }}>IMEI: •••{pending.imei?.slice(-4)} · Serial: {pending.serial}</div>
+        <input id="qa-price" type="number" placeholder="Buy Price ($)" style={{ width: "100%", padding: 10, marginBottom: 10, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} />
+        <select id="qa-grade" style={{ width: "100%", padding: 10, marginBottom: 10, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }}>
+          <option value="A">Grade A</option>
+          <option value="B">Grade B</option>
+          <option value="C">Grade C</option>
+          <option value="D">Grade D</option>
+        </select>
+        <button onClick={() => {
+          const price = document.getElementById('qa-price').value;
+          const grade = document.getElementById('qa-grade').value;
+          if (!price) return alert('Enter buy price');
+          onAdd({ ...pending, price: Number(price), grade, status: 'available', id: 'QA-' + Date.now() });
+          setPending(null);
+        }} style={{ width: "100%", padding: 12, background: green, color: "#fff", border: "none", borderRadius: 4, fontWeight: 600, cursor: "pointer" }}>
+          Add to Inventory
+        </button>
+      </div>
+    );
+  }
   
   if (!items.length) return <div style={{ color: muted, padding: 20 }}>No devices from USB scan. Connect phone and use quick-add page.</div>;
   
