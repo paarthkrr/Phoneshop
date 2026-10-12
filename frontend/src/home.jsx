@@ -100,7 +100,7 @@ const HERO_CSS = `
 .mvx-pills span{display:flex;align-items:center;gap:7px}.mvx-pills svg{width:17px;height:17px;color:#A9BDF5}
 .mvx-stage{position:relative;height:520px;perspective:1400px}
 .mvx-glow{position:absolute;left:8%;right:0;bottom:22px;height:90px;border-radius:50%;background:radial-gradient(closest-side,rgba(120,150,255,.28),rgba(120,150,255,0));opacity:0;animation:mvx-fade 1.6s ease .5s forwards}
-.mvx-phone{position:absolute;right:-30px;top:0;width:260px;height:520px;object-fit:contain;opacity:0;transform:translateX(50px) rotate(8deg);filter:drop-shadow(0 20px 40px rgba(0,0,0,.5));animation:mvx-phone 1.5s cubic-bezier(.16,1,.3,1) .2s forwards;z-index:1}
+.mvx-phone{position:absolute;right:0;top:-6px;width:230px;height:478px;object-fit:contain;opacity:0;transform:translateX(70px) rotate(14deg);animation:mvx-phone 1.5s cubic-bezier(.16,1,.3,1) .2s forwards}
 @keyframes mvx-phone{to{opacity:1;transform:rotate(14deg)}}
 .mvx-card{position:absolute;left:0;top:44px;width:390px;border-radius:30px;padding:2px;background:conic-gradient(from 200deg,#8B3A4C,#C97A8A,#F5E6EA,#A0485C,#8B3A4C);opacity:0;transform:rotateY(46deg) rotateX(10deg) translateZ(-180px);animation:mvx-card 1.7s cubic-bezier(.16,1,.3,1) .4s forwards;box-shadow:0 50px 100px rgba(0,0,0,.55)}
 @keyframes mvx-card{to{opacity:1;transform:rotateY(-10deg) rotateX(5deg)}}
@@ -186,7 +186,7 @@ function Hero({ quoteModels }) {
           </div>
           <div className="mvx-stage">
             <div className="mvx-glow" aria-hidden="true" />
-            <img className="mvx-phone" src="/photos/real/iphone-18-burgundy.jpg" alt="" aria-hidden="true" width="230" height="478" decoding="async" />
+            <img className="mvx-phone" src="/photos/real/iphone-18-pro.webp" alt="" aria-hidden="true" width="230" height="478" decoding="async" />
             {cur && (
               <div className="mvx-card">
                 <div className="mvx-quote">
