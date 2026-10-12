@@ -967,6 +967,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
   const [visibleCount, setVisibleCount] = useState(30);
   const [priceEdit, setPriceEdit] = useState(null); // { id, value }
   const [photoItemId, setPhotoItemId] = useState(null);
+  const [editItem, setEditItem] = useState(null);
   const filtered = inventory.filter((i) => filter === "all" || i.status === filter);
   const visible = filtered.slice(0, visibleCount);
   const WRITE_OFF_REASONS = ["Damaged", "Stolen", "Lost", "Unsellable", "Other"];
@@ -1021,6 +1022,45 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
         <button onClick={() => window.print()} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
           Print label
         </button>
+      </div>
+    );
+  }
+
+
+  if (editItem) {
+    return (
+      <div>
+        <button onClick={() => setEditItem(null)} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back</button>
+        <div style={{ border: `1px solid ${line}`, borderRadius: 6, padding: 16, background: panel2 }}>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>Edit {editItem.model}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div><label style={{ fontSize: 12, color: muted }}>Model</label><input id="ed-model" defaultValue={editItem.model || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>Storage</label><input id="ed-storage" defaultValue={editItem.storage || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>Color</label><input id="ed-color" defaultValue={editItem.color || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>Year</label><input id="ed-year" defaultValue={editItem.year || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>IMEI</label><input id="ed-imei" defaultValue={editItem.imei || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>Buy Price ($)</label><input id="ed-price" type="number" defaultValue={editItem.price || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>Grade</label>
+              <select id="ed-grade" defaultValue={editItem.grade || "A"} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }}>
+                <option value="A">A - Like New</option><option value="B">B - Excellent</option><option value="C">C - Good</option><option value="D">D - Fair</option>
+              </select>
+            </div>
+          </div>
+          <button onClick={() => {
+            const price = Number(document.getElementById("ed-price").value) || 0;
+            onUpdate(editItem.id, {
+              model: document.getElementById("ed-model").value,
+              storage: document.getElementById("ed-storage").value,
+              color: document.getElementById("ed-color").value,
+              year: document.getElementById("ed-year").value,
+              imei: document.getElementById("ed-imei").value,
+              price: price,
+              listedPrice: price,
+              grade: document.getElementById("ed-grade").value,
+            });
+            setEditItem(null);
+          }} style={{ marginTop: 14, width: "100%", padding: 12, background: green, color: "#fff", border: "none", borderRadius: 4, fontWeight: 600, cursor: "pointer" }}>Save Changes</button>
+        </div>
       </div>
     );
   }
@@ -1086,6 +1126,14 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
                   Change price
                 </button>
               ))}
+              <button onClick={() => setEditItem(item)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
+                Edit
+              </button>
+              {(item.status === "available" || item.status === "in_stock") && item.price > 0 && (
+                <button onClick={() => onUpdate(item.id, { status: "listed", listedAt: new Date().toISOString(), listedPrice: item.price })} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer", fontWeight: 600 }}>
+                  List on Website
+                </button>
+              )}
               <button onClick={() => setLabelItem(item)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
                 Print label
               </button>
