@@ -106,32 +106,14 @@
   <input id="price" type="number" placeholder="Enter price">
   
   
-  <label>Condition Checklist</label>
-  <div style="background:#1a1a1a;padding:12px;border-radius:8px;margin-bottom:12px">
-    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
-      <input type="checkbox" id="c-screen" onchange="updateGrade()"> Screen scratches
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
-      <input type="checkbox" id="c-body" onchange="updateGrade()"> Body dents/scratches
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
-      <input type="checkbox" id="c-battery" onchange="updateGrade()"> Battery below 85%
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
-      <input type="checkbox" id="c-crack" onchange="updateGrade()"> Screen crack
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;margin:6px 0;text-transform:none;font-size:14px">
-      <input type="checkbox" id="c-water" onchange="updateGrade()"> Water damage
-    </label>
-    <div id="grade-hint" style="margin-top:10px;padding:8px;background:#2a2a2a;border-radius:6px;font-size:13px;color:#6f6"></div>
-  </div>
+  
 
   <label>Grade</label>
   <select id="grade">
-    <option value="A">Grade A - Like New (100%)</option>
-    <option value="B">Grade B - Excellent (90%)</option>
-    <option value="C">Grade C - Good (80%)</option>
-    <option value="D">Grade D - Fair (70%)</option>
+    <option value="A">A - Like New</option>
+    <option value="B">B - Excellent</option>
+    <option value="C">C - Good</option>
+    <option value="D">D - Fair</option>
   </select>
   
   <label>Sell Price ($)</label>
