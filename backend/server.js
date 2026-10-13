@@ -129,6 +129,15 @@ const schemaReady = pool.query(`
     created_by TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
+  CREATE TABLE IF NOT EXISTS barcode_cache (
+    code TEXT PRIMARY KEY,
+    found BOOLEAN NOT NULL,
+    title TEXT,
+    brand TEXT,
+    category TEXT,
+    image TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
   CREATE TABLE IF NOT EXISTS sessions (
     session_id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
@@ -974,6 +983,7 @@ const publicWriteAllowed = makeLimiter(PUBLIC_WRITE_MAX, 10 * 60 * 1000);
 const publicRespondAllowed = makeLimiter(30, 10 * 60 * 1000);
 const publicFindAllowed = makeLimiter(60, 10 * 60 * 1000);       // a tracking search tries up to 4 fields
 const publicIdPhotoAllowed = makeLimiter(10, 10 * 60 * 1000);
+const barcodeLookupAllowed = makeLimiter(40, 10 * 60 * 1000); // protect the free external quota
 const PUBLIC_MAX_ITEMS_PER_SUBMISSION = 20;
 const PUBLIC_MAX_RECORD_CHARS = 50_000;       // one customer submission (an order with contact + payout details is ~2 KB)
 const PUBLIC_MAX_LIST_CHARS = 6_000_000;      // a public list stays well under the 10 MB staff save limit
@@ -1223,6 +1233,29 @@ app.post("/auth/revoke-user/:username", requireAuth, async (req, res) => {
   const result = await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [req.params.username]);
   res.json({ username: req.params.username, sessionsRevoked: result.rowCount });
 });
+
+// ---- Barcode -> product name lookup (accessories) ----
+// We never auto-fill a PHONE from here: phones are identified by IMEI, which is
+// unique per device and not in any retail barcode catalogue. This is only to
+// save typing the name of a packaged accessory the first time it is added.
+// Source: UPCitemdb free trial (no key). Results are cached in our own DB so we
+// hit the external service once per barcode, and staff can always override.
+function mapBarcodeCategory(cat) {
+  const c = String(cat || "").toLowerCase();
+  if (/case|cover|bumper|folio|wallet/.test(c)) return "Cases & covers";
+  if (/screen|glass|protector|tempered/.test(c)) return "Screen protectors";
+  if (/charg|adapter|power|wall|usb|cable|cord|lightning|type-c|type c/.test(c)) return "Chargers & cables";
+  if (/headphone|earbud|earphone|airpod|audio|speaker/.test(c)) return "Audio";
+  if (/mount|holder|stand|grip|popsocket|magsafe/.test(c)) return "Mounts & holders";
+  return "";
+}
+function parseUpcLookup(json) {
+  const item = json && Array.isArray(json.items) && json.items[0];
+  if (!item || !item.title) return { found: false };
+  const image = Array.isArray(item.images) && item.images.find((u) => typeof u === "string" && /^https:\/\//.test(u));
+  return { found: true, title: String(item.title).slice(0, 160), brand: item.brand ? String(item.brand).slice(0, 80) : "",
+    category: mapBarcodeCategory(item.category), image: image || "" };
+}
 
 // ---- Product photos ----
 // Staff upload a photo (already resized in the browser); it's stored in the
@@ -1894,6 +1927,33 @@ app.post("/id-photos/purge-expired", requireAuth, async (req, res) => {
 });
 
 // Website chat assistant (needs ANTHROPIC_API_KEY; answers { mode: "faq" } without it).
+// GET /barcode-lookup?code=012345678905  (staff, accessories only)
+app.get("/barcode-lookup", requireAuth, async (req, res) => {
+  try {
+    if (!hasArea(req.user, "register")) return res.status(403).json({ error: "your access doesn't include adding products" });
+    const code = String(req.query.code || "").replace(/[^0-9]/g, "");
+    if (code.length < 8 || code.length > 14) return res.status(400).json({ error: "that doesn't look like a product barcode" });
+    const cached = await pool.query("SELECT found, title, brand, category, image FROM barcode_cache WHERE code = $1", [code]);
+    if (cached.rowCount) { const r = cached.rows[0]; return res.json({ code, cached: true, ...r }); }
+    if (!barcodeLookupAllowed(req)) return res.status(429).json({ error: "too many lookups just now — type the name in for this one" });
+    let result = { found: false }, definitive = false;
+    try {
+      const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+      const resp = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(code)}`, { signal: ctrl.signal, headers: { Accept: "application/json" } });
+      clearTimeout(t);
+      if (resp.ok) { result = parseUpcLookup(await resp.json()); definitive = true; } // a clean answer, even if "no match"
+    } catch (e) { /* network/quota/timeout — not a definitive "no match", so don't cache it */ }
+    // Cache a success always; cache a "not found" only when the service actually answered,
+    // so a temporary outage doesn't poison a barcode forever.
+    if (result.found || definitive) {
+      await pool.query(
+        "INSERT INTO barcode_cache (code, found, title, brand, category, image) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (code) DO NOTHING",
+        [code, !!result.found, result.title || null, result.brand || null, result.category || null, result.image || null]);
+    }
+    res.json({ code, cached: false, ...result });
+  } catch (e) { console.error("barcode-lookup failed:", e.message); res.status(200).json({ found: false }); }
+});
+
 require("./chat.js").register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey });
 
 app.get("/health", (req, res) => res.json({ ok: true }));
@@ -2012,5 +2072,7 @@ if (require.main === module) {
 }
 module.exports = app;
 module.exports.__db = pool; // exposed for tests/graceful shutdown, not part of the HTTP API
-module.exports.__schemaReady = schemaReady; // tests can await this before making requests
+module.exports.__schemaReady = schemaReady;
+module.exports.__parseUpcLookup = parseUpcLookup;
+module.exports.__mapBarcodeCategory = mapBarcodeCategory; // tests can await this before making requests
 pool.close = () => pool.end(); // backward-compat alias — existing test cleanup calls .close()
