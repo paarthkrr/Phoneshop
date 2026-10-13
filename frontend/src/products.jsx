@@ -136,6 +136,7 @@ function QuickAdd({ onSave }) {
   const [cost, setCost] = useState(""); const [price, setPrice] = useState(""); const [compare, setCompare] = useState(""); const [stock, setStock] = useState("10");
   const [desc, setDesc] = useState(""); const [descEdited, setDescEdited] = useState(false);
   const [barcode, setBarcode] = useState("");
+  const [lookingUp, setLookingUp] = useState(false); const [lookMsg, setLookMsg] = useState("");
   const models = useMemo(() => DEFAULT_CATALOG.slice().sort((a, b) => String(b.release).localeCompare(String(a.release))).map((d) => d.model), []);
   const series = useMemo(() => { const m = {}; models.forEach((x) => { const s = seriesOf(x); if (s) (m[s] = m[s] || []).push(x); }); return m; }, [models]);
   useEffect(() => { if (!descEdited) setDesc(autoDescription(category, perModel ? ["{model}"] : fits)); }, [category, fits, perModel, descEdited]);
@@ -148,6 +149,27 @@ function QuickAdd({ onSave }) {
   const addMany = (list) => setFits((f) => [...new Set([...f, ...list.map((x) => x.model)])]);
   const ICON = { same: "✅", likely: "🟡", check: "⚠️" };
   const addSeries = (s) => setFits((f) => [...new Set([...f, ...series[s]])]);
+
+  // Barcode -> accessory name (first time only). Phones are IMEI-based and never looked up here.
+  async function lookupBarcode(code) {
+    const c = String(code || "").replace(/[^0-9]/g, "");
+    setLookMsg("");
+    if (c.length < 8) return;
+    if (!window.SHOP_API_BASE_URL || !window.shopAuth) { setLookMsg("Lookup works once the shop is online."); return; }
+    setLookingUp(true);
+    try {
+      const res = await fetch(`${window.SHOP_API_BASE_URL}/barcode-lookup?code=${encodeURIComponent(c)}`, { headers: { Authorization: `Bearer ${window.shopAuth.authToken()}` } });
+      const b = await res.json();
+      if (b && b.found) {
+        if (!name.trim() && b.title) setName(b.title);
+        if (b.category && CATEGORIES.includes(b.category)) setCategory(b.category);
+        if (!photo && b.image) setPhoto(b.image);
+        setLookMsg(`Found: ${b.title}. Check it, change anything, add the price.`);
+      } else {
+        setLookMsg("No match online — type the name in for this one. It'll scan instantly next time.");
+      }
+    } catch (x) { setLookMsg("Couldn't reach the lookup — type the name in."); } finally { setLookingUp(false); }
+  }
 
   async function onPhoto(e) {
     const file = e.target.files && e.target.files[0]; if (!file) return;
@@ -181,10 +203,15 @@ function QuickAdd({ onSave }) {
         <div>
           <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category" style={{ ...input, marginBottom: 8 }}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Product name, e.g. Clear MagSafe case" aria-label="Product name" style={input} />
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Barcode (optional, scan the pack)" aria-label="Barcode" style={{ ...input, minWidth: 0 }} />
-            <ScanButton onScan={setBarcode} title="Scan the product barcode" />
+          <input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Barcode (optional, scan the pack)" aria-label="Barcode" style={{ ...input, marginTop: 8 }} />
+          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <ScanButton onScan={(c) => { setBarcode(c); lookupBarcode(c); }} title="Scan the product barcode" />
+            <button type="button" onClick={() => lookupBarcode(barcode)} disabled={lookingUp || barcode.replace(/[^0-9]/g, "").length < 8}
+              style={btn("transparent", brass, { padding: "9px 14px", fontSize: 13, whiteSpace: "nowrap", opacity: lookingUp || barcode.replace(/[^0-9]/g, "").length < 8 ? 0.5 : 1 })}>
+              {lookingUp ? "Looking…" : "Fill name from barcode"}
+            </button>
           </div>
+          {lookMsg && <div style={{ fontSize: 12.5, color: muted, marginTop: 6 }}>{lookMsg}</div>}
         </div>
       </div>
       <input value={photo.startsWith("data:") ? "" : photo} onChange={(e) => setPhoto(e.target.value.trim())} placeholder="…or paste a photo link" aria-label="Photo link" style={{ ...input, marginBottom: 14, fontSize: 13.5 }} />

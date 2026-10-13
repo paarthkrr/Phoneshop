@@ -188,3 +188,18 @@ test("public inventory keeps real-photo 360 frames but drops junk entries", asyn
   assert.equal(item.costBasis, undefined);
   assert.equal(item.imei, undefined);
 });
+
+test("barcode lookup parses UPC results and maps our categories; junk is ignored", () => {
+  const app = require("../server.js");
+  const parse = app.__parseUpcLookup, mapCat = app.__mapBarcodeCategory;
+  const r = parse({ items: [{ title: "Spigen Ultra Hybrid Case for iPhone 16", brand: "Spigen", category: "Electronics > Phone Cases", images: ["http://insecure/x.jpg", "https://cdn/y.jpg"] }] });
+  assert.equal(r.found, true);
+  assert.equal(r.brand, "Spigen");
+  assert.equal(r.category, "Cases & covers", "category mapped to our own list");
+  assert.equal(r.image, "https://cdn/y.jpg", "only https image kept");
+  assert.equal(parse({ items: [] }).found, false);
+  assert.equal(parse({}).found, false);
+  assert.equal(mapCat("Tempered Glass Screen Protector"), "Screen protectors");
+  assert.equal(mapCat("USB-C Wall Charger 20W"), "Chargers & cables");
+  assert.equal(mapCat("Random thing"), "", "unknown category left blank, staff picks");
+});
