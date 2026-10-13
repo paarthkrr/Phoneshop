@@ -58,8 +58,9 @@ function legacyEntryForwarders() {
 // depending on the dashboard rewrite rule at all — that rule was returning
 // an empty page for every address except the homepage.
 const STATIC_ROUTES = [
-  "quote", "sell", "shop", "repairs", "parts", "accessories", "about", "faq", "help", "contact", "blog", "tutorials", "privacy", "terms",
+  "quote", "sell", "shop", "repairs", "home-service", "parts", "accessories", "about", "faq", "help", "contact", "blog", "tutorials", "privacy", "terms",
   "portal", "portal/pricing", "portal/inspect", "portal/pos", "portal/repairs", "portal/till", "portal/crm", "portal/team", "portal/products",
+  "portal/activity", "portal/unlock",
   "staff", "staff/admin", "staff/inspect", "staff/pos", "staff/repairs", "staff/till", "staff/crm",
 ];
 // Guides and sell-by-brand pages come straight from their source lists, so a
