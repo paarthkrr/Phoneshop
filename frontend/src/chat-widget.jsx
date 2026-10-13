@@ -66,7 +66,7 @@ export default function ChatWidget() {
       )}
       {!open && (
         <div className={`rc-launch${low ? " low" : ""}`}>
-          <button className="rc-fab" onClick={openChat} aria-label="Chat with Mobile Recellr" aria-haspopup="dialog">
+          <button className="rc-fab" onClick={openChat} aria-label="Chat with Mate, the Mobile Recellr assistant" aria-haspopup="dialog">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.6-.8L3 21l1.9-5.1A8.4 8.4 0 1 1 21 11.5z" /><path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" strokeWidth="2.4" /></svg>
             {dot && <span className="rc-dot" aria-hidden="true" />}
           </button>

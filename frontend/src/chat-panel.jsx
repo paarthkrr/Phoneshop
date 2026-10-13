@@ -325,7 +325,7 @@ export default function ChatPanel({ path, onClose }) {
   const wa = (text) => waLink(biz.whatsapp, text || "Hi Mobile Recellr, I have a question.");
 
   useEffect(() => { // first open: greet
-    if (msgsRef.current.length === 0) botSay({ text: "Hi! I'm the Mobile Recellr assistant (an AI). I can price a repair, help you pick a phone, track an order, or answer questions about selling, warranty and shipping. What do you need?", ...menu() }, 450);
+    if (msgsRef.current.length === 0) botSay({ text: "G'day! I'm Mate, Mobile Recellr's assistant (an AI). I can price a repair, help you pick a phone, track an order, or answer questions about selling, warranty and shipping. What do you need?", ...menu() }, 450);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -447,10 +447,10 @@ export default function ChatPanel({ path, onClose }) {
     <>
       <style>{CSS}</style>
       <div className="rc-scrim" onClick={onClose} aria-hidden="true" />
-      <section className="rc-wrap" role="dialog" aria-label="Chat with Mobile Recellr">
+      <section className="rc-wrap" role="dialog" aria-label="Chat with Mate, the Mobile Recellr assistant">
         <header className="rc-head">
           <span className={`rc-av${typing ? " busy" : ""}`}><img src="/logo-icon.svg" alt="" /></span>
-          <div style={{ position: "relative", zIndex: 1 }}><b>Mobile Recellr</b><small><span className="rc-live" />AI assistant · replies instantly</small></div>
+          <div style={{ position: "relative", zIndex: 1 }}><b>Mate</b><small><span className="rc-live" />Mobile Recellr AI assistant · replies instantly</small></div>
           <span className="sp" />
           <a className="rc-ib" href={wa()} target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp" title="WhatsApp" style={{ background: "#25D366" }}><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-1.3-.6-2.2-1.2-3-2.7-.2-.4.2-.4.6-1.2.1-.2 0-.3 0-.5l-.8-1.8c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.8.8-1 1.7-.7 2.8.4 1.6 1.4 2.9 2.7 4 1.7 1.4 3.2 2 4.9 1.9.9-.1 1.7-.7 2-1.5.1-.3.1-.6 0-.7l-.8-.4z" /></svg></a>
           <button className="rc-ib" onClick={reset} aria-label="Start a new chat" title="New chat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg></button>
@@ -493,7 +493,7 @@ export default function ChatPanel({ path, onClose }) {
               )}
             </React.Fragment>
           ))}
-          {typing && <div className="rc-row bot"><span className="rc-mini"><img src="/logo-icon.svg" alt="" /></span><div className="rc-bub rc-typing" aria-label="Assistant is typing"><i /><i /><i /></div></div>}
+          {typing && <div className="rc-row bot"><span className="rc-mini"><img src="/logo-icon.svg" alt="" /></span><div className="rc-bub rc-typing" aria-label="Mate is typing"><i /><i /><i /></div></div>}
         </div>
         <footer className="rc-foot">
           <form className="rc-input" onSubmit={(e) => { e.preventDefault(); sendText(input); }}>
@@ -503,7 +503,7 @@ export default function ChatPanel({ path, onClose }) {
             {SR && <button type="button" className={`rc-mic${listening ? " on" : ""}`} onClick={toggleMic} aria-label={listening ? "Stop listening" : "Speak your question"} aria-pressed={listening}><Icon name="mic" size={19} /></button>}
             <button className="rc-send" type="submit" disabled={!input.trim() || typing} aria-label="Send"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
           </form>
-          <p className="rc-note">AI assistant. It answers from our website info and can make mistakes; we always confirm prices and bookings with you. Please don't share card, bank or ID numbers here.</p>
+          <p className="rc-note">Mate is an AI assistant. It answers from our website info and can make mistakes; we always confirm prices and bookings with you. Please don't share card, bank or ID numbers here.</p>
         </footer>
       </section>
     </>
