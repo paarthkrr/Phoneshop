@@ -41,7 +41,7 @@ function TopPhones({ phones }) {
     </a>
   );
   return (
-    <section aria-label="Top phones we buy" style={{ padding: "34px 0 6px" }}>
+    <section aria-label="Top phones we buy" className="reveal" style={{ padding: "34px 0 6px" }}>
       <style>{TOP_CSS}</style>
       <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 20px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
         <div>
@@ -209,7 +209,7 @@ function Hero({ quoteModels }) {
           </div>
         </div>
       </section>
-      <div className="mvx-benefits">
+      <style>{REVEAL_CSS}</style><div className="mvx-benefits reveal">
         <div className="mvx-benefits-inner">
           <div><Ico k="truck" />Free Sydney home collection</div>
           <div><Ico k="shield" />49-point quality inspection</div>
@@ -399,12 +399,30 @@ export default function Home() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const els = document.querySelectorAll(".reveal");
+    if (!els.length || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+
   const section = { maxWidth: 1140, margin: "0 auto", padding: "0 20px" };
   const heading = { fontFamily: "'Archivo Black', sans-serif", fontSize: 24, letterSpacing: "-0.01em", marginBottom: 18, textAlign: "center" };
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
+
+const REVEAL_CSS = `
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+`;
         @keyframes mv-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes mv-glow { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.06); } }
         .mv-rise { animation: mv-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
