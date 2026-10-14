@@ -77,7 +77,8 @@ export default function TillReconciliation() {
   // A repair deposit is cash in on the day it was taken; at completion only the balance comes in.
   const cashSalesToday = useMemo(() => (sales || [])
     .filter((s) => sydneyDay(s.soldAt) === today && s.payMethod === "cash")
-    .reduce((sum, s) => sum + s.salePrice - (s.depositPayMethod === "cash" ? Number(s.depositPaid) || 0 : 0), 0), [sales, today]);
+    // Whatever the deposit was paid with, only the balance is handed over in cash at completion.
+    .reduce((sum, s) => sum + Math.max(0, (Number(s.salePrice) || 0) - (Number(s.depositPaid) || 0)), 0), [sales, today]);
   const cashDepositsToday = useMemo(() => (tickets || [])
     .filter((t) => t && t.depositPayMethod === "cash" && sydneyDay(t.depositAt) === today)
     .reduce((sum, t) => sum + (Number(t.deposit) || 0), 0), [tickets, today]);

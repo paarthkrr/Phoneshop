@@ -62,7 +62,7 @@ const pool = new Pool({
 // SESSION_SECRET MUST be set to a real random value in production —
 // this default is only for local dev and is intentionally obvious.
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-only-insecure-secret-change-me";
-if (SESSION_SECRET.startsWith("dev-only") && process.env.NODE_ENV === "production") {
+if (SESSION_SECRET.startsWith("dev-only") && (process.env.NODE_ENV === "production" || process.env.RENDER)) {
   console.warn("WARNING: running with the default dev SESSION_SECRET in production. Set a real one.");
 }
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours — roughly a shift
@@ -212,6 +212,11 @@ async function purgeExpiredIdPhotos() {
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString("hex");
 }
+// Same hash without blocking the server: a burst of logins must not freeze every other request.
+const scryptAsync = require("util").promisify(crypto.scrypt);
+async function hashPasswordAsync(password, salt) {
+  return (await scryptAsync(String(password), salt, 64)).toString("hex");
+}
 // Usernames are case-insensitive everywhere ("paarthkr" = "Paarthkr") and
 // ignore stray spaces. This returns the name exactly as stored, or null.
 async function canonicalUsername(name) {
@@ -238,7 +243,7 @@ async function verifyPassword(username, password) {
   // respond faster than "wrong password for a real user" — an attacker
   // measuring response times could use that gap to enumerate valid
   // usernames without ever guessing a password.
-  const candidate = hashPassword(password, row ? row.salt : DUMMY_SALT_FOR_TIMING);
+  const candidate = await hashPasswordAsync(password, row ? row.salt : DUMMY_SALT_FOR_TIMING);
   if (!row) return null;
   const a = Buffer.from(candidate, "hex");
   const b = Buffer.from(row.hash, "hex");
@@ -265,9 +270,13 @@ async function verifyToken(token) {
   // admin-revoked session must fail here even with a perfectly valid
   // signature and an unexpired exp claim.
   if (!payload.sid) return null;
-  const result = await pool.query("SELECT s.revoked_at, s.weak_password, u.totp_enabled_at, u.access FROM sessions s LEFT JOIN users u ON u.username = s.username WHERE s.session_id = $1", [payload.sid]);
+  const result = await pool.query("SELECT s.revoked_at, s.weak_password, s.username, u.role, u.totp_enabled_at, u.access FROM sessions s LEFT JOIN users u ON u.username = s.username WHERE s.session_id = $1", [payload.sid]);
   const session = result.rows[0];
   if (!session || session.revoked_at) return null;
+  // The token must belong to this session's user, and the role always comes
+  // from the users table, never from the token itself.
+  if (!session.role || session.username !== payload.username) return null;
+  payload = { ...payload, role: session.role };
   // Things this person must finish before the portal opens: a password that
   // meets the current rules, and two-step sign-in for roles that need it.
   const limits = [];
@@ -276,7 +285,7 @@ async function verifyToken(token) {
   return { ...payload, limits, areas: areasFor(payload.role, session.access) }; // + limits, areas
 }
 // While a sign-in still has setup to finish, only these calls work.
-const SETUP_PATHS = new Set(["/auth/me", "/auth/logout", "/auth/change-password", "/auth/2fa", "/auth/2fa/setup", "/auth/2fa/enable", "/auth/recovery-code"]);
+const SETUP_PATHS = new Set(["/auth/me", "/auth/logout", "/auth/change-password", "/auth/2fa", "/auth/2fa/setup", "/auth/2fa/enable"]);
 const setupBlocked = (req, user) => user && user.limits.length && !SETUP_PATHS.has(req.path);
 const SETUP_ERROR = { error: "finish securing your account first (new password or two-step sign-in)", code: "SETUP_REQUIRED" };
 async function requireAuth(req, res, next) {
@@ -644,6 +653,8 @@ function sanitizePublic(key, records, existing) {
       if (key === "bulk_quote_requests") r.staffNote = "";
     } else if (key === "support_queries" || key === "device_requests") {
       r.status = "open";
+      // Researched prices and staff notes are added by staff, never by the customer.
+      if (key === "device_requests") for (const k of Object.keys(r)) if (/^(suggestion|research|staff|added|price|retail|approved|handled)/i.test(k)) delete r[k];
     } else if (key === "quote_leads") {
       r.contacted = false;
     }
@@ -656,15 +667,26 @@ function sanitizePublic(key, records, existing) {
 // Customers can't write the stock list themselves (and only ever see the
 // public, trimmed copy of it), so the server does this under the stock lock.
 // false = a phone is no longer listed (sold, reserved, or never existed).
-async function reserveForOrders(orders) {
+// An online hold that was never paid or collected lapses after this long, so
+// unpaid (or fake) orders can't keep phones out of the shop window for good.
+const ONLINE_HOLD_MS = 48 * 60 * 60 * 1000;
+async function reserveForOrders(orders, existingOrders = []) {
   return withListLock("shared", "inventory", async (existingValue, write) => {
     let list;
     try { list = existingValue ? JSON.parse(existingValue) : []; } catch (e) { return false; }
     if (!Array.isArray(list)) return false;
     const at = new Date().toISOString();
+    const lapsed = (it) => {
+      if (!it || it.status !== "reserved" || !it.reservedByOrderId || !(Date.now() - Date.parse(it.reservedAt) > ONLINE_HOLD_MS)) return null;
+      const holder = existingOrders.find((o) => o && o.id === it.reservedByOrderId);
+      return holder && /^pending_/.test(String(holder.status)) ? holder : null;
+    };
     for (const o of orders) {
       const i = list.findIndex((it) => it && o && o.itemId && it.id === o.itemId);
-      if (i < 0 || list[i].status !== "listed") return false;
+      if (i < 0) return false;
+      const old = lapsed(list[i]);
+      if (list[i].status !== "listed" && !old) return false;
+      if (old) { old.status = "expired"; old.expiredAt = at; } // the caller saves the order list with this change
       list[i] = { ...list[i], status: "reserved", reservedByOrderId: o.id, reservedAt: at };
     }
     await write(JSON.stringify(list), "public");
@@ -779,7 +801,8 @@ const CONFIRMATIONS = {
     message: (r) => `We've held this price for you${dateAU(r.priceHeldUntil) ? ` until ${dateAU(r.priceHeldUntil)}` : ""}. Ready to sell? Come back anytime.` },
   bulk_quote_request: { key: "bulk_quote_requests", email: (r) => r.business && r.business.email, name: (r) => r.business && r.business.contactName,
     subject: (r) => `Bulk trade-in request ${clip(r.id)} received`,
-    message: (r) => `We've received your request for ${Number(r.itemCount) || (Array.isArray(r.items) ? r.items.length : 0)} device(s), estimated at ${money(r.estimatedTotal, r.currency)} total. A team member will follow up within 1-2 business days with a firm offer.` },
+    // No amount here: the estimate comes from the visitor's browser, and an email from the shop shouldn't vouch for it.
+    message: (r) => `We've received your request for ${Number(r.itemCount) || (Array.isArray(r.items) ? r.items.length : 0)} device(s). A team member will follow up within 1-2 business days with a firm offer.` },
   repair_request: { key: "repair_requests", email: (r) => r.email, name: (r) => r.name,
     subject: (r) => `Repair request ${clip(r.id)} received`,
     message: (r) => r.method === "doorstep" ? doorstepMessage(r)
@@ -984,8 +1007,16 @@ const publicRespondAllowed = makeLimiter(30, 10 * 60 * 1000);
 const publicFindAllowed = makeLimiter(60, 10 * 60 * 1000);       // a tracking search tries up to 4 fields
 const publicIdPhotoAllowed = makeLimiter(10, 10 * 60 * 1000);
 const barcodeLookupAllowed = makeLimiter(40, 10 * 60 * 1000); // protect the free external quota
+// Sign-in tries per network: stops one address hammering logins (each one is a
+// deliberately slow password hash) or rotating usernames to flood alerts.
+const loginAllowed = makeLimiter(Number(process.env.LOGIN_PER_IP_MAX) || 40, 10 * 60 * 1000);
+// Lockout alert emails to the owner: at most a few per hour, whatever an attacker does.
+const lockoutAlertAllowed = (() => { let hits = []; return () => { const now = Date.now(); hits = hits.filter((t) => t > now - 3600000); if (hits.length >= 5) return false; hits.push(now); return true; }; })();
+// Wrong tries from many different networks still lock an account, but only at a
+// much higher count, so one stranger can't keep the owner locked out.
+const MAX_LOGIN_ATTEMPTS_ANY_NETWORK = 50;
 const PUBLIC_MAX_ITEMS_PER_SUBMISSION = 20;
-const PUBLIC_MAX_RECORD_CHARS = 50_000;       // one customer submission (an order with contact + payout details is ~2 KB)
+const PUBLIC_MAX_RECORD_CHARS = 12_000;       // one customer submission (an order with contact + payout details is ~2 KB; a long message ~5 KB)
 const PUBLIC_MAX_LIST_CHARS = 6_000_000;      // a public list stays well under the 10 MB staff save limit
 const PUBLIC_MAX_VALUE_CHARS = 2_000_000;   // anonymous JSON payload cap (staff are not capped below the 10mb body limit)
 const PUBLIC_MAX_OWNER_EMAILS_PER_REQUEST = 5;
@@ -1034,6 +1065,14 @@ app.use((req, res, next) => {
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MINUTES = 5;
 
+async function recentFailedAttemptsAnyNetwork(username) {
+  const result = await pool.query(
+    `SELECT COUNT(*) AS n FROM login_attempts
+     WHERE (username = $1 OR username LIKE $3) AND success = 0 AND attempted_at > NOW() - (INTERVAL '1 minute' * $2)`,
+    [username, LOGIN_LOCKOUT_MINUTES, username.replace(/[\\%_]/g, "\\$&") + "|%"]
+  );
+  return parseInt(result.rows[0].n, 10);
+}
 async function recentFailedAttempts(username) {
   const result = await pool.query(
     `SELECT COUNT(*) AS n FROM login_attempts
@@ -1143,16 +1182,21 @@ app.post("/auth/login", async (req, res) => {
     const username = String(req.body.username || "").trim();
     if (!username) return res.status(400).json({ error: "username is required" });
     const meta = { ip: clientKey(req).slice(0, 64), device: sec.describeDevice(req.headers["user-agent"]) };
+    if (!loginAllowed(req)) return res.status(429).json({ error: `too many sign-in attempts from this network — try again in a few minutes` });
 
-    const failedCount = await recentFailedAttempts(attemptKey(username));
-    if (failedCount >= MAX_LOGIN_ATTEMPTS) {
+    // Lockout counts per account + network: five wrong tries from one place lock
+    // that place out; strangers elsewhere can't lock the real person out.
+    const lockKey = `${attemptKey(username)}|${meta.ip}`;
+    const failedCount = await recentFailedAttempts(lockKey);
+    const failedAnywhere = await recentFailedAttemptsAnyNetwork(attemptKey(username));
+    if (failedCount >= MAX_LOGIN_ATTEMPTS || failedAnywhere >= MAX_LOGIN_ATTEMPTS_ANY_NETWORK) {
       await logSignIn(username, "blocked (locked out)", meta);
       return res.status(429).json({ error: `too many failed attempts — try again in ${LOGIN_LOCKOUT_MINUTES} minutes` });
     }
     const failed = async (result, body) => {
-      await recordLoginAttempt(attemptKey(username), false);
+      await recordLoginAttempt(lockKey, false);
       await logSignIn(username, result, meta);
-      if (failedCount + 1 === MAX_LOGIN_ATTEMPTS) {
+      if (failedCount + 1 === MAX_LOGIN_ATTEMPTS && (await canonicalUsername(username)) && lockoutAlertAllowed()) {
         securityAlert(`Staff account locked: ${username.slice(0, 40)}`, [
           `${MAX_LOGIN_ATTEMPTS} wrong sign-in attempts in a row for "${username.slice(0, 40)}". The account is locked for ${LOGIN_LOCKOUT_MINUTES} minutes.`,
           `Last try: ${meta.device}, network ${meta.ip}.`,
@@ -1301,6 +1345,20 @@ app.get("/auth/recovery-code", requireAuth, async (req, res) => {
   res.json({ hasCode: !!(r.rows[0] && r.rows[0].recovery_created_at), createdAt: r.rows[0] ? r.rows[0].recovery_created_at : null });
 });
 app.post("/auth/recovery-code", requireAuth, async (req, res) => {
+  // A backup code can reset the password and switch two-step off, so making one
+  // needs the current password (and the two-step code when it's on). A stolen
+  // session alone must not be enough to take the account over for good.
+  if (!loginAllowed(req)) return res.status(429).json({ error: "too many attempts — try again in a few minutes" });
+  const { password, code: totpCode } = req.body || {};
+  if (!password || !(await verifyPassword(req.user.username, password))) return res.status(401).json({ error: "enter your current password to make a backup code", needPassword: true });
+  const tr = (await pool.query("SELECT totp_secret, totp_enabled_at, totp_last_step FROM users WHERE username = $1", [req.user.username])).rows[0];
+  if (tr && tr.totp_enabled_at) {
+    if (!totpCode) return res.status(401).json({ error: "enter the 6-digit code from your authenticator app", needCode: true });
+    const secret = totpBox.open(tr.totp_secret);
+    const step = secret && sec.checkTotp(secret, totpCode, tr.totp_last_step);
+    if (step == null) return res.status(401).json({ error: "that code didn't work — use the newest code in your authenticator app", needCode: true });
+    await pool.query("UPDATE users SET totp_last_step = $1 WHERE username = $2 AND (totp_last_step IS NULL OR totp_last_step < $1)", [step, req.user.username]);
+  }
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I lookalikes
   const bytes = crypto.randomBytes(16);
   const raw = Array.from(bytes, (x) => alphabet[x % alphabet.length]).join("");
@@ -1315,6 +1373,7 @@ async function recoverHandler(req, res) {
   try {
     const { code, newPassword } = req.body || {};
     if (!req.body || !req.body.username || !code) return res.status(400).json({ error: "username and recovery code are required" });
+    if (!loginAllowed(req)) return res.status(429).json({ error: "too many attempts from this network — try again in a few minutes" });
     const key = `recover:${attemptKey(req.body.username)}`;
     if (await recentFailedAttempts(key) >= MAX_LOGIN_ATTEMPTS) return res.status(429).json({ error: `too many attempts — try again in ${LOGIN_LOCKOUT_MINUTES} minutes` });
     const username = await canonicalUsername(req.body.username);
@@ -1349,7 +1408,7 @@ async function recoverHandler(req, res) {
     securityAlert(`Backup code used: ${username}`, [`${username} reset their password with a backup recovery code. Their two-step sign-in was switched off and they'll be asked to set it up again.`,
       `Device: ${meta.device}, network ${meta.ip}, ${sydneyTime()}.`, "If this wasn't them, change their password from Team straight away."]);
     await pool.query("UPDATE sessions SET revoked_at = NOW() WHERE username = $1 AND revoked_at IS NULL", [username]);
-    await pool.query("DELETE FROM login_attempts WHERE username = $1 OR username = $2", [attemptKey(username), key]);
+    await pool.query("DELETE FROM login_attempts WHERE username = $1 OR username = $2 OR username LIKE $3", [attemptKey(username), key, attemptKey(username).replace(/[\\%_]/g, "\\$&") + "|%"]);
     res.json({ recovered: username, usedBackupCode: via === "personal" });
   } catch (e) { res.status(400).json({ error: e.message }); }
 }
@@ -1721,7 +1780,13 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
         }
         fresh = await enforcePrices(key, fresh);
         // An online phone order holds the phone straight away, so two customers can't buy the same one.
-        if (key === "purchase_orders" && fresh.length && !(await reserveForOrders(fresh))) return { unavailable: true };
+        if (key === "purchase_orders" && fresh.length) {
+          // A real customer buys a phone or two at a time, and doesn't need many unpaid holds open.
+          const email = (r) => String((r.customer && r.customer.email) || "").trim().toLowerCase();
+          const open = (e) => existing.filter((o) => o && /^pending_/.test(String(o.status)) && email(o) === e && Date.now() - Date.parse(o.receivedAt || o.createdAt) < ONLINE_HOLD_MS).length;
+          if (fresh.length > 3 || fresh.some((r) => !email(r) || open(email(r)) + fresh.length > 3)) return { invalid: "too many phones on hold for this email — pay for or cancel an earlier order first, or call us" };
+          if (!(await reserveForOrders(fresh, existing))) return { unavailable: true };
+        }
         if (key === "notification_queue") fresh = await buildConfirmations(fresh, existing);
         if (key === "referrals") fresh = await enrichReferrals(fresh, existing);
         if (fresh.length) await write(JSON.stringify([...fresh, ...existing]), "public");

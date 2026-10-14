@@ -284,7 +284,7 @@ export function DeviceRequestsTab({ catalog, onAddDevice, colors, prefill }) {
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Add a device to the website</div>
           {form.researched && (
             <div style={{ fontSize: 12.5, color: brass, background: brassDim, borderRadius: 3, padding: "8px 10px", marginBottom: 10 }}>
-              Prices below were researched by Claude{form.sources.length ? " from:" : "."} {form.sources.map((s, i) => <a key={i} href={s} target="_blank" rel="noopener noreferrer" style={{ color: brass, marginRight: 8, wordBreak: "break-all" }}>{(() => { try { return new URL(s).hostname; } catch (e) { return "source"; } })()}</a>)}
+              Prices below were researched by Claude{form.sources.length ? " from:" : "."} {form.sources.filter((s) => /^https:\/\//i.test(String(s))).map((s, i) => <a key={i} href={s} target="_blank" rel="noopener noreferrer" style={{ color: brass, marginRight: 8, wordBreak: "break-all" }}>{(() => { try { return new URL(s).hostname; } catch (e) { return "source"; } })()}</a>)}
               {form.notes && <div style={{ color: paper, marginTop: 4 }}>{form.notes}</div>}
             </div>
           )}
