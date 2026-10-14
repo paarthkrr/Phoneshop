@@ -1,4 +1,5 @@
 import { NumberTicker, useSpotlight, FX_CSS } from "./motion-fx.jsx";
+import { SpinViewer, hasSpin } from "./spin-360.jsx";
 import React, { useState, useEffect, useRef } from "react";
 import DeviceArt from "./device-art.jsx";
 import Photo from "./photo.jsx";
@@ -114,7 +115,10 @@ const HERO_CSS = `
 .mvx-size[aria-pressed="true"]{background:#8B3A4C;color:#fff;border-color:#8B3A4C}
 .mvx-est{display:flex;justify-content:space-between;align-items:flex-end;margin:10px 0 14px}
 .mvx-est-label{display:block;font-size:11px;color:rgba(255,255,255,.5);margin-bottom:2px}
-.mvx-price{font-size:36px;font-weight:800;letter-spacing:-.02em}
+.mvx-price{font-size:36px;font-weight:800;letter-spacing:-.02em;display:inline-block;animation:mvx-pop .45s cubic-bezier(.16,1,.3,1) both}
+@keyframes mvx-pop{0%{opacity:.35;transform:translateY(3px) scale(.98)}100%{opacity:1;transform:none}}
+.mvx-cta:active,.mvx-cta2:active,.mvx-quote-btn:active,.mvx-size:active{transform:scale(.96)}
+.mvx-quote-btn{transition:transform .12s ease}
 .mvx-cash{font-size:11px;color:#7DDEA0;background:rgba(125,222,160,.12);padding:4px 8px;border-radius:6px}
 .mvx-quote-btn{display:block;text-align:center;padding:13px;border-radius:12px;background:linear-gradient(180deg,#A0485C,#6B2D3C);color:#fff;font-weight:700;text-decoration:none;margin-top:6px}
 .mvx-quote-note{font-size:11px;color:rgba(255,255,255,.4);margin-top:10px;line-height:1.4}
@@ -132,7 +136,7 @@ const HERO_CSS = `
   .mvx-benefits-inner{grid-template-columns:repeat(2,1fr);padding:16px 18px}
 }
 @media(prefers-reduced-motion:reduce){
-  .mvx-line>span,.mvx-in,.mvx-phone,.mvx-card,.mvx-glow{animation:none!important;opacity:1}
+  .mvx-line>span,.mvx-in,.mvx-phone,.mvx-card,.mvx-glow,.mvx-price{animation:none!important;opacity:1}
   .mvx-line>span{transform:none}
   .mvx-phone{transform:rotate(-4deg)}
 }
@@ -365,6 +369,7 @@ export default function Home() {
   const [stats, setStats] = useState([]);
   const [biz, setBiz] = useState({});
   const [featured, setFeatured] = useState(null);
+  const [spinUnit, setSpinUnit] = useState(null);
   const [quoteModels, setQuoteModels] = useState([]);
   const [topPhones, setTopPhones] = useState([]);
   const [photos, setPhotos] = useState({});
@@ -383,6 +388,7 @@ export default function Home() {
         const r = window.storage && await window.storage.get("inventory", true);
         const listed = r ? JSON.parse(r.value).filter((i) => i.status === "listed" && i.listedPrice > 0) : [];
         setFeatured(listed.sort((a, x) => x.listedPrice - a.listedPrice)[0] || null);
+        setSpinUnit(listed.find((i) => hasSpin(i)) || null); // a real phone with a 360 photo set, if any
       } catch (e) { /* no stock yet */ }
       // Only show numbers the owner has actually entered — never invented ones.
       const s = [];
@@ -420,6 +426,22 @@ export default function Home() {
 
       {/* ---- Hero ---- */}
       <Hero quoteModels={quoteModels} />
+
+      {spinUnit && hasSpin(spinUnit) && (
+        <section aria-label="See this phone in 360 degrees" style={{ background: "#0E0F13", color: "#fff", padding: "48px 20px" }}>
+          <div style={{ maxWidth: 820, margin: "0 auto", textAlign: "center" }}>
+            <div style={{ fontSize: 12, letterSpacing: ".22em", color: "#A9BDF5", fontWeight: 700, marginBottom: 8 }}>IN STOCK NOW</div>
+            <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, margin: "0 0 6px" }}>See it in 360°</h2>
+            <p style={{ color: "rgba(255,255,255,.7)", fontSize: 15, margin: "0 auto 22px", maxWidth: 480 }}>
+              {spinUnit.brand} {spinUnit.model}{spinUnit.storage ? ` · ${spinUnit.storage}` : ""} — photos of the exact phone you'd receive. Drag to turn it.
+            </p>
+            <div style={{ background: "#fff", borderRadius: 20, padding: "18px 12px", maxWidth: 420, margin: "0 auto" }}>
+              <SpinViewer frames={spinUnit.spinUrls} poster={spinUnit.photoUrl} alt={`${spinUnit.brand} ${spinUnit.model}`} />
+            </div>
+            <a href="/shop" className="mv-chip" style={{ marginTop: 22 }}>Shop refurbished phones <span className="mv-arrow" aria-hidden="true">→</span></a>
+          </div>
+        </section>
+      )}
       <TopPhones phones={topPhones} />
       <div className="mv-hero" style={{ ...section, textAlign: "center", padding: "34px 20px 34px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, textAlign: "left" }}>
