@@ -97,12 +97,12 @@ const HERO_CSS = `
 .mvx-cta2:hover{background:rgba(255,255,255,.12)}
 .mvx-pills{display:flex;gap:10px;flex-wrap:wrap}
 .mvx-pills span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:rgba(255,255,255,.6);background:rgba(255,255,255,.08);padding:6px 12px;border-radius:999px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-.mvx-stage{position:relative;height:520px;display:flex;align-items:center;justify-content:center}
-.mvx-glow{position:absolute;width:380px;height:380px;background:radial-gradient(circle,rgba(169,90,110,.45) 0%,transparent 70%);filter:blur(40px);animation:mvx-pulse 6s ease-in-out infinite}
+.mvx-stage{position:relative;height:520px;display:flex;align-items:center;justify-content:flex-start}
+.mvx-glow{position:absolute;left:4%;width:340px;height:360px;background:radial-gradient(circle,rgba(190,100,120,.55) 0%,transparent 70%);filter:blur(44px);animation:mvx-pulse 6s ease-in-out infinite}
 @keyframes mvx-pulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
-.mvx-phone{position:relative;width:260px;height:auto;filter:drop-shadow(0 40px 60px rgba(0,0,0,.6));transform:rotate(-6deg);animation:mvx-float 5s ease-in-out infinite}
+.mvx-phone{position:relative;left:12px;width:258px;height:auto;filter:drop-shadow(0 44px 70px rgba(0,0,0,.65));transform:rotate(-6deg);animation:mvx-float 5s ease-in-out infinite}
 @keyframes mvx-float{0%,100%{transform:rotate(-6deg) translateY(0)}50%{transform:rotate(-4deg) translateY(-12px)}}
-.mvx-card{position:absolute;right:0;top:40px;width:320px;background:rgba(20,10,14,.75);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:20px;box-shadow:0 30px 60px rgba(0,0,0,.5);animation:mvx-card-in .9s .4s cubic-bezier(.16,1,.3,1) both}
+.mvx-card{position:absolute;right:0;top:44px;width:300px;background:rgba(18,9,13,.56);-webkit-backdrop-filter:blur(26px) saturate(1.2);backdrop-filter:blur(26px) saturate(1.2);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:20px;box-shadow:0 44px 90px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.08);animation:mvx-card-in .9s .4s cubic-bezier(.16,1,.3,1) both}
 @keyframes mvx-card-in{from{opacity:0;transform:translateY(30px) rotateY(8deg)}to{opacity:1;transform:none}}
 .mvx-quote-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.5)}
 .mvx-live{display:flex;align-items:center;gap:5px;color:#7DDEA0}
@@ -129,9 +129,9 @@ const HERO_CSS = `
 @media(max-width:900px){
   .mvx-hero{min-height:auto}
   .mvx-hero-inner{grid-template-columns:1fr;padding:48px 20px 40px;gap:20px}
-  .mvx-stage{height:auto;padding-top:10px}
-  .mvx-phone{width:200px;animation:none;transform:rotate(-4deg)}
-  .mvx-card{position:relative;top:auto;right:auto;width:100%;max-width:380px;margin:0 auto;animation:none}
+  .mvx-stage{height:auto;padding-top:10px;flex-direction:column;gap:16px}
+  .mvx-phone{width:180px;left:0;animation:none;transform:rotate(-4deg)}
+  .mvx-card{position:relative;top:auto;right:auto;left:0;width:100%;max-width:380px;margin:0 auto;animation:none}
   .mvx-glow{display:none}
   .mvx-benefits-inner{grid-template-columns:repeat(2,1fr);padding:16px 18px}
 }
