@@ -159,10 +159,11 @@ export default function RepairTickets() {
       const qty = Math.max(0, parseInt(r.qty, 10) || 0);
       const cost = r.cost !== "" && r.cost != null && !Number.isNaN(parseFloat(r.cost)) ? parseFloat(r.cost) : null;
       if ((!name && !sku) || qty <= 0) continue;
-      const low = String(sku).toLowerCase(), lowName = name.toLowerCase();
+      // Names are compared ignoring case, spaces and punctuation ("HD+Incell-13" = "HD Incell 13").
+      const low = String(sku).toLowerCase(), squash = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, ""), lowName = squash(name);
       const idx = next.findIndex((p) =>
         (sku && ((p.sku && String(p.sku).toLowerCase() === low) || (p.barcode && String(p.barcode).toLowerCase() === low))) ||
-        (!sku && lowName && String(p.name).toLowerCase() === lowName));
+        (!sku && lowName && squash(p.name) === lowName));
       if (idx >= 0) {
         next[idx] = { ...next[idx], qtyOnHand: (Number(next[idx].qtyOnHand) || 0) + qty,
           ...(cost != null ? { costPerUnit: cost } : {}),
@@ -714,7 +715,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
             style={{ width: "100%", padding: "14px", borderRadius: 8, border: "none", background: green, color: "#0c1a12", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             {shop ? "✓ Finish shop job (add parts & labour to this phone's cost)" : "✓ Mark job done & take payment"}
           </button>
-          {!shop && ticket.customer.email && ticket.status === "ready_for_pickup" && !ticket.notifiedAt && (
+          {!shop && ticket.customer.email && ticket.status === "ready_for_pickup" && (!ticket.notifiedAt || Date.now() - Date.parse(ticket.notifiedAt) > 2 * 86400000) && (
             <button onClick={async () => {
                 await queueNotification({ type: "repair_ready", channel: "email", recipientEmail: ticket.customer.email, recipientName: ticket.customer.name,
                   subject: `Your repair is ready to collect — ${ticket.id}`,
@@ -723,7 +724,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
                 onUpdate({ notifiedAt: new Date().toISOString() });
               }}
               style={{ width: "100%", marginTop: 8, padding: "11px", borderRadius: 8, border: `1px solid ${brass}`, background: brassDim, color: brass, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-              ✉️ Tell the customer it's ready to collect
+              {ticket.notifiedAt ? "✉️ Remind the customer it's still ready to collect" : "✉️ Tell the customer it's ready to collect"}
             </button>
           )}
           {!shop && ticket.notifiedAt && <div style={{ fontSize: 12.5, color: green, marginTop: 8 }}>✓ Customer told it's ready on {new Date(ticket.notifiedAt).toLocaleDateString("en-AU")}</div>}
@@ -1051,24 +1052,43 @@ function PartsUsage({ colors, tickets, onOpen }) {
 function parseSupplierOrder(text) {
   const lines = String(text || "").split(/\r?\n/).filter((l) => l.trim());
   if (!lines.length) return [];
-  const cut = (l) => l.split(/\t|,|;|\s{2,}/).map((c) => c.trim()).filter((c) => c !== "");
+  // Keep empty cells in place so a blank SKU or cost doesn't shift the columns, and
+  // honour "quoted, fields" so a comma inside a part name stays in the name.
+  const sep = /\t/.test(lines[0]) ? "\t" : /[,;]/.test(lines[0]) ? (lines[0].split(";").length > lines[0].split(",").length ? ";" : ",") : null;
+  const cutKeep = (l) => {
+    if (!sep) return l.trim().split(/\s{2,}/).map((c) => c.trim());
+    const cells = []; let cur = "", q = false;
+    for (let i = 0; i < l.length; i++) {
+      const ch = l[i];
+      if (q) { if (ch === '"' && l[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
+      else if (ch === '"' && !cur.trim()) { q = true; cur = ""; }
+      else if (ch === sep) { cells.push(cur.trim()); cur = ""; }
+      else cur += ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+  };
+  const cut = (l) => cutKeep(l).filter((c) => c !== "");
+  // "$1,042.50" -> "1042.50"; in ;-separated files the comma is the decimal point ("2,50").
+  const money = (c) => { const v = String(c || "").replace(/\$/g, "").trim(); return sep === ";" ? v.replace(/\./g, "").replace(",", ".") : v.replace(/,/g, ""); };
   const first = cut(lines[0]).map((c) => c.toLowerCase());
   let map = null, start = 0;
   if (first.some((c) => /sku|name|title|qty|quant|cost|price|item|description/.test(c))) {
-    const at = (names) => first.findIndex((c) => names.some((n) => c.includes(n)));
+    const head = cutKeep(lines[0]).map((c) => c.toLowerCase());
+    const at = (names) => head.findIndex((c) => names.some((n) => c.includes(n)));
     map = { sku: at(["sku", "code"]), name: at(["name", "title", "item", "description"]), qty: at(["qty", "quant"]), cost: at(["cost", "price", "unit"]) };
     start = 1;
   }
   const out = [];
   for (let i = start; i < lines.length; i++) {
-    const cells = cut(lines[i]);
-    if (!cells.length) continue;
+    const cells = map ? cutKeep(lines[i]) : cut(lines[i]);
+    if (!cells.some((c) => c !== "")) continue;
     let sku = "", name = "", qty = "", cost = "";
     if (map) {
       sku = map.sku >= 0 ? cells[map.sku] || "" : "";
       name = map.name >= 0 ? cells[map.name] || "" : "";
       qty = map.qty >= 0 ? cells[map.qty] || "" : "";
-      cost = map.cost >= 0 ? (cells[map.cost] || "").replace(/[$,]/g, "") : "";
+      cost = map.cost >= 0 ? money(cells[map.cost]) : "";
     } else {
       const costIx = cells.findIndex((c) => /^\$?\d+\.\d{1,2}$/.test(c));
       const qtyIx = cells.findIndex((c, ix) => ix !== costIx && /^\d{1,4}$/.test(c));
@@ -1094,7 +1114,11 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefill
   const [supplier, setSupplier] = useState("Crazy Parts"); const [orderRef, setOrderRef] = useState("");
   const [paste, setPaste] = useState(""); const [rows, setRows] = useState([]); const [recNote, setRecNote] = useState("");
   const setRow = (i, k, v) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
-  const validRows = rows.filter((r) => (r.sku || r.name) && (parseInt(r.qty, 10) || 0) > 0);
+  const usable = rows.filter((r) => (r.sku || r.name) && (parseInt(r.qty, 10) || 0) > 0);
+  // A part saved at $0 makes every repair it goes into look like pure profit, so cost is required.
+  const hasCost = (r) => String(r.cost ?? "").trim() !== "" && !Number.isNaN(parseFloat(r.cost)) && parseFloat(r.cost) >= 0;
+  const missingCost = usable.filter((r) => !hasCost(r)).length;
+  const validRows = missingCost ? [] : usable;
   async function addAll() {
     if (!validRows.length) return;
     const res = await onReceiveOrder(validRows, { supplier: supplier.trim(), orderRef: orderRef.trim() });
@@ -1168,13 +1192,13 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefill
                     <input value={r.sku} onChange={(e) => setRow(i, "sku", e.target.value)} placeholder="SKU" style={{ ...field, padding: "7px 8px", fontSize: 12 }} />
                     <input value={r.name} onChange={(e) => setRow(i, "name", e.target.value)} placeholder="Part name" style={{ ...field, padding: "7px 8px", fontSize: 12 }} />
                     <input value={r.qty} onChange={(e) => setRow(i, "qty", e.target.value)} inputMode="numeric" placeholder="1" style={{ ...field, padding: "7px 8px", fontSize: 12 }} />
-                    <input value={r.cost} onChange={(e) => setRow(i, "cost", e.target.value)} inputMode="decimal" placeholder="cost" style={{ ...field, padding: "7px 8px", fontSize: 12 }} />
+                    <input value={r.cost} onChange={(e) => setRow(i, "cost", e.target.value)} inputMode="decimal" placeholder="cost" aria-invalid={!hasCost(r)} style={{ ...field, padding: "7px 8px", fontSize: 12, ...(hasCost(r) ? {} : { borderColor: red }) }} />
                     <button type="button" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} aria-label="Remove row" style={{ border: "none", background: "none", color: red, cursor: "pointer", fontSize: 16 }}>×</button>
                   </div>
                 ))}
                 <button type="button" disabled={!validRows.length} onClick={addAll}
                   style={{ width: "100%", marginTop: 4, padding: "11px", borderRadius: 4, border: "none", background: validRows.length ? green : line, color: validRows.length ? "#0c1a12" : muted, fontSize: 13.5, fontWeight: 700, cursor: validRows.length ? "pointer" : "default" }}>
-                  Add all to Parts Stock ({validRows.length} item{validRows.length === 1 ? "" : "s"})
+                  {missingCost ? `Fill in the cost on ${missingCost} row${missingCost === 1 ? "" : "s"} first` : `Add all to Parts Stock (${validRows.length} item${validRows.length === 1 ? "" : "s"})`}
                 </button>
               </div>
             )}
