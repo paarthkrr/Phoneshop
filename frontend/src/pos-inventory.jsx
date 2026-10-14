@@ -154,6 +154,11 @@ function retentionAt(months, points) {
   return Math.max(0.04, last.r - (months - last.m) * 0.0015);
 }
 function ageMonths(releaseDate) { return Math.max(0, (Date.now() - new Date(releaseDate).getTime()) / (1000 * 60 * 60 * 24 * 30)); }
+// Receipts and tax invoices show exact cents (GST is price/11, e.g. A$81.73).
+function fmtCents(n, regionCode, regionsMap) {
+  const r = (regionsMap || REGIONS)[regionCode] || REGIONS.AU;
+  return `${r.symbol}${(Math.round((Number(n) || 0) * 100) / 100).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 function fmt(n, regionCode, regionsMap) {
   const r = (regionsMap || REGIONS)[regionCode] || REGIONS.AU;
   const val = r.round >= 10 ? Math.round(n / r.round) * r.round : Math.round(n);
@@ -583,7 +588,7 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
           </div>
           <button disabled={!imei.trim() || !idOwnerName.trim() || !idSighted} onClick={() => onComplete({
               id: genId("INV"), sourceOrderId: null, brand: selected.brand, model: selected.model, storage: selected.storage,
-              imei: imei.trim(), gradeId: null, costBasis: calc.total, currency: regions[region].symbol, region,
+              imei: imei.trim(), gradeId: null, costBasis: Math.round(calc.total), currency: regions[region].symbol, region,
               status: "in_stock", listedPrice: null, receivedAt: new Date().toISOString(), soldAt: null, payMethod,
               sellerIdType: idType, sellerIdOwnerName: idOwnerName.trim(),
             })}
@@ -872,6 +877,8 @@ function QuickAddTab({ colors, onAdd }) {
       imei: document.getElementById('qa-imei')?.value || pending.imei,
       serial: document.getElementById('qa-serial')?.value || pending.serial,
       price: Number(price),
+      costBasis: Number(price), // what we paid, so the P&L and margins know it
+      sourceOrderId: null,
       grade,
       status: 'available',
       id: 'QA-' + Date.now(),
@@ -1040,7 +1047,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
             <div><label style={{ fontSize: 12, color: muted }}>Color</label><input id="ed-color" defaultValue={editItem.color || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>Year</label><input id="ed-year" defaultValue={editItem.year || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>IMEI</label><input id="ed-imei" defaultValue={editItem.imei || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
-            <div><label style={{ fontSize: 12, color: muted }}>Buy Price ($)</label><input id="ed-price" type="number" defaultValue={editItem.price || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>Buy Price ($)</label><input id="ed-price" type="number" defaultValue={editItem.costBasis ?? editItem.price ?? ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>Grade</label>
               <select id="ed-grade" defaultValue={editItem.grade || "A"} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }}>
                 <option value="A">A - Like New</option><option value="B">B - Excellent</option><option value="C">C - Good</option><option value="D">D - Fair</option>
@@ -1048,17 +1055,19 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
             </div>
           </div>
           <button onClick={() => {
-            const price = Number(document.getElementById("ed-price").value) || 0;
-            onUpdate(editItem.id, {
+            // This is the BUY price (what we paid). It never touches the sale price on the
+            // website: that's changed with "Sell Price", which refuses $0.
+            const buy = Number(document.getElementById("ed-price").value);
+            const patch = {
               model: document.getElementById("ed-model").value,
               storage: document.getElementById("ed-storage").value,
               color: document.getElementById("ed-color").value,
               year: document.getElementById("ed-year").value,
               imei: document.getElementById("ed-imei").value,
-              price: price,
-              listedPrice: price,
               grade: document.getElementById("ed-grade").value,
-            });
+            };
+            if (Number.isFinite(buy) && buy > 0) { patch.costBasis = buy; if (editItem.costBasis == null) patch.price = buy; }
+            onUpdate(editItem.id, patch);
             setEditItem(null);
           }} style={{ marginTop: 14, width: "100%", padding: 12, background: green, color: "#fff", border: "none", borderRadius: 4, fontWeight: 600, cursor: "pointer" }}>Save Changes</button>
         </div>
@@ -1136,7 +1145,8 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
                     style={{ width: 80, padding: "5px 8px", fontSize: 12.5, border: `1px solid ${line}`, borderRadius: 2 }} />
                   <button onClick={() => { 
                     const p = parseFloat(String(sellPriceEdit.value).replace(/[$,]/g, ""));
-                    if (p > 0) onUpdate(item.id, { price: p, listedPrice: p });
+                    // Quick Add phones keep their buy price in `price`; move it to costBasis before it's replaced.
+                    if (p > 0) onUpdate(item.id, { price: p, listedPrice: p, ...(item.costBasis == null && item.price > 0 ? { costBasis: item.price } : {}) });
                     setSellPriceEdit(null);
                   }} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer" }}>Save</button>
                   <button onClick={() => setSellPriceEdit(null)} style={{ padding: "6px 8px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>Cancel</button>
@@ -1147,8 +1157,9 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
                   Sell Price
                 </button>
               )}
-              {(item.status === "available" || item.status === "in_stock") && (item.price > 0 || item.listedPrice > 0) && (
-                <button onClick={() => onUpdate(item.id, { status: "listed", listedAt: new Date().toISOString(), listedPrice: item.listedPrice || item.price })} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer", fontWeight: 600 }}>
+              {/* Only once a sell price is set: never list a phone at what we paid for it. */}
+              {(item.status === "available" || item.status === "in_stock") && item.listedPrice > 0 && (
+                <button onClick={() => onUpdate(item.id, { status: "listed", listedAt: new Date().toISOString(), listedPrice: item.listedPrice })} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer", fontWeight: 600 }}>
                   List on Website
                 </button>
               )}
@@ -1267,12 +1278,12 @@ function SellTab({ colors, inventory, regions, onSell, staffName, businessSettin
             <div style={{ borderTop: `1px solid ${line}`, paddingTop: 8, fontSize: 12.5 }}>
               {gstOn ? (
                 <>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>Price (ex. GST)</span><span>{fmt(exGst, receipt.region, regions)}</span></div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>GST (10%)</span><span>{fmt(gstAmount, receipt.region, regions)}</span></div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, marginTop: 4 }}><span>Total (inc. GST)</span><span>{fmt(receipt.salePrice, receipt.region, regions)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>Price (ex. GST)</span><span>{fmtCents(exGst, receipt.region, regions)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}><span>GST (10%)</span><span>{fmtCents(gstAmount, receipt.region, regions)}</span></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, marginTop: 4 }}><span>Total (inc. GST)</span><span>{fmtCents(receipt.salePrice, receipt.region, regions)}</span></div>
                 </>
               ) : (
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Total</span><span>{fmt(receipt.salePrice, receipt.region, regions)}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Total</span><span>{fmtCents(receipt.salePrice, receipt.region, regions)}</span></div>
               )}
             </div>
             <div style={{ fontSize: 11, color: muted, marginTop: 8 }}>{new Date().toLocaleString()}{receipt.staffHandled && ` · served by ${receipt.staffHandled}`}</div>

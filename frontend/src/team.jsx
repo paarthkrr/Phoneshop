@@ -169,10 +169,14 @@ function AccessBoxes({ user, onChange }) {
 // Personal backup code: the permanent way to reset a forgotten password.
 function BackupCode() {
   const [status, setStatus] = useState(null); const [code, setCode] = useState(""); const [err, setErr] = useState(""); const [copied, setCopied] = useState(false);
+  const [asking, setAsking] = useState(false); const [pw, setPw] = useState(""); const [totp, setTotp] = useState(""); const [needCode, setNeedCode] = useState(false);
   useEffect(() => { (async () => { try { setStatus(await api("/auth/recovery-code")); } catch (e) { setErr(e.message); } })(); }, []);
   async function make() {
-    if (status && status.hasCode && !window.confirm("Make a new backup code? Your old one will stop working.")) return;
-    try { const r = await api("/auth/recovery-code", { method: "POST" }); setCode(r.code); setStatus({ hasCode: true, createdAt: new Date().toISOString() }); } catch (e) { setErr(e.message); }
+    if (!asking) { if (status && status.hasCode && !window.confirm("Make a new backup code? Your old one will stop working.")) return; setAsking(true); setErr(""); return; }
+    try {
+      const r = await api("/auth/recovery-code", { method: "POST", body: JSON.stringify({ password: pw, code: totp || undefined }) });
+      setCode(r.code); setStatus({ hasCode: true, createdAt: new Date().toISOString() }); setAsking(false); setPw(""); setTotp(""); setNeedCode(false); setErr("");
+    } catch (e) { setErr(e.message); if (/6-digit|code didn't work/.test(e.message)) setNeedCode(true); }
   }
   return (
     <Card title="🔑 Backup recovery code">
@@ -188,9 +192,17 @@ function BackupCode() {
       ) : (
         <div style={{ fontSize: 14.5, marginBottom: 10 }}>{status ? (status.hasCode ? `✅ You have a backup code (made ${new Date(status.createdAt).toLocaleDateString("en-AU")}).` : "⚠️ You don't have a backup code yet.") : "…"}</div>
       )}
+      {asking && (
+        <div style={{ display: "grid", gap: 8, marginBottom: 10, maxWidth: 320 }}>
+          <input type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Your current password" aria-label="Current password"
+            style={{ padding: "10px 12px", borderRadius: 8, border: `1px solid ${line}`, fontSize: 15 }} />
+          {needCode && <input inputMode="numeric" autoComplete="one-time-code" value={totp} onChange={(e) => setTotp(e.target.value)} placeholder="6-digit code from your app" aria-label="Two-step code"
+            style={{ padding: "10px 12px", borderRadius: 8, border: `1px solid ${line}`, fontSize: 15 }} />}
+        </div>
+      )}
       {err && <div style={{ color: red, fontSize: 14, marginBottom: 8 }}>{err}</div>}
       <button style={btn(status && status.hasCode ? "transparent" : brass, status && status.hasCode ? paper : "#fff", status && status.hasCode ? { border: `1px solid ${line}` } : {})} onClick={make}>
-        {status && status.hasCode ? "Make a new code" : "Create my backup code"}
+        {asking ? "Confirm and show my code" : status && status.hasCode ? "Make a new code" : "Create my backup code"}
       </button>
     </Card>
   );

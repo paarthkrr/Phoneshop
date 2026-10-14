@@ -221,8 +221,14 @@ export default function RepairTickets() {
     const t = (tickets || []).find((x) => x.id === ticketId);
     if (!t) return;
     const completedAt = new Date().toISOString();
-    await updateTicket(ticketId, { status: "completed", completedAt, finalPrice }, true);
     const sales = (await loadJSON("sales", true)) || [];
+    // A job that was already paid for (then reopened by a status chip) must not
+    // create a second sale: that would double the revenue and the till.
+    if (sales.some((x) => x && x.channel === "repair" && x.itemId === ticketId)) {
+      await updateTicket(ticketId, { status: "completed", completedAt: t.completedAt || completedAt }, true);
+      return;
+    }
+    await updateTicket(ticketId, { status: "completed", completedAt, finalPrice }, true);
     const partsCost = partsCostOf(t), labourCost = Number(t.techPay) || 0;
     await saveJSON("sales", [{
       id: "SALE-" + Math.floor(100000 + Math.random() * 900000), itemId: ticketId,
@@ -735,7 +741,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
           {Number(ticket.deposit) > 0 && (
             <div style={{ fontSize: 13, marginBottom: 8, padding: "8px 10px", background: brassDim, borderRadius: 3 }}>
-              Deposit already paid: <strong>{fmt(ticket.deposit)}</strong>{ticket.depositPayMethod ? ` (${ticket.depositPayMethod})` : ""}. Collect the balance: <strong>{fmt(Math.max(0, (parseFloat(finalPrice) || ticket.quotedPrice) - Number(ticket.deposit)))}</strong>
+              Deposit already paid: <strong>{fmt(ticket.deposit)}</strong>{ticket.depositPayMethod ? ` (${ticket.depositPayMethod})` : ""}. Collect the balance: <strong>{fmt(Math.max(0, (Number.isFinite(parseFloat(finalPrice)) ? parseFloat(finalPrice) : ticket.quotedPrice) - Number(ticket.deposit)))}</strong>
             </div>
           )}
           <div style={{ fontSize: 13, marginBottom: 8 }}>How did the customer pay{Number(ticket.deposit) > 0 ? " the balance" : ""}? (needed so this shows up correctly in the till and reports)</div>
@@ -753,7 +759,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setCompletingPayMethod(null)} style={{ padding: "9px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 12.5, cursor: "pointer" }}>Cancel</button>
-            <button onClick={() => { onComplete(completingPayMethod, parseFloat(finalPrice) || ticket.quotedPrice); setCompletingPayMethod(null); }}
+            <button onClick={() => { onComplete(completingPayMethod, Number.isFinite(parseFloat(finalPrice)) ? Math.max(0, parseFloat(finalPrice)) : ticket.quotedPrice); setCompletingPayMethod(null); }}
               style={{ flex: 1, padding: "9px", borderRadius: 3, border: "none", background: green, color: "#0c1a12", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
               Confirm completion & payment
             </button>

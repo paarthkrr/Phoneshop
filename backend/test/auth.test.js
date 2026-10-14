@@ -138,6 +138,22 @@ test("new devices email the owner; known devices don't", async () => {
   assert.equal(sent.length, before + 1, "same device: no second email");
 });
 
+test("a lockout only blocks the network it came from; unknown names send no alert", async () => {
+  await pool.query("DELETE FROM login_attempts");
+  await settle();
+  const before = sent.length;
+  const from = (ip) => ({ "CF-Connecting-IP": ip });
+  for (let i = 0; i < 6; i++) await call("POST", "/auth/login", null, { username: "sam", password: "not the password", deviceId: "device-aaaaaaaaaaaaaaaa" }, from("203.0.113.7"));
+  assert.equal((await call("POST", "/auth/login", null, { username: "sam", password: "rainy day at bondi", deviceId: "device-aaaaaaaaaaaaaaaa" }, from("203.0.113.7"))).status, 429, "that network is locked out");
+  const elsewhere = await call("POST", "/auth/login", null, { username: "sam", password: "rainy day at bondi", deviceId: "device-aaaaaaaaaaaaaaaa" }, from("198.51.100.20"));
+  assert.equal(elsewhere.status, 200, "the real person somewhere else still gets in");
+  for (let i = 0; i < 6; i++) await call("POST", "/auth/login", null, { username: "nobody-" + i, password: "not the password" }, from("203.0.113.8"));
+  for (let i = 0; i < 5; i++) await call("POST", "/auth/login", null, { username: "ghost", password: "not the password" }, from("203.0.113.9"));
+  await settle();
+  assert.equal(sent.slice(before).filter((m) => /locked: (ghost|nobody)/.test(m.subject)).length, 0, "no alert emails for names that don't exist");
+  await pool.query("DELETE FROM login_attempts");
+});
+
 test("lockout emails the owner once and shows in sign-in history", async () => {
   await settle();
   const before = sent.length;
@@ -178,7 +194,14 @@ test("owner can reset someone's two-step; managers can't turn theirs off", async
 });
 
 test("backup code resets the password and switches two-step off", async () => {
-  const code = (await call("POST", "/auth/recovery-code", ownerTok)).body.code;
+  // A signed-in session alone can't make one: it needs the password, then the two-step code.
+  assert.equal((await call("POST", "/auth/recovery-code", ownerTok)).status, 401, "session alone isn't enough");
+  const noCode = await call("POST", "/auth/recovery-code", ownerTok, { password: "blue harbour mornings" });
+  assert.equal(noCode.status, 401);
+  assert.equal(noCode.body.needCode, true, "owner has two-step on");
+  assert.equal((await call("POST", "/auth/recovery-code", ownerTok, { password: "wrong password!!", code: codeFor(secret, 1) })).status, 401);
+  const code = (await call("POST", "/auth/recovery-code", ownerTok, { password: "blue harbour mornings", code: codeFor(secret, 1) })).body.code;
+  assert.ok(code);
   assert.equal((await call("POST", "/auth/recover", null, { username: "OWNER", code, newPassword: "short" })).status, 400);
   assert.equal((await call("POST", "/auth/recover", null, { username: "OWNER", code, newPassword: "lost my phone today" })).status, 200);
   const r = await login("owner", "lost my phone today");

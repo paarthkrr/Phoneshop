@@ -155,7 +155,8 @@
     if (session?.token) {
       // Best-effort — revoke server-side even if this fetch never resolves
       // (e.g. offline), since the local session is already cleared either way.
-      fetch(`${baseUrl}/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${session.token}` } }).catch(() => {});
+      // keepalive lets the request finish even though the page reloads straight after.
+      fetch(`${baseUrl}/auth/logout`, { method: "POST", keepalive: true, headers: { Authorization: `Bearer ${session.token}` } }).catch(() => {});
     }
     // Storage stays installed (using whatever token now exists, i.e. none)
     // rather than being torn down — a customer browsing the public site

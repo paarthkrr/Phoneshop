@@ -103,7 +103,9 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
 }
 
 export function toCsv(rows) {
-  const esc = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  // Text starting with = + - @ would run as a formula in Excel (a customer can type
+  // "=HYPERLINK(...)" as their name), so it's prefixed with ' to stay plain text.
+  const esc = (v) => { let s = v == null ? "" : String(v); if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   const head = ["Date", "Type", "Item", "Customer", "Sold for", "Cost (phone / parts / item)", "Technician pay", "Technician", "Profit"];
   return [head, ...rows.map((r) => [sydneyDay(r.date), KIND_LABELS[r.kind], r.item, r.customer, r.sold, r.cost ?? "unknown", r.labour || "", r.technician, r.profit ?? "unknown"])]
     .map((line) => line.map(esc).join(",")).join("\n");

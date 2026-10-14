@@ -63,12 +63,28 @@ export default function CRMDashboard() {
       setOrders(o); setSales(s); setLeads(l); setNotifications(n); setExpenses(e); setInventory(inv); setBulkRequests(bulk); setReferrals(ref); setTillRecords(till); setSupportQueries(sq || []);
     })();
   }, []);
+  // Expenses are saved as the whole list (a missing one is a deleted one), so each
+  // change starts from the latest saved list: a screen left open since this
+  // morning must not wipe out an expense someone else logged since.
+  // A failed read throws (never "empty"), so a bad connection can't save over the real list.
+  async function latestExpenses() {
+    if (!storageAvailable()) return expenses;
+    let r;
+    try { r = await window.storage.get("expenses", true); } catch (e) { if (/key not found/.test(e.message)) r = null; else throw e; } // none logged yet
+    const fresh = r ? JSON.parse(r.value) : [];
+    if (!Array.isArray(fresh)) throw new Error("expenses list unreadable");
+    return fresh;
+  }
   async function addExpense(exp) {
-    const next = [{ id: "EXP-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(), ...exp }, ...expenses];
+    let latest;
+    try { latest = await latestExpenses(); } catch (e) { window.alert("Couldn't reach the server, so the expense wasn't saved. Check the connection and try again."); return; }
+    const next = [{ id: "EXP-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(), ...exp }, ...latest];
     await saveJSON("expenses", next, true); setExpenses(next);
   }
   async function deleteExpense(id) {
-    const next = expenses.filter((e) => e.id !== id);
+    let latest;
+    try { latest = await latestExpenses(); } catch (e) { window.alert("Couldn't reach the server, so nothing was deleted. Try again."); return; }
+    const next = latest.filter((e) => e.id !== id);
     await saveJSON("expenses", next, true); setExpenses(next);
   }
 
