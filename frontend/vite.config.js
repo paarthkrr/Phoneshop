@@ -70,6 +70,48 @@ const ROUTES = [...STATIC_ROUTES, ...POSTS.map((p) => `blog/${p.slug}`), ...Obje
 const SITEMAP_EXCLUDE = new Set(["sell", "parts", "help"]);
 const isStaffRoute = (r) => /^(portal|staff)(\/|$)/.test(r);
 const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
+// Real H1 per route (honest, matches the live copy). Others fall back to the title.
+const SEO_H1 = {
+  "": "Sell your phone in Sydney. Get paid today.",
+  "quote": "Sell your phone in Sydney \u2014 instant quote, cash paid",
+  "sell": "Sell your phone \u2014 instant quote",
+  "shop": "Refurbished phones, graded and tested",
+  "repairs": "Phone repairs in Sydney from $85",
+  "accessories": "Phone accessories, parts and DIY kits",
+  "parts": "Phone accessories, parts and DIY kits",
+  "home-service": "Mobile Recellr, at your door in Sydney",
+  "tutorials": "Phone repair tutorials",
+  "blog": "Guides: phone repair and trade-in advice",
+  "about": "About Mobile Recellr",
+  "faq": "Frequently asked questions",
+  "contact": "Contact Mobile Recellr",
+};
+function seoH1(route) {
+  if (SEO_H1[route] != null) return SEO_H1[route];
+  const brand = route.startsWith("sell/") && SELL_BRAND_NAMES[route.slice(5)];
+  if (brand) return `Sell your ${brand} in Sydney`;
+  const meta = metaFor(route ? "/" + route : "/");
+  return meta ? meta.title.split(" | ")[0].split(" \u2014 ")[0] : "Mobile Recellr";
+}
+// A static, crawlable fallback for the page body: real heading, the page's own
+// description, and links to the main pages. React replaces this on mount, so
+// visitors see real text instead of "Loading\u2026" and crawlers (and social
+// scrapers that don't run JS) get genuine content and internal links.
+function seoBody(route) {
+  const meta = metaFor(route ? "/" + route : "/");
+  const h1 = esc(seoH1(route));
+  const intro = meta ? esc(meta.desc) : "";
+  const links = [["/quote","Sell your phone"],["/repairs","Phone repairs"],["/shop","Refurbished phones"],["/accessories","Accessories"],["/home-service","At your door"],["/about","About us"],["/contact","Contact"]]
+    .map(([h,t]) => `<a href="${h}" style="color:#2150C8;text-decoration:none;margin:0 10px 6px 0;display:inline-block">${t}</a>`).join("");
+  return `<div id="boot-msg" style="max-width:720px;margin:48px auto;padding:20px;font-family:system-ui,sans-serif;color:#5B6472;">
+        <h1 style="font-size:28px;line-height:1.15;color:#111827;margin:0 0 12px">${h1}</h1>
+        ${intro ? `<p style="font-size:16px;line-height:1.55;margin:0 0 16px">${intro}</p>` : ""}
+        <nav aria-label="Main pages" style="margin:0 0 16px">${links}</nav>
+        <p style="font-size:13px;color:#8A93A0">Loading Mobile Recellr\u2026</p>
+      </div>`;
+}
+
 function withMeta(html, route, base) {
   const url = base + (route ? "/" + route : "/");
   const meta = metaFor(route ? "/" + route : "/");
@@ -83,7 +125,12 @@ function withMeta(html, route, base) {
       .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${esc(meta.desc)}$2`);
   }
   const extra = isStaffRoute(route) ? `<meta name="robots" content="noindex" />` : `<link rel="canonical" href="${url === base + "/parts" ? base + "/accessories" : url}" />\n    <meta property="og:url" content="${url}" />`;
-  return out.replace("</head>", `    ${extra}\n  </head>`);
+  out = out.replace("</head>", `    ${extra}\n  </head>`);
+  // Swap the generic "Loading\u2026" block for this page's real content (staff tools keep the plain loader).
+  if (!isStaffRoute(route)) {
+    out = out.replace(/<div id="boot-msg"[\s\S]*?<\/div>\s*(?=<\/div>)/, seoBody(route));
+  }
+  return out;
 }
 function pagePerRoute() {
   return {
