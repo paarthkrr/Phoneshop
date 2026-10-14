@@ -147,6 +147,37 @@ export default function RepairTickets() {
   async function addStockItem(item) {
     await persistStock([{ id: genPartId(), qtyOnHand: 0, lowStockThreshold: 2, ...item }, ...(partsStock || [])]);
   }
+  // Receive a whole supplier order into Parts Stock in one go: new SKUs are added,
+  // ones already stocked have their quantity topped up. Merged in a single write so
+  // a 10-line order doesn't race ten separate saves.
+  async function receivePartsOrder(rows, meta = {}) {
+    const next = [...(partsStock || [])];
+    let added = 0, topped = 0;
+    for (const r of rows) {
+      const sku = String(r.sku || "").trim();
+      const name = String(r.name || "").trim();
+      const qty = Math.max(0, parseInt(r.qty, 10) || 0);
+      const cost = r.cost !== "" && r.cost != null && !Number.isNaN(parseFloat(r.cost)) ? parseFloat(r.cost) : null;
+      if ((!name && !sku) || qty <= 0) continue;
+      const low = String(sku).toLowerCase(), lowName = name.toLowerCase();
+      const idx = next.findIndex((p) =>
+        (sku && ((p.sku && String(p.sku).toLowerCase() === low) || (p.barcode && String(p.barcode).toLowerCase() === low))) ||
+        (!sku && lowName && String(p.name).toLowerCase() === lowName));
+      if (idx >= 0) {
+        next[idx] = { ...next[idx], qtyOnHand: (Number(next[idx].qtyOnHand) || 0) + qty,
+          ...(cost != null ? { costPerUnit: cost } : {}),
+          ...(meta.supplier ? { supplier: meta.supplier } : {}), ...(meta.orderRef ? { lastOrderRef: meta.orderRef } : {}) };
+        topped += 1;
+      } else {
+        next.unshift({ id: genPartId(), name: name || sku, sku, barcode: /^\d{8,14}$/.test(sku) ? sku : "",
+          qtyOnHand: qty, costPerUnit: cost != null ? cost : 0, lowStockThreshold: 2,
+          supplier: meta.supplier || "", lastOrderRef: meta.orderRef || "", receivedAt: new Date().toISOString() });
+        added += 1;
+      }
+    }
+    await persistStock(next);
+    return { added, topped };
+  }
   async function adjustStock(id, delta) {
     const item = (partsStock || []).find((p) => p.id === id);
     if (!item) return;
@@ -335,7 +366,7 @@ export default function RepairTickets() {
         {view === "usage" && <PartsUsage colors={colors} tickets={tickets || []} onOpen={(id) => { setOpenId(id); setView("queue"); }} />}
 
         {view === "stock" && (
-          <PartsStockTab colors={colors} stock={partsStock || []} onAdd={addStockItem} onAdjust={adjustStock} prefillBarcode={stockPrefill} onPrefillUsed={() => setStockPrefill("")} />
+          <PartsStockTab colors={colors} stock={partsStock || []} onAdd={addStockItem} onAdjust={adjustStock} onReceiveOrder={receivePartsOrder} prefillBarcode={stockPrefill} onPrefillUsed={() => setStockPrefill("")} />
         )}
 
         {view === "queue" && !open && (
@@ -1015,11 +1046,67 @@ function PartsUsage({ colors, tickets, onOpen }) {
   );
 }
 
-function PartsStockTab({ colors, stock, onAdd, onAdjust, prefillBarcode, onPrefillUsed }) {
+// Turn a pasted supplier order (CSV, or columns copied from a spreadsheet/invoice) into rows.
+// A header row is used when present; otherwise we take a best guess. Staff fix anything in the grid before saving.
+function parseSupplierOrder(text) {
+  const lines = String(text || "").split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return [];
+  const cut = (l) => l.split(/\t|,|;|\s{2,}/).map((c) => c.trim()).filter((c) => c !== "");
+  const first = cut(lines[0]).map((c) => c.toLowerCase());
+  let map = null, start = 0;
+  if (first.some((c) => /sku|name|title|qty|quant|cost|price|item|description/.test(c))) {
+    const at = (names) => first.findIndex((c) => names.some((n) => c.includes(n)));
+    map = { sku: at(["sku", "code"]), name: at(["name", "title", "item", "description"]), qty: at(["qty", "quant"]), cost: at(["cost", "price", "unit"]) };
+    start = 1;
+  }
+  const out = [];
+  for (let i = start; i < lines.length; i++) {
+    const cells = cut(lines[i]);
+    if (!cells.length) continue;
+    let sku = "", name = "", qty = "", cost = "";
+    if (map) {
+      sku = map.sku >= 0 ? cells[map.sku] || "" : "";
+      name = map.name >= 0 ? cells[map.name] || "" : "";
+      qty = map.qty >= 0 ? cells[map.qty] || "" : "";
+      cost = map.cost >= 0 ? (cells[map.cost] || "").replace(/[$,]/g, "") : "";
+    } else {
+      const costIx = cells.findIndex((c) => /^\$?\d+\.\d{1,2}$/.test(c));
+      const qtyIx = cells.findIndex((c, ix) => ix !== costIx && /^\d{1,4}$/.test(c));
+      cost = costIx >= 0 ? cells[costIx].replace(/[$,]/g, "") : "";
+      qty = qtyIx >= 0 ? cells[qtyIx] : "";
+      const rest = cells.filter((_, ix) => ix !== costIx && ix !== qtyIx);
+      const eanIx = rest.findIndex((c) => /^\d{5,14}$/.test(c));
+      if (eanIx >= 0) { sku = rest[eanIx]; name = rest.filter((_, ix) => ix !== eanIx).join(" "); }
+      else { sku = rest[0] || ""; name = rest.slice(1).join(" "); }
+    }
+    if (sku || name) out.push({ sku, name, qty: qty || "1", cost });
+  }
+  return out;
+}
+
+function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefillBarcode, onPrefillUsed }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [name, setName] = useState(""); const [sku, setSku] = useState(""); const [barcode, setBarcode] = useState(prefillBarcode || "");
   const [qty, setQty] = useState(""); const [cost, setCost] = useState(""); const [threshold, setThreshold] = useState("2");
   const [find, setFind] = useState(""); const [note, setNote] = useState("");
+  // "Receive a supplier order" bulk flow
+  const [recOpen, setRecOpen] = useState(false);
+  const [supplier, setSupplier] = useState("Crazy Parts"); const [orderRef, setOrderRef] = useState("");
+  const [paste, setPaste] = useState(""); const [rows, setRows] = useState([]); const [recNote, setRecNote] = useState("");
+  const setRow = (i, k, v) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  const validRows = rows.filter((r) => (r.sku || r.name) && (parseInt(r.qty, 10) || 0) > 0);
+  async function addAll() {
+    if (!validRows.length) return;
+    const res = await onReceiveOrder(validRows, { supplier: supplier.trim(), orderRef: orderRef.trim() });
+    setRows([]); setPaste("");
+    setRecNote(`Done: ${res.added} new part${res.added === 1 ? "" : "s"} added, ${res.topped} topped up.`);
+  }
+  async function onCsvFile(e) {
+    const f = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    try { const text = await f.text(); setPaste(text); setRows(parseSupplierOrder(text)); setRecNote(""); }
+    catch (x) { setRecNote("Couldn't read that file — try pasting the order instead."); }
+  }
   useEffect(() => { if (prefillBarcode) { setBarcode(prefillBarcode); onPrefillUsed && onPrefillUsed(); setNote(`New barcode ${prefillBarcode}: fill in the part name, quantity and cost.`); } }, [prefillBarcode]);
 
   const ready = name.trim() && qty !== "" && cost !== "";
@@ -1045,6 +1132,56 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, prefillBarcode, onPrefi
         <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search name, SKU or barcode" aria-label="Search stock" style={{ ...field, flex: 1 }} />
       </div>
       {note && <div role="status" style={{ fontSize: 12.5, color: brass, marginBottom: 12 }}>{note}</div>}
+
+      {/* Receive a whole supplier order at once, instead of adding parts one by one. */}
+      <div style={{ border: `1px solid ${brass}`, borderRadius: 6, padding: 14, marginBottom: 16, background: brassDim }}>
+        <button type="button" onClick={() => setRecOpen((o) => !o)} style={{ width: "100%", textAlign: "left", background: "none", border: "none", color: paper, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+          📥 Receive a supplier order {recOpen ? "▲" : "▼"}
+        </button>
+        {recOpen && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 12.5, color: muted, marginBottom: 10, lineHeight: 1.5 }}>
+              Paste your order (from the supplier's email, website export or a spreadsheet) — one part per line with columns <strong>SKU, Name, Qty, Cost</strong> (comma or tab separated; a header row is detected). Then check the list and press Add all. Parts you already stock get topped up; new ones are added. Prices aren't on every supplier ticket — fill the cost in if it's missing.
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+              <input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Supplier" aria-label="Supplier" style={{ ...field, flex: "1 1 140px" }} />
+              <input value={orderRef} onChange={(e) => setOrderRef(e.target.value)} placeholder="Order / ticket ref (optional)" aria-label="Order reference" style={{ ...field, flex: "1 1 140px" }} />
+            </div>
+            <textarea value={paste} onChange={(e) => setPaste(e.target.value)} rows={4} placeholder={"9357575086313, HD+Incell-13, 1, 42.00\n66609, CRABR-13, 2, 6.50"} aria-label="Paste supplier order"
+              style={{ ...field, width: "100%", resize: "vertical", marginBottom: 8, fontFamily: "ui-monospace, monospace", fontSize: 12.5 }} />
+            <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+              <button type="button" onClick={() => { setRows(parseSupplierOrder(paste)); setRecNote(""); }} disabled={!paste.trim()}
+                style={{ padding: "8px 14px", borderRadius: 3, border: `1px solid ${brass}`, background: paste.trim() ? brass : line, color: paste.trim() ? "#fff" : muted, fontSize: 12.5, fontWeight: 600, cursor: paste.trim() ? "pointer" : "default" }}>Read the list →</button>
+              <label style={{ padding: "8px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 12.5, cursor: "pointer" }}>
+                ⬆ Upload CSV file<input type="file" accept=".csv,text/csv,text/plain" onChange={onCsvFile} style={{ display: "none" }} />
+              </label>
+              <button type="button" onClick={() => setRows((rs) => [...rs, { sku: "", name: "", qty: "1", cost: "" }])}
+                style={{ padding: "8px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 12.5, cursor: "pointer" }}>+ Add a row by hand</button>
+            </div>
+            {rows.length > 0 && (
+              <div style={{ border: `1px solid ${line}`, borderRadius: 4, background: panel, padding: 8, marginBottom: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1.4fr 2fr 0.7fr 0.9fr 28px", gap: 6, fontSize: 11, color: muted, padding: "0 2px 6px" }}>
+                  <span>SKU</span><span>Name</span><span>Qty</span><span>Cost</span><span></span>
+                </div>
+                {rows.map((r, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1.4fr 2fr 0.7fr 0.9fr 28px", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                    <input value={r.sku} onChange={(e) => setRow(i, "sku", e.target.value)} placeholder="SKU" style={{ ...field, padding: "7px 8px", fontSize: 12 }} />
+                    <input value={r.name} onChange={(e) => setRow(i, "name", e.target.value)} placeholder="Part name" style={{ ...field, padding: "7px 8px", fontSize: 12 }} />
+                    <input value={r.qty} onChange={(e) => setRow(i, "qty", e.target.value)} inputMode="numeric" placeholder="1" style={{ ...field, padding: "7px 8px", fontSize: 12 }} />
+                    <input value={r.cost} onChange={(e) => setRow(i, "cost", e.target.value)} inputMode="decimal" placeholder="cost" style={{ ...field, padding: "7px 8px", fontSize: 12 }} />
+                    <button type="button" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} aria-label="Remove row" style={{ border: "none", background: "none", color: red, cursor: "pointer", fontSize: 16 }}>×</button>
+                  </div>
+                ))}
+                <button type="button" disabled={!validRows.length} onClick={addAll}
+                  style={{ width: "100%", marginTop: 4, padding: "11px", borderRadius: 4, border: "none", background: validRows.length ? green : line, color: validRows.length ? "#0c1a12" : muted, fontSize: 13.5, fontWeight: 700, cursor: validRows.length ? "pointer" : "default" }}>
+                  Add all to Parts Stock ({validRows.length} item{validRows.length === 1 ? "" : "s"})
+                </button>
+              </div>
+            )}
+            {recNote && <div role="status" style={{ fontSize: 12.5, color: green, fontWeight: 600 }}>{recNote}</div>}
+          </div>
+        )}
+      </div>
 
       <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
         <div style={{ fontSize: 13, marginBottom: 10 }}>Add stock item</div>
