@@ -676,20 +676,28 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
       </div>
       {editing && <EditJob colors={colors} ticket={ticket} repairTypes={repairTypes} team={team} me={me} onCancel={() => setEditing(false)} onSave={(patch) => { onUpdate(patch); setEditing(false); }} />}
 
-      <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Status</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-        {STATUSES.map((s) => (
-          <button key={s} onClick={() => {
-              if (s === "completed" && shop) { onCompleteShop().then((m) => setShopDoneNote(m || "")); return; }
-              if (s === "completed") { setCompletingPayMethod("cash"); return; } // needs a payment method first — see below
-              onUpdate({ status: s, completedAt: ticket.completedAt }, true);
-            }}
-            style={{ padding: "7px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer",
-              border: `1px solid ${ticket.status === s ? brass : line}`, background: ticket.status === s ? brassDim : "transparent", color: ticket.status === s ? brass : paper }}>
-            {STATUS_LABELS[s]}
+      {/* Primary action: the one button staff reach for most, right at the top. */}
+      {ticket.status !== "completed" && ticket.status !== "not_repairable" && !completingPayMethod && (
+        <div style={{ marginBottom: 16 }}>
+          <button onClick={() => { if (shop) { onCompleteShop().then((m) => setShopDoneNote(m || "")); } else { setCompletingPayMethod("cash"); } }}
+            style={{ width: "100%", padding: "14px", borderRadius: 8, border: "none", background: green, color: "#0c1a12", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            {shop ? "✓ Finish shop job (add parts & labour to this phone's cost)" : "✓ Mark job done & take payment"}
           </button>
-        ))}
-      </div>
+          {!shop && ticket.customer.email && ticket.status === "ready_for_pickup" && !ticket.notifiedAt && (
+            <button onClick={async () => {
+                await queueNotification({ type: "repair_ready", channel: "email", recipientEmail: ticket.customer.email, recipientName: ticket.customer.name,
+                  subject: `Your repair is ready to collect — ${ticket.id}`,
+                  message: `Good news${ticket.customer.name ? `, ${ticket.customer.name}` : ""} — your ${ticket.device.brand} ${ticket.device.model} repair is ready to collect from Mobile Recellr during opening hours. Reference: ${ticket.id}.`,
+                  relatedId: ticket.id });
+                onUpdate({ notifiedAt: new Date().toISOString() });
+              }}
+              style={{ width: "100%", marginTop: 8, padding: "11px", borderRadius: 8, border: `1px solid ${brass}`, background: brassDim, color: brass, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              ✉️ Tell the customer it's ready to collect
+            </button>
+          )}
+          {!shop && ticket.notifiedAt && <div style={{ fontSize: 12.5, color: green, marginTop: 8 }}>✓ Customer told it's ready on {new Date(ticket.notifiedAt).toLocaleDateString("en-AU")}</div>}
+        </div>
+      )}
 
       {completingPayMethod && ticket.status !== "completed" && (
         <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
@@ -707,6 +715,10 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
               </button>
             ))}
           </div>
+          <div style={{ fontSize: 13, marginBottom: 8 }}>Final price charged
+            <input value={finalPrice} onChange={(e) => setFinalPrice(e.target.value)} inputMode="decimal" aria-label="Final price charged"
+              style={{ width: "100%", marginTop: 4, padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, fontSize: 13.5, boxSizing: "border-box" }} />
+          </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setCompletingPayMethod(null)} style={{ padding: "9px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 12.5, cursor: "pointer" }}>Cancel</button>
             <button onClick={() => { onComplete(completingPayMethod, parseFloat(finalPrice) || ticket.quotedPrice); setCompletingPayMethod(null); }}
@@ -716,6 +728,21 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
           </div>
         </div>
       )}
+
+      <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Status</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+        {STATUSES.map((s) => (
+          <button key={s} onClick={() => {
+              if (s === "completed" && shop) { onCompleteShop().then((m) => setShopDoneNote(m || "")); return; }
+              if (s === "completed") { setCompletingPayMethod("cash"); return; } // needs a payment method first — see below
+              onUpdate({ status: s, completedAt: ticket.completedAt }, true);
+            }}
+            style={{ padding: "7px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer",
+              border: `1px solid ${ticket.status === s ? brass : line}`, background: ticket.status === s ? brassDim : "transparent", color: ticket.status === s ? brass : paper }}>
+            {STATUS_LABELS[s]}
+          </button>
+        ))}
+      </div>
 
       {shopDoneNote && <div role="status" style={{ fontSize: 13, color: green, border: `1px solid ${green}`, borderRadius: 3, padding: "10px 12px", marginBottom: 16 }}>{shopDoneNote}</div>}
 
