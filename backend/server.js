@@ -2162,7 +2162,22 @@ async function exportTables() {
   const users = (await pool.query(`SELECT ${MIGRATE_USER_COLUMNS.join(", ")} FROM users`)).rows;
   const product_images = (await pool.query("SELECT id, mime, encode(data, 'base64') AS data_b64, created_by, created_at FROM product_images")).rows;
   const known_devices = (await pool.query("SELECT username, device_hash, first_seen, last_seen FROM known_devices")).rows;
-  return { storage, users, product_images, known_devices };
+  // History and small helper tables, so nothing is left behind on the old host.
+  // (sessions and login_attempts are deliberately not moved: everyone signs in
+  // again on the new host, and lockout counters only live for 5 minutes.)
+  const activity_log = (await pool.query("SELECT at, username, role, area, record_id, action, summary, changes, important FROM activity_log ORDER BY id")).rows;
+  const login_log = (await pool.query("SELECT username, at, ip, device, result, new_device FROM login_log ORDER BY id")).rows;
+  const barcode_cache = (await pool.query("SELECT code, found, title, brand, category, image, created_at FROM barcode_cache")).rows;
+  const recovery_uses = (await pool.query("SELECT code_hash, username, used_at FROM recovery_uses")).rows;
+  const id_photos = (await pool.query("SELECT id, subject_key, ciphertext, iv, auth_tag, uploaded_by, uploaded_at, expires_at FROM id_photos")).rows;
+  return { storage, users, product_images, known_devices, activity_log, login_log, barcode_cache, recovery_uses, id_photos };
+}
+// Row counts of every table in the database, to prove nothing was missed.
+async function allTableCounts() {
+  const names = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename")).rows.map((r) => r.tablename);
+  const out = {};
+  for (const n of names) out[n] = (await pool.query(`SELECT COUNT(*)::int AS n FROM "${n.replace(/"/g, '""')}"`)).rows[0].n;
+  return out;
 }
 async function importTables(t) {
   const list = (x) => (Array.isArray(x) ? x : []);
@@ -2203,6 +2218,51 @@ async function importTables(t) {
          ON CONFLICT (username, device_hash) DO NOTHING`, [r.username, r.device_hash, r.first_seen || null, r.last_seen || null]);
       imported.known_devices++;
     }
+    // Log rows get fresh ids on the new host (it may already have its own rows);
+    // a row that's already there (same time, person and event) isn't added twice.
+    imported.activity_log = 0;
+    for (const r of list(t.activity_log)) {
+      if (!r || !r.at || typeof r.username !== "string" || typeof r.area !== "string" || typeof r.action !== "string") continue;
+      const q = await client.query(
+        `INSERT INTO activity_log (at, username, role, area, record_id, action, summary, changes, important)
+         SELECT $1::timestamptz, $2, $3, $4, $5, $6, $7, $8::jsonb, $9
+         WHERE NOT EXISTS (SELECT 1 FROM activity_log WHERE at = $1::timestamptz AND username = $2 AND area = $4 AND action = $6 AND record_id IS NOT DISTINCT FROM $5)`,
+        [r.at, r.username, r.role ?? null, r.area, r.record_id ?? null, r.action, r.summary ?? null, r.changes == null ? null : JSON.stringify(r.changes), r.important ?? null]);
+      imported.activity_log += q.rowCount;
+    }
+    imported.login_log = 0;
+    for (const r of list(t.login_log)) {
+      if (!r || !r.at || typeof r.username !== "string" || typeof r.result !== "string") continue;
+      const q = await client.query(
+        `INSERT INTO login_log (username, at, ip, device, result, new_device)
+         SELECT $1, $2::timestamptz, $3, $4, $5, $6
+         WHERE NOT EXISTS (SELECT 1 FROM login_log WHERE username = $1 AND at = $2::timestamptz AND result = $5)`,
+        [r.username, r.at, r.ip ?? null, r.device ?? null, r.result, !!r.new_device]);
+      imported.login_log += q.rowCount;
+    }
+    imported.barcode_cache = 0;
+    for (const r of list(t.barcode_cache)) {
+      if (!r || typeof r.code !== "string") continue;
+      await client.query(
+        `INSERT INTO barcode_cache (code, found, title, brand, category, image, created_at) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::timestamptz, NOW()))
+         ON CONFLICT (code) DO NOTHING`, [r.code, !!r.found, r.title ?? null, r.brand ?? null, r.category ?? null, r.image ?? null, r.created_at || null]);
+      imported.barcode_cache++;
+    }
+    imported.recovery_uses = 0;
+    for (const r of list(t.recovery_uses)) {
+      if (!r || typeof r.code_hash !== "string" || typeof r.username !== "string") continue;
+      await client.query(`INSERT INTO recovery_uses (code_hash, username, used_at) VALUES ($1, $2, COALESCE($3::timestamptz, NOW())) ON CONFLICT (code_hash) DO NOTHING`,
+        [r.code_hash, r.username, r.used_at || null]);
+      imported.recovery_uses++;
+    }
+    imported.id_photos = 0;
+    for (const r of list(t.id_photos)) {
+      if (!r || ["id", "subject_key", "ciphertext", "iv", "auth_tag", "uploaded_by"].some((k) => typeof r[k] !== "string") || !r.uploaded_at || !r.expires_at) continue;
+      await client.query(
+        `INSERT INTO id_photos (id, subject_key, ciphertext, iv, auth_tag, uploaded_by, uploaded_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (id) DO NOTHING`, [r.id, r.subject_key, r.ciphertext, r.iv, r.auth_tag, r.uploaded_by, r.uploaded_at, r.expires_at]);
+      imported.id_photos++;
+    }
     await client.query("COMMIT");
     return imported;
   } catch (e) {
@@ -2217,7 +2277,7 @@ app.get("/admin/migrate/export", async (req, res) => {
     const tables = await exportTables();
     res.setHeader("Content-Disposition", 'attachment; filename="phoneshop-export.json"');
     res.setHeader("Cache-Control", "no-store");
-    res.type("application/json").send(JSON.stringify({ exportedAt: new Date().toISOString(), counts: countsOf(tables), tables }));
+    res.type("application/json").send(JSON.stringify({ exportedAt: new Date().toISOString(), counts: countsOf(tables), allTables: await allTableCounts(), tables }));
   } catch (e) { console.error("migration export failed:", e.message); res.status(500).json({ error: "export failed" }); }
 });
 app.post("/admin/migrate/import", express.json({ limit: "250mb" }), async (req, res) => {
@@ -2236,7 +2296,7 @@ app.post("/admin/migrate/pull", async (req, res) => {
     if (!r.ok) return res.status(502).json({ error: `old server answered ${r.status} — check its address and that it has the same MIGRATION_TOKEN` });
     const data = await r.json();
     const imported = await importTables((data && data.tables) || {});
-    res.json({ ok: true, from: src, sourceCounts: data.counts || null, imported });
+    res.json({ ok: true, from: src, sourceCounts: data.counts || null, sourceAllTables: data.allTables || null, imported, thisServerAllTables: await allTableCounts() });
   } catch (e) { res.status(502).json({ error: `pull failed (nothing was saved): ${e.message}` }); }
 });
 // A no-command-line page: open it on the NEW server.

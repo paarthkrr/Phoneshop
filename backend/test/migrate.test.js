@@ -29,6 +29,10 @@ before(async () => {
   await pool.query("INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ('shared', 'orders', $1, NOW(), 'owner')", [JSON.stringify([{ id: "ORD-1", quotedTotal: 420 }])]);
   await pool.query("INSERT INTO product_images (id, mime, data, created_by, created_at) VALUES ('img1', 'image/png', '\\x89504e47'::bytea, 'owner', NOW())");
   await pool.query("INSERT INTO known_devices (username, device_hash, first_seen, last_seen) VALUES ('owner', 'dev1', NOW(), NOW())");
+  await pool.query("DELETE FROM activity_log"); await pool.query("DELETE FROM login_log");
+  await pool.query("INSERT INTO activity_log (at, username, role, area, record_id, action, summary, changes) VALUES ('2026-10-01T01:00:00Z', 'owner', 'admin', 'orders', 'ORD-1', 'changed', 'price 400 -> 420', '{\"price\":[400,420]}')");
+  await pool.query("INSERT INTO login_log (username, at, ip, device, result, new_device) VALUES ('owner', '2026-10-01T00:59:00Z', '203.0.113.5', 'Safari on iPhone', 'signed in', true)");
+  await pool.query("INSERT INTO barcode_cache (code, found, title) VALUES ('9300000000001', true, 'USB-C cable')");
 });
 after(async () => { server.close(); await pool.end(); await app.__db.end(); });
 
@@ -41,13 +45,20 @@ test("the token is only accepted in its header", async () => {
 test("export, wipe, import: every table comes back the same", async () => {
   const ex = await call("GET", "/admin/migrate/export", { token: TOKEN });
   assert.equal(ex.status, 200);
-  assert.deepEqual(ex.body.counts, { storage: 1, users: 1, product_images: 1, known_devices: 1 });
+  assert.deepEqual(ex.body.counts, { storage: 1, users: 1, product_images: 1, known_devices: 1, activity_log: 1, login_log: 1, barcode_cache: 1, recovery_uses: 0, id_photos: 0 });
+  assert.ok(ex.body.allTables && ex.body.allTables.sessions >= 0, "every table's row count is listed");
   const before = (await pool.query("SELECT username, salt, hash, role, access, totp_secret FROM users")).rows;
 
-  await pool.query("TRUNCATE storage, users, product_images, known_devices");
+  await pool.query("TRUNCATE storage, users, product_images, known_devices, activity_log, login_log, barcode_cache");
+  // the new host already has a log row of its own: it stays, and nothing collides with it
+  await pool.query("INSERT INTO login_log (username, at, result) VALUES ('owner', '2026-10-15T00:00:00Z', 'signed in')");
   const im = await call("POST", "/admin/migrate/import", { token: TOKEN, body: ex.body });
   assert.equal(im.status, 200);
-  assert.deepEqual(im.body.imported, { storage: 1, users: 1, product_images: 1, known_devices: 1 });
+  assert.deepEqual(im.body.imported, { storage: 1, users: 1, product_images: 1, known_devices: 1, activity_log: 1, login_log: 1, barcode_cache: 1, recovery_uses: 0, id_photos: 0 });
+  assert.equal((await pool.query("SELECT COUNT(*)::int AS n FROM login_log")).rows[0].n, 2);
+  assert.deepEqual((await pool.query("SELECT summary, changes FROM activity_log")).rows, [{ summary: "price 400 -> 420", changes: { price: [400, 420] } }]);
+  const again = await call("POST", "/admin/migrate/import", { token: TOKEN, body: ex.body });
+  assert.equal(again.body.imported.activity_log + again.body.imported.login_log, 0, "running it twice adds no duplicate history");
 
   assert.deepEqual((await pool.query("SELECT username, salt, hash, role, access, totp_secret FROM users")).rows, before);
   assert.deepEqual(JSON.parse((await pool.query("SELECT value FROM storage WHERE key = 'orders'")).rows[0].value), [{ id: "ORD-1", quotedTotal: 420 }]);
