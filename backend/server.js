@@ -1044,7 +1044,9 @@ const CORS_ORIGINS = CORS_ORIGIN.split(",").map((o) => o.trim().replace(/\/$/, "
 app.use(cors({ origin: CORS_ORIGINS.length ? CORS_ORIGINS : true }));
 // gzip responses: a catalogue of thousands of products is ~8x smaller over the wire.
 app.use(compression());
-app.use(express.json({ limit: "10mb" }));
+// The migration import is the one route that may take a bigger body (it has its own parser).
+const jsonBody = express.json({ limit: "10mb" });
+app.use((req, res, next) => (req.path === "/admin/migrate/import" ? next() : jsonBody(req, res, next)));
 app.use((req, res, next) => {
   // A few no-dependency security headers. HSTS is deliberately left to
   // your hosting platform, since it terminates TLS, not this app —
@@ -2125,6 +2127,146 @@ async function weeklyMarketCheck() {
     if (!last || !(Date.now() - Date.parse(last.checkedAt) < 7 * 864e5)) await runMarketCheck("weekly check");
   } catch (e) { console.error("weekly market check failed:", e.message); }
 }
+
+// ---------------------------------------------------------------------------
+// One-time migration kit: moves this shop's data to a new host (e.g. Render ->
+// Railway). It does nothing unless MIGRATION_TOKEN is set (32+ characters) on
+// the server. Set the SAME token on the old and the new server, pull the data
+// across, then REMOVE the variable from both.
+// - The token only travels in the x-migrate-token header, never in a URL
+//   (URLs end up in hosting and CDN request logs).
+// - Compared in constant time; at most 10 tries per network per 10 minutes.
+// - Import only writes known columns of known tables (nothing from the file is
+//   ever used as SQL), all in one transaction.
+// - Two-step secrets are encrypted with SESSION_SECRET: the new server must use
+//   the same SESSION_SECRET, or Owner/Manager two-step sign-in stops working.
+// Only the durable business tables move; sessions, logs and caches start fresh.
+// ---------------------------------------------------------------------------
+const MIGRATION_TOKEN = String(process.env.MIGRATION_TOKEN || "");
+const MIGRATION_ON = MIGRATION_TOKEN.length >= 32;
+if (MIGRATION_TOKEN && !MIGRATION_ON) console.warn("MIGRATION_TOKEN is set but shorter than 32 characters — the migration kit stays OFF.");
+if (MIGRATION_ON) console.warn("Migration kit is ON (MIGRATION_TOKEN set). Remove the variable once the move is done.");
+const migrateTriesAllowed = makeLimiter(10, 10 * 60 * 1000);
+const sha = (v) => crypto.createHash("sha256").update(String(v)).digest();
+function migrateGate(req, res) {
+  if (!MIGRATION_ON) { res.status(404).end(); return false; }
+  if (!migrateTriesAllowed(req)) { res.status(429).json({ error: "too many tries — wait 10 minutes" }); return false; }
+  const t = req.get("x-migrate-token") || "";
+  if (!t || !crypto.timingSafeEqual(sha(t), sha(MIGRATION_TOKEN))) { res.status(403).json({ error: "bad or missing migration token" }); return false; }
+  return true;
+}
+const MIGRATE_USER_COLUMNS = ["username", "salt", "hash", "role", "created_at", "recovery_hash", "recovery_created_at",
+  "totp_secret", "access", "totp_pending", "totp_enabled_at", "totp_last_step"];
+async function exportTables() {
+  const storage = (await pool.query("SELECT scope, key, value, updated_at, updated_by FROM storage")).rows;
+  const users = (await pool.query(`SELECT ${MIGRATE_USER_COLUMNS.join(", ")} FROM users`)).rows;
+  const product_images = (await pool.query("SELECT id, mime, encode(data, 'base64') AS data_b64, created_by, created_at FROM product_images")).rows;
+  const known_devices = (await pool.query("SELECT username, device_hash, first_seen, last_seen FROM known_devices")).rows;
+  return { storage, users, product_images, known_devices };
+}
+async function importTables(t) {
+  const list = (x) => (Array.isArray(x) ? x : []);
+  const client = await pool.connect();
+  const imported = { storage: 0, users: 0, product_images: 0, known_devices: 0 };
+  try {
+    await client.query("BEGIN");
+    for (const r of list(t.storage)) {
+      if (!r || typeof r.scope !== "string" || typeof r.key !== "string" || typeof r.value !== "string") continue;
+      await client.query(
+        `INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ($1, $2, $3, COALESCE($4::timestamptz, NOW()), $5)
+         ON CONFLICT (scope, key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at, updated_by = EXCLUDED.updated_by`,
+        [r.scope, r.key, r.value, r.updated_at || null, r.updated_by || null]);
+      imported.storage++;
+    }
+    const setCols = MIGRATE_USER_COLUMNS.filter((c) => c !== "username").map((c) => `${c} = EXCLUDED.${c}`).join(", ");
+    for (const r of list(t.users)) {
+      if (!r || typeof r.username !== "string" || !r.username || typeof r.salt !== "string" || typeof r.hash !== "string") continue;
+      const vals = MIGRATE_USER_COLUMNS.map((c) => (c === "access" && r.access != null ? JSON.stringify(r.access) : r[c] ?? null));
+      vals[MIGRATE_USER_COLUMNS.indexOf("role")] = r.role || "staff";
+      vals[MIGRATE_USER_COLUMNS.indexOf("created_at")] = r.created_at || new Date().toISOString();
+      await client.query(
+        `INSERT INTO users (${MIGRATE_USER_COLUMNS.join(", ")}) VALUES (${MIGRATE_USER_COLUMNS.map((_, i) => `$${i + 1}`).join(", ")})
+         ON CONFLICT (username) DO UPDATE SET ${setCols}`, vals);
+      imported.users++;
+    }
+    for (const r of list(t.product_images)) {
+      if (!r || typeof r.id !== "string" || typeof r.mime !== "string" || typeof r.data_b64 !== "string") continue;
+      await client.query(
+        `INSERT INTO product_images (id, mime, data, created_by, created_at) VALUES ($1, $2, decode($3, 'base64'), $4, COALESCE($5::timestamptz, NOW()))
+         ON CONFLICT (id) DO NOTHING`, [r.id, r.mime, r.data_b64, r.created_by || null, r.created_at || null]);
+      imported.product_images++;
+    }
+    for (const r of list(t.known_devices)) {
+      if (!r || typeof r.username !== "string" || typeof r.device_hash !== "string") continue;
+      await client.query(
+        `INSERT INTO known_devices (username, device_hash, first_seen, last_seen) VALUES ($1, $2, COALESCE($3::timestamptz, NOW()), COALESCE($4::timestamptz, NOW()))
+         ON CONFLICT (username, device_hash) DO NOTHING`, [r.username, r.device_hash, r.first_seen || null, r.last_seen || null]);
+      imported.known_devices++;
+    }
+    await client.query("COMMIT");
+    return imported;
+  } catch (e) {
+    try { await client.query("ROLLBACK"); } catch (_) { /* ignore */ }
+    throw e;
+  } finally { client.release(); }
+}
+const countsOf = (t) => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, v.length]));
+app.get("/admin/migrate/export", async (req, res) => {
+  if (!migrateGate(req, res)) return;
+  try {
+    const tables = await exportTables();
+    res.setHeader("Content-Disposition", 'attachment; filename="phoneshop-export.json"');
+    res.setHeader("Cache-Control", "no-store");
+    res.type("application/json").send(JSON.stringify({ exportedAt: new Date().toISOString(), counts: countsOf(tables), tables }));
+  } catch (e) { console.error("migration export failed:", e.message); res.status(500).json({ error: "export failed" }); }
+});
+app.post("/admin/migrate/import", express.json({ limit: "250mb" }), async (req, res) => {
+  if (!migrateGate(req, res)) return;
+  try { res.json({ ok: true, imported: await importTables((req.body && req.body.tables) || {}) }); }
+  catch (e) { console.error("migration import failed:", e.message); res.status(500).json({ error: `import failed (nothing was saved): ${e.message}` }); }
+});
+// Server to server: this (new) server fetches the export from the old one and
+// imports it. No file to move by hand.
+app.post("/admin/migrate/pull", async (req, res) => {
+  if (!migrateGate(req, res)) return;
+  const src = String((req.body && req.body.sourceUrl) || "").trim().replace(/\/+$/, "");
+  if (!/^https:\/\/[^/\s]+$/.test(src)) return res.status(400).json({ error: "sourceUrl must be the old server's https:// address, e.g. https://phoneshop-backend-3quv.onrender.com" });
+  try {
+    const r = await fetch(`${src}/admin/migrate/export`, { headers: { "x-migrate-token": req.get("x-migrate-token") } });
+    if (!r.ok) return res.status(502).json({ error: `old server answered ${r.status} — check its address and that it has the same MIGRATION_TOKEN` });
+    const data = await r.json();
+    const imported = await importTables((data && data.tables) || {});
+    res.json({ ok: true, from: src, sourceCounts: data.counts || null, imported });
+  } catch (e) { res.status(502).json({ error: `pull failed (nothing was saved): ${e.message}` }); }
+});
+// A no-command-line page: open it on the NEW server.
+app.get("/admin/migrate", (req, res) => {
+  if (!MIGRATION_ON) return res.status(404).end();
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.send(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content=noindex><title>Import data</title>
+<style>body{font-family:system-ui,sans-serif;max-width:560px;margin:34px auto;padding:0 16px;color:#111}input,button{font-size:16px;padding:11px;margin:6px 0;width:100%;box-sizing:border-box;border-radius:8px}input{border:1px solid #ccc}button{background:#1f6feb;color:#fff;border:0;cursor:pointer;font-weight:600}.card{border:1px solid #e3e3e3;border-radius:12px;padding:16px;margin:14px 0}small{color:#666}pre{background:#f4f4f4;padding:12px;white-space:pre-wrap;word-break:break-word;border-radius:8px}</style>
+<h2>Move shop data into this server</h2>
+<div class=card><h3>Option A: pull from the old server (easiest)</h3><small>This server fetches the data straight from the old one.</small>
+<input id=src placeholder="Old server address, e.g. https://phoneshop-backend-3quv.onrender.com">
+<input id=stok type=password autocomplete=off placeholder="Migration token (same on both servers)">
+<button onclick=pull()>Pull &amp; import</button></div>
+<div class=card><h3>Option B: upload a file</h3><small>A phoneshop-export.json downloaded from the old server.</small>
+<input id=tok type=password autocomplete=off placeholder="Migration token"><input id=f type=file accept="application/json,.json">
+<button onclick=up()>Upload &amp; import</button></div>
+<pre id=out></pre>
+<script>
+function show(o,r,j){o.textContent=(r.ok?'Done \\u2713\\n':'Failed\\n')+JSON.stringify(j,null,2);}
+async function pull(){var o=document.getElementById('out');o.textContent='Pulling from the old server\\u2026';
+var src=document.getElementById('src').value.trim(),tok=document.getElementById('stok').value.trim();
+if(!src||!tok){o.textContent='Enter the old server address and the token.';return;}
+try{var r=await fetch('/admin/migrate/pull',{method:'POST',headers:{'Content-Type':'application/json','x-migrate-token':tok},body:JSON.stringify({sourceUrl:src})});show(o,r,await r.json());}catch(e){o.textContent='Error: '+e.message;}}
+async function up(){var o=document.getElementById('out');o.textContent='Working\\u2026';
+var tok=document.getElementById('tok').value.trim(),f=document.getElementById('f').files[0];
+if(!tok||!f){o.textContent='Enter the token and pick the file first.';return;}
+try{var r=await fetch('/admin/migrate/import',{method:'POST',headers:{'Content-Type':'application/json','x-migrate-token':tok},body:await f.text()});show(o,r,await r.json());}catch(e){o.textContent='Error: '+e.message;}}
+</script>`);
+});
 
 const PORT = process.env.PORT || 8787;
 if (require.main === module) {
