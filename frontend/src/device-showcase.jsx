@@ -10,6 +10,12 @@
 //  - the canvas is sized for the screen's pixel ratio (capped at 2) so it stays sharp,
 //  - phones get every second frame (half the download, still smooth over 1.4 s).
 // Reduced motion / no JS: the opened phone as a still image with the price list.
+//
+// Three ways to drive it (preview any on the live site with ?xv=scroll / ?xv=auto / ?xv=tap):
+//  scroll: the section pins while you scroll and the phone opens with your scroll, closes
+//          when you scroll back (Apple product-page style). Default.
+//  auto:   opens by itself when it comes into view, closes again once it leaves.
+//  tap:    opens on tap, closes on the next tap.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { REPAIRS_BY_DEVICE } from "./repair-prices.js";
 
@@ -17,6 +23,11 @@ const PRICE = Object.fromEntries((REPAIRS_BY_DEVICE.Phone || []).map((r) => [r.n
 const COUNT = 80, W = 720, H = 1280;
 const SRC = (i) => `/photos/exploded/${String(i).padStart(3, "0")}.webp`;
 const DURATION = 1400; // ms for a full open or close
+export const SHOWCASE_MODE = "scroll";
+const pickMode = () => {
+  try { const m = new URLSearchParams(window.location.search).get("xv"); if (m === "scroll" || m === "auto" || m === "tap") return m; } catch (e) { /* no window */ }
+  return SHOWCASE_MODE;
+};
 
 // Hotspots on the fully opened phone, as fractions of the frame (x, y).
 const SPOTS = [
@@ -30,7 +41,7 @@ const SPOTS = [
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 const CSS = `
-.xv{position:relative;overflow:hidden;background:var(--xv-bg,#fefcfd);transition:background-color .2s linear;color:#111827;padding:clamp(40px,7vh,80px) 20px}
+.xv{position:relative;overflow:hidden;overflow:clip;background:var(--xv-bg,#fefcfd);transition:background-color .2s linear;color:#111827;padding:clamp(40px,7vh,80px) 20px}
 .xv-in{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:18px;align-items:center}
 @media (min-width: 900px){ .xv-in{grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr);gap:40px} }
 .xv-kicker{font-size:12px;letter-spacing:.24em;color:#7a1630;font-weight:700;margin-bottom:10px}
@@ -63,11 +74,25 @@ const CSS = `
   font-weight:600;letter-spacing:.02em;transition:opacity .3s ease;pointer-events:none;z-index:2;white-space:nowrap}
 .xv-load{position:absolute;left:12%;right:12%;bottom:1.5%;height:2px;border-radius:2px;background:rgba(17,24,39,.08);overflow:hidden;z-index:2;transition:opacity .4s}
 .xv-load i{display:block;height:100%;background:#7a1630;transition:width .2s}
+/* scroll mode: a tall section whose inner stage stays pinned while the phone opens */
+.xv.scroll{padding:0 20px}
+.xv-pin{position:sticky;top:0;min-height:100vh;min-height:100svh;display:flex;align-items:center;padding:calc(var(--xv-top,72px) + 12px) 0 16px;box-sizing:border-box}
+.xv-pin>.xv-in{width:100%}
+.xv.scroll .xv-stage{width:min(100%,calc((100svh - var(--xv-top,72px) - 40px) * ${W / H}),520px)}
+.xv-cue{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4b5563;margin-top:4px}
+.xv-cue i{display:block;width:16px;height:26px;border:2px solid #9ca3af;border-radius:10px;position:relative}
+.xv-cue i::after{content:"";position:absolute;left:50%;top:5px;width:3px;height:6px;margin-left:-1.5px;border-radius:2px;background:#7a1630;animation:xv-cue 1.4s ease-in-out infinite}
+@keyframes xv-cue{0%{transform:translateY(0);opacity:1}70%{transform:translateY(8px);opacity:0}100%{opacity:0}}
+.xv-after{max-width:1120px;margin:0 auto;padding:8px 0 48px}
+@media (max-width: 899px){ .xv.scroll .xv-sub,.xv.scroll .xv-text .xv-list,.xv.scroll .xv-text .xv-btns{display:none} .xv.scroll .xv-title{font-size:26px} .xv.scroll .xv-kicker{margin-bottom:6px}
+  .xv.scroll .xv-in{gap:10px} .xv-pin{padding-bottom:72px} .xv.scroll .xv-stage{width:min(100%,calc((100svh - var(--xv-top,72px) - 190px) * ${W / H}))} }
+@media (min-width: 900px){ .xv-after{display:none} }
 @media (max-width: 899px){ .xv-text{text-align:center} .xv-sub,.xv-list{margin-left:auto;margin-right:auto} .xv-btns{justify-content:center} .xv-tag{font-size:11.5px;padding:5px 8px} }
 `;
 
 export default function DeviceShowcase() {
-  const section = useRef(null), stage = useRef(null), canvas = useRef(null);
+  const section = useRef(null), track = useRef(null), stage = useRef(null), canvas = useRef(null);
+  const [moved, setMoved] = useState(false); // scroll mode: has the phone started opening
   const bitmaps = useRef([]), frame = useRef(0), anim = useRef(0), wantOpen = useRef(false);
   const [open, setOpen] = useState(false);       // target state
   const [settled, setSettled] = useState(false); // fully open and still: show hotspots
@@ -75,11 +100,18 @@ export default function DeviceShowcase() {
   const [ready, setReady] = useState(false);
   const [reduced, setReduced] = useState(false);
   const step = useRef(1);
+  const [mode] = useState(pickMode);
+  const scrollMode = mode === "scroll" && !reduced;
 
   useEffect(() => {
     const mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
     if (mq && mq.matches) { setReduced(true); section.current?.style.setProperty("--xv-bg", "rgb(243,240,241)"); }
     step.current = window.innerWidth < 760 ? 2 : 1;
+    // the pinned stage sits just under the sticky header
+    const nav = document.querySelector(".cs-glass-nav");
+    const setTop = () => { if (nav && section.current) section.current.style.setProperty("--xv-top", `${nav.getBoundingClientRect().bottom > 0 ? nav.offsetHeight : 0}px`); };
+    setTop(); window.addEventListener("resize", setTop);
+    return () => window.removeEventListener("resize", setTop);
   }, []);
 
   const draw = useCallback((i) => {
@@ -155,7 +187,61 @@ export default function DeviceShowcase() {
   }, [draw]);
   useEffect(() => () => cancelAnimationFrame(anim.current), []);
 
-  const toggle = () => { if (ready) play(!wantOpen.current); };
+  // scroll: frame follows how far you've scrolled through the (tall) section, eased so a
+  // flick of the wheel still glides. Fully open for the last stretch, with the hotspots.
+  useEffect(() => {
+    if (!scrollMode) return undefined;
+    let raf = 0, cur = frame.current, alive = true;
+    const target = () => {
+      const el = track.current; if (!el) return 0;
+      const r = el.getBoundingClientRect(), run = r.height - window.innerHeight;
+      const p = run > 0 ? Math.min(1, Math.max(0, -r.top / run)) : 0;
+      const q = Math.min(1, Math.max(0, (p - 0.04) / 0.78)); // 4%–82% of the run opens it, the rest holds it open
+      return q * (COUNT - 1);
+    };
+    const tick = () => {
+      if (!alive) return;
+      const t = target();
+      cur += (t - cur) * 0.18;
+      if (Math.abs(t - cur) < 0.05) cur = t;
+      const f = Math.round(cur);
+      if (f !== frame.current) { frame.current = f; draw(f); }
+      const isOpen = f >= COUNT - 2;
+      setMoved((m) => (m === f > 2 ? m : f > 2));
+      wantOpen.current = isOpen;
+      setOpen((o) => (o === isOpen ? o : isOpen)); setSettled((v) => (v === isOpen ? v : isOpen));
+      raf = Math.abs(t - cur) > 0 ? requestAnimationFrame(tick) : 0;
+    };
+    const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
+    window.addEventListener("scroll", kick, { passive: true }); window.addEventListener("resize", kick);
+    kick();
+    return () => { alive = false; cancelAnimationFrame(raf); window.removeEventListener("scroll", kick); window.removeEventListener("resize", kick); };
+  }, [scrollMode, draw, ready]);
+
+  // auto: opens on its own once mostly in view, closes again when it has left
+  useEffect(() => {
+    if (mode !== "auto" || reduced || !ready) return undefined;
+    const el = stage.current; if (!el) return undefined;
+    let timer = 0;
+    const io = new IntersectionObserver((es) => {
+      const e = es[es.length - 1];
+      if (e.intersectionRatio >= 0.6 && !wantOpen.current) { clearTimeout(timer); timer = setTimeout(() => play(true), 350); }
+      else if (e.intersectionRatio < 0.12 && wantOpen.current) { clearTimeout(timer); play(false); }
+    }, { threshold: [0, 0.12, 0.6, 1] });
+    io.observe(el);
+    return () => { clearTimeout(timer); io.disconnect(); };
+  }, [mode, reduced, ready, play]);
+
+  const toggle = () => {
+    if (!ready) return;
+    if (scrollMode) {
+      // scroll the page to the open (or closed) end of the section instead of fighting the scroll
+      const el = track.current; const r = el.getBoundingClientRect(); const top = window.scrollY + r.top;
+      window.scrollTo({ top: wantOpen.current ? top : top + (r.height - window.innerHeight) * 0.86, behavior: "smooth" });
+      return;
+    }
+    play(!wantOpen.current);
+  };
 
   const list = (
     <ul className="xv-list">
@@ -166,12 +252,14 @@ export default function DeviceShowcase() {
   );
 
   return (
-    <section ref={section} className="xv" aria-label="Look inside an iPhone — the repairs we do">
+    <section ref={section} className={`xv${scrollMode ? " scroll" : ""}`} aria-label="Look inside an iPhone — the repairs we do">
       <style>{CSS}</style>
+      <div ref={track} style={scrollMode ? { height: "260vh" } : undefined}>
+      <div className={scrollMode ? "xv-pin" : undefined}>
       <div className="xv-in">
         <div className="xv-text">
           <div className="xv-kicker">INSIDE EVERY REPAIR</div>
-          <h2 className="xv-title">{reduced || open ? "Every part. Fixed right here." : "Tap the phone to look inside."}</h2>
+          <h2 className="xv-title">{reduced || open ? "Every part. Fixed right here." : scrollMode ? "Scroll to look inside." : mode === "auto" ? "Look inside your phone." : "Tap the phone to look inside."}</h2>
           <p className="xv-sub">Screen, battery, cameras, charging port, logic board — we repair all of it in-store in Sydney, most jobs the same day.</p>
           {list}
           <div className="xv-btns">
@@ -194,10 +282,13 @@ export default function DeviceShowcase() {
               </a>
             </div>
           ))}
-          {!reduced && <div className="xv-hint" style={{ opacity: open ? 0 : 1 }}>{ready ? "Tap to open" : "Loading…"}</div>}
+          {!reduced && <div className="xv-hint" style={{ opacity: open || (scrollMode && moved) ? 0 : 1 }}>{!ready ? "Loading…" : scrollMode ? <span className="xv-cue" style={{ color: "#fff", margin: 0 }}><i />Scroll to open</span> : mode === "auto" ? "Tap to replay" : "Tap to open"}</div>}
           {!reduced && <div className="xv-load" style={{ opacity: ready ? 0 : 1 }}><i style={{ width: `${Math.round(loaded * 100)}%` }} /></div>}
         </div>
       </div>
+      </div>
+      </div>
+      {scrollMode && <div className="xv-after">{list}<div className="xv-btns" style={{ justifyContent: "center" }}><a href="/repairs">Book a repair</a></div></div>}
     </section>
   );
 }
