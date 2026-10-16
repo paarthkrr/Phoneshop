@@ -490,6 +490,16 @@ const STATUS_LABELS = {
   returned: "Returned to you",
 };
 
+const QICONS = {
+  truck: <path d="M3 7h11v9H3zM14 10h4l3 3v3h-7zM7 19.3a1.8 1.8 0 1 0 0-.1M17 19.3a1.8 1.8 0 1 0 0-.1" />,
+  check: <><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" /><path d="M9 12l2 2 4-4" /></>,
+  shield: <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" />,
+  clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+  cash: <><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="3" /></>,
+  tag: <><path d="M20 12l-8 8-9-9V3h8z" /><circle cx="7.5" cy="7.5" r="1.5" /></>,
+};
+const QIco = ({ k }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{QICONS[k]}</svg>;
+
 export default function QuoteCalculator() {
   const [live, setLive] = useState(null);   // config loaded from the shared admin database
   const [source, setSource] = useState("built-in defaults");
@@ -891,26 +901,46 @@ export default function QuoteCalculator() {
         @keyframes mv-pop { 0% { transform: scale(0.82); opacity: 0.4; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
         .mv-pop { display: inline-block; animation: mv-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: right center; }
         @media (prefers-reduced-motion: reduce) { .mv-pop { animation: none; } }
+        /* Page header in the homepage's burgundy look, so the quote doesn't feel like a different site */
+        .mvq-hero { position: relative; overflow: hidden; border-radius: 20px; padding: 18px 16px 16px; margin: 0 0 18px; color: #fff;
+          background: radial-gradient(120% 90% at 85% 0%, rgba(201,122,138,.35) 0%, rgba(201,122,138,0) 55%), linear-gradient(160deg, #2A1520 0%, #12080C 60%, #050304 100%);
+          box-shadow: 0 18px 40px rgba(18,8,12,.18); }
+        .mvq-eyebrow { font-size: 11.5px; letter-spacing: .26em; font-weight: 700; color: rgba(255,255,255,.62); margin-bottom: 8px; }
+        .mvq-h1 { font-family: 'Outfit','Archivo',sans-serif; font-weight: 800; font-size: clamp(30px, 7vw, 40px); line-height: 1; letter-spacing: -.035em; margin: 0 0 8px;
+          background: linear-gradient(180deg,#FFFFFF 0%,#F5E6EA 45%,#C97A8A 70%,#FFFFFF 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .mvq-sub { font-size: 14.5px; line-height: 1.5; color: rgba(255,255,255,.78); margin: 0 0 14px; max-width: 520px; }
+        .mvq-chips { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+        @media (min-width: 640px) { .mvq-chips { grid-template-columns: repeat(4, minmax(0,1fr)); } .mvq-hero { padding: 24px 22px 20px; } }
+        .mvq-chip { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 7px 10px; border-radius: 12px; font-size: 12.5px; font-weight: 600; line-height: 1.25;
+          color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); text-align: left; font-family: inherit; }
+        .mvq-chip svg { width: 17px; height: 17px; flex: none; color: #E9A9B7; }
+        button.mvq-chip { cursor: pointer; } button.mvq-chip:hover { background: rgba(255,255,255,.14); }
+        .mvq-steps { display: flex; list-style: none; padding: 0; margin: 0 0 22px; }
+        .mvq-steps li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; font-size: 12px; color: #6B7280; font-weight: 600; }
+        .mvq-steps li::before { content: ""; position: absolute; top: 13px; left: -50%; right: 50%; height: 2px; background: #E5E7EB; z-index: 0; }
+        .mvq-steps li:first-child::before { display: none; }
+        .mvq-steps li.done::before, .mvq-steps li.on::before { background: #8B3A4C; }
+        .mvq-steps b { position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px;
+          background: #fff; border: 2px solid #E5E7EB; color: #6B7280; transition: all .3s ease; }
+        .mvq-steps li.on { color: #111827; } .mvq-steps li.on b { border-color: #8B3A4C; color: #8B3A4C; box-shadow: 0 0 0 4px rgba(139,58,76,.12); }
+        .mvq-steps li.done b { background: #8B3A4C; border-color: #8B3A4C; color: #fff; }
       `}</style>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 130px" }}>
 
-        <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.01em', margin: "0 0 4px", fontWeight: 400 }}>
-          Sell your phone
-        </h1>
-        <div style={{ color: muted, fontSize: 14, marginBottom: 12 }}>
-          Instant quote in under a minute. No sign-up, and we hold your price for 14 days.
-        </div>
-
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 12, color: muted, marginBottom: 18 }}>
-          {live?.businessSettings?.dealerLicence && <span>✓ Licensed dealer</span>}
-          <span>✓ Home collection across Sydney</span>
-          <span>✓ 49-point check</span>
-          <span>✓ Price held 14 days</span>
-          <span>✓ Paid in cash, bank transfer or PayPal</span>
-          <button onClick={() => { setPmOpen(true); setTimeout(() => { const el = document.getElementById("mvq-pm"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }} style={{ background: "none", border: "none", padding: 0, color: green, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
-            ✓ Price match guarantee
-          </button>
-        </div>
+        <header className="mvq-hero">
+          <div className="mvq-eyebrow">SELL · GET PAID TODAY</div>
+          <h1 className="mvq-h1">Sell your phone</h1>
+          <p className="mvq-sub">Instant quote in under a minute. No sign-up, and we hold your price for 14 days.</p>
+          <div className="mvq-chips">
+            {live?.businessSettings?.dealerLicence && <span className="mvq-chip"><QIco k="shield" />Licensed dealer</span>}
+            <span className="mvq-chip"><QIco k="truck" />Free home pickup</span>
+            <span className="mvq-chip"><QIco k="check" />49-point check</span>
+            <span className="mvq-chip"><QIco k="cash" />Cash, bank or PayPal</span>
+            <button type="button" className="mvq-chip" onClick={() => { setPmOpen(true); setTimeout(() => { const el = document.getElementById("mvq-pm"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }}>
+              <QIco k="tag" />Price match guarantee
+            </button>
+          </div>
+        </header>
 
         {bulkTrackOpen && (
           <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 14, marginBottom: 20 }}>
@@ -1021,15 +1051,12 @@ export default function QuoteCalculator() {
           const stepsList = ["Device", "Condition", "Your details", "Done"];
           const current = submittedOrder ? 3 : checkout ? 2 : selected ? 1 : 0;
           return (
-            <ol aria-label="Quote progress" style={{ display: "flex", listStyle: "none", padding: 0, margin: "0 0 24px", gap: 6 }}>
+            <ol aria-label="Quote progress" className="mvq-steps">
               {stepsList.map((label, i) => {
                 const doneStep = i < current, active = i === current;
                 return (
-                  <li key={label} aria-current={active ? "step" : undefined} style={{ flex: 1, textAlign: "center" }}>
-                    <div style={{ height: 5, borderRadius: 3, background: doneStep || active ? brass : "#E4DED2", transition: "background-color 0.35s ease", marginBottom: 6 }} />
-                    <div style={{ fontSize: 12.5, fontWeight: active ? 700 : 500, color: active ? brass : doneStep ? paper : muted }}>
-                      {doneStep ? "✓ " : ""}{label}
-                    </div>
+                  <li key={label} aria-current={active ? "step" : undefined} className={doneStep ? "done" : active ? "on" : undefined}>
+                    <b aria-hidden="true">{doneStep ? "✓" : i + 1}</b>{label}
                   </li>
                 );
               })}
