@@ -35,7 +35,7 @@ export const TINTS = {
   mist: "#EEF1F6",
   rose: "#F4E9EC",
 };
-export const SHOWCASE_BG = "blush";
+export const SHOWCASE_BG = "mist";
 const pickTint = () => {
   try { const t = new URLSearchParams(window.location.search).get("xvbg"); if (t && TINTS[t]) return TINTS[t]; } catch (e) { /* no window */ }
   return TINTS[SHOWCASE_BG];
@@ -60,7 +60,7 @@ const SPOTS = [
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 const CSS = `
-.xv{position:relative;overflow:hidden;overflow:clip;background:var(--xv-bg,#F7F1F3);color:#111827;padding:clamp(40px,7vh,80px) 20px}
+.xv{position:relative;overflow:hidden;overflow:clip;background:var(--xv-bg,#EEF1F6);color:#111827;padding:clamp(40px,7vh,80px) 20px}
 .xv-in{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:18px;align-items:center}
 @media (min-width: 900px){ .xv-in{grid-template-columns:minmax(0,0.75fr) minmax(0,1.25fr);gap:32px} }
 .xv-kicker{font-size:12px;letter-spacing:.24em;color:#7a1630;font-weight:700;margin-bottom:10px}
@@ -76,7 +76,7 @@ const CSS = `
 .xv-btns button{background:#0f1115;color:#fff;border:0}
 .xv-btns a{border:1px solid rgba(17,24,39,.22);color:#0f1115;background:#fff}
 .xv-frame{position:relative;width:min(100%,calc(78vh * ${W / H}),520px);margin:0 auto}
-.xv-stage{position:relative;width:100%;aspect-ratio:${W}/${H};cursor:pointer;-webkit-tap-highlight-color:transparent;background:var(--xv-bg,#F7F1F3);isolation:isolate}
+.xv-stage{position:relative;width:100%;aspect-ratio:${W}/${H};cursor:pointer;-webkit-tap-highlight-color:transparent;background:var(--xv-bg,#EEF1F6);isolation:isolate}
 .xv-stage.drawn img{visibility:hidden}
 .xv-stage:focus-visible{outline:2px solid #7a1630;outline-offset:6px;border-radius:16px}
 .xv-stage img,.xv-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;mix-blend-mode:multiply}
