@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { POSTS } from "./src/blog-posts.js";
 import { metaFor, SELL_BRAND_NAMES } from "./src/seo-meta.js";
+import { REPAIRS_BY_DEVICE } from "./src/repair-prices.js";
 
 // Why the app file has a FIXED name (assets/app.js) instead of Vite's usual
 // random-per-build name:
@@ -77,7 +78,7 @@ const SEO_H1 = {
   "quote": "Sell your phone in Sydney \u2014 instant quote, cash paid",
   "sell": "Sell your phone \u2014 instant quote",
   "shop": "Refurbished phones, graded and tested",
-  "repairs": "Phone repairs in Sydney from $85",
+  "repairs": "Phone repairs in Sydney from $55",
   "accessories": "Phone accessories, parts and DIY kits",
   "parts": "Phone accessories, parts and DIY kits",
   "home-service": "Mobile Recellr, at your door in Sydney",
@@ -112,6 +113,37 @@ function seoBody(route) {
       </div>`;
 }
 
+// Structured data written into the page file itself, so Google reads it without running
+// the app: the repair price list (from the same file the page shows) and breadcrumbs on
+// nested pages. Only facts the visible page also states.
+function jsonLd(route, base) {
+  const out = [];
+  if (route === "repairs") {
+    out.push({
+      "@context": "https://schema.org", "@type": "OfferCatalog", name: "Repairs — starting prices", url: `${base}/repairs`,
+      itemListElement: Object.entries(REPAIRS_BY_DEVICE).flatMap(([device, list]) => list.map((r) => ({
+        "@type": "Offer", priceCurrency: "AUD",
+        priceSpecification: { "@type": "PriceSpecification", minPrice: r.from, priceCurrency: "AUD" },
+        itemOffered: { "@type": "Service", name: `${device} ${r.name.toLowerCase()}`, areaServed: "Sydney, NSW", provider: { "@type": "ElectronicsStore", name: "Mobile Recellr", url: base + "/" } },
+      }))),
+    });
+  }
+  const parts = route.split("/").filter(Boolean);
+  if (parts.length > 1) {
+    const parentName = { blog: "Guides", sell: "Sell your phone" }[parts[0]] || parts[0];
+    const meta = metaFor("/" + route);
+    out.push({
+      "@context": "https://schema.org", "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: base + "/" },
+        { "@type": "ListItem", position: 2, name: parentName, item: `${base}/${parts[0] === "sell" ? "quote" : parts[0]}` },
+        { "@type": "ListItem", position: 3, name: meta ? meta.title.split(" | ")[0] : parts[1], item: `${base}/${route}` },
+      ],
+    });
+  }
+  return out.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, "\\u003c")}</script>`).join("\n    ");
+}
+
 function withMeta(html, route, base) {
   const url = base + (route ? "/" + route : "/");
   const meta = metaFor(route ? "/" + route : "/");
@@ -125,7 +157,8 @@ function withMeta(html, route, base) {
       .replace(/(<meta name="twitter:description" content=")[^"]*(")/, `$1${esc(meta.desc)}$2`);
   }
   const extra = isStaffRoute(route) ? `<meta name="robots" content="noindex" />` : `<link rel="canonical" href="${url === base + "/parts" ? base + "/accessories" : url}" />\n    <meta property="og:url" content="${url}" />`;
-  out = out.replace("</head>", `    ${extra}\n  </head>`);
+  const ld = isStaffRoute(route) ? "" : jsonLd(route, base);
+  out = out.replace("</head>", `    ${extra}${ld ? "\n    " + ld : ""}\n  </head>`);
   // Swap the generic "Loading\u2026" block for this page's real content (staff tools keep the plain loader).
   if (!isStaffRoute(route)) {
     out = out.replace(/<div id="boot-msg"[\s\S]*?<\/div>\s*(?=<\/div>)/, seoBody(route));
