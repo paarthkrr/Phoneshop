@@ -24,26 +24,45 @@ const COUNT = 80, W = 720, H = 1280;
 const SRC = (i) => `/photos/exploded/${String(i).padStart(3, "0")}.webp`;
 const DURATION = 1400; // ms for a full open or close
 export const SHOWCASE_MODE = "scroll";
+// Backdrop. The frames' own backdrop is pure white, and the picture is multiplied onto the
+// section colour, so any light tint shows through seamlessly (no box around the picture).
+// Preview on the live site with ?xvbg=white|blush|sand|mist|rose. (Solid colours only: the
+// stage paints the same colour under the picture, so a gradient would show a seam.)
+export const TINTS = {
+  white: "#FFFFFF",
+  blush: "#F7F1F3",
+  sand: "#F4EFE8",
+  mist: "#EEF1F6",
+  rose: "#F4E9EC",
+};
+export const SHOWCASE_BG = "blush";
+const pickTint = () => {
+  try { const t = new URLSearchParams(window.location.search).get("xvbg"); if (t && TINTS[t]) return TINTS[t]; } catch (e) { /* no window */ }
+  return TINTS[SHOWCASE_BG];
+};
 const pickMode = () => {
   try { const m = new URLSearchParams(window.location.search).get("xv"); if (m === "scroll" || m === "auto" || m === "tap") return m; } catch (e) { /* no window */ }
   return SHOWCASE_MODE;
 };
 
-// Hotspots on the fully opened phone, as fractions of the frame (x, y).
+// Hotspots on the fully opened phone, as fractions of the frame (x, y). The frame already
+// prints the part names down both sides, so on wide screens the prices sit outside the
+// picture (side), joined to their part by a hairline; on phones a small tag sits over the
+// part itself (m = which way it points), clear of the printed names.
 const SPOTS = [
-  { id: "camera", x: 0.45, y: 0.235, title: "Camera", price: PRICE["Camera repair"], side: "left" },
-  { id: "screen", x: 0.5, y: 0.345, title: "Screen", price: PRICE["Screen replacement"], side: "right" },
-  { id: "board", x: 0.66, y: 0.6, title: "Logic board", price: PRICE["Water damage diagnosis"], side: "left", note: "water damage check" },
-  { id: "battery", x: 0.48, y: 0.7, title: "Battery", price: PRICE["Battery replacement"], side: "left" },
-  { id: "port", x: 0.34, y: 0.896, title: "Charging port", price: PRICE["Charging port"], side: "right" },
+  { id: "camera", x: 0.45, y: 0.235, title: "Camera", price: PRICE["Camera repair"], side: "left", m: "r" },
+  { id: "screen", x: 0.5, y: 0.345, title: "Screen", price: PRICE["Screen replacement"], side: "right", m: "l" },
+  { id: "board", x: 0.66, y: 0.6, title: "Logic board", price: PRICE["Water damage diagnosis"], side: "right", m: "l", note: "water damage check" },
+  { id: "battery", x: 0.48, y: 0.7, title: "Battery", price: PRICE["Battery replacement"], side: "left", m: "r" },
+  { id: "port", x: 0.34, y: 0.896, title: "Charging port", price: PRICE["Charging port"], side: "left", m: "r" },
 ];
 
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 const CSS = `
-.xv{position:relative;overflow:hidden;overflow:clip;background:var(--xv-bg,#fefcfd);transition:background-color .2s linear;color:#111827;padding:clamp(40px,7vh,80px) 20px}
+.xv{position:relative;overflow:hidden;overflow:clip;background:var(--xv-bg,#F7F1F3);color:#111827;padding:clamp(40px,7vh,80px) 20px}
 .xv-in{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:18px;align-items:center}
-@media (min-width: 900px){ .xv-in{grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr);gap:40px} }
+@media (min-width: 900px){ .xv-in{grid-template-columns:minmax(0,0.75fr) minmax(0,1.25fr);gap:32px} }
 .xv-kicker{font-size:12px;letter-spacing:.24em;color:#7a1630;font-weight:700;margin-bottom:10px}
 .xv-title{font-family:'Archivo Black',sans-serif;font-size:clamp(28px,4vw,48px);line-height:1.04;margin:0;color:#0f1115}
 .xv-sub{color:#4b5563;font-size:15.5px;line-height:1.55;margin:14px 0 18px;max-width:440px}
@@ -56,20 +75,32 @@ const CSS = `
 .xv-btns button,.xv-btns a{display:inline-flex;align-items:center;min-height:48px;padding:0 22px;border-radius:999px;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;text-decoration:none}
 .xv-btns button{background:#0f1115;color:#fff;border:0}
 .xv-btns a{border:1px solid rgba(17,24,39,.22);color:#0f1115;background:#fff}
-.xv-stage{position:relative;width:min(100%,calc(78vh * ${W / H}),520px);aspect-ratio:${W}/${H};margin:0 auto;cursor:pointer;-webkit-tap-highlight-color:transparent;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent),linear-gradient(180deg,transparent,#000 2%,#000 98%,transparent);-webkit-mask-composite:source-in;
-  mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent),linear-gradient(180deg,transparent,#000 2%,#000 98%,transparent);mask-composite:intersect}
+.xv-frame{position:relative;width:min(100%,calc(78vh * ${W / H}),520px);margin:0 auto}
+.xv-stage{position:relative;width:100%;aspect-ratio:${W}/${H};cursor:pointer;-webkit-tap-highlight-color:transparent;background:var(--xv-bg,#F7F1F3);isolation:isolate}
+.xv-stage.drawn img{visibility:hidden}
 .xv-stage:focus-visible{outline:2px solid #7a1630;outline-offset:6px;border-radius:16px}
-.xv-stage img,.xv-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
-.xv-spot{position:absolute;transform:translate(-50%,-50%);opacity:0;transition:opacity .35s ease;pointer-events:none;z-index:2}
-.xv-spot.on{opacity:1;pointer-events:auto}
-.xv-dot{display:block;width:14px;height:14px;border-radius:50%;background:#7a1630;box-shadow:0 0 0 4px rgba(122,22,48,.18)}
-.xv-dot::after{content:"";position:absolute;left:0;top:0;width:14px;height:14px;border-radius:50%;border:2px solid rgba(122,22,48,.55);animation:xv-ping 1.8s ease-out infinite}
+.xv-stage img,.xv-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;mix-blend-mode:multiply}
+.xv-co{position:absolute;left:0;right:0;height:0;opacity:0;transition:opacity .35s ease;pointer-events:none;z-index:2}
+.xv-co.on{opacity:1}
+.xv-co.on .xv-tag{pointer-events:auto}
+.xv-dot{position:absolute;top:-6px;margin-left:-6px;width:12px;height:12px;border-radius:50%;background:#7a1630;box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 0 6px rgba(122,22,48,.2)}
+.xv-dot::after{content:"";position:absolute;left:0;top:0;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:2px solid rgba(122,22,48,.55);animation:xv-ping 1.8s ease-out infinite}
+.xv-line{position:absolute;top:-.5px;height:1px;background:linear-gradient(90deg,rgba(122,22,48,.6),rgba(122,22,48,.35))}
 @keyframes xv-ping{from{transform:scale(1);opacity:1}to{transform:scale(2.6);opacity:0}}
-.xv-tag{position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.92);
+.xv-tag{position:absolute;top:0;transform:translateY(-50%);white-space:nowrap;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.96);
   border:1px solid rgba(17,24,39,.1);box-shadow:0 6px 20px rgba(17,24,39,.12);font-size:12.5px;font-weight:600;color:#0f1115;text-decoration:none}
 .xv-tag b{color:#7a1630;margin-left:6px}
-.xv-tag.r{left:22px}.xv-tag.l{right:22px}
+/* wide screens: outside the picture, in the gutters either side of it */
+@media (min-width: 900px){
+  .xv-frame{width:min(calc(100% - 300px),calc(78vh * ${W / H}),460px)}
+  .xv-co.l .xv-tag{right:calc(100% + 12px)} .xv-co.r .xv-tag{left:calc(100% + 12px)}
+  .xv-tag:hover{border-color:#7a1630}
+}
+/* phones: a small tag over the part, no hairline */
+@media (max-width: 899px){
+  .xv-line{display:none}
+  .xv-tag{font-size:11px;padding:4px 8px}
+}
 .xv-hint{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(15,17,21,.82);color:#fff;font-size:12.5px;
   font-weight:600;letter-spacing:.02em;transition:opacity .3s ease;pointer-events:none;z-index:2;white-space:nowrap}
 .xv-load{position:absolute;left:12%;right:12%;bottom:1.5%;height:2px;border-radius:2px;background:rgba(17,24,39,.08);overflow:hidden;z-index:2;transition:opacity .4s}
@@ -78,16 +109,17 @@ const CSS = `
 .xv.scroll{padding:0 20px}
 .xv-pin{position:sticky;top:0;min-height:100vh;min-height:100svh;display:flex;align-items:center;padding:calc(var(--xv-top,72px) + 12px) 0 16px;box-sizing:border-box}
 .xv-pin>.xv-in{width:100%}
-.xv.scroll .xv-stage{width:min(100%,calc((100svh - var(--xv-top,72px) - 40px) * ${W / H}),520px)}
+.xv.scroll .xv-frame{width:min(100%,calc((100svh - var(--xv-top,72px) - 40px) * ${W / H}),520px)}
+@media (min-width: 900px){ .xv.scroll .xv-frame{width:min(calc(100% - 300px),calc((100svh - var(--xv-top,72px) - 40px) * ${W / H}),460px)} }
 .xv-cue{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4b5563;margin-top:4px}
 .xv-cue i{display:block;width:16px;height:26px;border:2px solid #9ca3af;border-radius:10px;position:relative}
 .xv-cue i::after{content:"";position:absolute;left:50%;top:5px;width:3px;height:6px;margin-left:-1.5px;border-radius:2px;background:#7a1630;animation:xv-cue 1.4s ease-in-out infinite}
 @keyframes xv-cue{0%{transform:translateY(0);opacity:1}70%{transform:translateY(8px);opacity:0}100%{opacity:0}}
 .xv-after{max-width:1120px;margin:0 auto;padding:8px 0 48px}
 @media (max-width: 899px){ .xv.scroll .xv-sub,.xv.scroll .xv-text .xv-list,.xv.scroll .xv-text .xv-btns{display:none} .xv.scroll .xv-title{font-size:26px} .xv.scroll .xv-kicker{margin-bottom:6px}
-  .xv.scroll .xv-in{gap:10px} .xv-pin{padding-bottom:72px} .xv.scroll .xv-stage{width:min(100%,calc((100svh - var(--xv-top,72px) - 190px) * ${W / H}))} }
+  .xv.scroll .xv-in{gap:10px} .xv-pin{padding-bottom:72px} .xv.scroll .xv-frame{width:min(100%,calc((100svh - var(--xv-top,72px) - 190px) * ${W / H}))} }
 @media (min-width: 900px){ .xv-after{display:none} }
-@media (max-width: 899px){ .xv-text{text-align:center} .xv-sub,.xv-list{margin-left:auto;margin-right:auto} .xv-btns{justify-content:center} .xv-tag{font-size:11.5px;padding:5px 8px} }
+@media (max-width: 899px){ .xv-text{text-align:center} .xv-sub,.xv-list{margin-left:auto;margin-right:auto} .xv-btns{justify-content:center} }
 `;
 
 export default function DeviceShowcase() {
@@ -101,11 +133,14 @@ export default function DeviceShowcase() {
   const [reduced, setReduced] = useState(false);
   const step = useRef(1);
   const [mode] = useState(pickMode);
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.innerWidth >= 900);
+  useEffect(() => { const f = () => setWide(window.innerWidth >= 900); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
   const scrollMode = mode === "scroll" && !reduced;
 
   useEffect(() => {
     const mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (mq && mq.matches) { setReduced(true); section.current?.style.setProperty("--xv-bg", "rgb(243,240,241)"); }
+    if (mq && mq.matches) setReduced(true);
+    section.current?.style.setProperty("--xv-bg", pickTint());
     step.current = window.innerWidth < 760 ? 2 : 1;
     // the pinned stage sits just under the sticky header
     const nav = document.querySelector(".cs-glass-nav");
@@ -120,11 +155,8 @@ export default function DeviceShowcase() {
     if (!bmp) return;
     const ctx = c.getContext("2d");
     ctx.drawImage(bmp, 0, 0, c.width, c.height);
-    // the video's backdrop shifts from white to pale grey as it opens: match the section to it
-    try {
-      const d = ctx.getImageData(Math.round(c.width * 0.02), Math.round(c.height * 0.5), 1, 1).data;
-      if (section.current) section.current.style.setProperty("--xv-bg", `rgb(${d[0]},${d[1]},${d[2]})`);
-    } catch (e) { /* tainted canvas can't happen (same origin); ignore if it does */ }
+    // the canvas now covers the still underneath; hide it so the two don't multiply together
+    stage.current?.classList.add("drawn");
   }, []);
 
   // size the canvas for the screen
@@ -268,22 +300,33 @@ export default function DeviceShowcase() {
           </div>
         </div>
 
+        <div className="xv-frame">
         <div ref={stage} className="xv-stage" role={reduced ? undefined : "button"} tabIndex={reduced ? undefined : 0} aria-pressed={reduced ? undefined : open}
           aria-label={reduced ? undefined : open ? "Close the phone" : "Open the phone to see its parts"}
           onClick={reduced ? undefined : toggle} onKeyDown={(e) => { if (!reduced && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(); } }}>
           {/* first frame shows straight away (and is the still image for reduced motion) */}
           <img src={reduced ? SRC(COUNT - 1) : SRC(0)} alt="An iPhone coming apart into its parts: cameras, display, logic board, battery, speakers and charging port" width={W} height={H} fetchpriority="high" decoding="async" />
           {!reduced && <canvas ref={canvas} aria-hidden="true" />}
-          {SPOTS.map((s) => (
-            <div key={s.id} className={`xv-spot${settled || reduced ? " on" : ""}`} style={{ left: `${s.x * 100}%`, top: `${s.y * 100}%` }}>
-              <i className="xv-dot" />
-              <a className={`xv-tag ${s.side === "left" ? "l" : "r"}`} href={`/repairs?part=${s.id}`} onClick={(e) => e.stopPropagation()} tabIndex={settled || reduced ? 0 : -1}>
+          {!reduced && <div className="xv-hint" style={{ opacity: open || (scrollMode && moved) ? 0 : 1 }}>{!ready ? "Loading…" : scrollMode ? <span className="xv-cue" style={{ color: "#fff", margin: 0 }}><i />Scroll to open</span> : mode === "auto" ? "Tap to replay" : "Tap to open"}</div>}
+          {!reduced && <div className="xv-load" style={{ opacity: ready ? 0 : 1 }}><i style={{ width: `${Math.round(loaded * 100)}%` }} /></div>}
+        </div>
+        {/* outside the masked stage so the side prices aren't clipped */}
+        {SPOTS.map((s) => {
+          const on = settled || reduced;
+          const dir = wide ? (s.side === "left" ? "l" : "r") : s.m;
+          const x = `${s.x * 100}%`;
+          const tagPos = wide ? undefined : dir === "r" ? { left: `calc(${x} + 12px)` } : { right: `calc(${100 - s.x * 100}% + 12px)` };
+          const linePos = dir === "l" ? { left: -12, width: `calc(${x} + 12px)` } : { left: x, right: -12 };
+          return (
+            <div key={s.id} className={`xv-co ${dir}${on ? " on" : ""}`} style={{ top: `${s.y * 100}%` }}>
+              <i className="xv-line" style={linePos} />
+              <i className="xv-dot" style={{ left: x }} />
+              <a className="xv-tag" style={tagPos} href={`/repairs?part=${s.id}`} tabIndex={on ? 0 : -1}>
                 {s.title}<b>{s.price ? `$${s.price}+` : "Quote"}</b>
               </a>
             </div>
-          ))}
-          {!reduced && <div className="xv-hint" style={{ opacity: open || (scrollMode && moved) ? 0 : 1 }}>{!ready ? "Loading…" : scrollMode ? <span className="xv-cue" style={{ color: "#fff", margin: 0 }}><i />Scroll to open</span> : mode === "auto" ? "Tap to replay" : "Tap to open"}</div>}
-          {!reduced && <div className="xv-load" style={{ opacity: ready ? 0 : 1 }}><i style={{ width: `${Math.round(loaded * 100)}%` }} /></div>}
+          );
+        })}
         </div>
       </div>
       </div>
