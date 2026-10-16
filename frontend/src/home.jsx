@@ -1,4 +1,5 @@
 import { NumberTicker, useSpotlight, FX_CSS } from "./motion-fx.jsx";
+import DeviceShowcase from "./device-showcase.jsx";
 import { SpinViewer, hasSpin } from "./spin-360.jsx";
 import React, { useState, useEffect, useRef } from "react";
 import DeviceArt from "./device-art.jsx";
@@ -426,6 +427,9 @@ export default function Home() {
 
       {/* ---- Hero ---- */}
       <Hero quoteModels={quoteModels} />
+
+      {/* ---- Look around a real iPhone (scroll-driven 3D) ---- */}
+      <DeviceShowcase />
 
       {spinUnit && hasSpin(spinUnit) && (
         <section aria-label="See this phone in 360 degrees" style={{ background: "#0E0F13", color: "#fff", padding: "48px 20px" }}>
