@@ -507,7 +507,14 @@ export default function QuoteCalculator() {
   const [brandFilter, setBrandFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   // Pre-filled from links like /quote?q=iPhone%2015%20Pro (homepage shortcuts)
-  const [askDevice, setAskDevice] = useState(false);
+  // ?ask=1 (from the homepage search's "Not here?") opens the "price it for me" form straight away
+  const [askDevice, setAskDevice] = useState(() => { try { return new URLSearchParams(window.location.search).get("ask") === "1"; } catch (e) { return false; } });
+  useEffect(() => {
+    if (!askDevice) return;
+    const t = setTimeout(() => { const el = document.getElementById("mvq-ask"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [search, setSearch] = useState(() => { try { return new URLSearchParams(window.location.search).get("q") || ""; } catch (e) { return ""; } });
   const [selected, setSelected] = useState(null);
   const [tierId, setTierId] = useState(null);
@@ -621,6 +628,7 @@ export default function QuoteCalculator() {
     if (prefilled.current || selected || !cfgTried) return;
     prefilled.current = true;
     let p; try { p = new URLSearchParams(window.location.search); } catch (e) { return; }
+    if (p.get("ask") === "1") return; // they said it isn't listed: show the request form, not a model
     const q = (p.get("q") || "").trim().toLowerCase(); if (!q) return;
     const d = CATALOG_A.find((x) => x.model.toLowerCase() === q || `${x.brand} ${x.model}`.toLowerCase() === q);
     if (!d) return; // not an exact model: leave it as a search
@@ -1159,7 +1167,7 @@ export default function QuoteCalculator() {
               {filtered.length === 0 && <div style={{ padding: 14, color: muted, fontSize: 14 }}>We don't list that one yet. Tell us below and we'll price it for you.</div>}
             </div>
             {(filtered.length === 0 && search.trim()) || askDevice ? (
-              <DeviceRequestForm key={search.trim()} initialQuery={search} onClose={filtered.length === 0 && search.trim() ? undefined : () => setAskDevice(false)} />
+              <div id="mvq-ask" style={{ scrollMarginTop: 90 }}><DeviceRequestForm key={search.trim()} initialQuery={search} onClose={filtered.length === 0 && search.trim() ? undefined : () => setAskDevice(false)} /></div>
             ) : (
               <button type="button" onClick={() => setAskDevice(true)}
                 style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 48, marginTop: 12, padding: "0 14px", borderRadius: 14, border: "1px dashed #B9C6E8", background: "#F7F9FF", color: brass, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
