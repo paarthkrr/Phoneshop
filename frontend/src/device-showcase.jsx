@@ -4,7 +4,8 @@
 // the parts we repair.
 //
 // How it stays smooth (the same technique Apple uses for its product pages):
-//  - frames are drawn on a <canvas>, decoded ahead of time with createImageBitmap,
+//  - frames are drawn on a <canvas>; the files load in the background and only the few
+//    frames around the current one are decoded at a time (createImageBitmap),
 //  - the first frame is a normal <img> that shows immediately; the rest load in the
 //    background only when the section is close to the screen,
 //  - the canvas is sized for the screen's pixel ratio (capped at 2) so it stays sharp,
@@ -22,7 +23,8 @@ import { REPAIRS_BY_DEVICE } from "./repair-prices.js";
 const PRICE = Object.fromEntries((REPAIRS_BY_DEVICE.Phone || []).map((r) => [r.name, r.from]));
 const COUNT = 80, W = 720, H = 1280;
 const SRC = (i) => `/photos/exploded/${String(i).padStart(3, "0")}.webp`;
-const DURATION = 1400; // ms for a full open or close
+const DURATION = 2600; // ms for a full open or close (tap/auto): slow enough to watch it come apart
+const MIN_OPEN_MS = 2400; // scroll mode: however fast the scroll, a full open takes at least this long
 export const SHOWCASE_MODE = "scroll";
 // Backdrop. The frames' own backdrop is pure white, and the picture is multiplied onto the
 // section colour, so any light tint shows through seamlessly (no box around the picture).
@@ -41,8 +43,12 @@ const pickTint = () => {
   return TINTS[SHOWCASE_BG];
 };
 const pickMode = () => {
-  try { const m = new URLSearchParams(window.location.search).get("xv"); if (m === "scroll" || m === "auto" || m === "tap") return m; } catch (e) { /* no window */ }
-  return SHOWCASE_MODE;
+  let m = SHOWCASE_MODE;
+  try { const q = new URLSearchParams(window.location.search).get("xv"); if (q === "scroll" || q === "auto" || q === "tap") m = q; } catch (e) { /* no window */ }
+  // Pinning needs overflow:clip (older iPhones lack it and the pin would scroll away,
+  // leaving a tall empty section): those get the auto-play version instead.
+  if (m === "scroll" && typeof CSS !== "undefined" && CSS.supports && !CSS.supports("overflow", "clip")) m = "auto";
+  return m;
 };
 
 // Hotspots on the fully opened phone, as fractions of the frame (x, y). The frame already
@@ -125,7 +131,10 @@ const CSS = `
 export default function DeviceShowcase() {
   const section = useRef(null), track = useRef(null), stage = useRef(null), canvas = useRef(null);
   const [moved, setMoved] = useState(false); // scroll mode: has the phone started opening
-  const bitmaps = useRef([]), frame = useRef(0), anim = useRef(0), wantOpen = useRef(false);
+  // Frames are kept as small compressed files and only a handful are decoded at a time
+  // (decoded, each is ~2-4 MB of memory; all 80 at once made phones stall or reload the page).
+  const blobs = useRef([]), decoded = useRef(new Map()), pending = useRef(new Map());
+  const frame = useRef(0), shown = useRef(-1), anim = useRef(0), wantOpen = useRef(false);
   const [open, setOpen] = useState(false);       // target state
   const [settled, setSettled] = useState(false); // fully open and still: show hotspots
   const [loaded, setLoaded] = useState(0);
@@ -149,15 +158,59 @@ export default function DeviceShowcase() {
     return () => window.removeEventListener("resize", setTop);
   }, []);
 
-  const draw = useCallback((i) => {
-    const c = canvas.current; if (!c) return;
-    const bmp = bitmaps.current[i] || bitmaps.current.slice(0, i + 1).reverse().find(Boolean);
-    if (!bmp) return;
-    const ctx = c.getContext("2d");
-    ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  const keep = () => (window.innerWidth < 760 ? 8 : 20); // decoded frames held in memory
+  const decode = useCallback((i) => {
+    if (decoded.current.has(i)) return Promise.resolve(decoded.current.get(i));
+    if (pending.current.has(i)) return pending.current.get(i);
+    const blob = blobs.current[i]; if (!blob) return Promise.resolve(null);
+    const c = canvas.current;
+    const job = (async () => {
+      let bmp = null;
+      try {
+        if ("createImageBitmap" in window) {
+          // decode straight to the canvas size where supported: less memory, sharper downscale
+          try { bmp = c && c.width ? await createImageBitmap(blob, { resizeWidth: c.width, resizeHeight: c.height, resizeQuality: "high" }) : await createImageBitmap(blob); }
+          catch (e) { bmp = await createImageBitmap(blob); }
+        } else {
+          bmp = await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = URL.createObjectURL(blob); });
+        }
+      } catch (e) { bmp = null; }
+      pending.current.delete(i);
+      if (!bmp) return null;
+      const d = decoded.current; d.set(i, bmp);
+      // forget the frames furthest from where the animation is now
+      while (d.size > keep()) {
+        let far = -1, fd = -1;
+        for (const k of d.keys()) { const dist = Math.abs(k - frame.current); if (dist > fd) { fd = dist; far = k; } }
+        const b = d.get(far); d.delete(far); if (b && b.close) b.close();
+      }
+      return bmp;
+    })();
+    pending.current.set(i, job);
+    return job;
+  }, []);
+
+  const paint = useCallback((i, bmp) => {
+    const c = canvas.current; if (!c || !bmp) return;
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    shown.current = i;
     // the canvas now covers the still underneath; hide it so the two don't multiply together
     stage.current?.classList.add("drawn");
   }, []);
+
+  // nearest frame we actually have the file for (phones load every 2nd one)
+  const nearest = (i) => { for (let d = 0; d < COUNT; d++) { if (blobs.current[i - d]) return i - d; if (blobs.current[i + d]) return i + d; } return -1; };
+
+  const draw = useCallback((i) => {
+    const n = nearest(i); if (n < 0) return;
+    const ready = decoded.current.get(n);
+    if (ready) { if (shown.current !== n) paint(n, ready); }
+    else decode(n).then((b) => { if (b && nearest(frame.current) === n) paint(n, b); });
+    // decode a few frames ahead in the direction of travel
+    const dir = i >= shown.current ? 1 : -1;
+    for (let k = 1; k <= 3; k++) { const m = nearest(Math.min(COUNT - 1, Math.max(0, i + dir * k * step.current))); if (m >= 0) decode(m); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decode, paint]);
 
   // size the canvas for the screen
   useEffect(() => {
@@ -166,6 +219,7 @@ export default function DeviceShowcase() {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       c.width = Math.round(s.clientWidth * dpr); c.height = Math.round(s.clientHeight * dpr);
       const ctx = c.getContext("2d"); ctx.imageSmoothingQuality = "high";
+      decoded.current.forEach((b) => b && b.close && b.close()); decoded.current.clear(); shown.current = -1;
       draw(frame.current);
     };
     fit(); window.addEventListener("resize", fit);
@@ -184,10 +238,10 @@ export default function DeviceShowcase() {
       let done = 0;
       const one = async (i) => {
         try {
-          const res = await fetch(SRC(i)); const blob = await res.blob();
-          const bmp = "createImageBitmap" in window ? await createImageBitmap(blob) : await new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = URL.createObjectURL(blob); });
+          const res = await fetch(SRC(i)); if (!res.ok) return;
+          const blob = await res.blob();
           if (cancelled) return;
-          bitmaps.current[i] = bmp; done += 1; setLoaded(done / idx.length);
+          blobs.current[i] = blob; done += 1; setLoaded(done / idx.length);
           if (i === 0) draw(0);
         } catch (e) { /* a missing frame is skipped; neighbours cover it */ }
       };
@@ -228,13 +282,18 @@ export default function DeviceShowcase() {
       const el = track.current; if (!el) return 0;
       const r = el.getBoundingClientRect(), run = r.height - window.innerHeight;
       const p = run > 0 ? Math.min(1, Math.max(0, -r.top / run)) : 0;
-      const q = Math.min(1, Math.max(0, (p - 0.04) / 0.78)); // 4%–82% of the run opens it, the rest holds it open
+      const q = Math.min(1, Math.max(0, (p - 0.06) / 0.78)); // 6%–84% of the run opens it, the rest holds it open
       return q * (COUNT - 1);
     };
-    const tick = () => {
+    let last = 0;
+    const tick = (now) => {
       if (!alive) return;
+      const dt = last ? Math.min(64, now - last) : 16; last = now;
       const t = target();
-      cur += (t - cur) * 0.18;
+      // glide toward the scroll position, but never faster than a full open in MIN_OPEN_MS
+      const maxStep = (dt / MIN_OPEN_MS) * (COUNT - 1);
+      const want = (t - cur) * 0.12;
+      cur += Math.sign(want) * Math.min(Math.abs(want) + 0.02, maxStep);
       if (Math.abs(t - cur) < 0.05) cur = t;
       const f = Math.round(cur);
       if (f !== frame.current) { frame.current = f; draw(f); }
@@ -242,7 +301,7 @@ export default function DeviceShowcase() {
       setMoved((m) => (m === f > 2 ? m : f > 2));
       wantOpen.current = isOpen;
       setOpen((o) => (o === isOpen ? o : isOpen)); setSettled((v) => (v === isOpen ? v : isOpen));
-      raf = Math.abs(t - cur) > 0 ? requestAnimationFrame(tick) : 0;
+      if (Math.abs(t - cur) > 0) raf = requestAnimationFrame(tick); else { raf = 0; last = 0; }
     };
     const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
     window.addEventListener("scroll", kick, { passive: true }); window.addEventListener("resize", kick);
@@ -286,7 +345,7 @@ export default function DeviceShowcase() {
   return (
     <section ref={section} className={`xv${scrollMode ? " scroll" : ""}`} aria-label="Look inside an iPhone — the repairs we do">
       <style>{CSS}</style>
-      <div ref={track} style={scrollMode ? { height: "260vh" } : undefined}>
+      <div ref={track} style={scrollMode ? { height: wide ? "380vh" : "340vh" } : undefined}>
       <div className={scrollMode ? "xv-pin" : undefined}>
       <div className="xv-in">
         <div className="xv-text">
