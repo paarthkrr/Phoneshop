@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
 import DeviceArt from "./device-art.jsx";
 import Photo from "./photo.jsx";
 import DeviceArtCard, { inferDeviceType } from "./device-art.jsx";
-import { PHONE_FAULT_GROUPS, BLOCKERS, baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT } from "./instant-quote-calculator.jsx";
+import { PHONE_FAULT_GROUPS, FAULT_GROUPS_BY_CATEGORY, BLOCKERS, baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT } from "./instant-quote-calculator.jsx";
 import { mergeCatalog } from "./device-catalog.js";
 import { DEFAULT_TIERS } from "./pricing.js";
 
@@ -88,10 +88,16 @@ function basesFor(d, cfg) {
 function conditionCfg(cfg) {
   const tierById = Object.fromEntries(((cfg && cfg.tiers) || []).map((t) => [t.id, t]));
   const factor = Object.fromEntries(DEFAULT_TIERS.map((t) => [t.id, tierById[t.id]?.factor ?? t.factor]));
-  const pct = {};
-  PHONE_FAULT_GROUPS.forEach((g) => g.faults.forEach((x) => { pct[x.id] = x.pct; }));
-  ((cfg && cfg.faultGroups) || []).forEach((g) => g.faults.forEach((x) => { pct[x.id] = x.pct; }));
-  return { factor, pct, hold: (cfg && cfg.holdingCostPct) ?? DEFAULT_HOLDING_COST_PCT };
+  // per category (tablets, laptops, watches weigh the same fault differently), with the
+  // console's overrides applied by fault id across all of them, exactly like the quote tool
+  const over = {};
+  ((cfg && cfg.faultGroups) || []).forEach((g) => g.faults.forEach((x) => { over[x.id] = x.pct; }));
+  const pctBy = {};
+  for (const [cat, groups] of Object.entries(FAULT_GROUPS_BY_CATEGORY)) {
+    pctBy[cat] = {};
+    groups.forEach((g) => g.faults.forEach((x) => { pctBy[cat][x.id] = over[x.id] ?? x.pct; }));
+  }
+  return { factor, pctBy, hold: (cfg && cfg.holdingCostPct) ?? DEFAULT_HOLDING_COST_PCT };
 }
 // Two quick questions on the homepage card. Each answer maps onto the quote tool's own
 // condition tier and fault ids, so the card's number is what the full quote will say.
@@ -105,10 +111,11 @@ const BATTERY_OPTS = [
   { id: "80", label: "80–89%", faults: ["batt_80_89"] },
   { id: "low", label: "Under 80%", faults: ["batt_below80"] },
 ];
-function conditionPrice(base, screen, battery, c) {
+function conditionPrice(base, screen, battery, c, category) {
   const tierBase = base * (c.factor[screen.tier] ?? 1);
-  const off = [...screen.faults, ...battery.faults].reduce((a, id) => a + (c.pct[id] || 0), 0);
-  return Math.floor(Math.max(base * 0.05, tierBase * (1 - off - c.hold)));
+  const pct = c.pctBy[category] || c.pctBy.phone || {};
+  const off = [...screen.faults, ...battery.faults].reduce((a, id) => a + (pct[id] || 0), 0);
+  return Math.round(Math.max(base * 0.05, tierBase * (1 - off - c.hold))); // rounded like the quote tool
 }
 
 function upToFor(d, cfg) {
@@ -140,7 +147,21 @@ const HERO_CSS = `
 .mvx-live{display:flex;align-items:center;gap:5px;color:#7DDEA0}
 .mvx-live i{width:6px;height:6px;border-radius:50%;background:#7DDEA0}
 .mvx-quote label{display:block;font-size:12px;color:rgba(255,255,255,.55);margin-bottom:6px}
-.mvx-quote select{width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:14px;margin-bottom:10px}
+.mvx-search{position:relative}
+.mvx-search input{width:100%;box-sizing:border-box;padding:10px 12px 10px 36px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23ffffff99' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 12px 50%;color:#fff;font-size:16px;outline:none;-webkit-appearance:none}
+.mvx-search input::placeholder{color:rgba(255,255,255,.6)}
+.mvx-search input:focus{border-color:#C97A8A;box-shadow:0 0 0 3px rgba(201,122,138,.25)}
+.mvx-hits{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;list-style:none;background:#1E1016;border:1px solid rgba(255,255,255,.14);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.5);max-height:300px;overflow:auto}
+.mvx-hits li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 10px;border-radius:8px;font-size:14px;cursor:pointer;color:#fff}
+.mvx-hits li b{font-size:12px;color:#7DDEA0;font-weight:600;white-space:nowrap}
+.mvx-hits li[aria-selected="true"]{background:rgba(201,122,138,.22)}
+.mvx-hits li.none{border-top:1px solid rgba(255,255,255,.1);margin-top:4px;border-radius:0 0 8px 8px}
+.mvx-hits li.none a{color:#F5C7D1;text-decoration:none;font-weight:600;display:block;width:100%}
+.mvx-cur{margin:8px 0 6px;font-weight:800;font-size:16px;color:#fff}
+.mvx-pop{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px;padding-bottom:2px;scrollbar-width:none}
+.mvx-pop::-webkit-scrollbar{display:none}
+.mvx-chip{flex:none;padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.75);font-size:11.5px;cursor:pointer;white-space:nowrap}
+.mvx-chip[aria-pressed="true"]{border-color:#C97A8A;color:#fff;background:rgba(201,122,138,.18)}
 .mvx-sizes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .mvx-size{padding:6px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer}
 .mvx-size[aria-pressed="true"],.mvx-size[aria-checked="true"]{background:#8B3A4C;color:#fff;border-color:#8B3A4C}
@@ -178,16 +199,66 @@ const Ico = ({ k }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 
 // Chrome hero (design option 15). Same live quote as before: pick a model and size,
 // see the capped "up to" price from the quote tool's formula, then go to the full quote.
-function Hero({ quoteModels, condCfg }) {
-  const [mi, setMi] = useState(0);
+// Search over every device we buy: every word typed must appear in "brand model".
+// Model names that start with the query come first, then newest.
+function searchModels(list, q) {
+  const words = q.toLowerCase().replace(/[^a-z0-9+ ]/g, " ").split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const hay = (d) => `${d.brand} ${d.model}`.toLowerCase();
+  const hits = list.filter((d) => { const h = hay(d); return words.every((w) => h.includes(w)); });
+  const ql = q.trim().toLowerCase();
+  const rank = (d) => { const m = d.model.toLowerCase(), f = hay(d); return m === ql || f === ql ? 0 : m.startsWith(ql) || f.startsWith(ql) ? 1 : 2; };
+  // exact name first, then names that start with it, shortest (the base model) before variants
+  return hits.sort((a, b) => rank(a) - rank(b) || a.model.length - b.model.length).slice(0, 8);
+}
+const showName = (d) => (d.brand === "Apple" || d.model.toLowerCase().startsWith(d.brand.toLowerCase()) ? d.model : `${d.brand} ${d.model}`);
+
+function ModelSearch({ list, current, onPick }) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const hits = searchModels(list, q);
+  const pick = (d) => { onPick(d); setQ(""); setOpen(false); };
+  return (
+    <div className="mvx-search">
+      <input type="search" role="combobox" aria-expanded={open && q.length > 0} aria-controls="mvx-hits" aria-autocomplete="list"
+        aria-label="Search your phone model" autoComplete="off" spellCheck="false"
+        placeholder={current ? "Search another model…" : "Search your phone, e.g. iPhone 15 Pro"}
+        value={q} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onChange={(e) => { setQ(e.target.value); setHi(0); setOpen(true); }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") { e.preventDefault(); setHi((h) => Math.min(h + 1, hits.length - 1)); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => Math.max(h - 1, 0)); }
+          else if (e.key === "Enter" && hits[hi]) { e.preventDefault(); pick(hits[hi]); }
+          else if (e.key === "Escape") { setOpen(false); }
+        }} />
+      {open && q.trim() && (
+        <ul id="mvx-hits" className="mvx-hits" role="listbox">
+          {hits.map((d, n) => (
+            <li key={d.brand + d.model} role="option" aria-selected={n === hi} onMouseDown={(e) => { e.preventDefault(); pick(d); }} onMouseEnter={() => setHi(n)}>
+              <span>{showName(d)}</span><b>up to ${Math.max(...Object.values(d.prices)).toLocaleString()}</b>
+            </li>
+          ))}
+          {/* always offered under the results: the quote page's "we'll price it for you" request form */}
+          <li className="none" role="option" aria-selected="false" onMouseDown={(e) => e.preventDefault()}>
+            <a href={`/quote?q=${encodeURIComponent(q.trim())}&ask=1`}>{hits.length ? "Not here? We'll price it for you →" : `Not listed? We'll price “${q.trim()}” for you →`}</a>
+          </li>
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function Hero({ quoteModels, allModels, condCfg }) {
+  const [picked, setPicked] = useState(null);
   const [si, setSi] = useState(0);
   const [sc, setSc] = useState(0); // screen answer
   const [bt, setBt] = useState(0); // battery answer
-  const cur = quoteModels[Math.min(mi, quoteModels.length - 1)];
+  const cur = picked || quoteModels[0];
   const storages = cur ? Object.keys(cur.prices) : [];
   const storage = storages[Math.min(si, storages.length - 1)];
   const screen = SCREEN_OPTS[sc], battery = BATTERY_OPTS[bt];
-  const price = cur && storage ? conditionPrice(cur.bases[storage] || 0, screen, battery, condCfg) : 0;
+  const price = cur && storage ? conditionPrice(cur.bases[storage] || 0, screen, battery, condCfg, cur.category) : 0;
   const sealed = cur && storage ? cur.prices[storage] : 0;
   const faults = [...screen.faults, ...battery.faults];
   const quoteHref = cur ? `/quote?q=${encodeURIComponent(cur.model)}&storage=${encodeURIComponent(storage || "")}&tier=${screen.tier}${faults.length ? `&faults=${faults.join(",")}` : ""}` : "/quote";
@@ -219,11 +290,14 @@ function Hero({ quoteModels, condCfg }) {
               <div className="mvx-card">
                 <div className="mvx-quote">
                   <div className="mvx-quote-top"><span>YOUR DEVICE</span><span className="mvx-live"><i />Live price</span></div>
-                  <label>Model
-                    <select aria-label="Phone model" value={mi} onChange={(e) => { setMi(+e.target.value); setSi(0); }}>
-                      {quoteModels.map((q, n) => <option key={q.model} value={n}>{q.model}</option>)}
-                    </select>
-                  </label>
+                  <div className="mvx-q">Model</div>
+                  <ModelSearch list={allModels.length ? allModels : quoteModels} current={cur} onPick={(d) => { setPicked(d); setSi(0); }} />
+                  <div className="mvx-cur"><span>{showName(cur)}</span></div>
+                  <div className="mvx-pop" aria-label="Popular models">
+                    {quoteModels.slice(0, 6).map((d) => (
+                      <button key={d.model} type="button" className="mvx-chip" aria-pressed={cur.model === d.model} onClick={() => { setPicked(d); setSi(0); }}>{d.model.replace(/^Galaxy /, "")}</button>
+                    ))}
+                  </div>
                   <div className="mvx-sizes" role="group" aria-label="Storage">
                     {storages.map((s, n) => <button key={s} type="button" className="mvx-size" aria-pressed={n === Math.min(si, storages.length - 1)} onClick={() => setSi(n)}>{s}</button>)}
                   </div>
@@ -410,6 +484,7 @@ export default function Home() {
   const [featured, setFeatured] = useState(null);
   const [spinUnit, setSpinUnit] = useState(null);
   const [quoteModels, setQuoteModels] = useState([]);
+  const [allModels, setAllModels] = useState([]);
   const [condCfg, setCondCfg] = useState(() => conditionCfg(null));
   const [topPhones, setTopPhones] = useState([]);
   const [photos, setPhotos] = useState({});
@@ -420,7 +495,10 @@ export default function Home() {
       const b = (cfg && cfg.businessSettings) || {};
       setBiz(b);
       { const cat = mergeCatalog(cfg && cfg.catalog);
-        setQuoteModels(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, category: d.category, prices: pricesFor(d, cfg), bases: basesFor(d, cfg) })).filter((x) => Object.keys(x.prices).length));
+        const priced = (d) => ({ model: d.model, brand: d.brand, category: d.category || "phone", release: d.release, prices: pricesFor(d, cfg), bases: basesFor(d, cfg) });
+        setQuoteModels(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map(priced).filter((x) => Object.keys(x.prices).length));
+        // every device we buy, for the card's search (newest first)
+        setAllModels(cat.map(priced).filter((x) => Object.keys(x.prices).length).sort((a, b) => String(b.release || "").localeCompare(String(a.release || ""))));
         setCondCfg(conditionCfg(cfg));
         setTopPhones(FEATURED_PHONES.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, imageUrl: d.imageUrl, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0)); }
       setPhotos(Object.fromEntries(mergeCatalog(cfg && cfg.catalog).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])));
@@ -480,7 +558,7 @@ export default function Home() {
       `}</style>
 
       {/* ---- Hero ---- */}
-      <Hero quoteModels={quoteModels} condCfg={condCfg} />
+      <Hero quoteModels={quoteModels} allModels={allModels} condCfg={condCfg} />
 
       {/* ---- Look around a real iPhone (scroll-driven 3D) ---- */}
       <DeviceShowcase />
