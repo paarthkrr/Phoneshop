@@ -1,5 +1,6 @@
 import { NumberTicker, useSpotlight, FX_CSS } from "./motion-fx.jsx";
 import DeviceShowcase from "./device-showcase.jsx";
+import GoogleReviews from "./google-reviews.jsx";
 import { SpinViewer, hasSpin } from "./spin-360.jsx";
 import React, { useState, useEffect, useRef } from "react";
 import DeviceArt from "./device-art.jsx";
@@ -7,6 +8,7 @@ import Photo from "./photo.jsx";
 import DeviceArtCard, { inferDeviceType } from "./device-art.jsx";
 import { PHONE_FAULT_GROUPS, BLOCKERS, baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT } from "./instant-quote-calculator.jsx";
 import { mergeCatalog } from "./device-catalog.js";
+import { DEFAULT_TIERS } from "./pricing.js";
 
 const REVEAL_CSS = `
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
@@ -75,6 +77,40 @@ function pricesFor(d, cfg) {
   for (const s of Object.keys(d.retail || {})) { const v = Math.floor((baseBuybackAUD(d, s, pts, f) || 0) * (1 - hold)); if (v > 0) out[s] = v; }
   return out;
 }
+// Sealed base per storage, before condition and holding cost (the card applies those).
+function basesFor(d, cfg) {
+  const f = { ...DEFAULT_BRAND_FACTOR, ...((cfg && cfg.brandFactors) || {}) };
+  const out = {};
+  for (const s of Object.keys(d.retail || {})) out[s] = baseBuybackAUD(d, s, DEFAULT_RETENTION_POINTS, f) || 0;
+  return out;
+}
+// The quote tool's condition maths, with the shop's own overrides from the Pricing Console.
+function conditionCfg(cfg) {
+  const tierById = Object.fromEntries(((cfg && cfg.tiers) || []).map((t) => [t.id, t]));
+  const factor = Object.fromEntries(DEFAULT_TIERS.map((t) => [t.id, tierById[t.id]?.factor ?? t.factor]));
+  const pct = {};
+  PHONE_FAULT_GROUPS.forEach((g) => g.faults.forEach((x) => { pct[x.id] = x.pct; }));
+  ((cfg && cfg.faultGroups) || []).forEach((g) => g.faults.forEach((x) => { pct[x.id] = x.pct; }));
+  return { factor, pct, hold: (cfg && cfg.holdingCostPct) ?? DEFAULT_HOLDING_COST_PCT };
+}
+// Two quick questions on the homepage card. Each answer maps onto the quote tool's own
+// condition tier and fault ids, so the card's number is what the full quote will say.
+const SCREEN_OPTS = [
+  { id: "perfect", label: "Perfect", tier: "asnew", faults: [] },
+  { id: "scratched", label: "Scratches", tier: "good", faults: [] },
+  { id: "cracked", label: "Cracked", tier: "good", faults: ["screen_crack"] },
+];
+const BATTERY_OPTS = [
+  { id: "90", label: "90%+", faults: [] },
+  { id: "80", label: "80–89%", faults: ["batt_80_89"] },
+  { id: "low", label: "Under 80%", faults: ["batt_below80"] },
+];
+function conditionPrice(base, screen, battery, c) {
+  const tierBase = base * (c.factor[screen.tier] ?? 1);
+  const off = [...screen.faults, ...battery.faults].reduce((a, id) => a + (c.pct[id] || 0), 0);
+  return Math.floor(Math.max(base * 0.05, tierBase * (1 - off - c.hold)));
+}
+
 function upToFor(d, cfg) {
   const pts = DEFAULT_RETENTION_POINTS; // force latest curve (ignore old stored config)
   const f = { ...DEFAULT_BRAND_FACTOR, ...((cfg && cfg.brandFactors) || {}) };
@@ -107,7 +143,10 @@ const HERO_CSS = `
 .mvx-quote select{width:100%;padding:9px 11px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:14px;margin-bottom:10px}
 .mvx-sizes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .mvx-size{padding:6px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(255,255,255,.7);font-size:12px;cursor:pointer}
-.mvx-size[aria-pressed="true"]{background:#8B3A4C;color:#fff;border-color:#8B3A4C}
+.mvx-size[aria-pressed="true"],.mvx-size[aria-checked="true"]{background:#8B3A4C;color:#fff;border-color:#8B3A4C}
+.mvx-q{font-size:12px;color:rgba(255,255,255,.55);margin:2px 0 6px}
+.mvx-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.mvx-seg .mvx-size{padding:8px 4px;text-align:center}
 .mvx-est{display:flex;justify-content:space-between;align-items:flex-end;margin:8px 0 12px}
 .mvx-est-label{display:block;font-size:11px;color:rgba(255,255,255,.5);margin-bottom:2px}
 .mvx-price{font-size:32px;font-weight:800}
@@ -139,13 +178,19 @@ const Ico = ({ k }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 
 // Chrome hero (design option 15). Same live quote as before: pick a model and size,
 // see the capped "up to" price from the quote tool's formula, then go to the full quote.
-function Hero({ quoteModels }) {
+function Hero({ quoteModels, condCfg }) {
   const [mi, setMi] = useState(0);
   const [si, setSi] = useState(0);
+  const [sc, setSc] = useState(0); // screen answer
+  const [bt, setBt] = useState(0); // battery answer
   const cur = quoteModels[Math.min(mi, quoteModels.length - 1)];
   const storages = cur ? Object.keys(cur.prices) : [];
   const storage = storages[Math.min(si, storages.length - 1)];
-  const price = cur && storage ? cur.prices[storage] : 0;
+  const screen = SCREEN_OPTS[sc], battery = BATTERY_OPTS[bt];
+  const price = cur && storage ? conditionPrice(cur.bases[storage] || 0, screen, battery, condCfg) : 0;
+  const sealed = cur && storage ? cur.prices[storage] : 0;
+  const faults = [...screen.faults, ...battery.faults];
+  const quoteHref = cur ? `/quote?q=${encodeURIComponent(cur.model)}&storage=${encodeURIComponent(storage || "")}&tier=${screen.tier}${faults.length ? `&faults=${faults.join(",")}` : ""}` : "/quote";
   return (
     <>
       <section className="mvx-hero" aria-label="Sell your phone">
@@ -182,12 +227,20 @@ function Hero({ quoteModels }) {
                   <div className="mvx-sizes" role="group" aria-label="Storage">
                     {storages.map((s, n) => <button key={s} type="button" className="mvx-size" aria-pressed={n === Math.min(si, storages.length - 1)} onClick={() => setSi(n)}>{s}</button>)}
                   </div>
+                  <div className="mvx-q">Screen</div>
+                  <div className="mvx-seg" role="radiogroup" aria-label="Screen condition">
+                    {SCREEN_OPTS.map((o, n) => <button key={o.id} type="button" role="radio" aria-checked={n === sc} className="mvx-size" onClick={() => setSc(n)}>{o.label}</button>)}
+                  </div>
+                  <div className="mvx-q">Battery health</div>
+                  <div className="mvx-seg" role="radiogroup" aria-label="Battery health">
+                    {BATTERY_OPTS.map((o, n) => <button key={o.id} type="button" role="radio" aria-checked={n === bt} className="mvx-size" onClick={() => setBt(n)}>{o.label}</button>)}
+                  </div>
                   <div className="mvx-est">
-                    <div><span className="mvx-est-label">Yours could be worth up to</span><span key={cur.model + storage} className="mvx-price mvx-chrome">${price.toLocaleString()}</span></div>
+                    <div><span className="mvx-est-label">Your phone is worth about</span><span key={cur.model + storage + sc + bt} className="mvx-price mvx-chrome" aria-live="polite">${price.toLocaleString()}</span></div>
                     <span className="mvx-cash">Paid in cash</span>
                   </div>
-                  <a href={`/quote?q=${encodeURIComponent(cur.model)}`} className="mvx-quote-btn">Get my exact quote <span aria-hidden="true">→</span></a>
-                  <div className="mvx-quote-note">Top price for a flawless device. Final offer after our 49-point check.</div>
+                  <a href={quoteHref} className="mvx-quote-btn">Sell it for ${price.toLocaleString()} <span aria-hidden="true">→</span></a>
+                  <div className="mvx-quote-note">Sealed in the box? Up to ${sealed.toLocaleString()}. Final offer after our 49-point check.</div>
                   <div className="mvx-sheen" aria-hidden="true" />
                 </div>
               </div>
@@ -357,6 +410,7 @@ export default function Home() {
   const [featured, setFeatured] = useState(null);
   const [spinUnit, setSpinUnit] = useState(null);
   const [quoteModels, setQuoteModels] = useState([]);
+  const [condCfg, setCondCfg] = useState(() => conditionCfg(null));
   const [topPhones, setTopPhones] = useState([]);
   const [photos, setPhotos] = useState({});
 
@@ -366,7 +420,8 @@ export default function Home() {
       const b = (cfg && cfg.businessSettings) || {};
       setBiz(b);
       { const cat = mergeCatalog(cfg && cfg.catalog);
-        setQuoteModels(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, category: d.category, prices: pricesFor(d, cfg) })).filter((x) => Object.keys(x.prices).length));
+        setQuoteModels(TICKER_MODELS.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, category: d.category, prices: pricesFor(d, cfg), bases: basesFor(d, cfg) })).filter((x) => Object.keys(x.prices).length));
+        setCondCfg(conditionCfg(cfg));
         setTopPhones(FEATURED_PHONES.map((m) => cat.find((d) => d.model === m)).filter(Boolean).map((d) => ({ model: d.model, brand: d.brand, imageUrl: d.imageUrl, upTo: upToFor(d, cfg) })).filter((x) => x.upTo > 0)); }
       setPhotos(Object.fromEntries(mergeCatalog(cfg && cfg.catalog).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])));
       // Featured deal: the highest-value device actually listed for sale right now.
@@ -425,7 +480,7 @@ export default function Home() {
       `}</style>
 
       {/* ---- Hero ---- */}
-      <Hero quoteModels={quoteModels} />
+      <Hero quoteModels={quoteModels} condCfg={condCfg} />
 
       {/* ---- Look around a real iPhone (scroll-driven 3D) ---- */}
       <DeviceShowcase />
@@ -445,6 +500,7 @@ export default function Home() {
           </div>
         </section>
       )}
+      <GoogleReviews />
       <TopPhones phones={topPhones} />
       <div className="mv-hero" style={{ ...section, textAlign: "center", padding: "34px 20px 34px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, textAlign: "left" }}>

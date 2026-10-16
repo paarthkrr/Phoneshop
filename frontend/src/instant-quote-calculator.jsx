@@ -548,12 +548,16 @@ export default function QuoteCalculator() {
   const [bulkTrackOpen, setBulkTrackOpen] = useState(false);
   const [bulkTrackQuery, setBulkTrackQuery] = useState("");
   const [bulkTrackResult, setBulkTrackResult] = useState(undefined);
+  const [idDifferent, setIdDifferent] = useState(false); // photo ID in another name than the contact name
+  const [cfgTried, setCfgTried] = useState(false); // shop config has loaded (or there is none)
+  const prefilled = React.useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const cfg = await loadSharedConfig();
       if (!cancelled && cfg) { setLive(cfg); setSource("admin console"); }
+      if (!cancelled) setCfgTried(true);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -598,6 +602,30 @@ export default function QuoteCalculator() {
     // staff added (e.g. from a customer's request) must show up without retyping the search.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, brandFilter, categoryFilter, live]);
+
+  // Hand-off from the homepage price card: /quote?q=MODEL&storage=256GB&tier=good&faults=a,b
+  // lands straight on this model's condition screen with everything already chosen, so the
+  // customer isn't asked for the same things twice. Waits for the shop's own price list so the
+  // device and its prices are the live ones.
+  useEffect(() => {
+    if (prefilled.current || selected || !cfgTried) return;
+    prefilled.current = true;
+    let p; try { p = new URLSearchParams(window.location.search); } catch (e) { return; }
+    const q = (p.get("q") || "").trim().toLowerCase(); if (!q) return;
+    const d = CATALOG_A.find((x) => x.model.toLowerCase() === q || `${x.brand} ${x.model}`.toLowerCase() === q);
+    if (!d) return; // not an exact model: leave it as a search
+    const sizes = Object.keys(d.retail || {});
+    const st = p.get("storage");
+    setSelected({ ...d, storage: sizes.includes(st) ? st : sizes[0] });
+    const t = p.get("tier");
+    if (t && TIERS_A.some((x) => x.id === t)) {
+      setTierId(t);
+      const known = new Set(FAULT_GROUPS_BY_CATEGORY[d.category || "phone"]?.flatMap((g) => g.faults.map((f) => f.id)) || []);
+      const fl = (p.get("faults") || "").split(",").filter((id) => known.has(id));
+      if (fl.length) { setFaults(Object.fromEntries(fl.map((id) => [id, true]))); setHasIssues(true); } else setHasIssues(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfgTried, selected]);
 
   const tier = TIERS_A.find((t) => t.id === tierId);
   const activeBlocker = Object.keys(blockers).find((k) => blockers[k]);
@@ -657,9 +685,10 @@ export default function QuoteCalculator() {
     };
   }, [selected, tier, calc, region]);
 
+  const idName = (idDifferent ? customer.idOwnerName : customer.name).trim();
   async function handleSubmitOrder() {
     const payoutValid = (customer.payoutMethod === "cash" ? fulfillment !== "post" : customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail));
-    if (!calc || calc.blocked || !customer.name || !isEmail(customer.email) || !customer.idOwnerName || !payoutValid) return;
+    if (!calc || calc.blocked || !customer.name || !isEmail(customer.email) || !idName || !payoutValid) return;
     setSubmitting(true);
     setSubmitError("");
     const newCode = genReferralCode(customer.name);
@@ -674,7 +703,7 @@ export default function QuoteCalculator() {
       hasAccessories,
       quotedTotal: roundMoney(calc.total, region, REGIONS_A),
       brandNewBase: calc.baseRegion,
-      customer: { ...customer },
+      customer: { ...customer, idOwnerName: idName },
       fulfillment, address: fulfillment === "post" ? "" : address,
       status: "awaiting_shipment",
       inspection: null,
@@ -1338,10 +1367,16 @@ export default function QuoteCalculator() {
               />
             ))}
 
-            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Name on your photo ID</div>
-            <input value={customer.idOwnerName} onChange={(e) => setCustomer((c) => ({ ...c, idOwnerName: e.target.value }))}
-              placeholder="Full name (as it appears on your ID)" aria-label="Full name as it appears on your ID"
-              style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 6, outline: "none", boxSizing: "border-box" }} />
+            {/* The ID name is nearly always the contact name: ask only when it differs. */}
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: paper, margin: "6px 0 8px", cursor: "pointer" }}>
+              <input type="checkbox" checked={idDifferent} onChange={(e) => setIdDifferent(e.target.checked)} />
+              My photo ID is in a different name
+            </label>
+            {idDifferent && (
+              <input value={customer.idOwnerName} onChange={(e) => setCustomer((c) => ({ ...c, idOwnerName: e.target.value }))}
+                placeholder="Full name (as it appears on your ID)" aria-label="Full name as it appears on your ID"
+                style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 6, outline: "none", boxSizing: "border-box" }} />
+            )}
             <div style={{ fontSize: 12.5, color: muted, marginBottom: 14 }}>
               No need to upload anything. We check your photo ID in person before we pay you, as second-hand dealer rules require.
             </div>
@@ -1431,7 +1466,7 @@ export default function QuoteCalculator() {
                 Back
               </button>
               {(() => {
-                const canSubmit = customer.name && isEmail(customer.email) && customer.idOwnerName &&
+                const canSubmit = customer.name && isEmail(customer.email) && idName &&
                   (customer.payoutMethod === "cash" ? fulfillment !== "post" : customer.payoutMethod === "bank" ? (isBsb(customer.bankBsb) && isAccount(customer.bankAccountNumber)) : isEmail(customer.paypalEmail));
                 return (
                   <button className="cs-btn" onClick={handleSubmitOrder} disabled={!canSubmit || submitting}
@@ -1521,7 +1556,7 @@ export default function QuoteCalculator() {
                 <li><strong>Remove your SIM</strong> and any memory card.</li>
               </ol>
             </div>
-            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" }); setReferralCodeEntered(""); setMyReferralCode(null); }}
+            <button onClick={() => { setSubmittedOrder(null); setCheckout(false); setIdDifferent(false); setSelected(null); setTierId(null); setFaults({}); setBlockers({}); setCustomer({ name: "", email: "", phone: "", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" }); setReferralCodeEntered(""); setMyReferralCode(null); }}
               style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 14, cursor: "pointer" }}>
               Start another quote
             </button>
