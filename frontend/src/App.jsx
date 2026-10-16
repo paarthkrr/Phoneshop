@@ -1,4 +1,4 @@
-import { withBusinessDefaults } from "./business-info.js";
+import { withBusinessDefaults, waLink } from "./business-info.js";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 
@@ -170,10 +170,10 @@ function Nav() {
         @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .cs-glass-nav::before { background: #FFFFFF; } }
         @media (prefers-reduced-transparency: reduce) { .cs-glass-nav::before { background: #FFFFFF; -webkit-backdrop-filter: none; backdrop-filter: none; } }
 
-        /* ---- Mobile menu: desktop links collapse into a menu button under 720px ---- */
+        /* ---- Mobile menu: desktop links collapse into a menu button under 980px (the full row needs ~980px; tablets used to wrap it onto two lines) ---- */
         .cs-menu-btn { display: none; background: none; border: 1px solid #E2E6EC; border-radius: 3px; padding: 5px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: #111827; }
         .cs-mobile-menu { display: none; }
-        @media (max-width: 720px) {
+        @media (max-width: 980px) {
           .cs-nav-links, .cs-nav-aside { display: none !important; }
           .cs-menu-btn { display: inline-block; }
           .cs-mobile-menu.open { display: flex; }
@@ -578,12 +578,14 @@ function MobileCTA() {
   const path = normPath(location.pathname);
   const hidden = isStaffPath(path) || path === "/quote" || path === "/sell" || path === "/accessories" || path === "/parts";
   const [phone, setPhone] = useState(null);
+  const [wa, setWa] = useState(withBusinessDefaults(null).whatsapp);
   useEffect(() => {
     (async () => {
       try {
         if (!window.storage) return;
         const r = await window.storage.get("pricing-config", true);
-        setPhone(withBusinessDefaults(r ? JSON.parse(r.value).businessSettings : null).phone);
+        const b = withBusinessDefaults(r ? JSON.parse(r.value).businessSettings : null);
+        setPhone(b.phone); setWa(b.whatsapp);
       } catch (e) { /* no config yet */ }
     })();
   }, []);
@@ -599,6 +601,11 @@ function MobileCTA() {
       {phone
         ? <a href={`tel:${phone.replace(/\s/g, "")}`} style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>📞 Call us</a>
         : <a href="/repairs" style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>Book a repair</a>}
+      {/* WhatsApp lives here on phones instead of floating over the page content */}
+      <a href={waLink(wa, "Hi Mobile Recellr, ")} target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp"
+        style={{ ...btn, flex: "0 0 48px", background: "#25D366", color: "#fff" }}>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-1.3-.6-2.2-1.2-3-2.7-.2-.4.2-.4.6-1.2.1-.2 0-.3 0-.5l-.8-1.8c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.8.8-1 1.7-.7 2.8.4 1.6 1.4 2.9 2.7 4 1.7 1.4 3.2 2 4.9 1.9.9-.1 1.7-.7 2-1.5.1-.3.1-.6 0-.7l-.8-.4z" /></svg>
+      </a>
     </div>
   );
 }
@@ -632,6 +639,28 @@ function SiteSchema() {
     })();
   }, []);
   return null;
+}
+
+// Unknown address: say so plainly, keep it out of Google, and offer the three things people come for.
+function NotFound() {
+  useEffect(() => {
+    document.title = "Page not found | Mobile Recellr";
+    const m = document.createElement("meta"); m.name = "robots"; m.content = "noindex"; document.head.appendChild(m);
+    return () => m.remove();
+  }, []);
+  const chip = { display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 18px", borderRadius: 999, border: `1px solid ${line}`, color: paper, textDecoration: "none", fontWeight: 600, fontSize: 15 };
+  return (
+    <div style={{ padding: "64px 20px 72px", textAlign: "center", fontFamily: "'Archivo', sans-serif", color: paper }}>
+      <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, margin: "0 0 8px" }}>Page not found</h1>
+      <p style={{ color: muted, margin: "0 0 22px", fontSize: 15.5 }}>That link may be old or mistyped. Here's where most people are headed:</p>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginBottom: 18 }}>
+        <Link to="/quote" style={chip}>Sell my phone</Link>
+        <Link to="/repairs" style={chip}>Book a repair</Link>
+        <Link to="/shop" style={chip}>Shop refurbished</Link>
+      </div>
+      <Link to="/" style={{ color: brass }}>Back to the homepage</Link>
+    </div>
+  );
 }
 
 function PageMeta() {
@@ -757,12 +786,7 @@ function AnimatedRoutes() {
         <Route path="/staff/repairs" element={<StaffGate><RepairTickets /></StaffGate>} />
         <Route path="/staff/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
         <Route path="/staff/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
-        <Route path="*" element={
-          <div style={{ padding: 60, textAlign: "center", fontFamily: "'Archivo', sans-serif", color: paper }}>
-            <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, marginBottom: 8 }}>Page not found</div>
-            <Link to="/" style={{ color: brass }}>Back to the homepage</Link>
-          </div>
-        } />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       </React.Suspense>
       {!isStaff && <SiteFooter />}

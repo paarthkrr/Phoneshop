@@ -1,4 +1,5 @@
 import { NumberTicker, useSpotlight, FX_CSS } from "./motion-fx.jsx";
+import DeviceShowcase from "./device-showcase.jsx";
 import { SpinViewer, hasSpin } from "./spin-360.jsx";
 import React, { useState, useEffect, useRef } from "react";
 import DeviceArt from "./device-art.jsx";
@@ -94,11 +95,11 @@ const HERO_CSS = `
 .mvx-cta{display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:0 26px;border-radius:999px;background:linear-gradient(180deg,#A0485C,#6B2D3C);color:#fff;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 12px 28px rgba(107,45,60,.4)}
 .mvx-cta2{display:inline-flex;align-items:center;min-height:50px;padding:0 22px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-weight:600;font-size:15px;text-decoration:none}
 .mvx-pills{display:flex;gap:8px;flex-wrap:wrap}
-.mvx-pills span{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:rgba(255,255,255,.65);background:rgba(255,255,255,.1);padding:5px 11px;border-radius:999px}
-.mvx-stage{position:relative;height:480px;display:flex;align-items:center;justify-content:center}
-.mvx-glow{position:absolute;width:320px;height:320px;background:radial-gradient(circle,rgba(169,90,110,.4) 0%,transparent 70%);filter:blur(30px)}
-.mvx-phone{position:relative;width:240px;height:auto;filter:drop-shadow(0 30px 50px rgba(0,0,0,.5));transform:rotate(-5deg)}
-.mvx-card{position:absolute;right:0;top:30px;width:300px;background:rgba(20,10,14,.8);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px;box-shadow:0 20px 40px rgba(0,0,0,.4)}
+.mvx-pills span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:rgba(255,255,255,.72);background:rgba(255,255,255,.1);padding:6px 12px;border-radius:999px;white-space:nowrap}
+.mvx-pills svg{width:15px;height:15px;flex:none}
+.mvx-stage{position:relative;min-height:420px;display:grid;grid-template-columns:minmax(0,340px);align-items:center;justify-content:end}
+.mvx-glow{position:absolute;right:0;top:50%;margin-top:-170px;width:340px;height:340px;pointer-events:none;background:radial-gradient(circle,rgba(169,90,110,.4) 0%,transparent 70%);filter:blur(30px)}
+.mvx-card{position:relative;width:100%;box-sizing:border-box;background:rgba(20,10,14,.8);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px;box-shadow:0 20px 40px rgba(0,0,0,.4)}
 .mvx-quote-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:11px;letter-spacing:.08em;color:rgba(255,255,255,.5)}
 .mvx-live{display:flex;align-items:center;gap:5px;color:#7DDEA0}
 .mvx-live i{width:6px;height:6px;border-radius:50%;background:#7DDEA0}
@@ -121,8 +122,8 @@ const HERO_CSS = `
   .mvx-hero{min-height:auto}
   .mvx-hero-inner{grid-template-columns:1fr;padding:40px 18px 32px;gap:16px}
   .mvx-stage{height:auto;padding-top:8px}
-  .mvx-phone{width:180px;transform:rotate(-3deg)}
-  .mvx-card{position:relative;top:auto;right:auto;width:100%;max-width:360px;margin:0 auto}
+  .mvx-stage{grid-template-columns:minmax(0,420px);justify-content:center}
+  .mvx-card{width:100%;margin:0 auto;box-sizing:border-box}
   .mvx-glow{display:none}
   .mvx-benefits-inner{grid-template-columns:repeat(2,1fr);padding:14px 16px}
 }
@@ -169,7 +170,6 @@ function Hero({ quoteModels }) {
           </div>
           <div className="mvx-stage">
             <div className="mvx-glow" aria-hidden="true" />
-            <img className="mvx-phone" src="/photos/real/iphone-18-burgundy.png?v=2" alt="" aria-hidden="true" width="230" height="478" decoding="async" />
             {cur && (
               <div className="mvx-card">
                 <div className="mvx-quote">
@@ -426,6 +426,9 @@ export default function Home() {
 
       {/* ---- Hero ---- */}
       <Hero quoteModels={quoteModels} />
+
+      {/* ---- Look around a real iPhone (scroll-driven 3D) ---- */}
+      <DeviceShowcase />
 
       {spinUnit && hasSpin(spinUnit) && (
         <section aria-label="See this phone in 360 degrees" style={{ background: "#0E0F13", color: "#fff", padding: "48px 20px" }}>
