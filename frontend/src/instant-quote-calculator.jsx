@@ -1313,7 +1313,7 @@ export default function QuoteCalculator() {
         )}
 
         {calc && !checkout && !submittedOrder && (
-          <div style={{ position: "sticky", bottom: 12, background: panel, border: `1px solid ${brass}`, boxShadow: "0 8px 28px rgba(32,28,24,0.16)", borderRadius: 12, padding: "14px 16px", marginTop: 20, maxHeight: "70vh", overflowY: "auto" }}>
+          <div style={{ position: "fixed", bottom: 12, left: 16, right: 16, background: panel, border: `1px solid ${brass}`, boxShadow: "0 8px 28px rgba(32,28,24,0.16)", borderRadius: 12, padding: "14px 16px", marginTop: 20, maxHeight: "70vh", overflowY: "auto" }}>
             {calc.blocked ? (
               <div>
                 <div style={{ color: red, fontSize: 15, marginBottom: 4 }}>Quote unavailable</div>
