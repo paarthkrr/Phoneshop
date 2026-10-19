@@ -109,7 +109,7 @@ function seoBody(route) {
         <h1 style="font-size:28px;line-height:1.15;color:#111827;margin:0 0 12px">${h1}</h1>
         ${intro ? `<p style="font-size:16px;line-height:1.55;margin:0 0 16px">${intro}</p>` : ""}
         <nav aria-label="Main pages" style="margin:0 0 16px">${links}</nav>
-        <p style="font-size:13px;color:#8A93A0">Loading Mobile Recellr\u2026</p>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:20px"><div style="width:24px;height:24px;border:2px solid #E5E7EB;border-top-color:#7A1F2B;border-radius:50%;animation:spin 1s linear infinite"></div><span style="font-size:13px;color:#8A93A0">Loading…</span></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>
       </div>`;
 }
 
