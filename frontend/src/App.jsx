@@ -23,6 +23,7 @@ import SiteFooter from "./site-footer.jsx";
 import { NAV_CSS, DesktopMenu, MobileDrawer, MobileBackdrop } from "./site-nav.jsx";
 import { ROLE_LABELS, currentRole, canSeeScreen } from "./roles.js";
 import DarkModeToggle from "./dark-mode-toggle.jsx";
+import CustomerDisplay from "./customer-display.jsx";
 
 /* =================================================================
    APP SHELL
@@ -780,6 +781,7 @@ function AnimatedRoutes() {
         <Route path="/portal/products" element={<StaffGate><Products /></StaffGate>} />
         {/* Legacy /staff addresses — same pages */}
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
+        <Route path="/display" element={<CustomerDisplay />} />
         <Route path="/staff/admin" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
         <Route path="/staff/inspect" element={<StaffGate><StaffInspectionConsole /></StaffGate>} />
         <Route path="/staff/pos" element={<StaffGate><POSInventory /></StaffGate>} />
