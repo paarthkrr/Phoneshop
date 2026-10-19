@@ -252,9 +252,9 @@ export default function DeviceShowcase() {
   useEffect(() => {
     const c = canvas.current, s = stage.current; if (!c || !s) return undefined;
     const fit = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const dpr = Math.min(3, window.devicePixelRatio || 1);
       c.width = Math.round(s.clientWidth * dpr); c.height = Math.round(s.clientHeight * dpr);
-      const ctx = c.getContext("2d"); ctx.imageSmoothingQuality = "high";
+      const ctx = c.getContext("2d"); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
       decoded.current.forEach((b) => b && b.close && b.close()); decoded.current.clear(); shown.current = -1;
       draw(frame.current);
     };
@@ -269,7 +269,7 @@ export default function DeviceShowcase() {
     let cancelled = false;
     const load = async () => {
       // big or high-density canvases get the sharp set; phones the lighter one
-      tier.current = (canvas.current?.width || 0) > 700 ? "hd" : "sd";
+      tier.current = "hd";
       const idx = [];
       for (let i = 0; i < COUNT; i += step.current) idx.push(i);
       if (idx[idx.length - 1] !== COUNT - 1) idx.push(COUNT - 1);
