@@ -74,7 +74,7 @@ const Team = staffScreen(() => import("./team.jsx"));
 const Products = staffScreen(() => import("./products.jsx"));
 const DailyDashboard = staffScreen(() => import("./modern-dashboard.jsx"));
 const AdminPricingConsole = staffScreen(() => import("./admin-pricing-console.jsx"));
-const StaffInspectionConsole = staffScreen(() => import("./staff-inspection-console.jsx"));
+const StaffInspectionConsole = staffScreen(() => import("./inspection-enhanced.jsx"));
 const POSInventory = staffScreen(() => import("./pos-inventory.jsx"));
 const RepairTickets = staffScreen(() => import("./repair-tickets.jsx"));
 const TillReconciliation = staffScreen(() => import("./till-reconciliation.jsx"));
