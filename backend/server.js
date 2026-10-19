@@ -603,7 +603,7 @@ function notifyNew(key, items, max = Infinity, fromPublic = false) {
 //  - phone purchases: price comes from the listed inventory item.
 //  - accessories: prices from the catalogue, total recomputed.
 let pricingModule = null;
-const loadPricing = () => (pricingModule = pricingModule || import("../frontend/src/pricing.js"));
+const loadPricing = () => (pricingModule = pricingModule || import("./pricing.js"));
 const round2 = (n) => Math.round(n * 100) / 100;
 // Mirrors SHIPPING_FLAT / FREE_SHIPPING_OVER in frontend/src/parts.jsx.
 const ACCESSORY_SHIPPING_FLAT = 9.95, ACCESSORY_FREE_SHIPPING_OVER = 100;
@@ -2096,7 +2096,7 @@ let marketRunning = null, marketLastManual = 0;
 function runMarketCheck(by, fetchImpl) {
   if (marketRunning) return marketRunning;
   marketRunning = (async () => {
-    const [pricing, catalogMod] = await Promise.all([loadPricing(), import("../frontend/src/device-catalog.js")]);
+    const [pricing, catalogMod] = await Promise.all([loadPricing(), import("./device-catalog.js")]);
     const sources = await market.fetchSources(fetchImpl || fetch);
     const config = (await loadSharedValue("pricing-config")) || {};
     const decisions = await loadSharedList("market_decisions");
