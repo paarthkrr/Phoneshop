@@ -748,7 +748,7 @@ function AnimatedRoutes() {
   return (
     <>
     <main key={location.pathname} className={"cs-page-enter" + slide}>
-      <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "#5B6472", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
+      <React.Suspense fallback={null}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />
         <Route path="/quote" element={<QuoteCalculator />} />
