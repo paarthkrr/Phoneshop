@@ -130,6 +130,9 @@ const CSS = `
   .xv-tag{font-size:11px;padding:4px 8px}
   .xv-co.plain{display:none}
 }
+
+.xv-close{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:rgba(15,17,21,.85);color:#fff;border:none;font-size:20px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
+.xv-close:hover{background:#7a1630}
 .xv-hint{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(15,17,21,.82);color:#fff;font-size:12.5px;
   font-weight:600;letter-spacing:.02em;transition:opacity .3s ease;pointer-events:none;z-index:2;white-space:nowrap}
 .xv-load{position:absolute;left:12%;right:12%;bottom:1.5%;height:2px;border-radius:2px;background:rgba(17,24,39,.08);overflow:hidden;z-index:2;transition:opacity .4s}
@@ -175,7 +178,7 @@ export default function DeviceShowcase() {
     if (mq && mq.matches) setReduced(true);
     tintRef.current = pickTint();
     section.current?.style.setProperty("--xv-bg", tintRef.current);
-    step.current = window.innerWidth < 760 ? 2 : 1;
+    step.current = 2; // faster load: every 2nd frame
     // the pinned stage sits just under the sticky header
     const nav = document.querySelector(".cs-glass-nav");
     const setTop = () => { if (nav && section.current) section.current.style.setProperty("--xv-top", `${nav.getBoundingClientRect().bottom > 0 ? nav.offsetHeight : 0}px`); };
@@ -406,6 +409,8 @@ export default function DeviceShowcase() {
           {/* first frame shows straight away (and is the still image for reduced motion) */}
           <img src={reduced ? SRC(COUNT - 1, "hd") : SRC(0)} alt="An iPhone coming apart into its parts: cameras, display, logic board, battery, speakers and charging port" width={W} height={H} fetchpriority="high" decoding="async" />
           {!reduced && <canvas ref={canvas} aria-hidden="true" />}
+          {!reduced && open && <button type="button" className="xv-close" onClick={(e) => { e.stopPropagation(); toggle(); }} aria-label="Close">×</button>}
+
           {!reduced && <div className="xv-hint" style={{ opacity: open || (scrollMode && moved) ? 0 : 1 }}>{!ready ? "Loading…" : scrollMode ? <span className="xv-cue" style={{ color: "#fff", margin: 0 }}><i />Scroll to open</span> : mode === "auto" ? "Tap to replay" : "Tap to open"}</div>}
           {!reduced && <div className="xv-load" style={{ opacity: ready ? 0 : 1 }}><i style={{ width: `${Math.round(loaded * 100)}%` }} /></div>}
         </div>

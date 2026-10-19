@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#FFFFFF" />
+    <style>
+      /* Critical: hide boot message by default, show only if app fails */
+      #boot-msg { display: none; }
+      html:not(.app-mounted) #boot-msg { display: block; }
+      /* Prevent white flash: set background immediately */
+      html, body { background: #FFFFFF; margin: 0; }
+      html.mr-intro, html.mr-intro body { background: #0F1B3D; }
+    </style>
+
     <!-- Never usable inside another site's frame (clickjacking the staff portal). The host
          doesn't send X-Frame-Options for the static site, so the page refuses here. -->
     <script>if (window.self !== window.top) { document.documentElement.style.display = "none"; try { window.top.location = window.self.location.href; } catch (e) {} }</script>
