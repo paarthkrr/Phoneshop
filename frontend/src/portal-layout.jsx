@@ -21,7 +21,7 @@ export default function PortalLayout({ children }) {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#F8F9FA", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <aside style={{ width: 200, background: "#fff", borderRight: "1px solid #E5E7EB", padding: 16, flexShrink: 0 }}>
+      <aside style={{ width: 180, background: "#fff", borderRight: "1px solid #E5E7EB", padding: 12, flexShrink: 0, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
           <div style={{ width: 36, height: 36, background: "#7A1F2B", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>R</div>
           <span style={{ fontWeight: 700 }}>Recellr</span>

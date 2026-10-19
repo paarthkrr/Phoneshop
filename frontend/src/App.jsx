@@ -239,7 +239,7 @@ function Nav() {
         body.cs-staff-mode .cs-glass-nav .cs-nav-link.active { background: linear-gradient(180deg, #FFFFFF, #C9D0DC); color: #0E0F13 !important; border-radius: 999px; font-weight: 700; }
         body.cs-staff-mode .cs-glass-nav .cs-nav-link.active::after { display: none; }
         body.cs-staff-mode .cs-glass-nav .cs-nav-link { border-radius: 999px; }
-        body.cs-staff-mode .cs-glass-nav .cs-menu-btn { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.25); color: #FFFFFF; }
+        body.cs-staff-mode .cs-glass-nav .cs-menu-btn { display: none !important; }
         body.cs-staff-mode .cs-glass-nav .cs-mobile-menu { background: #0E0F13; border-top-color: #2A2F3C !important; }
         body.cs-staff-mode .cs-glass-nav .cs-mobile-menu a { border-bottom-color: #232733 !important; }
         body.cs-staff-mode main div[style*="border: 1px solid rgb(226, 230, 236)"] { border-radius: 14px !important; box-shadow: 0 8px 26px rgba(15,27,61,.07); }
