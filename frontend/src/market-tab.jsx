@@ -27,6 +27,7 @@ export default function MarketTab({ colors, position = 0, onApply, onPosition })
   const [msg, setMsg] = useState("");
   const [pos, setPos] = useState(String(position));
   const [open, setOpen] = useState(null);
+  const [excluded, setExcluded] = useState([]);
 
   useEffect(() => { (async () => setCheck((await loadShared("market_check")) || false))(); }, []);
   useEffect(() => { setPos(String(position)); }, [position]);
@@ -109,13 +110,32 @@ export default function MarketTab({ colors, position = 0, onApply, onPosition })
           <span style={{ fontSize: 13 }}><strong>{suggestions.length}</strong> suggestion{suggestions.length === 1 ? "" : "s"} · <strong>{safe.length}</strong> safe</span>
           <button disabled={!!busy || !safe.length} onClick={() => { if (window.confirm(`Apply all ${safe.length} safe suggestions? Each model moves at most 10%. Flagged ones are left for you to check one by one.`)) accept(safe); }}
             style={{ ...btn(brass, "#fff"), opacity: safe.length ? 1 : 0.5 }}>{busy === "apply" ? "Applying…" : `Apply all safe (${safe.length})`}</button>
-          <button disabled={!!busy || !suggestions.length} onClick={async () => { if (window.confirm(`Apply average of all competitors to ${suggestions.length} models? This calculates the average price from all sources and applies it.`)) { setBusy("avg"); const avgChanges = suggestions.map(s => {
-            // Calculate average of competitor prices and convert to market adj %
-            const avgRatio = s.sources.reduce((a, x) => a + (x.ratio || 1), 0) / s.sources.length;
-            const suggested = Math.round((avgRatio - 1) * 100);
-            return { brand: s.brand, model: s.model, from: s.current, to: Math.max(-60, Math.min(30, suggested)), note: "average of all competitors" };
-          }); const ok = await onApply(avgChanges); setBusy(""); setMsg(ok ? `✓ Applied average to ${avgChanges.length} models` : "Couldn't apply"); } }}
-            style={{ ...btn(green, "#fff"), opacity: suggestions.length ? 1 : 0.5 }}>{busy === "avg" ? "Applying…" : `Apply average (${suggestions.length})`}</button>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            {["mobilemonster", "phoneexchange", "cashconverters"].map(src => (
+              <label key={src} style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 3, cursor: "pointer" }}>
+                <input type="checkbox" checked={!excluded.includes(src)} onChange={e => setExcluded(e.target.checked ? excluded.filter(x => x !== src) : [...excluded, src])} />
+                {SOURCE_LABEL[src]}
+              </label>
+            ))}
+            <button disabled={!!busy || !suggestions.length} onClick={async () => { 
+              const included = ["mobilemonster", "phoneexchange", "cashconverters"].filter(s => !excluded.includes(s));
+              if (!included.length) return alert("Select at least one competitor");
+              if (window.confirm(`Apply average of ${included.map(s => SOURCE_LABEL[s]).join(", ")} to ${suggestions.length} models?`)) { 
+                setBusy("avg"); 
+                const avgChanges = suggestions.map(s => {
+                  const sources = s.sources.filter(x => !excluded.includes(x.id));
+                  if (!sources.length) return null;
+                  const avgRatio = sources.reduce((a, x) => a + (x.ratio || 1), 0) / sources.length;
+                  const suggested = Math.round((avgRatio - 1) * 100);
+                  return { brand: s.brand, model: s.model, from: s.current, to: Math.max(-60, Math.min(30, suggested)), note: `average of ${included.join(", ")}` };
+                }).filter(Boolean); 
+                const ok = await onApply(avgChanges); 
+                setBusy(""); 
+                setMsg(ok ? `✓ Applied average to ${avgChanges.length} models` : "Couldn't apply"); 
+              } 
+            }}
+              style={{ ...btn(green, "#fff"), opacity: suggestions.length ? 1 : 0.5 }}>{busy === "avg" ? "Applying…" : `Apply average (${suggestions.length})`}</button>
+          </div>
           <button disabled={!!busy || !suggestions.length} onClick={async () => { if (window.confirm(`Apply ALL ${suggestions.length} suggestions? This will update all models at once.`)) { setBusy("all"); const allChanges = suggestions.map(s => ({ brand: s.brand, model: s.model, from: s.current, to: s.suggested, note: "applied all" })); const ok = await onApply(allChanges); setBusy(""); setMsg(ok ? `✓ Applied all ${allChanges.length} suggestions` : "Couldn't apply"); } }}
             style={{ ...btn(red, "#fff"), opacity: suggestions.length ? 1 : 0.5 }}>{busy === "all" ? "Applying…" : `Apply ALL (${suggestions.length})`}</button>
         </div>
