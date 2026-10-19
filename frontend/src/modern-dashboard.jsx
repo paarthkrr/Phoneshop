@@ -14,7 +14,7 @@ const fmt = (n) => `$${Math.round(n || 0).toLocaleString()}`;
 
 export default function ModernDashboard() {
   const [data, setData] = useState(null);
-  const [time, setTime] = useState(new Date());
+  const [tab, setTab] = useState("overview");
 
   useEffect(() => {
     (async () => {
@@ -24,8 +24,6 @@ export default function ModernDashboard() {
       ]);
       setData({ orders, inventory, sales, tickets });
     })();
-    const t = setInterval(() => setTime(new Date()), 60000);
-    return () => clearInterval(t);
   }, []);
 
   const stats = useMemo(() => {
@@ -37,76 +35,83 @@ export default function ModernDashboard() {
     const pendingOrders = orders.filter(o => ["received_inspecting", "awaiting_shipment"].includes(o.status)).length;
     const inStock = inventory.filter(i => i.status === "in_stock").length;
     const openRepairs = tickets.filter(t => !["completed", "not_repairable"].includes(t.status)).length;
-    return { todayRevenue, todaySales: todaySales.length, pendingOrders, inStock, openRepairs };
+    const totalRevenue = sales.reduce((a, s) => a + (s.salePrice || 0), 0);
+    return { todayRevenue, todaySales: todaySales.length, pendingOrders, inStock, openRepairs, totalRevenue };
   }, [data]);
 
   if (!stats) return (
-    <div style={{ background: "#0F0F0F", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 40, height: 40, border: "3px solid #333", borderTopColor: "#7A1F2B", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+    <div style={{ background: "#F8F9FA", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 32, height: 32, border: "3px solid #E5E7EB", borderTopColor: "#7A1F2B", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
-  const cards = [
-    { label: "Today's Revenue", value: fmt(stats.todayRevenue), icon: "💰", color: "#22C55E" },
-    { label: "Sales Today", value: stats.todaySales, icon: "📱", color: "#3B82F6" },
-    { label: "Pending Orders", value: stats.pendingOrders, icon: "📦", color: "#F59E0B" },
-    { label: "In Stock", value: stats.inStock, icon: "🏪", color: "#8B5CF6" },
-    { label: "Open Repairs", value: stats.openRepairs, icon: "🔧", color: "#EF4444" },
-  ];
+  const tabs = ["Overview", "Activity", "Orders", "Inventory", "Repairs"];
 
   return (
-    <div style={{ background: "linear-gradient(135deg, #0F0F0F 0%, #1A1A1A 100%)", minHeight: "100vh", padding: 24, fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-          <div>
-            <h1 style={{ color: "#fff", fontSize: 28, fontWeight: 700, margin: 0 }}>Dashboard</h1>
-            <p style={{ color: "#888", fontSize: 14, margin: "4px 0 0" }}>{time.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}</p>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "8px 16px", color: "#fff", fontSize: 14 }}>
-            {time.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}
-          </div>
+    <div style={{ background: "#F8F9FA", minHeight: "100vh", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #E5E7EB", padding: "12px 24px", display: "flex", alignItems: "center", gap: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 32, height: 32, background: "#7A1F2B", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14 }}>R</div>
+          <span style={{ fontWeight: 600, fontSize: 15 }}>Recellr</span>
         </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
-          {cards.map((c, i) => (
-            <div key={i} style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20, transition: "transform 0.2s, box-shadow 0.2s" }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 20px 40px rgba(0,0,0,0.3)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>{c.label}</div>
-                  <div style={{ color: "#fff", fontSize: 28, fontWeight: 700 }}>{c.value}</div>
-                </div>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: `${c.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{c.icon}</div>
-              </div>
-            </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {tabs.map(t => (
+            <button key={t} onClick={() => setTab(t.toLowerCase())} style={{ padding: "8px 16px", borderRadius: 20, border: "none", background: tab === t.toLowerCase() ? "#111" : "transparent", color: tab === t.toLowerCase() ? "#fff" : "#666", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>{t}</button>
           ))}
         </div>
+      </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
-          <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 24 }}>
-            <h3 style={{ color: "#fff", fontSize: 16, fontWeight: 600, margin: "0 0 16px" }}>Quick Actions</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+      <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ marginBottom: 24 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, margin: 0, color: "#111" }}>Good morning</h2>
+          <p style={{ color: "#888", fontSize: 14, margin: "4px 0 0" }}>Here's what's happening with your shop today.</p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E5E7EB" }}>
+            <div style={{ color: "#888", fontSize: 13, marginBottom: 8 }}>Today's Revenue</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#111" }}>{fmt(stats.todayRevenue)}</div>
+            <div style={{ color: "#22C55E", fontSize: 12, marginTop: 4 }}>{stats.todaySales} sales today</div>
+          </div>
+          <div style={{ background: "#7A1F2B", borderRadius: 16, padding: 20 }}>
+            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginBottom: 8 }}>Total Revenue</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#fff" }}>{fmt(stats.totalRevenue)}</div>
+            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 4 }}>All time</div>
+          </div>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E5E7EB" }}>
+            <div style={{ color: "#888", fontSize: 13, marginBottom: 8 }}>Pending Orders</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#111" }}>{stats.pendingOrders}</div>
+            <div style={{ color: "#F59E0B", fontSize: 12, marginTop: 4 }}>Needs attention</div>
+          </div>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E5E7EB" }}>
+            <div style={{ color: "#888", fontSize: 13, marginBottom: 8 }}>In Stock</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#111" }}>{stats.inStock}</div>
+            <div style={{ color: "#3B82F6", fontSize: 12, marginTop: 4 }}>{stats.openRepairs} repairs open</div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E5E7EB" }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 16px", color: "#111" }}>Quick Actions</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {[
-                { label: "New Trade-in", href: "/quote", color: "#7A1F2B" },
-                { label: "Add Inventory", href: "/portal/inventory", color: "#2150C8" },
-                { label: "Check Prices", href: "/portal/pricing", color: "#22C55E" },
-                { label: "View Orders", href: "/portal/orders", color: "#F59E0B" },
+                { label: "New Trade-in Quote", href: "/quote", icon: "📱" },
+                { label: "Add to Inventory", href: "/portal/inventory", icon: "📦" },
+                { label: "Check Market Prices", href: "/portal/pricing", icon: "💰" },
+                { label: "View All Orders", href: "/portal/orders", icon: "📋" },
               ].map((a, i) => (
-                <a key={i} href={a.href} style={{ display: "block", background: `${a.color}15`, border: `1px solid ${a.color}30`, borderRadius: 12, padding: 16, color: "#fff", textDecoration: "none", fontSize: 14, fontWeight: 500, textAlign: "center", transition: "all 0.2s" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = `${a.color}25`; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = `${a.color}15`; }}>
+                <a key={i} href={a.href} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#F8F9FA", borderRadius: 10, textDecoration: "none", color: "#111", fontSize: 14, fontWeight: 500 }}>
+                  <span style={{ fontSize: 18 }}>{a.icon}</span>
                   {a.label}
                 </a>
               ))}
             </div>
           </div>
-
-          <div style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 24 }}>
-            <h3 style={{ color: "#fff", fontSize: 16, fontWeight: 600, margin: "0 0 16px" }}>Recent Activity</h3>
-            <div style={{ color: "#888", fontSize: 13, textAlign: "center", padding: 20 }}>
-              Activity feed coming soon
+          <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E5E7EB" }}>
+            <h3 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 16px", color: "#111" }}>Recent Orders</h3>
+            <div style={{ color: "#888", fontSize: 13, textAlign: "center", padding: 32 }}>
+              No recent orders
             </div>
           </div>
         </div>
