@@ -74,19 +74,7 @@ export default function StaffDashboard() {
   if (!stats) return <div style={{ padding: 40, textAlign: "center" }}>Loading...</div>;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#F8F9FA", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <aside style={{ width: 200, background: "#fff", borderRight: "1px solid #E5E7EB", padding: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <div style={{ width: 36, height: 36, background: "#7A1F2B", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>R</div>
-          <span style={{ fontWeight: 700 }}>Recellr</span>
-        </div>
-        {NAV.map(n => (
-          <button key={n.id} onClick={() => setTab(n.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", border: "none", borderRadius: 10, marginBottom: 4, cursor: "pointer", background: tab === n.id ? "#7A1F2B" : "transparent", color: tab === n.id ? "#fff" : "#374151", fontSize: 14, fontWeight: 500, textAlign: "left" }}>
-            <span>{n.icon}</span> {n.label}
-          </button>
-        ))}
-      </aside>
-      <main style={{ flex: 1, padding: 24 }}>
+    <div style={{ padding: 24, fontFamily: "'Inter', system-ui, sans-serif" }}>
         {tab === "overview" && (
           <>
             <h1 style={{ fontSize: 24, fontWeight: 600, margin: "0 0 8px" }}>Good morning</h1>
@@ -156,7 +144,6 @@ export default function StaffDashboard() {
         {tab === "till" && <Redirect href="/portal/till" label="Open Till" />}
         {tab === "crm" && <Redirect href="/portal/crm" label="Open CRM" />}
         {tab === "inventory" && <Redirect href="/portal/pos" label="Open Inventory" />}
-      </main>
     </div>
   );
 }

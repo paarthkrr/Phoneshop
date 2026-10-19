@@ -768,17 +768,17 @@ function AnimatedRoutes() {
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<Terms />} />
-        <Route path="/portal" element={<StaffGate><DailyDashboard /></StaffGate>} />
-        <Route path="/portal/pricing" element={<StaffGate><AdminPricingConsole /></StaffGate>} />
-        <Route path="/portal/inspect" element={<StaffGate><StaffInspectionConsole /></StaffGate>} />
-        <Route path="/portal/pos" element={<StaffGate><POSInventory /></StaffGate>} />
-        <Route path="/portal/repairs" element={<StaffGate><RepairTickets /></StaffGate>} />
-        <Route path="/portal/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
-        <Route path="/portal/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
-        <Route path="/portal/team" element={<StaffGate><Team /></StaffGate>} />
-        <Route path="/portal/activity" element={<StaffGate><Activity /></StaffGate>} />
-        <Route path="/portal/unlock" element={<StaffGate><UnlockChecker /></StaffGate>} />
-        <Route path="/portal/products" element={<StaffGate><Products /></StaffGate>} />
+        <Route path="/portal" element={<StaffGate><PortalLayout><DailyDashboard /></PortalLayout></StaffGate>} />
+        <Route path="/portal/pricing" element={<StaffGate><PortalLayout><AdminPricingConsole /></PortalLayout></StaffGate>} />
+        <Route path="/portal/inspect" element={<StaffGate><PortalLayout><StaffInspectionConsole /></PortalLayout></StaffGate>} />
+        <Route path="/portal/pos" element={<StaffGate><PortalLayout><POSInventory /></PortalLayout></StaffGate>} />
+        <Route path="/portal/repairs" element={<StaffGate><PortalLayout><RepairTickets /></PortalLayout></StaffGate>} />
+        <Route path="/portal/till" element={<StaffGate><PortalLayout><TillReconciliation /></PortalLayout></StaffGate>} />
+        <Route path="/portal/crm" element={<StaffGate><PortalLayout><CRMDashboard /></PortalLayout></StaffGate>} />
+        <Route path="/portal/team" element={<StaffGate><PortalLayout><Team /></PortalLayout></StaffGate>} />
+        <Route path="/portal/activity" element={<StaffGate><PortalLayout><Activity /></PortalLayout></StaffGate>} />
+        <Route path="/portal/unlock" element={<StaffGate><PortalLayout><UnlockChecker /></PortalLayout></StaffGate>} />
+        <Route path="/portal/products" element={<StaffGate><PortalLayout><Products /></PortalLayout></StaffGate>} />
         {/* Legacy /staff addresses — same pages */}
         <Route path="/staff" element={<StaffGate><DailyDashboard /></StaffGate>} />
         <Route path="/display" element={<CustomerDisplay />} />
