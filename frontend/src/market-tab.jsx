@@ -77,6 +77,7 @@ export default function MarketTab({ colors, position = 0, onApply, onPosition })
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
         <button onClick={runCheck} disabled={!!busy} style={btn("transparent", brass, brass)}>{busy === "check" ? "Checking…" : "Check now"}</button>
+        <button onClick={async () => { setBusy("all"); setMsg("Checking all devices..."); try { const r = await api("/market/check-all", { method: "POST", body: "{}" }); setCheck(r); setMsg(`✓ Checked ${r.checked || 0} devices`); } catch(e) { setMsg(e.message); } setBusy(""); }} disabled={!!busy} style={btn("transparent", paper, line)}>{busy === "all" ? "Checking all…" : "Check all devices"}</button>
         <span style={{ fontSize: 12.5, color: muted }}>
           {check ? <>Last checked {new Date(check.checkedAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}{check.by ? ` (${check.by})` : ""}</> : "Not checked yet"}
         </span>
@@ -107,7 +108,9 @@ export default function MarketTab({ colors, position = 0, onApply, onPosition })
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12, padding: 10, background: brassDim, borderRadius: 3 }}>
           <span style={{ fontSize: 13 }}><strong>{suggestions.length}</strong> suggestion{suggestions.length === 1 ? "" : "s"} · <strong>{safe.length}</strong> safe</span>
           <button disabled={!!busy || !safe.length} onClick={() => { if (window.confirm(`Apply all ${safe.length} safe suggestions? Each model moves at most 10%. Flagged ones are left for you to check one by one.`)) accept(safe); }}
-            style={{ ...btn(brass, "#fff"), marginLeft: "auto", opacity: safe.length ? 1 : 0.5 }}>{busy === "apply" ? "Applying…" : `Apply all safe (${safe.length})`}</button>
+            style={{ ...btn(brass, "#fff"), opacity: safe.length ? 1 : 0.5 }}>{busy === "apply" ? "Applying…" : `Apply all safe (${safe.length})`}</button>
+          <button disabled={!!busy || !suggestions.length} onClick={async () => { if (window.confirm(`Apply average of all competitors to ${suggestions.length} models? This calculates the average price from all sources and applies it.`)) { setBusy("avg"); const avgChanges = suggestions.map(s => ({ brand: s.brand, model: s.model, from: s.current, to: Math.round((s.sources.reduce((a,x) => a + (x.pct || 0), 0) / s.sources.length)), note: "average of all competitors" })); const ok = await onApply(avgChanges); setBusy(""); setMsg(ok ? `✓ Applied average to ${avgChanges.length} models` : "Couldn't apply"); } }}
+            style={{ ...btn(green, "#fff"), opacity: suggestions.length ? 1 : 0.5 }}>{busy === "avg" ? "Applying…" : `Apply average (${suggestions.length})`}</button>
         </div>
       )}
       {check && !suggestions.length && <div style={{ fontSize: 13, color: muted }}>No suggestions right now: your prices are in line with the market, or you've already dealt with them.</div>}

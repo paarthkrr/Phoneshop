@@ -160,3 +160,13 @@ function buildSuggestions({ config, pricing, sources, decisions = [], now = Date
 }
 
 module.exports = { SOURCES, CONDITIONS, LIMITS, fetchSources, buildSuggestions, parseMobileMonster, parsePhoneExchange, modelKey, storageKey };
+
+// Additional competitors
+const EXTRA_SOURCES = [
+  { id: "cashconverters", name: "Cash Converters", site: "https://www.cashconverters.com.au",
+    urls: ["https://www.cashconverters.com.au/api/sell/prices"] },
+  { id: "cexo", name: "Cex", site: "https://au.webuy.com",
+    urls: ["https://au.webuy.com/api/prices"] },
+];
+
+module.exports.EXTRA_SOURCES = EXTRA_SOURCES;

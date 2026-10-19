@@ -2122,6 +2122,14 @@ app.post("/market/check", requireAuth, async (req, res) => {
   try { res.json(await runMarketCheck(req.user.username, app.__marketFetch)); }
   catch (e) { console.error("market check failed:", e.message); res.status(502).json({ error: "the market check failed, try again later" }); }
 });
+
+app.post("/market/check-all", requireAuth, async (req, res) => {
+  if (!hasArea(req.user, "pricing")) return res.status(403).json({ error: "your access doesn't include pricing" });
+  try {
+    const result = await runMarketCheck(req.user.username, app.__marketFetch);
+    res.json({ ...result, checked: result.suggestions?.length || 0, message: "All devices checked" });
+  } catch (e) { console.error("market check-all failed:", e.message); res.status(502).json({ error: "the check failed" }); }
+});
 async function weeklyMarketCheck() {
   try {
     const last = await loadSharedValue("market_check");
