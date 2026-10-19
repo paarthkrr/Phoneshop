@@ -74,7 +74,7 @@ const Team = staffScreen(() => import("./team.jsx"));
 const Products = staffScreen(() => import("./products.jsx"));
 const DailyDashboard = staffScreen(() => import("./modern-dashboard.jsx"));
 const AdminPricingConsole = staffScreen(() => import("./admin-pricing-console.jsx"));
-const StaffInspectionConsole = staffScreen(() => import("./inspection-enhanced.jsx"));
+const StaffInspectionConsole = staffScreen(() => import("./staff-inspection-console.jsx"));
 const POSInventory = staffScreen(() => import("./pos-inventory.jsx"));
 const RepairTickets = staffScreen(() => import("./repair-tickets.jsx"));
 const TillReconciliation = staffScreen(() => import("./till-reconciliation.jsx"));
@@ -748,7 +748,7 @@ function AnimatedRoutes() {
   return (
     <>
     <main key={location.pathname} className={"cs-page-enter" + slide}>
-      <React.Suspense fallback={null}>
+      <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "#5B6472", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />
         <Route path="/quote" element={<QuoteCalculator />} />

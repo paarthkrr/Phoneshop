@@ -1,5 +1,4 @@
 import { NumberTicker, useSpotlight, FX_CSS } from "./motion-fx.jsx";
-import "./luxury-animations.css";
 import DeviceShowcase from "./device-showcase.jsx";
 import GoogleReviews from "./google-reviews.jsx";
 import { SpinViewer, hasSpin } from "./spin-360.jsx";
@@ -40,7 +39,7 @@ const TOP_CSS = `
 function TopPhones({ phones }) {
   if (!phones.length) return null;
   const card = (p, n, dup) => (
-    <a key={(dup ? "d" : "") + p.model} href={`/quote?q=${encodeURIComponent(p.model)}`} className="mvt-card luxury-card" tabIndex={dup ? -1 : 0} aria-hidden={dup ? true : undefined}>
+    <a key={(dup ? "d" : "") + p.model} href={`/quote?q=${encodeURIComponent(p.model)}`} className="mvt-card" tabIndex={dup ? -1 : 0} aria-hidden={dup ? true : undefined}>
       <div className="mvt-img">
         {p.imageUrl ? <img src={p.imageUrl} alt={dup ? "" : p.model} loading="lazy" /> : <DeviceArtCard type="phone" size={168} brand={p.brand} model={p.model} />}
       </div>
@@ -126,7 +125,7 @@ function upToFor(d, cfg) {
   return Math.floor(Math.max(0, ...Object.keys(d.retail || {}).map((s) => baseBuybackAUD(d, s, pts, f) || 0)) * (1 - hold));
 }
 const HERO_CSS = `
-.mvx-hero{position:relative;overflow:hidden;color:#fff;min-height:auto;background:linear-gradient(160deg,#2A1520 0%,#12080C 50%,#050304 100%);display:flex;align-items:center}
+.mvx-hero{position:relative;overflow:hidden;color:#fff;min-height:72vh;background:linear-gradient(160deg,#2A1520 0%,#12080C 50%,#050304 100%);display:flex;align-items:center}
 .mvx-hero-inner{position:relative;max-width:1180px;margin:0 auto;padding:60px 22px;display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center;width:100%}
 .mvx-chrome{background:linear-gradient(180deg,#FFFFFF 0%,#F5E6EA 40%,#C97A8A 60%,#FFFFFF 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mvx-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.3em;color:rgba(255,255,255,.6);margin-bottom:18px}
