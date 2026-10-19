@@ -329,6 +329,21 @@ export default function POSInventory() {
             style={{ width: "100%", padding: "8px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 12.5, marginBottom: 18, outline: "none", boxSizing: "border-box" }} />
         )}
 
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8, marginBottom: 16 }}>
+          <div style={{ background: panel2, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: brass }}>{inventory.filter(i => i.status === "in_stock").length}</div>
+            <div style={{ fontSize: 11, color: muted }}>In Stock</div>
+          </div>
+          <div style={{ background: panel2, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: green }}>{sales.filter(s => s.soldAt && s.soldAt.slice(0,10) === new Date().toISOString().slice(0,10)).length}</div>
+            <div style={{ fontSize: 11, color: muted }}>Today Sales</div>
+          </div>
+          <div style={{ background: panel2, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#F59E0B" }}>{orders.filter(o => o.status === "approved_paid" && !o.receivedToInventory).length}</div>
+            <div style={{ fontSize: 11, color: muted }}>To Receive</div>
+          </div>
+        </div>
+
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 20, borderBottom: `1px solid ${line}`, paddingBottom: 14 }}>
           {TABS.map((t) => (
             <button key={t} onClick={() => setTab(t)}
