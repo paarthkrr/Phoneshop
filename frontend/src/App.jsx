@@ -95,17 +95,17 @@ const CUSTOMER_LINKS = [
 ];
 
 const STAFF_LINKS = [
-  { to: "/portal", label: "Today" },
-  { to: "/portal/inspect", label: "Inspection" },
-  { to: "/portal/pos", label: "Register" },
-  { to: "/portal/repairs", label: "Repair Bench" },
+  { to: "/portal", label: "Dashboard" },
+  { to: "/portal/pricing", label: "Pricing" },
+  { to: "/portal/inspect", label: "Inspect" },
+  { to: "/portal/pos", label: "POS" },
+  { to: "/portal/repairs", label: "Repairs" },
   { to: "/portal/till", label: "Till" },
-  { to: "/portal/crm", label: "Customers & Reports" },
-  { to: "/portal/pricing", label: "Pricing Console" },
-  { to: "/portal/products", label: "Products" },
+  { to: "/portal/crm", label: "CRM" },
   { to: "/portal/team", label: "Team" },
-  { to: "/portal/unlock", label: "Unlock Checker" },
   { to: "/portal/activity", label: "Activity" },
+  { to: "/portal/unlock", label: "Unlock" },
+  { to: "/portal/products", label: "Products" },
 ];
 
 // Top strip. Wide screens show every message on one line; phones show one
