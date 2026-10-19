@@ -65,24 +65,24 @@ export default function UnifiedDashboard() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#F8F9FA", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <aside style={{ width: 180, background: "#fff", borderRight: "1px solid #E5E7EB", padding: 12, flexShrink: 0, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, padding: "0 4px" }}>
-          <div style={{ width: 32, height: 32, background: "#7A1F2B", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14 }}>R</div>
-          <span style={{ fontWeight: 700, fontSize: 14 }}>Recellr</span>
+      <aside style={{ width: 200, background: "linear-gradient(180deg, #1F2937 0%, #111827 100%)", padding: 16, flexShrink: 0, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, padding: "0 4px" }}>
+          <div style={{ width: 36, height: 36, background: "#7A1F2B", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 16 }}>R</div>
+          <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>Recellr</span>
         </div>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ 
             width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", 
             border: "none", borderRadius: 8, marginBottom: 2, cursor: "pointer", textAlign: "left",
             background: tab === t.id ? "#7A1F2B" : "transparent", 
-            color: tab === t.id ? "#fff" : "#374151", 
+            color: tab === t.id ? "#fff" : "#9CA3AF", 
             fontSize: 13, fontWeight: 500 
           }}>
             <span style={{ fontSize: 16 }}>{t.icon}</span> {t.label}
           </button>
         ))}
       </aside>
-      <main style={{ flex: 1, overflow: "auto" }}>
+      <main style={{ flex: 1, overflow: "auto", background: "#F3F4F6" }}>
         {tab === "overview" && (
           <div style={{ padding: 24 }}>
             <h1 style={{ fontSize: 24, fontWeight: 600, margin: "0 0 8px" }}>Good morning</h1>
@@ -98,16 +98,22 @@ export default function UnifiedDashboard() {
           </div>
         )}
         <Suspense fallback={<div style={{ padding: 40, textAlign: "center" }}>Loading...</div>}>
-          {tab === "pricing" && <Pricing />}
-          {tab === "inspect" && <Inspect />}
-          {tab === "pos" && <POS />}
-          {tab === "repairs" && <Repairs />}
-          {tab === "till" && <Till />}
-          {tab === "crm" && <CRM />}
-          {tab === "team" && <Team />}
-          {tab === "activity" && <Activity />}
-          {tab === "unlock" && <Unlock />}
-          {tab === "products" && <Products />}
+          {tab !== "overview" && (
+            <div style={{ padding: 20 }}>
+              <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", overflow: "hidden" }}>
+                {tab === "pricing" && <Pricing />}
+                {tab === "inspect" && <Inspect />}
+                {tab === "pos" && <POS />}
+                {tab === "repairs" && <Repairs />}
+                {tab === "till" && <Till />}
+                {tab === "crm" && <CRM />}
+                {tab === "team" && <Team />}
+                {tab === "activity" && <Activity />}
+                {tab === "unlock" && <Unlock />}
+                {tab === "products" && <Products />}
+              </div>
+            </div>
+          )}
         </Suspense>
       </main>
     </div>
