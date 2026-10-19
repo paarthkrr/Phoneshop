@@ -122,7 +122,8 @@ function buildSuggestions({ config, pricing, sources, decisions = [], now = Date
         const p = s.ok && s.prices[`${key}|${storageKey(storage)}`];
         if (!p) continue;
         theirs[s.id] = p;
-        for (const c of CONDITIONS) if (p[c.id] && ours[c.id] > 0) (ratiosBySource[s.id] = ratiosBySource[s.id] || []).push(p[c.id] / ours[c.id]);
+        // Only compare sealed/new prices (not like new or good)
+        if (p.new && ours.new > 0) (ratiosBySource[s.id] = ratiosBySource[s.id] || []).push(p.new / ours.new);
       }
       if (Object.keys(theirs).length) rows.push({ storage, ours, theirs });
     }
