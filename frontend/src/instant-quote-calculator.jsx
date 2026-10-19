@@ -1210,7 +1210,7 @@ export default function QuoteCalculator() {
                   ))}
                 </div>
               </div>
-              <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "20px 20px 22px", background: "#fff" }}>
+              <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "20px 20px 22px", background: "#fff", position: "sticky", top: 80, zIndex: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                   <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(24px, 4vw, 32px)", lineHeight: 1.12, margin: 0 }}>{selected.brand} {selected.model}</h2>
                   <button onClick={() => { setSelected(null); setSearch(""); setTierId(null); }} style={{ background: "none", border: "none", color: brass, fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>Change</button>
