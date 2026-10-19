@@ -26,7 +26,7 @@ const PRICE = Object.fromEntries((REPAIRS_BY_DEVICE.Phone || []).map((r) => [r.n
 const COUNT = 80, W = 960, H = 1802;
 const SRC = (i, q = "sd") => `/photos/exploded/${q}/${String(i).padStart(3, "0")}.webp`;
 const DURATION = 3200; // ms for a full open or close (tap/auto): slow enough to watch it come apart
-const MIN_OPEN_MS = 2800; // scroll mode: however fast the scroll, a full open takes at least this long
+const MIN_OPEN_MS = 1800; // scroll mode: however fast the scroll, a full open takes at least this long
 export const SHOWCASE_MODE = "scroll";
 // Backdrop. The frames' own backdrop is pure white, and the picture is multiplied onto the
 // section colour, so any light tint shows through seamlessly (no box around the picture).
@@ -330,7 +330,7 @@ export default function DeviceShowcase() {
       const t = target();
       // glide toward the scroll position, but never faster than a full open in MIN_OPEN_MS
       const maxStep = (dt / MIN_OPEN_MS) * (COUNT - 1);
-      const want = (t - cur) * 0.12;
+      const want = (t - cur) * 0.18;
       cur += Math.sign(want) * Math.min(Math.abs(want) + 0.02, maxStep);
       if (Math.abs(t - cur) < 0.05) cur = t;
       const f = Math.round(cur);
@@ -341,7 +341,7 @@ export default function DeviceShowcase() {
       setPhase((p) => (p === ph ? p : ph));
       wantOpen.current = isOpen;
       setOpen((o) => (o === isOpen ? o : isOpen)); setSettled((v) => (v === isOpen ? v : isOpen));
-      if (Math.abs(t - cur) > 0) raf = requestAnimationFrame(tick); else { raf = 0; last = 0; }
+      raf = requestAnimationFrame(tick);
     };
     const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
     window.addEventListener("scroll", kick, { passive: true }); window.addEventListener("resize", kick);
