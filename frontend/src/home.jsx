@@ -1,3 +1,4 @@
+import HeroUpgrade from "./hero-upgrade.jsx";
 import { NumberTicker, useSpotlight, FX_CSS } from "./motion-fx.jsx";
 import DeviceShowcase from "./device-showcase.jsx";
 import GoogleReviews from "./google-reviews.jsx";
@@ -558,7 +559,7 @@ export default function Home() {
       `}</style>
 
       {/* ---- Hero ---- */}
-      <Hero quoteModels={quoteModels} allModels={allModels} condCfg={condCfg} />
+      <HeroUpgrade quoteModels={quoteModels} />
 
       {/* ---- Look around a real iPhone (scroll-driven 3D) ---- */}
       <DeviceShowcase />
