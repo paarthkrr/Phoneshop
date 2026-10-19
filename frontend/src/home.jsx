@@ -125,7 +125,7 @@ function upToFor(d, cfg) {
   return Math.floor(Math.max(0, ...Object.keys(d.retail || {}).map((s) => baseBuybackAUD(d, s, pts, f) || 0)) * (1 - hold));
 }
 const HERO_CSS = `
-.mvx-hero{position:relative;overflow:hidden;color:#fff;min-height:72vh;background:linear-gradient(160deg,#2A1520 0%,#12080C 50%,#050304 100%);display:flex;align-items:center}
+.mvx-hero{position:relative;overflow:hidden;color:#fff;min-height:auto;background:linear-gradient(160deg,#2A1520 0%,#12080C 50%,#050304 100%);display:flex;align-items:center}
 .mvx-hero-inner{position:relative;max-width:1180px;margin:0 auto;padding:60px 22px;display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center;width:100%}
 .mvx-chrome{background:linear-gradient(180deg,#FFFFFF 0%,#F5E6EA 40%,#C97A8A 60%,#FFFFFF 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mvx-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.3em;color:rgba(255,255,255,.6);margin-bottom:18px}
@@ -564,7 +564,7 @@ export default function Home() {
       <DeviceShowcase />
 
       {spinUnit && hasSpin(spinUnit) && (
-        <section aria-label="See this phone in 360 degrees" style={{ background: "#0E0F13", color: "#fff", padding: "48px 20px" }}>
+        <section aria-label="See this phone in 360 degrees" style={{ background: "#0E0F13", color: "#fff", padding: "24px 20px" }}>
           <div style={{ maxWidth: 820, margin: "0 auto", textAlign: "center" }}>
             <div style={{ fontSize: 12, letterSpacing: ".22em", color: "#A9BDF5", fontWeight: 700, marginBottom: 8 }}>IN STOCK NOW</div>
             <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, margin: "0 0 6px" }}>See it in 360°</h2>
@@ -619,7 +619,7 @@ export default function Home() {
 
       {/* ---- Featured deal (only when stock is listed) ---- */}
       {featured && (
-        <div style={{ ...section, marginBottom: 34 }}>
+        <div style={{ ...section, marginBottom: 16 }}>
           <a href="/shop" className="cs-card" style={{ display: "flex", alignItems: "center", gap: 18, border: "2px solid #2150C8", background: panel, padding: 18, color: paper, textDecoration: "none", flexWrap: "wrap" }}>
             <DeviceArtCard type={inferDeviceType(featured.model, featured.category)} size={78} brand={featured.brand} model={featured.model}
               imageUrl={featured.photoUrl || photos[`${featured.brand}|${featured.model}`]} label={`${featured.brand} ${featured.model}`} />
@@ -640,7 +640,7 @@ export default function Home() {
       <BentoTrust />
 
       {/* ---- Photo feature band ---- */}
-      <div className="mvx-wide-only" style={{ ...section, marginBottom: 50 }}>
+      <div className="mvx-wide-only" style={{ ...section, marginBottom: 20 }}>
         <Photo name="workshop" height={320} overlay="linear-gradient(90deg, rgba(20,24,40,0.82) 0%, rgba(20,24,40,0.55) 55%, rgba(20,24,40,0.1) 100%)">
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%", padding: "0 clamp(20px, 5vw, 44px)", maxWidth: 480, color: "#fff" }}>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(22px, 4vw, 30px)", lineHeight: 1.15, marginBottom: 10 }}>Real technicians.<br />Honest parts.</div>
@@ -651,9 +651,9 @@ export default function Home() {
       </div>
 
       {/* ---- How selling works: "From drawer to dollars" ---- */}
-      <div style={{ background: "#F4F6F9", padding: "56px 0", marginBottom: 50 }}>
+      <div style={{ background: "#F4F6F9", padding: "56px 0", marginBottom: 20 }}>
         <div style={section}>
-          <div style={{ textAlign: "center", marginBottom: 34 }}>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.14em", color: brass, marginBottom: 8 }}>LESS HASSLE. MORE CASH.</div>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(28px, 5vw, 38px)", lineHeight: 1.15 }}>From drawer to dollars.</div>
             <div style={{ color: muted, fontSize: 15, marginTop: 8 }}>Three simple steps. You don't even need to leave home.</div>
@@ -677,7 +677,7 @@ export default function Home() {
       </div>
 
       {/* ---- Before you sell ---- */}
-      <div className="mvx-wide-only" style={{ ...section, marginBottom: 50 }}>
+      <div className="mvx-wide-only" style={{ ...section, marginBottom: 20 }}>
         <div style={heading}>Before you sell: 2 minutes of prep</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
           {[{"i": "💾", "t": "Back it up", "d": "iCloud, Google, or your computer."}, {"i": "🔓", "t": "Sign out & turn off Find My", "d": "Settings → your name → Find My (iPhone), or remove your Google/Samsung account (Android). Locked phones can't be accepted."}, {"i": "🧹", "t": "Erase it", "d": "Settings → General → Transfer or Reset → Erase All Content (iPhone), or Factory reset (Android)."}, {"i": "📶", "t": "Remove your SIM", "d": "And any memory card."}].map((c) => (
@@ -691,7 +691,7 @@ export default function Home() {
       </div>
 
       {/* ---- Our inspection checklist ---- */}
-      <div style={{ ...section, marginBottom: 50 }}>
+      <div style={{ ...section, marginBottom: 20 }}>
         <div style={heading}>Every device passes our {CHECK_COUNT}-point check</div>
         <div style={{ color: muted, fontSize: 14, textAlign: "center", maxWidth: 620, margin: "-8px auto 18px", lineHeight: 1.6 }}>
           The same checklist we use to inspect every trade-in, so you know exactly what's been tested.
@@ -710,7 +710,7 @@ export default function Home() {
       </div>
 
       {/* ---- Repairs ---- */}
-      <div style={{ ...section, marginBottom: 50 }}>
+      <div style={{ ...section, marginBottom: 20 }}>
         <div style={heading}>Affordable repairs, done same day in store</div>
         <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
           {[["📱", "Screen replacement", "From $85", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $59", "Phone dying by lunchtime?"],
@@ -729,7 +729,7 @@ export default function Home() {
       </div>
 
       {/* ---- Brands ---- */}
-      <div className="mvx-wide-only" style={{ ...section, marginBottom: 50, textAlign: "center" }}>
+      <div className="mvx-wide-only" style={{ ...section, marginBottom: 20, textAlign: "center" }}>
         <div style={{ color: muted, fontSize: 12.5, marginBottom: 12, letterSpacing: "0.04em" }}>WE BUY, SELL AND REPAIR</div>
         <div style={{ display: "flex", justifyContent: "center", gap: "clamp(18px, 5vw, 44px)", flexWrap: "wrap" }}>
           {[["Apple", "apple"], ["Samsung", "samsung"], ["Google", "google"], ["OPPO", "oppo"], ["Motorola", "motorola"], ["Xiaomi", "xiaomi"]].map(([b, slug]) => (
@@ -739,7 +739,7 @@ export default function Home() {
       </div>
 
       {/* ---- Why we exist ---- */}
-      <div style={{ ...section, marginBottom: 50 }}>
+      <div style={{ ...section, marginBottom: 20 }}>
         <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 28, background: brassDim }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 21, marginBottom: 10 }}>Why we started this</div>
           <div style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 14, maxWidth: 700 }}>
@@ -751,7 +751,7 @@ export default function Home() {
 
       {/* ---- Visit us (only once the address is set in Business settings) ---- */}
       {biz.address && (
-        <div style={{ ...section, marginBottom: 50 }}>
+        <div style={{ ...section, marginBottom: 20 }}>
           <div style={{ border: "1px solid #E2E6EC", borderRadius: 14, background: panel, padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, alignItems: "center" }}>
             <div>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 21, marginBottom: 8 }}>Visit us in store</div>
@@ -770,7 +770,7 @@ export default function Home() {
       )}
 
       {/* ---- Guides ---- */}
-      <div className="mvx-wide-only" style={{ ...section, marginBottom: 50 }}>
+      <div className="mvx-wide-only" style={{ ...section, marginBottom: 20 }}>
         <div style={heading}>Straight answers</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
           {GUIDES.map((g) => (
