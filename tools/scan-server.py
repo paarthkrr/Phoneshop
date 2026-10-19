@@ -86,6 +86,16 @@ class Handler(BaseHTTPRequestHandler):
                     # FullChargeCapacity appears to be percentage on some devices
                     val = int(full_m.group(1))
                     battery_health = str(val) if val <= 100 else str(val)
+            
+            # Battery from com.apple.mobile.battery
+            try:
+                batt = subprocess.check_output(["/opt/homebrew/bin/ideviceinfo", "-u", udid, "-q", "com.apple.mobile.battery"], text=True, stderr=subprocess.DEVNULL)
+                import re
+                cap_m = re.search(r"BatteryCurrentCapacity:\s*(\d+)", batt)
+                if cap_m and not battery_health:
+                    battery_health = cap_m.group(1)
+            except:
+                pass
             except:
                 pass
             
