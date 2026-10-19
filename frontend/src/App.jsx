@@ -78,7 +78,7 @@ const StaffInspectionConsole = staffScreen(() => import("./staff-inspection-cons
 const POSInventory = staffScreen(() => import("./pos-inventory.jsx"));
 const RepairTickets = staffScreen(() => import("./repair-tickets.jsx"));
 const TillReconciliation = staffScreen(() => import("./till-reconciliation.jsx"));
-const CRMDashboard = staffScreen(() => import("./crm-dashboard.jsx"));
+const CRMDashboard = staffScreen(() => import("./crm-enhanced.jsx"));
 const SecuritySetup = staffScreen(() => import("./security.jsx"));
 const Activity = staffScreen(() => import("./activity.jsx"));
 const UnlockChecker = staffScreen(() => import("./unlock-checker.jsx"));
