@@ -14,6 +14,8 @@ const SOURCES = [
     urls: ["https://mobilemonster.com.au/_mm/device-data.json"] },
   { id: "phoneexchange", name: "Phone Exchange", site: "https://phonexchange.com.au/pages/sell-my-phone",
     urls: ["https://odoo.phonexchange.com.au/pex/buyback/prices", "https://cdn.shopify.com/s/files/1/0992/3162/9619/files/pe-buyback-v2.json"] },
+  { id: "cashconverters", name: "Cash Converters", site: "https://www.cashconverters.com.au",
+    urls: ["https://www.cashconverters.com.au/api/v1/sell/prices"] },
 ];
 const USER_AGENT = "MobileRecellr-PriceCheck/1.0 (+https://mobilerecellr.com.au; weekly)";
 
@@ -67,7 +69,17 @@ function parsePhoneExchange(json) {
   }
   return out;
 }
-const PARSERS = { mobilemonster: parseMobileMonster, phoneexchange: parsePhoneExchange };
+function parseCashConverters(json) {
+  const out = {};
+  for (const item of (json && json.items) || []) {
+    const name = item.name || item.model;
+    const storage = item.storage || "128GB";
+    const price = num(item.price || item.buyPrice);
+    if (name && price) out[`${canon(name)}|${storageKey(storage)}`] = { new: price };
+  }
+  return out;
+}
+const PARSERS = { mobilemonster: parseMobileMonster, phoneexchange: parsePhoneExchange, cashconverters: parseCashConverters };
 
 async function fetchJson(url, fetchImpl, timeoutMs = 25000) {
   const ctl = new AbortController();
@@ -152,7 +164,7 @@ function buildSuggestions({ config, pricing, sources, decisions = [], now = Date
     if (clamped) reasons.push("hits the adjustment limit");
     suggestions.push({
       id: `${dev.brand}|${dev.model}`, brand: dev.brand, model: dev.model, current, suggested, gapPct,
-      sources: perSource.map(([id, r]) => ({ id, pct: Math.round((r - 1) * 100) })),
+      sources: perSource.map(([id, r]) => ({ id, pct: Math.round((r - 1) * 100), ratio: r })),
       rows: rows.slice(0, 4), safe: perSource.length >= 2 && spread <= LIMITS.agreeSpread && !clamped, reasons,
     });
   }
