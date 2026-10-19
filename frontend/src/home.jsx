@@ -140,7 +140,7 @@ const HERO_CSS = `
 .mvx-pills{display:flex;gap:8px;flex-wrap:wrap}
 .mvx-pills span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:rgba(255,255,255,.72);background:rgba(255,255,255,.1);padding:6px 12px;border-radius:999px;white-space:nowrap}
 .mvx-pills svg{width:15px;height:15px;flex:none}
-.mvx-stage{position:relative;min-height:420px;display:grid;grid-template-columns:minmax(0,340px);align-items:center;justify-content:end}
+.mvx-stage{position:relative;min-height:auto;display:grid;grid-template-columns:minmax(0,340px);align-items:center;justify-content:end}
 .mvx-glow{position:absolute;right:0;top:50%;margin-top:-170px;width:340px;height:340px;pointer-events:none;background:radial-gradient(circle,rgba(169,90,110,.4) 0%,transparent 70%);filter:blur(30px)}
 .mvx-card{position:relative;width:100%;box-sizing:border-box;background:rgba(20,10,14,.8);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px;box-shadow:0 20px 40px rgba(0,0,0,.4)}
 .mvx-quote-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:11px;letter-spacing:.08em;color:rgba(255,255,255,.5)}
@@ -412,7 +412,7 @@ function BentoTrust() {
     <div className="bt-band">
     <section aria-label="Why choose Mobile Recellr" className="bt-wrap">
       <style>{FX_CSS + `
-        .bt-band { background: linear-gradient(180deg, #F4F6F9 0%, #E6EAF0 100%); padding: 52px 0 56px; margin-bottom: 50px; }
+        .bt-band { background: linear-gradient(180deg, #F4F6F9 0%, #E6EAF0 100%); padding: 24px 0 28px; margin-bottom: 20px; }
         .bt-wrap { max-width: 1140px; margin: 0 auto; padding: 0 20px; }
         .bt-head { font-family: 'Outfit', 'Archivo', sans-serif; font-weight: 800; font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.035em; text-align: center; margin: 0 0 22px; background: linear-gradient(180deg, #3A404D 0%, #11141B 45%, #5B6373 60%, #1A1E27 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .bt-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr));
