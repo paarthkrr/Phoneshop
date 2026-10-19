@@ -9,7 +9,7 @@
       #boot-msg { display: none; }
       html:not(.app-mounted) #boot-msg { display: block; }
       /* Prevent white flash: set background immediately */
-      html, body { background: #FFFFFF; margin: 0; }
+      html, body { background: #FAFAFA; margin: 0; }
       html.mr-intro, html.mr-intro body { background: #0F1B3D; }
     </style>
 
@@ -17,6 +17,8 @@
          doesn't send X-Frame-Options for the static site, so the page refuses here. -->
     <script>if (window.self !== window.top) { document.documentElement.style.display = "none"; try { window.top.location = window.self.location.href; } catch (e) {} }</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preload" href="/assets/app.js" as="script">
+    <link rel="preload" href="/assets/main.css" as="style">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

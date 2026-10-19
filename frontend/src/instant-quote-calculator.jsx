@@ -501,6 +501,7 @@ const QICONS = {
 const QIco = ({ k }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{QICONS[k]}</svg>;
 
 export default function QuoteCalculator() {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
   const [live, setLive] = useState(null);   // config loaded from the shared admin database
   const [source, setSource] = useState("built-in defaults");
   const [region, setRegion] = useState("AU");
