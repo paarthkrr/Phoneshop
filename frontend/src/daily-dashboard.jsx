@@ -25,6 +25,20 @@ const todayStr = sydneyToday;
 const fmt = (n) => `$${Math.round(n || 0).toLocaleString()}`;
 const daysSince = (iso) => (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24);
 
+
+function MiniChart({ data, color = "#7A1F2B", height = 60 }) {
+  if (!data || data.length === 0) return null;
+  const max = Math.max(...data.map(d => d.v), 1);
+  const w = 200, barW = Math.max(8, (w - 4) / data.length - 2);
+  return (
+    <svg width={w} height={height} style={{ display: "block" }}>
+      {data.map((d, i) => (
+        <rect key={i} x={i * (barW + 2)} y={height - (d.v / max) * (height - 4)} width={barW} height={(d.v / max) * (height - 4)} fill={color} rx="2" />
+      ))}
+    </svg>
+  );
+}
+
 export default function DailyDashboard() {
   const [data, setData] = useState(null);
 
@@ -55,6 +69,14 @@ export default function DailyDashboard() {
     const repairsStale = repairsOpen.filter((t) => daysSince(t.createdAt) > 5);
 
     const todayTill = till.find((r) => r.date === today);
+    // Last 7 days revenue for chart
+    const last7 = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const ds = d.toISOString().slice(0, 10);
+      const daySales = sales.filter(s => s.soldAt && s.soldAt.slice(0, 10) === ds);
+      last7.push({ d: ds.slice(5), v: daySales.reduce((a, s) => a + (s.salePrice || 0), 0) });
+    }
     const todaySales = sales.filter((s) => sydneyDay(s.soldAt) === today);
     const todayRevenue = todaySales.reduce((s, x) => s + x.salePrice, 0);
 
@@ -65,7 +87,7 @@ export default function DailyDashboard() {
       ...tickets.map((t) => ({ type: "repair", at: t.createdAt, text: `Repair job opened: ${t.device.brand} ${t.device.model} (${t.id})` })),
     ].sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 8);
 
-    return { ordersAwaitingInspection, ordersRevisedPending, ordersToReceive, ungraded, listedNotSold, repairsReady, repairsOpen, repairsStale, todayTill, todayRevenue, todaySalesCount: todaySales.length, feed };
+    return { ordersAwaitingInspection, last7, ordersRevisedPending, ordersToReceive, ungraded, listedNotSold, repairsReady, repairsOpen, repairsStale, todayTill, todayRevenue, todaySalesCount: todaySales.length, feed };
   }, [data]);
 
   const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
@@ -97,13 +119,14 @@ export default function DailyDashboard() {
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, letterSpacing: '-0.01em', marginBottom: 4 }}>Today</div>
         <div style={{ color: muted, fontSize: 13, marginBottom: 20 }}>{new Date().toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
           <Card title="Till" value={summary.todayTill ? (summary.todayTill.closed ? "Closed" : "Open") : "Not opened"}
             tone={summary.todayTill?.closed ? muted : summary.todayTill ? green : red} />
           <Card title="Today's revenue" value={fmt(summary.todayRevenue)} tone={brass} sub={`${summary.todaySalesCount} sale${summary.todaySalesCount === 1 ? "" : "s"}`} />
           <Card title="Repairs open" value={summary.repairsOpen.length} tone={summary.repairsOpen.length > 0 ? brass : muted} />
         </div>
 
+        {summary.last7 && <div style={{ marginBottom: 20 }}><div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Last 7 days</div><MiniChart data={summary.last7} /></div>}
         <div style={{ fontSize: 14, marginBottom: 10 }}>Needs your attention</div>
         {nothingUrgent && <div style={{ color: green, fontSize: 13, marginBottom: 20 }}>Nothing urgent — queue is clear.</div>}
         {!nothingUrgent && (
