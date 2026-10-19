@@ -1313,25 +1313,17 @@ export default function QuoteCalculator() {
         )}
 
         {calc && !checkout && !submittedOrder && (
-          <div style={{ position: "fixed", bottom: 12, left: 16, right: 16, background: panel, border: `1px solid ${brass}`, boxShadow: "0 8px 28px rgba(32,28,24,0.16)", borderRadius: 12, padding: "14px 16px", marginTop: 20, maxHeight: "70vh", overflowY: "auto" }}>
+          <div style={{ position: "fixed", bottom: 70, left: 12, right: 12, background: "#fff", border: `2px solid ${brass}`, boxShadow: "0 -4px 20px rgba(0,0,0,0.15)", borderRadius: 16, padding: "12px 16px", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             {calc.blocked ? (
-              <div>
-                <div style={{ color: red, fontSize: 15, marginBottom: 4 }}>Quote unavailable</div>
-                <div style={{ color: muted, fontSize: 13 }}>
-                  This device can't be purchased until the flagged issue is resolved — remove any accounts
-                  or resolve the reported status, then request a new quote.
-                </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: red, fontSize: 14, fontWeight: 700 }}>Quote unavailable</div>
               </div>
             ) : (
               <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}>
-                  <div style={{ fontSize: 13, color: muted }}>Your quote</div>
-                  <div key={Math.round(calc.total)} className="mv-pop" aria-live="polite" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: muted }}>Your quote</div>
+                  <div key={Math.round(calc.total)} className="mv-pop" aria-live="polite" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
                 </div>
-                <button onClick={() => setShowBreakdown((v) => !v)} aria-expanded={showBreakdown}
-                  style={{ background: "none", border: "none", padding: "4px 0", color: brass, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  {showBreakdown ? "▾ Hide how we worked this out" : "▸ How we worked this out"}
-                </button>
                 {showBreakdown && <>
                 {/* Live "device signature": the inspection ring turns amber where a fault is declared */}
                 <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 12px" }}>
