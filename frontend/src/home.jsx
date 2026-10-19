@@ -179,13 +179,22 @@ const HERO_CSS = `
 .mvx-benefits-inner div{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;font-weight:600;color:#2A1A1E}
 .mvx-benefits-inner svg{width:18px;height:18px;color:#8B3A4C}
 @media(max-width:900px){
-  .mvx-hero{min-height:auto}
-  .mvx-hero-inner{grid-template-columns:1fr;padding:40px 18px 32px;gap:16px}
-  .mvx-stage{height:auto;padding-top:8px}
-  .mvx-stage{grid-template-columns:minmax(0,420px);justify-content:center}
+  .mvx-hero{min-height:auto!important;height:auto!important}
+  .mvx-hero-inner{grid-template-columns:1fr;padding:24px 16px;gap:12px}
+  .mvx-stage{height:auto;padding-top:8px;min-height:auto!important}
+  .mvx-stage{grid-template-columns:1fr;justify-content:center}
   .mvx-card{width:100%;margin:0 auto;box-sizing:border-box}
   .mvx-glow{display:none}
-  .mvx-benefits-inner{grid-template-columns:repeat(2,1fr);padding:14px 16px}
+  .mvx-benefits-inner{grid-template-columns:repeat(2,1fr);padding:12px 14px}
+  .mvx-h1{font-size:32px!important}
+  .mvx-sub{font-size:14px}
+  .mvx-wide-only{display:none!important}
+}
+@media(max-width:480px){
+  .mvx-hero-inner{padding:16px 12px}
+  .mvx-h1{font-size:28px!important}
+  .mvx-ctas{flex-direction:column}
+  .mvx-cta,.mvx-cta2{width:100%;justify-content:center}
 }
 `;
 const IC = {
