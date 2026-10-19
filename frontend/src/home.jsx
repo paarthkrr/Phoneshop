@@ -1,4 +1,5 @@
 import { NumberTicker, useSpotlight, FX_CSS } from "./motion-fx.jsx";
+import "./luxury-animations.css";
 import DeviceShowcase from "./device-showcase.jsx";
 import GoogleReviews from "./google-reviews.jsx";
 import { SpinViewer, hasSpin } from "./spin-360.jsx";
@@ -39,7 +40,7 @@ const TOP_CSS = `
 function TopPhones({ phones }) {
   if (!phones.length) return null;
   const card = (p, n, dup) => (
-    <a key={(dup ? "d" : "") + p.model} href={`/quote?q=${encodeURIComponent(p.model)}`} className="mvt-card" tabIndex={dup ? -1 : 0} aria-hidden={dup ? true : undefined}>
+    <a key={(dup ? "d" : "") + p.model} href={`/quote?q=${encodeURIComponent(p.model)}`} className="mvt-card luxury-card" tabIndex={dup ? -1 : 0} aria-hidden={dup ? true : undefined}>
       <div className="mvt-img">
         {p.imageUrl ? <img src={p.imageUrl} alt={dup ? "" : p.model} loading="lazy" /> : <DeviceArtCard type="phone" size={168} brand={p.brand} model={p.model} />}
       </div>
