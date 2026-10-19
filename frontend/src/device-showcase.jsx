@@ -25,8 +25,8 @@ const PRICE = Object.fromEntries((REPAIRS_BY_DEVICE.Phone || []).map((r) => [r.n
 // the parts. Two sizes: hd (960 wide) for big/sharp canvases, sd (640 wide) for phones.
 const COUNT = 80, W = 960, H = 1802;
 const SRC = (i, q = "sd") => `/photos/exploded/${q}/${String(i).padStart(3, "0")}.webp`;
-const DURATION = 2600; // ms for a full open or close (tap/auto): slow enough to watch it come apart
-const MIN_OPEN_MS = 2400; // scroll mode: however fast the scroll, a full open takes at least this long
+const DURATION = 3200; // ms for a full open or close (tap/auto): slow enough to watch it come apart
+const MIN_OPEN_MS = 2800; // scroll mode: however fast the scroll, a full open takes at least this long
 export const SHOWCASE_MODE = "scroll";
 // Backdrop. The frames' own backdrop is pure white, and the picture is multiplied onto the
 // section colour, so any light tint shows through seamlessly (no box around the picture).
@@ -72,7 +72,7 @@ const SPOTS = [
 ];
 const PRICED = SPOTS.filter((s) => s.price);
 
-const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const ease = (t) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
 
 const CSS = `
 .xv{position:relative;overflow:hidden;overflow:clip;background:var(--xv-bg,#EEF1F6);color:#111827;padding:clamp(40px,7vh,80px) 20px}
