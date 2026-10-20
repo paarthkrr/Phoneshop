@@ -64,18 +64,18 @@ export default function UnifiedDashboard() {
   }, [data]);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#F8F9FA", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <aside style={{ width: 200, background: "linear-gradient(180deg, #1F2937 0%, #111827 100%)", padding: 16, flexShrink: 0, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#F1F5F9", fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <aside style={{ width: 220, background: "#fff", borderRight: "1px solid #E2E8F0", padding: 16, flexShrink: 0, position: "sticky", top: 0, height: "100vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, padding: "0 4px" }}>
-          <div style={{ width: 36, height: 36, background: "#7A1F2B", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 16 }}>R</div>
-          <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>Recellr</span>
+          <div style={{ width: 36, height: 36, background: "linear-gradient(135deg, #7A1F2B, #A0485C)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 16 }}>R</div>
+          <span style={{ fontWeight: 700, fontSize: 16, color: "#0F172A" }}>Recellr</span>
         </div>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ 
             width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", 
             border: "none", borderRadius: 8, marginBottom: 2, cursor: "pointer", textAlign: "left",
             background: tab === t.id ? "#7A1F2B" : "transparent", 
-            color: tab === t.id ? "#fff" : "#9CA3AF", 
+            color: tab === t.id ? "#fff" : "#475569", 
             fontSize: 13, fontWeight: 500 
           }}>
             <span style={{ fontSize: 16 }}>{t.icon}</span> {t.label}
@@ -87,10 +87,17 @@ export default function UnifiedDashboard() {
           <div style={{ padding: 24, background: "#F8FAFC", minHeight: "100vh" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <div>
-                <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, color: "#0F172A" }}>Welcome back</h1>
+                <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, color: "#0F172A" }}>Welcome back 👋</h1>
                 <p style={{ color: "#64748B", margin: "4px 0 0", fontSize: 14 }}>Here's what's happening with your store today.</p>
               </div>
-              <div style={{ fontSize: 13, color: "#64748B" }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ position: "relative" }}>
+                  <input type="text" placeholder="Search..." style={{ padding: "10px 16px 10px 40px", borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", fontSize: 14, width: 200 }} />
+                  <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }}>🔍</span>
+                </div>
+                <button style={{ width: 40, height: 40, borderRadius: 10, border: "1px solid #E2E8F0", background: "#fff", cursor: "pointer", fontSize: 18 }}>🔔</button>
+                <div style={{ fontSize: 13, color: "#64748B", padding: "8px 12px", background: "#fff", borderRadius: 10, border: "1px solid #E2E8F0" }}>{new Date().toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
+              </div>
             </div>
             {stats ? (
               <>
