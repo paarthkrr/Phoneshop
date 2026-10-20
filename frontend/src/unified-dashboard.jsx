@@ -84,17 +84,46 @@ export default function UnifiedDashboard() {
       </aside>
       <main style={{ flex: 1, overflow: "auto", background: "#F3F4F6" }}>
         {tab === "overview" && (
-          <div style={{ padding: 24 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 600, margin: "0 0 8px" }}>Good morning</h1>
-            <p style={{ color: "#6B7280", margin: "0 0 24px" }}>Here's what's happening today.</p>
-            {stats ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
-                <StatCard label="Today's Revenue" value={fmt(stats.todayRevenue)} sub={`${stats.todaySales} sales`} />
-                <StatCard label="Pending Orders" value={stats.pendingOrders} sub="Needs attention" color="#F59E0B" />
-                <StatCard label="In Stock" value={stats.inStock} sub="Devices" />
-                <StatCard label="Open Repairs" value={stats.openRepairs} sub="Active jobs" />
+          <div style={{ padding: 24, background: "#F8FAFC", minHeight: "100vh" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+              <div>
+                <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0, color: "#0F172A" }}>Welcome back</h1>
+                <p style={{ color: "#64748B", margin: "4px 0 0", fontSize: 14 }}>Here's what's happening with your store today.</p>
               </div>
-            ) : <div>Loading...</div>}
+              <div style={{ fontSize: 13, color: "#64748B" }}>{new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+            </div>
+            {stats ? (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
+                  <ModernStat icon="💰" label="Today's Revenue" value={fmt(stats.todayRevenue)} change="+12%" color="#10B981" bg="#ECFDF5" />
+                  <ModernStat icon="📦" label="Pending Orders" value={stats.pendingOrders} change="Needs action" color="#F59E0B" bg="#FFFBEB" />
+                  <ModernStat icon="📱" label="In Stock" value={stats.inStock} change="Devices" color="#3B82F6" bg="#EFF6FF" />
+                  <ModernStat icon="🔧" label="Open Repairs" value={stats.openRepairs} change="Active jobs" color="#8B5CF6" bg="#F5F3FF" />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+                  <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                    <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600 }}>Quick Actions</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                      <QuickAction icon="🔍" label="Inspect Device" onClick={() => setTab("inspect")} />
+                      <QuickAction icon="🛒" label="New Sale" onClick={() => setTab("pos")} />
+                      <QuickAction icon="🔧" label="New Repair" onClick={() => setTab("repairs")} />
+                      <QuickAction icon="💰" label="Check Price" onClick={() => setTab("pricing")} />
+                      <QuickAction icon="👥" label="Customers" onClick={() => setTab("crm")} />
+                      <QuickAction icon="🔓" label="Check IMEI" onClick={() => setTab("unlock")} />
+                    </div>
+                  </div>
+                  <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+                    <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 600 }}>Today's Summary</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      <SummaryRow label="Sales" value={stats.todaySales} />
+                      <SummaryRow label="Revenue" value={fmt(stats.todayRevenue)} />
+                      <SummaryRow label="Pending" value={stats.pendingOrders} />
+                      <SummaryRow label="Stock" value={stats.inStock} />
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : <div style={{ padding: 40, textAlign: "center", color: "#64748B" }}>Loading...</div>}
           </div>
         )}
         <Suspense fallback={<div style={{ padding: 40, textAlign: "center" }}>Loading...</div>}>
@@ -120,12 +149,33 @@ export default function UnifiedDashboard() {
   );
 }
 
-function StatCard({ label, value, sub, color }) {
+function ModernStat({ icon, label, value, change, color, bg }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #E5E7EB" }}>
-      <div style={{ color: "#6B7280", fontSize: 12, marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 700 }}>{value}</div>
-      {sub && <div style={{ color: color || "#22C55E", fontSize: 11, marginTop: 4 }}>{sub}</div>}
+    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.05)", border: "1px solid #E2E8F0" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{icon}</div>
+        <span style={{ fontSize: 12, color: color, fontWeight: 500 }}>{change}</span>
+      </div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: "#0F172A" }}>{value}</div>
+      <div style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>{label}</div>
+    </div>
+  );
+}
+
+function QuickAction({ icon, label, onClick }) {
+  return (
+    <button onClick={onClick} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: 16, background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, cursor: "pointer", transition: "all 0.2s" }}>
+      <span style={{ fontSize: 24 }}>{icon}</span>
+      <span style={{ fontSize: 12, fontWeight: 500, color: "#334155" }}>{label}</span>
+    </button>
+  );
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #F1F5F9" }}>
+      <span style={{ color: "#64748B", fontSize: 14 }}>{label}</span>
+      <span style={{ fontWeight: 600, color: "#0F172A" }}>{value}</span>
     </div>
   );
 }
