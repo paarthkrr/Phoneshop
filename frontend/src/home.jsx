@@ -9,14 +9,13 @@ import DeviceArtCard, { inferDeviceType } from "./device-art.jsx";
 import { PHONE_FAULT_GROUPS, FAULT_GROUPS_BY_CATEGORY, BLOCKERS, baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT_HOLDING_COST_PCT } from "./instant-quote-calculator.jsx";
 import { mergeCatalog } from "./device-catalog.js";
 import { DEFAULT_TIERS } from "./pricing.js";
+import InspectionSignature from "./inspection-signature.jsx";
 
 const REVEAL_CSS = `
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
 .reveal.in{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 `;
-import InspectionSignature from "./inspection-signature.jsx";
-
 // ---- Hero: animated gradient, the shop's own phone photos, live price ticker ----
 const TICKER_MODELS = ["iPhone 18 Pro Max", "iPhone 18 Pro", "iPhone 17 Pro Max", "iPhone 17", "iPhone Air", "Galaxy S26 Ultra", "Galaxy S26", "Pixel 10 Pro", "iPhone 16 Pro Max", "iPhone 15 Pro", "Galaxy Z Fold8"];
 // "Top phones we buy" strip — big cards that glide across, each with a real "up to" price.
