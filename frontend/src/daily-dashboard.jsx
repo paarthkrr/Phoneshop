@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import StaffNav from "./staff-nav.jsx";
 import { sydneyDay, sydneyToday } from "./sydney-time.js";
 
 /* =================================================================
@@ -94,7 +93,7 @@ export default function DailyDashboard() {
   const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
     brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
 
-  if (!summary) return <div><StaffNav active="overview" /><div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading today's view…</div></div>;
+  if (!summary) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading today's view…</div>;
 
   const Card = ({ title, value, tone, sub }) => (
     <div style={{ flex: 1, minWidth: 140, border: `1px solid ${line}`, borderRadius: 3, padding: 14 }}>
@@ -115,7 +114,6 @@ export default function DailyDashboard() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <StaffNav active="overview" />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 60px" }}>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, letterSpacing: '-0.01em', marginBottom: 4 }}>Today</div>
