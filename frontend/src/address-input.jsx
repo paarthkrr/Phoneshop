@@ -67,22 +67,22 @@ export default function AddressInput({ value, onChange, onPick, placeholder = "S
         onBlur={() => setTimeout(() => setOpen(false), 150)} placeholder={placeholder} aria-label={ariaLabel} autoComplete={autoComplete}
         role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
         style={style} />
-      {busy && <span style={{ position: "absolute", right: 12, top: 14, fontSize: 12, color: "#6B7280" }}>…</span>}
+      {busy && <span style={{ position: "absolute", right: 12, top: 14, fontSize: 12, color: "var(--mr-muted)" }}>…</span>}
       {open && (
         <ul id={listId} role="listbox" style={{ position: "absolute", zIndex: 60, left: 0, right: 0, top: "calc(100% - 10px)", margin: 0, padding: "6px 0", listStyle: "none",
-          background: "#fff", border: "1px solid #E3E7EF", borderRadius: 12, boxShadow: "0 14px 34px rgba(15,22,38,.14)", maxHeight: 300, overflowY: "auto" }}>
+          background: "var(--mr-surface)", border: "1px solid var(--mr-line)", borderRadius: 12, boxShadow: "0 14px 34px rgba(15,22,38,.14)", maxHeight: 300, overflowY: "auto" }}>
           {items.map((s, i) => (
             <li key={s.id || s.label} id={`${listId}-${i}`} role="option" aria-selected={i === active}
               onMouseDown={(e) => { e.preventDefault(); choose(s); }} onMouseEnter={() => setActive(i)}
-              style={{ padding: "10px 14px", cursor: "pointer", background: i === active ? "#F1F4FB" : "transparent", display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <span aria-hidden="true" style={{ color: "#2150C8", marginTop: 1 }}>📍</span>
+              style={{ padding: "10px 14px", cursor: "pointer", background: i === active ? "var(--mr-surface-2)" : "transparent", display: "flex", gap: 10, alignItems: "flex-start" }}>
+              <span aria-hidden="true" style={{ color: "var(--mr-brand)", marginTop: 1 }}>📍</span>
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 14.5, fontWeight: 600, color: "#111827" }}>{s.main || s.label}</span>
-                {s.secondary && <span style={{ display: "block", fontSize: 12.5, color: "#6B7280" }}>{s.secondary}</span>}
+                <span style={{ display: "block", fontSize: 14.5, fontWeight: 600, color: "var(--mr-text)" }}>{s.main || s.label}</span>
+                {s.secondary && <span style={{ display: "block", fontSize: 12.5, color: "var(--mr-muted)" }}>{s.secondary}</span>}
               </span>
             </li>
           ))}
-          <li aria-hidden="true" style={{ padding: "6px 14px 2px", fontSize: 10.5, color: "#9AA3B2", textAlign: "right" }}>
+          <li aria-hidden="true" style={{ padding: "6px 14px 2px", fontSize: 10.5, color: "var(--mr-muted)", textAlign: "right" }}>
             {provider === "google" ? "powered by Google" : "© OpenStreetMap contributors"}
           </li>
         </ul>

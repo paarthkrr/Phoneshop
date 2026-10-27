@@ -521,7 +521,10 @@ function MobileCTA() {
   const btn = { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 48, borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none", fontFamily: "'Archivo', system-ui, sans-serif" };
   return (
     <div className="cs-mobile-cta" role="navigation" aria-label="Quick actions">
-      <a href="/quote" style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Get a quote</a>
+      {/* The main button fits the page: book on the repairs page, get a price everywhere else. */}
+      {path === "/repairs"
+        ? <a href="#book" onClick={(e) => { const el = document.getElementById("book"); if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth" }); } }} style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Book a repair</a>
+        : <a href="/quote" style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Get a quote</a>}
       {phone
         ? <a href={`tel:${phone.replace(/\s/g, "")}`} style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>📞 Call us</a>
         : <a href="/repairs" style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>Book a repair</a>}

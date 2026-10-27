@@ -869,11 +869,11 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
           <datalist id="part-names">{[...new Set((stock || []).map((x) => x.name))].map((n) => <option key={n} value={n} />)}</datalist>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <input value={newPart.name} onChange={(e) => setNewPart((p) => ({ ...p, name: e.target.value }))} list="part-names" autoFocus placeholder="Part name, e.g. iPhone 13 Pro screen (OLED)" aria-label="Part name"
-              style={{ flex: "2 1 220px", padding: "9px 10px", border: `1px solid ${line}`, fontSize: 13.5, background: "#fff" }} />
+              style={{ flex: "2 1 220px", padding: "9px 10px", border: `1px solid ${line}`, fontSize: 13.5, background: "var(--mr-surface)" }} />
             <input value={newPart.cost} onChange={(e) => setNewPart((p) => ({ ...p, cost: e.target.value }))} inputMode="decimal" placeholder="Cost each $" aria-label="Cost each"
-              style={{ flex: "0 1 110px", padding: "9px 10px", border: `1px solid ${line}`, fontSize: 13.5, background: "#fff" }} />
+              style={{ flex: "0 1 110px", padding: "9px 10px", border: `1px solid ${line}`, fontSize: 13.5, background: "var(--mr-surface)" }} />
             <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>How many came in
-              <input value={newPart.qty} onChange={(e) => setNewPart((p) => ({ ...p, qty: e.target.value }))} inputMode="numeric" aria-label="How many came in" style={{ width: 54, padding: "9px 8px", border: `1px solid ${line}`, fontSize: 13.5, background: "#fff" }} />
+              <input value={newPart.qty} onChange={(e) => setNewPart((p) => ({ ...p, qty: e.target.value }))} inputMode="numeric" aria-label="How many came in" style={{ width: 54, padding: "9px 8px", border: `1px solid ${line}`, fontSize: 13.5, background: "var(--mr-surface)" }} />
             </label>
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
@@ -882,7 +882,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
                 setStockNotice(ok ? `✓ ${newPart.name.trim()} saved with its barcode and fitted to this job${Number(newPart.qty) > 1 ? ` (${Number(newPart.qty) - 1} left in stock)` : ""}.` : "Couldn't save the part. Try again.");
                 if (ok) setUnknownCode("");
               }} style={{ padding: "9px 14px", borderRadius: 8, fontSize: 13, border: "none", background: brass, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, opacity: newPart.name.trim() && newPart.name.trim() !== ticket.device.model ? 1 : 0.5 }}>Save part & fit to this job</button>
-            <button type="button" onClick={() => onAddUnknownBarcode(unknownCode)} style={{ padding: "9px 12px", borderRadius: 8, fontSize: 12.5, border: `1px solid ${line}`, background: "#fff", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Add in Parts Stock instead</button>
+            <button type="button" onClick={() => onAddUnknownBarcode(unknownCode)} style={{ padding: "9px 12px", borderRadius: 8, fontSize: 12.5, border: `1px solid ${line}`, background: "var(--mr-surface)", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Add in Parts Stock instead</button>
             <button type="button" onClick={() => setUnknownCode("")} style={{ padding: "9px 12px", borderRadius: 8, fontSize: 12.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
           </div>
         </div>

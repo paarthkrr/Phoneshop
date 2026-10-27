@@ -567,6 +567,7 @@ export default function QuoteCalculator() {
   const [hasAccessories, setHasAccessories] = useState(false);
   const [showRef, setShowRef] = useState(false);
   const [checkout, setCheckout] = useState(false);
+  const [refOpen, setRefOpen] = useState(false); // referral box stays folded unless wanted (or prefilled)
   const [customer, setCustomer] = useState({ name: "", email: "", phone: "", idOwnerName: "", payoutMethod: "bank", bankBsb: "", bankAccountNumber: "", bankAccountName: "", paypalEmail: "" });
   const [referralCodeEntered, setReferralCodeEntered] = useState("");
   const [myReferralCode, setMyReferralCode] = useState(null);
@@ -728,6 +729,13 @@ export default function QuoteCalculator() {
     total = Math.max(total, baseRegion * 0.05);
     return { baseRegion, tierBase, lines, holdingAmt, total, blocked: !!activeBlocker };
   }, [selected, tier, faults, hasAccessories, region, activeBlocker]);
+  // Once there's a price (and through the details form), phones hide the floating chat
+  // button so it can't cover the price or the buttons.
+  const showsPrice = !!calc && !submittedOrder;
+  useEffect(() => {
+    document.body.classList.toggle("qc-has-price", showsPrice);
+    return () => document.body.classList.remove("qc-has-price");
+  }, [showsPrice]);
 
   const reference = useMemo(() => {
     if (!selected || !tier) return null;
@@ -1343,8 +1351,8 @@ export default function QuoteCalculator() {
               <span style={{ color: green, fontSize: 13 }}>+{Math.round(ACCESSORY_BONUS_PCT * 100)}%</span>
             </label>
 
-            <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Compliance checks</div>
-            <div style={{ border: `1px solid ${red}`, borderRadius: 3, overflow: "hidden", marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Tick any that apply (we can't buy a phone that's locked or reported, until it's sorted)</div>
+            <div style={{ border: `1px solid ${line}`, borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
               {BLOCKERS.map((b, i) => (
                 <label key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderTop: i === 0 ? "none" : `1px solid ${line}`, fontSize: 14, cursor: "pointer" }}>
                   <input type="checkbox" checked={!!blockers[b.id]} onChange={(e) => setBlockers((s) => ({ ...s, [b.id]: e.target.checked }))} />
@@ -1460,9 +1468,17 @@ export default function QuoteCalculator() {
               No need to upload anything. We check your photo ID in person before we pay you, as second-hand dealer rules require.
             </div>
 
-            <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Referral code (optional) — you and your friend both get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)}</div>
-            <input value={referralCodeEntered} onChange={(e) => setReferralCodeEntered(e.target.value)} placeholder="e.g. JORDAN482"
-              style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box", textTransform: "uppercase" }} />
+            {refOpen || referralCodeEntered ? (
+              <>
+                <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>Referral code (optional) — you and your friend both get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)}</div>
+                <input value={referralCodeEntered} onChange={(e) => setReferralCodeEntered(e.target.value)} placeholder="e.g. JORDAN482" autoFocus={refOpen && !referralCodeEntered}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box", textTransform: "uppercase" }} />
+              </>
+            ) : (
+              <button type="button" onClick={() => setRefOpen(true)} style={{ background: "none", border: "none", padding: 0, margin: "4px 0 10px", color: brass, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                Have a referral code? Both of you get {fmt(REFERRAL_REWARD_AMOUNT, region, REGIONS_A)}
+              </button>
+            )}
 
             <div style={{ fontSize: 13, color: muted, margin: "14px 0 8px" }}>How will you send it?</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>

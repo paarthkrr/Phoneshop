@@ -19,9 +19,9 @@ const CSS = `
   .rc-wa.low { bottom: calc(164px + env(safe-area-inset-bottom, 0px)); }
   /* The bottom action bar exists on phones only, so only phones lift the buttons above it. */
   @media (max-width: 720px) { body.has-mobile-cta .rc-launch { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); } body.has-mobile-cta .rc-wa { display: none; } }
-  /* Quote / sell pages have their own sticky price bar at the bottom: on phones keep only a
-     small chat button at mid-height, clear of the price and the Continue button. */
-  @media (max-width: 720px) { .rc-wa.low { display: none; } .rc-launch.low { bottom: 46vh; right: 8px; } .rc-launch.low .rc-fab { width: 46px; height: 46px; } .rc-launch.low .rc-tease { display: none; } }
+  /* Quote / sell pages have their own sticky price bar at the bottom: on phones the chat
+     button is small, and hidden while the price is showing so it never covers it. */
+  @media (max-width: 720px) { .rc-wa.low { display: none; } .rc-launch.low { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: 10px; } .rc-launch.low .rc-fab { width: 46px; height: 46px; } .rc-launch.low .rc-tease { display: none; } body.qc-has-price .rc-launch.low { display: none; } }
   .rc-dot { position: absolute; top: 4px; right: 4px; width: 13px; height: 13px; border-radius: 50%; background: #E5484D; border: 2px solid #fff; animation: rc-pop .35s cubic-bezier(.16,1,.3,1) both; }
   .rc-tease { max-width: 210px; padding: 10px 14px; background: var(--mr-surface); color: #0F1B3D; border-radius: 16px 16px 4px 16px; font: 500 13.5px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 10px 28px rgba(17,24,39,.18); animation: rc-tease .45s cubic-bezier(.16,1,.3,1) both; cursor: pointer; }
   .rc-fab { animation: rc-in .5s cubic-bezier(.16,1,.3,1) both .6s, rc-wiggle 14s ease-in-out 9s infinite; }
