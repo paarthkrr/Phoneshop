@@ -89,10 +89,12 @@ test("what each role can open and change", async () => {
 test("technician pay: only Owner/Manager-level access can set it or mark it paid", async () => {
   const job = { id: "RPR-9", status: "in_repair", assignedTo: "tech", device: { brand: "Apple", model: "iPhone 12" } };
   await put("repair_tickets", [{ ...job, techPay: 50 }], tok.manager);
-  await put("repair_tickets", [{ ...job, techPay: 500, techPaidAt: "2026-10-01T00:00:00Z", timeSpentMins: 90 }], tok.tech);
+  await put("repair_tickets", [{ ...job, techPay: 500, techPaidAt: "2026-10-01T00:00:00Z", techPaidRef: "fake", techPaidRunId: "PAY-1", timeSpentMins: 90 }], tok.tech);
   let saved = JSON.parse((await get("repair_tickets", tok.owner)).body.value).find((t) => t.id === "RPR-9");
   assert.equal(saved.techPay, 50, "technician can't raise their own pay");
   assert.equal(saved.techPaidAt, undefined, "or mark it paid");
+  assert.equal(saved.techPaidRef, undefined, "or record a payment reference");
+  assert.equal(saved.techPaidRunId, undefined, "or put the job in a pay run");
   assert.equal(saved.timeSpentMins, 90, "but can log their time");
   await put("repair_tickets", [{ ...saved, techPaidAt: "2026-10-08T00:00:00Z" }], tok.owner);
   saved = JSON.parse((await get("repair_tickets", tok.owner)).body.value).find((t) => t.id === "RPR-9");

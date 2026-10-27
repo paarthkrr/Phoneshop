@@ -2,6 +2,8 @@ import { PHONE_FAULT_GROUPS, FAULT_GROUPS_BY_CATEGORY } from "./instant-quote-ca
 import { DEFAULT_TIERS, ACCESSORY_BONUS_PCT } from "./pricing.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { currentRole, hasArea } from "./roles.js";
+import DeviceArt, { inferDeviceType } from "./device-art.jsx";
+import { mergeCatalog } from "./device-catalog.js";
 import { imeiProblem, cleanImei, newStockItem, newShopRepairJob, addToSharedList } from "./device-flow.js";
 
 /* =================================================================
@@ -179,6 +181,9 @@ export default function StaffInspectionConsole() {
   const holdingPct = config?.holdingCostPct ?? HOLDING_COST_PCT;
 
   const open = orders?.find((o) => o.id === openId);
+  // Product photos the owner added in the Pricing Console; a drawn phone otherwise.
+  const photos = useMemo(() => Object.fromEntries(mergeCatalog(config?.catalog).filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl])), [config]);
+  const thumb = (dev, size) => <DeviceArt type={inferDeviceType(dev.model, dev.category)} size={size} brand={dev.brand} model={dev.model} imageUrl={photos[`${dev.brand}|${dev.model}`]} />;
 
   const reassessed = useMemo(() => {
     if (!open) return null;
@@ -256,6 +261,9 @@ export default function StaffInspectionConsole() {
   // payout, puts the phone in stock (or straight onto the repair bench) and closes the order.
   async function payAndStock(total, extra = {}) {
     if (!open) return;
+    // Someone else may have paid it in the meantime (two counters, two tabs).
+    const fresh = (await loadJSON(ORDERS_KEY, true) || []).find((o) => o.id === open.id);
+    if (fresh && (fresh.status === "approved_paid" || fresh.inventoryItemId)) { setOrders((list) => list.map((o) => (o.id === fresh.id ? fresh : o))); setMsg("This trade-in was already paid by someone else, nothing was done."); return; }
     const now = new Date().toISOString();
     let item = null, repairMsg = "";
     if (addToStock) {
@@ -352,8 +360,13 @@ export default function StaffInspectionConsole() {
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", marginBottom: 8 }}>
                     <span style={{ fontSize: 12.5, color: C.muted, fontWeight: 600 }}>{o.id}</span>{statusChip(o.status)}
                   </div>
-                  <div style={{ fontSize: 15.5, fontWeight: 700 }}>{o.device.brand} {o.device.model}</div>
-                  <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{[o.device.storage, o.tierLabel, o.customer?.name].filter(Boolean).join(" · ")}</div>
+                  <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <div style={{ flex: "none" }}>{thumb(o.device, 52)}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 15.5, fontWeight: 700 }}>{o.device.brand} {o.device.model}</div>
+                      <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{[o.device.storage, o.tierLabel, o.customer?.name].filter(Boolean).join(" · ")}</div>
+                    </div>
+                  </div>
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 13 }}>
                     <span style={{ color: C.muted }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : ""}{o.priceCheck && o.priceCheck.verified === false ? " · ⚠ check price" : ""}</span>
                     <b>{fmt(o.inspection?.confirmedTotal ?? o.quotedTotal, o.region, regions)}</b>
@@ -368,7 +381,8 @@ export default function StaffInspectionConsole() {
           <div>
             <button onClick={() => setOpenId(null)} style={{ background: "none", border: "none", color: C.brass, fontSize: 14, fontWeight: 700, marginBottom: 12, cursor: "pointer", padding: 0, fontFamily: "inherit" }}>← All trade-ins</button>
 
-            <div style={{ ...card, display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 12, alignItems: "start" }}>
+            <div style={{ ...card, display: "grid", gridTemplateColumns: "auto minmax(0,1fr) auto", gap: 14, alignItems: "start" }}>
+              <div>{thumb(open.device, 72)}</div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}><span style={{ fontSize: 13, color: C.muted, fontWeight: 600 }}>{open.id}</span>{statusChip(open.status)}{open.archived && <span style={{ fontSize: 12, color: C.muted }}>· archived</span>}</div>
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22 }}>{open.device.brand} {open.device.model}</div>
@@ -530,7 +544,20 @@ export default function StaffInspectionConsole() {
               <div style={card}>
                 <div style={h3}>{STATUS_LABELS[open.status]}</div>
                 <div style={{ fontSize: 14, color: C.muted }}>
-                  {open.status === "approved_paid" && <>Paid {fmt(open.inspection?.confirmedTotal, open.region, regions)}{open.inspection?.paidVia ? ` by ${open.inspection.paidVia}` : ""}{open.inspection?.paidRef ? ` (ref ${open.inspection.paidRef})` : ""}{open.inspection?.inspectedBy ? ` · ${open.inspection.inspectedBy}` : ""}{open.inspection?.imei ? ` · IMEI ${open.inspection.imei}` : ""}. {open.inventoryItemId ? `In stock as ${open.inventoryItemId}.` : open.receivedToInventory ? "Added to stock." : "Not in stock yet — add it from Register › Receive Orders."}</>}
+                  {open.status === "approved_paid" && !viewOnly && !open.inventoryItemId && !open.receivedToInventory && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ color: C.paper, marginBottom: 6 }}>The customer accepted online, so the phone isn't in stock yet.</div>
+                      <input value={imei} onChange={(e) => setImei(e.target.value)} inputMode="numeric" placeholder="IMEI" style={{ padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 15, marginRight: 8, background: "#fff" }} />
+                      <button disabled={!!imeiErr || saving} onClick={async () => {
+                        const item = newStockItem({ brand: open.device.brand, model: open.device.model, storage: open.device.storage, imei, costBasis: open.inspection?.confirmedTotal ?? open.quotedTotal,
+                          region: open.region, currency: open.currency, sourceOrderId: open.id, faults: open.inspection?.faultsFound || open.faultLabels || [], staff });
+                        if (await addToSharedList("inventory", item)) { await updateOrder(open.id, { receivedToInventory: true, inventoryItemId: item.id, inspection: { ...(open.inspection || {}), imei: cleanImei(imei) } }); setDone(`${open.id}: ${item.id} added to stock.`); setOpenId(null); }
+                        else setMsg("Couldn't add it to stock. Try again.");
+                      }} style={{ ...bigBtn(C.brass, "#fff", !imeiErr), flex: "0 0 auto" }}>Add to stock</button>
+                      {imei && imeiErr && <div style={{ color: C.red, fontSize: 12.5, marginTop: 4 }}>{imeiErr}</div>}
+                    </div>
+                  )}
+                  {open.status === "approved_paid" && <>Paid {fmt(open.inspection?.confirmedTotal, open.region, regions)}{open.inspection?.paidVia ? ` by ${open.inspection.paidVia}` : ""}{open.inspection?.paidRef ? ` (ref ${open.inspection.paidRef})` : ""}{open.inspection?.inspectedBy ? ` · ${open.inspection.inspectedBy}` : ""}{open.inspection?.imei ? ` · IMEI ${open.inspection.imei}` : ""}. {open.inventoryItemId ? `In stock as ${open.inventoryItemId}.` : open.receivedToInventory ? "Added to stock." : ""}</>}
                   {open.status === "cancelled" && <>{open.cancellation?.reason || "Cancelled"}.</>}
                   {open.status === "returned" && <>The phone went back to the customer.</>}
                   {open.status === "held" && <>Held: {open.rejection?.reason}.</>}

@@ -932,7 +932,7 @@ function maskBank(json) {
 // Technician pay is set by someone with the "reports" area (Owner/Manager by
 // default). Anyone else's save keeps the stored pay, so a technician can't
 // change their own pay or mark it paid.
-const PAY_FIELDS = ["techPay", "techPaidAt", "techPaidBy"];
+const PAY_FIELDS = ["techPay", "techPaidAt", "techPaidBy", "techPaidVia", "techPaidRef", "techPaidRunId"];
 function keepPay(finalJson, existingJson) {
   try {
     const list = JSON.parse(finalJson), old = existingJson ? JSON.parse(existingJson) : [];

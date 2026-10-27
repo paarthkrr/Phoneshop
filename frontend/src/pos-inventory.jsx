@@ -1,7 +1,9 @@
 import { UnitPhotos } from "./spin-360.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
-import { newShopRepairJob, addToSharedList } from "./device-flow.js";
+import { newShopRepairJob, addToSharedList, GRADES, targetPrice, SOURCES, sourceOf, imeiProblem, cleanImei } from "./device-flow.js";
+import PhonePassport from "./phone-passport.jsx";
+import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import { sydneyDay, sydneyToday } from "./sydney-time.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { ScanButton } from "./barcode-scanner.jsx";
@@ -167,12 +169,6 @@ function fmt(n, regionCode, regionsMap) {
   return `${r.symbol}${val.toLocaleString()}`;
 }
 
-const GRADES = [
-  { id: "A", label: "Grade A — Excellent", markup: 1.35 },
-  { id: "B", label: "Grade B — Good", markup: 1.20 },
-  { id: "C", label: "Grade C — Fair", markup: 1.08 },
-  { id: "parts", label: "Parts only", markup: 0.5 },
-];
 
 /* ---- Code 39 barcode, hand-rolled — no external library available in
    this environment. Standard published Code 39 pattern table (9 bars/
@@ -250,7 +246,12 @@ export default function POSInventory() {
         try { localInv = JSON.parse(localStorage.getItem('inventory') || '[]'); } catch {}
         const merged = [...(inv || []), ...localInv.filter(l => !(inv || []).some(i => i.id === l.id))];
         // Quick Add (USB scanner) saved phones as "available"; everywhere else that's "in stock".
-        setInventory(merged.map((i) => (i.status === "available" ? { ...i, status: "in_stock", gradeId: i.gradeId || i.grade || null } : i))); setSales(s || []);
+        // Quick Add also kept its buy price only in "price"; the P&L and margins read costBasis.
+        setInventory(merged.map((i) => {
+          let x = i.status === "available" ? { ...i, status: "in_stock", gradeId: i.gradeId || i.grade || null } : i;
+          if (x.costBasis == null && Number(x.price) > 0 && x.listedPrice == null) x = { ...x, costBasis: Number(x.price) };
+          return x;
+        })); setSales(s || []);
       const authed = getAuthedUser();
       if (authed) { setAuthedUser(authed); setStaffName(authed.username); } // real login overrides free text entirely
       else if (staff) setStaffName(staff);
@@ -367,7 +368,7 @@ export default function POSInventory() {
         {tab === "Buy" && (
           <BuyTab colors={{ ink, panel, panel2, paper, muted, brass, brassDim, red, green, line }}
             catalog={catalog} tiers={tiers} faultGroupsByCategory={faultGroupsByCategory} regions={regions} holdingPct={holdingPct}
-            baseBuybackAUD={baseBuybackAUD}
+            baseBuybackAUD={baseBuybackAUD} staffName={staffName}
             onComplete={async (item) => { await persistInventory([{ ...item, staffHandled: staffName || "unattributed" }, ...inventory]); setTab("Inventory"); }} />
         )}
 
@@ -378,11 +379,12 @@ export default function POSInventory() {
               const item = {
                 id: genId("INV"), sourceOrderId: order.id, brand: order.device.brand, model: order.device.model,
                 storage: order.device.storage, imei, gradeId: null, costBasis: order.inspection?.confirmedTotal ?? order.quotedTotal,
+                source: "Online trade-in", sellerName: order.customer?.name || "", sellerPhone: order.customer?.phone || "", faults: order.inspection?.faultsFound || order.faultLabels || [],
                 currency: order.currency, region: order.region, status: "in_stock", listedPrice: null,
                 receivedAt: new Date().toISOString(), soldAt: null, staffHandled: staffName || "unattributed",
               };
               await persistInventory([item, ...inventory]);
-              await persistOrders(orders.map((o) => (o.id === order.id ? { ...o, receivedToInventory: true } : o)));
+              await persistOrders(orders.map((o) => (o.id === order.id ? { ...o, receivedToInventory: true, inventoryItemId: item.id } : o)));
             }} />
         )}
 
@@ -395,6 +397,7 @@ export default function POSInventory() {
         {tab === "Inventory" && (
           <InventoryTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
             inventory={inventory} regions={regions} staffName={staffName}
+            photos={Object.fromEntries(catalog.filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl]))}
             onUpdate={async (id, patch) => { await persistInventory(inventory.map((i) => (i.id === id ? { ...i, ...patch } : i))); }} />
         )}
 
@@ -460,7 +463,7 @@ export default function POSInventory() {
             inventory={inventory.filter((i) => i.status !== "sold")} regions={regions}
             onSell={async (item, sale) => {
               await persistInventory(inventory.map((i) => (i.id === item.id ? { ...i, status: "sold", soldAt: new Date().toISOString() } : i)));
-              await persistSales([{ ...sale, id: genId("SALE"), itemId: item.id, soldAt: new Date().toISOString(), staffHandled: staffName || "unattributed" }, ...sales]);
+              await persistSales([{ ...sale, id: sale.id || genId("SALE"), itemId: item.id, soldAt: new Date().toISOString(), staffHandled: staffName || "unattributed" }, ...sales]);
             }} />
         )}
       </div>
@@ -470,7 +473,7 @@ export default function POSInventory() {
 
 function Money({ n, region, regions, brass }) { return <span style={{ color: brass }}>{fmt(n, region, regions)}</span>; }
 
-function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdingPct, baseBuybackAUD, onComplete }) {
+function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdingPct, baseBuybackAUD, onComplete, staffName }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [region, setRegion] = useState("AU");
   const [search, setSearch] = useState("");
@@ -483,6 +486,12 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
   const [idType, setIdType] = useState("license");
   const [idOwnerName, setIdOwnerName] = useState("");
   const [idSighted, setIdSighted] = useState(false);
+  const [source, setSource] = useState("Walk-in");
+  const [sellerPhone, setSellerPhone] = useState("");
+  const [agreed, setAgreed] = useState(""); // blank = pay the calculated price
+  const [checked, setChecked] = useState({ blacklist: false, account: false });
+  const [needsRepair, setNeedsRepair] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const filtered = catalog.filter((d) => !search || (d.brand + " " + d.model).toLowerCase().includes(search.toLowerCase()));
   const tier = tiers.find((t) => t.id === tierId);
@@ -579,11 +588,30 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
             <span style={{ fontSize: 13, color: muted }}>Pay this customer</span>
             <span style={{ fontSize: 24, color: brass, fontFamily: "'Archivo Black', sans-serif" }}><Money n={calc.total} region={region} regions={regions} brass={brass} /></span>
           </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Where did it come from?</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+            {SOURCES.filter((x) => x !== "Online trade-in").map((x) => (
+              <button key={x} onClick={() => setSource(x)} style={{ padding: "7px 10px", borderRadius: 2, fontSize: 12, cursor: "pointer",
+                border: `1px solid ${source === x ? brass : line}`, background: source === x ? brassDim : "transparent", color: source === x ? brass : paper }}>{x}</button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12.5, color: muted }}>Price agreed $</span>
+            <input value={agreed} onChange={(e) => setAgreed(e.target.value)} inputMode="decimal" placeholder={String(Math.round(calc.total))} aria-label="Price agreed"
+              style={{ width: 110, padding: "9px 10px", border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14 }} />
+            <span style={{ fontSize: 12, color: muted }}>{agreed ? `calculator says ${fmt(calc.total, region, regions)}` : "blank = calculator price"}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
             <input value={imei} onChange={(e) => setImei(e.target.value)} placeholder="IMEI (dial *#06#)"
               style={{ flex: 1, minWidth: 0, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             <ScanButton onScan={(c) => setImei(c)} title="Scan IMEI barcode (box or Settings > About)" />
           </div>
+          <div style={{ fontSize: 12, color: imei && imeiProblem(imei) ? red : muted, marginBottom: 10 }}>{imei ? imeiProblem(imei) || "✓ IMEI checks out" : " "}</div>
+          {[["blacklist", "IMEI not blacklisted (checked)"], ["account", "Find My / Google account removed in front of me"]].map(([k, label]) => (
+            <label key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, marginBottom: 6, cursor: "pointer" }}>
+              <input type="checkbox" checked={checked[k]} onChange={(e) => setChecked((c) => ({ ...c, [k]: e.target.checked }))} />{label}
+            </label>
+          ))}
           <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Photo ID — required by law</div>
           <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
             {[{ id: "license", label: "Licence" }, { id: "passport", label: "Passport" }, { id: "other", label: "Other" }].map((opt) => (
@@ -595,6 +623,8 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
             ))}
           </div>
           <input value={idOwnerName} onChange={(e) => setIdOwnerName(e.target.value)} placeholder="Full name (as it appears on their ID)"
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
+          <input value={sellerPhone} onChange={(e) => setSellerPhone(e.target.value)} placeholder="Seller's phone (optional)" inputMode="tel"
             style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, marginBottom: 12, cursor: "pointer" }}>
             <input type="checkbox" checked={idSighted} onChange={(e) => setIdSighted(e.target.checked)} />
@@ -608,17 +638,37 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
               </button>
             ))}
           </div>
-          <button disabled={!imei.trim() || !idOwnerName.trim() || !idSighted} onClick={() => onComplete({
-              id: genId("INV"), sourceOrderId: null, brand: selected.brand, model: selected.model, storage: selected.storage,
-              imei: imei.trim(), gradeId: null, costBasis: Math.round(calc.total), currency: regions[region].symbol, region,
-              status: "in_stock", listedPrice: null, receivedAt: new Date().toISOString(), soldAt: null, payMethod,
-              sellerIdType: idType, sellerIdOwnerName: idOwnerName.trim(),
-            })}
-            style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none",
-              background: imei.trim() && idOwnerName.trim() && idSighted ? brass : line, color: imei.trim() && idOwnerName.trim() && idSighted ? "#1a1408" : muted,
-              fontSize: 14, fontWeight: 600, cursor: imei.trim() && idOwnerName.trim() && idSighted ? "pointer" : "default" }}>
-            Complete purchase → add to inventory
-          </button>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, marginBottom: 12, cursor: "pointer" }}>
+            <input type="checkbox" checked={needsRepair} onChange={(e) => setNeedsRepair(e.target.checked)} />
+            Needs repair before selling (opens a shop repair job)
+          </label>
+          {(() => {
+            const paid = agreed ? parseFloat(String(agreed).replace(/[$,]/g, "")) : Math.round(calc.total);
+            const ready = !imeiProblem(imei) && idOwnerName.trim() && idSighted && checked.blacklist && checked.account && paid > 0 && !busy;
+            const faultLabels = faultGroups.flatMap((g) => g.faults.filter((f) => faults[f.id]).map((f) => f.label));
+            return (
+              <button disabled={!ready} onClick={async () => {
+                setBusy(true);
+                const item = {
+                  id: genId("INV"), sourceOrderId: null, brand: selected.brand, model: selected.model, storage: selected.storage,
+                  imei: cleanImei(imei), gradeId: null, costBasis: Math.round(paid), currency: regions[region].symbol, region,
+                  status: needsRepair ? "in_repair" : "in_stock", listedPrice: null, receivedAt: new Date().toISOString(), soldAt: null, payMethod,
+                  source, sellerName: idOwnerName.trim(), sellerPhone: sellerPhone.trim(), sellerIdType: idType, sellerIdOwnerName: idOwnerName.trim(),
+                  faults: faultLabels, checks: ["blacklist", "account", "id"], quotedByCalculator: Math.round(calc.total),
+                };
+                if (needsRepair) {
+                  const job = newShopRepairJob({ item, issue: faultLabels.length ? `Fix: ${faultLabels.join(", ")}` : "Fix up to sell", staff: staffName });
+                  if (await addToSharedList("repair_tickets", job)) item.repairJobId = job.id;
+                }
+                await onComplete(item);
+                setBusy(false);
+              }}
+                style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: ready ? brass : line, color: ready ? "#fff" : muted,
+                  fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
+                Pay {paid > 0 ? fmt(paid, region, regions) : ""} → {needsRepair ? "repair bench" : "stock"}
+              </button>
+            );
+          })()}
         </div>
       )}
     </div>
@@ -986,7 +1036,7 @@ function QuickAddTab({ colors, onAdd }) {
   );
 }
 
-function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
+function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos = {} }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -998,8 +1048,8 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
   const [writeOffReason, setWriteOffReason] = useState("Damaged");
   const [writeOffNote, setWriteOffNote] = useState("");
   const [visibleCount, setVisibleCount] = useState(30);
-  const [priceEdit, setPriceEdit] = useState(null);
-  const [sellPriceEdit, setSellPriceEdit] = useState(null); // { id, value }
+  const [drafts, setDrafts] = useState({}); // price being typed, per phone
+  const [passportItem, setPassportItem] = useState(null);
   const [photoItemId, setPhotoItemId] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const q = search.trim().toLowerCase();
@@ -1049,6 +1099,8 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
     );
   }
 
+  if (passportItem) return <PhonePassport item={inventory.find((i) => i.id === passportItem.id) || passportItem} photo={photos[`${passportItem.brand}|${passportItem.model}`]} onClose={() => setPassportItem(null)} />;
+
   if (labelItem) {
     return (
       <div>
@@ -1087,6 +1139,13 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
             <div><label style={{ fontSize: 12, color: muted }}>Color</label><input id="ed-color" defaultValue={editItem.color || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>Year</label><input id="ed-year" defaultValue={editItem.year || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>IMEI</label><input id="ed-imei" defaultValue={editItem.imei || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>Bought from</label>
+              <select id="ed-source" defaultValue={sourceOf(editItem)} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }}>
+                {[...new Set([sourceOf(editItem), ...SOURCES])].map((x) => <option key={x}>{x}</option>)}
+              </select>
+            </div>
+            <div><label style={{ fontSize: 12, color: muted }}>Seller name</label><input id="ed-seller" defaultValue={editItem.sellerName || editItem.sellerIdOwnerName || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
+            <div><label style={{ fontSize: 12, color: muted }}>Seller phone</label><input id="ed-sellerphone" defaultValue={editItem.sellerPhone || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>Buy Price ($)</label><input id="ed-price" type="number" defaultValue={editItem.costBasis ?? editItem.price ?? ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
           </div>
           <button onClick={() => {
@@ -1099,6 +1158,9 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
               color: document.getElementById("ed-color").value,
               year: document.getElementById("ed-year").value,
               imei: document.getElementById("ed-imei").value,
+              source: document.getElementById("ed-source").value,
+              sellerName: document.getElementById("ed-seller").value.trim(),
+              sellerPhone: document.getElementById("ed-sellerphone").value.trim(),
             };
             if (Number.isFinite(buy) && buy > 0) { patch.costBasis = buy; if (editItem.costBasis == null) patch.price = buy; }
             onUpdate(editItem.id, patch);
@@ -1127,7 +1189,10 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
       {visible.map((item) => (
         <div key={item.id} style={{ border: `1px solid ${item.status === "written_off" ? red : line}`, borderRadius: 3, padding: 14, marginBottom: 10, background: panel }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 13 }}>{item.brand} {item.model} · {item.storage}</span>
+            <span style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 10 }}>
+              <DeviceArt type={inferDeviceType(item.model, item.category)} size={40} brand={item.brand} model={item.model} imageUrl={photos[`${item.brand}|${item.model}`]} />
+              <span><b style={{ fontSize: 14 }}>{item.brand} {item.model}</b> · {item.storage}{item.gradeId ? ` · Grade ${item.gradeId}` : ""}</span>
+            </span>
             <span style={{ fontSize: 12, color: item.status === "sold" ? muted : item.status === "written_off" ? red : brass }}>{item.status.replace("_", " ")}</span>
           </div>
           <div style={{ fontSize: 12, color: muted, marginBottom: 8 }}>
@@ -1159,86 +1224,67 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
               Reserved for a pending online order — grading and write-off are locked until the Web Orders tab completes or cancels it.
             </div>
           )}
-          {item.status !== "sold" && item.status !== "written_off" && item.status !== "reserved" && item.status !== "in_repair" && (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-              {GRADES.map((g) => (
-                <button key={g.id} onClick={() => onUpdate(item.id, { gradeId: g.id, ...(pricePatch(item, Math.round(item.costBasis * g.markup)) || { listedPrice: Math.round(item.costBasis * g.markup) }) })}
-                  style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, cursor: "pointer",
-                    border: `1px solid ${item.gradeId === g.id ? brass : line}`, background: item.gradeId === g.id ? brassDim : "transparent", color: item.gradeId === g.id ? brass : paper }}>
-                  {g.id}
-                </button>
-              ))}
-              {item.listedPrice != null && (
-                <span style={{ fontSize: 12.5, color: green, marginLeft: 6 }}>list {fmt(item.listedPrice, item.region, regions)}</span>
-              )}
-              {item.status === "listed" && wasPrice(item) && (
-                <span style={{ fontSize: 12, color: brass }}>shows "Was {fmt(wasPrice(item).was, item.region, regions)}" online</span>
-              )}
-              {item.status === "listed" && item.listedPrice != null && (priceEdit && priceEdit.id === item.id ? (
-                <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                  <input value={priceEdit.value} onChange={(e) => setPriceEdit({ id: item.id, value: e.target.value })} inputMode="decimal" aria-label="New price"
-                    style={{ width: 80, padding: "5px 8px", fontSize: 12.5, border: `1px solid ${line}`, borderRadius: 2 }} />
-                  <button onClick={() => { const p = pricePatch(item, parseFloat(String(priceEdit.value).replace(/[$,]/g, ""))); if (p) onUpdate(item.id, p); setPriceEdit(null); }}
-                    style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${brass}`, background: brassDim, color: brass, cursor: "pointer" }}>Save</button>
-                  <button onClick={() => setPriceEdit(null)} style={{ padding: "6px 8px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>Cancel</button>
-                </span>
-              ) : (
-                <button onClick={() => setPriceEdit({ id: item.id, value: String(item.listedPrice) })}
-                  title={`A lower price shows "Was" online only if the old price was live ${MIN_DAYS_AT_OLD_PRICE}+ days (Australian Consumer Law).`}
-                  style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
-                  Change price
-                </button>
-              ))}
-              <button onClick={() => setEditItem(item)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
-                Edit
-              </button>
-              {sellPriceEdit && sellPriceEdit.id === item.id ? (
-                <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                  <input value={sellPriceEdit.value} onChange={(e) => setSellPriceEdit({ id: item.id, value: e.target.value })} placeholder="Sell price" inputMode="decimal"
-                    style={{ width: 80, padding: "5px 8px", fontSize: 12.5, border: `1px solid ${line}`, borderRadius: 2 }} />
-                  <button onClick={() => { 
-                    const p = parseFloat(String(sellPriceEdit.value).replace(/[$,]/g, ""));
-                    // Quick Add phones keep their buy price in `price`; move it to costBasis before it's replaced.
-                    if (p > 0) onUpdate(item.id, { price: p, listedPrice: p, ...(item.costBasis == null && item.price > 0 ? { costBasis: item.price } : {}) });
-                    setSellPriceEdit(null);
-                  }} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer" }}>Save</button>
-                  <button onClick={() => setSellPriceEdit(null)} style={{ padding: "6px 8px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>Cancel</button>
-                </span>
-              ) : (
-                <button onClick={() => setSellPriceEdit({ id: item.id, value: String(item.listedPrice || item.price || "") })}
-                  style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
-                  Sell Price
-                </button>
-              )}
-              {/* Only once a sell price is set: never list a phone at what we paid for it. */}
-              {(item.status === "available" || item.status === "in_stock") && item.listedPrice > 0 && (
-                <button onClick={() => onUpdate(item.id, { status: "listed", listedAt: new Date().toISOString(), listedPrice: item.listedPrice })} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: green, color: "#fff", cursor: "pointer", fontWeight: 600 }}>
-                  List on Website
-                </button>
-              )}
-              <button onClick={() => setLabelItem(item)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
-                Print label
-              </button>
-              <button onClick={() => setPhotoItemId(photoItemId === item.id ? null : item.id)} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
-                {Array.isArray(item.spinUrls) && item.spinUrls.length ? "Photos + 360° ✓" : item.photoUrl ? "Photos ✓" : "Photos"}
-              </button>
-              {item.gradeId && item.status === "in_stock" && (
-                <button onClick={() => onUpdate(item.id, publishPatch(item))} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: "transparent", color: green, cursor: "pointer" }}>
-                  Publish listing
-                </button>
-              )}
-              {item.status === "listed" && (
-                <button onClick={() => onUpdate(item.id, { status: "in_stock", unlistedAt: new Date().toISOString() })} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
-                  Take off website
-                </button>
-              )}
-              <button onClick={() => { setRepairFor(item.id); setRepairIssue(""); }} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: "1px solid #7A1F2B", background: "transparent", color: "#7A1F2B", cursor: "pointer" }}>
-                Send to repair
-              </button>
-              <button onClick={() => setWriteOffItem(item)} style={{ marginLeft: "auto", padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${red}`, background: "transparent", color: red, cursor: "pointer" }}>
-                Write off
-              </button>
-            </div>
+          {item.status !== "sold" && item.status !== "written_off" && item.status !== "reserved" && item.status !== "in_repair" && (() => {
+            // Grade → price (pre-filled from the shop's standard) → list. One row, one main button.
+            const cost = Number(item.costBasis) || 0;
+            const standard = targetPrice(cost, item.gradeId);
+            const draft = drafts[item.id] ?? String(item.listedPrice ?? standard ?? "");
+            const price = parseFloat(String(draft).replace(/[$,]/g, ""));
+            const priceOk = Number.isFinite(price) && price > 0;
+            const listed = item.status === "listed";
+            const changed = priceOk && Math.round(price) !== Math.round(Number(item.listedPrice) || 0);
+            const warn = !priceOk ? "" : price < cost ? `Below what it cost us (${fmt(cost, item.region, regions)})` : standard && price < standard ? `Below the grade ${item.gradeId} standard (${fmt(standard, item.region, regions)})` : "";
+            const btn = (tone, filled) => ({ padding: "8px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer", fontWeight: 600, border: `1px solid ${tone}`, background: filled ? tone : "transparent", color: filled ? "#fff" : tone });
+            return (
+              <div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, color: muted }}>Grade</span>
+                  {GRADES.map((g) => (
+                    <button key={g.id} title={g.label} onClick={() => { onUpdate(item.id, { gradeId: g.id, gradedAt: new Date().toISOString() }); setDrafts((d) => ({ ...d, [item.id]: listed ? d[item.id] : String(targetPrice(cost, g.id) || "") })); }}
+                      style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, cursor: "pointer", border: `1px solid ${item.gradeId === g.id ? brass : line}`, background: item.gradeId === g.id ? brassDim : "transparent", color: item.gradeId === g.id ? brass : paper }}>
+                      {g.id}
+                    </button>
+                  ))}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6 }}>
+                    <span style={{ fontSize: 12, color: muted }}>{listed ? "Price" : "Sell for"} $</span>
+                    <input value={draft} onChange={(e) => setDrafts((d) => ({ ...d, [item.id]: e.target.value }))} inputMode="decimal" aria-label="Sale price"
+                      style={{ width: 90, padding: "6px 8px", fontSize: 13, border: `1px solid ${warn ? "#B54708" : line}` }} />
+                  </span>
+                  {standard != null && <span style={{ fontSize: 12, color: muted }}>standard {fmt(standard, item.region, regions)}</span>}
+                  {listed && wasPrice(item) && <span style={{ fontSize: 12, color: brass }}>shows "Was {fmt(wasPrice(item).was, item.region, regions)}" online</span>}
+                </div>
+                {warn && <div style={{ fontSize: 12, color: "#B54708", marginBottom: 6 }}>⚠ {warn}</div>}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                  {!listed && (
+                    <button disabled={!item.gradeId || !priceOk} title={!item.gradeId ? "Grade it first" : ""}
+                      onClick={() => { onUpdate(item.id, { listedPrice: Math.round(price), ...publishPatch({ ...item, listedPrice: Math.round(price) }) }); setDrafts((d) => { const n = { ...d }; delete n[item.id]; return n; }); }}
+                      style={{ ...btn(green, true), opacity: item.gradeId && priceOk ? 1 : 0.45 }}>
+                      List on website{priceOk ? ` for ${fmt(price, item.region, regions)}` : ""}
+                    </button>
+                  )}
+                  {!listed && changed && <button onClick={() => onUpdate(item.id, { listedPrice: Math.round(price) })} style={btn(brass)}>Save price (in store only)</button>}
+                  {listed && changed && (
+                    <button onClick={() => { const p = pricePatch(item, price); if (p) onUpdate(item.id, p); }} title={`A lower price shows "Was" online only if the old price was live ${MIN_DAYS_AT_OLD_PRICE}+ days (Australian Consumer Law).`} style={btn(brass, true)}>
+                      Update price to {fmt(price, item.region, regions)}
+                    </button>
+                  )}
+                  {listed && (
+                    <button onClick={() => onUpdate(item.id, { status: "in_stock", unlistedAt: new Date().toISOString() })} style={btn(paper)}>Take off website</button>
+                  )}
+                  <button onClick={() => setPassportItem(item)} style={btn(brass)}>History & cost</button>
+                  <button onClick={() => setEditItem(item)} style={btn(muted)}>Edit</button>
+                  <button onClick={() => setLabelItem(item)} style={btn(muted)}>Label</button>
+                  <button onClick={() => setPhotoItemId(photoItemId === item.id ? null : item.id)} style={btn(muted)}>
+                    {Array.isArray(item.spinUrls) && item.spinUrls.length ? "Photos + 360° ✓" : item.photoUrl ? "Photos ✓" : "Photos"}
+                  </button>
+                  <button onClick={() => { setRepairFor(item.id); setRepairIssue(""); }} style={btn("#7A1F2B")}>Send to repair</button>
+                  <button onClick={() => setWriteOffItem(item)} style={{ ...btn(red), marginLeft: "auto" }}>Write off</button>
+                </div>
+              </div>
+            );
+          })()}
+          {(item.status === "sold" || item.status === "written_off" || item.status === "in_repair") && (
+            <button onClick={() => setPassportItem(item)} style={{ marginTop: 6, padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>History & cost</button>
           )}
         </div>
       ))}
@@ -1254,7 +1300,11 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
 
 function SellTab({ colors, inventory, regions, onSell, staffName, businessSettings }) {
   const { panel, panel2, paper, muted, brass, brassDim, green, line } = colors;
-  const sellable = inventory.filter((i) => i.status === "listed");
+  // Listed online, or kept in store with a price set: both can be sold at the counter.
+  const [find, setFind] = useState("");
+  const fq = find.trim().toLowerCase();
+  const sellable = inventory.filter((i) => i.status === "listed" || (i.status === "in_stock" && Number(i.listedPrice) > 0))
+    .filter((i) => !fq || [i.brand, i.model, i.imei, i.id].some((v) => String(v || "").toLowerCase().includes(fq)));
   const [chosen, setChosen] = useState(null);
   const [salePrice, setSalePrice] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -1266,13 +1316,15 @@ function SellTab({ colors, inventory, regions, onSell, staffName, businessSettin
     <div>
       {!chosen && !receipt && (
         <>
-          <div style={{ fontSize: 13, color: muted, marginBottom: 12 }}>Listed items ready to sell.</div>
-          {sellable.length === 0 && <div style={{ color: muted, fontSize: 13 }}>Nothing listed yet — grade and publish items from the Inventory tab first.</div>}
+          <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Find a phone: model, IMEI or stock no."
+            style={{ width: "100%", padding: "10px 12px", border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 10 }} />
+          <div style={{ fontSize: 13, color: muted, marginBottom: 12 }}>Phones with a price, online or in store.</div>
+          {sellable.length === 0 && <div style={{ color: muted, fontSize: 13 }}>{fq ? "Nothing matches." : "No phone has a price yet — grade it and set a price in the Inventory tab."}</div>}
           {sellable.map((item) => (
             <button key={item.id} onClick={() => { setChosen(item); setSalePrice(String(item.listedPrice)); }}
               style={{ display: "block", width: "100%", textAlign: "left", padding: "12px 14px", marginBottom: 8, borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, cursor: "pointer" }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 13 }}>{item.brand} {item.model} · {item.storage} · Grade {item.gradeId}</span>
+                <span style={{ fontSize: 13 }}>{item.brand} {item.model} · {item.storage} · Grade {item.gradeId || "—"}{item.status === "in_stock" ? " · in store only" : ""}</span>
                 <span style={{ color: brass, fontSize: 13 }}>{fmt(item.listedPrice, item.region, regions)}</span>
               </div>
             </button>
@@ -1289,6 +1341,9 @@ function SellTab({ colors, inventory, regions, onSell, staffName, businessSettin
             style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           <input value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="Sale price" type="number"
             style={{ width: "100%", padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
+          {Number(salePrice) > 0 && Number(chosen.costBasis) > 0 && Number(salePrice) < Number(chosen.costBasis) && (
+            <div role="alert" style={{ fontSize: 12.5, color: "#B42318", marginBottom: 10 }}>⚠ That's below what this phone cost us ({fmt(chosen.costBasis, chosen.region, regions)}).</div>
+          )}
           <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
             {[{ id: "cash", label: "Cash" }, { id: "card", label: "Card" }, { id: "bank", label: "Bank transfer" }].map((m) => (
               <button key={m.id} onClick={() => setPayMethod(m.id)} style={{ flex: 1, padding: "8px", borderRadius: 3, fontSize: 12, cursor: "pointer",
@@ -1302,8 +1357,10 @@ function SellTab({ colors, inventory, regions, onSell, staffName, businessSettin
             <button disabled={!customerName.trim() || !salePrice}
               onClick={() => {
                 const sale = { customerName, customerEmail, salePrice: parseFloat(salePrice), brand: chosen.brand, model: chosen.model, storage: chosen.storage, region: chosen.region, costBasis: chosen.costBasis, payMethod };
-                onSell(chosen, sale);
-                setReceipt({ ...sale, id: genId("SALE"), staffHandled: staffName || "unattributed" });
+                // One sale number for both the receipt and the records.
+                const id = genId("SALE");
+                onSell(chosen, { ...sale, id });
+                setReceipt({ ...sale, id, staffHandled: staffName || "unattributed" });
                 setChosen(null);
               }}
               style={{ flex: 1, padding: "10px", borderRadius: 3, border: "none", background: customerName.trim() && salePrice ? green : line, color: customerName.trim() && salePrice ? "#0c1a12" : muted, fontSize: 13, fontWeight: 600, cursor: customerName.trim() && salePrice ? "pointer" : "default" }}>

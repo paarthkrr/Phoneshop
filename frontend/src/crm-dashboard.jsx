@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { buildPnl, monthsIn, toCsv, KIND_LABELS } from "./pnl.js";
 import { sydneyMonth, sydneyToday } from "./sydney-time.js";
+import TechPayTab from "./tech-pay.jsx";
 
 /* =================================================================
    CRM + REPORTING
@@ -37,7 +38,7 @@ async function saveJSON(key, value, shared) {
 }
 
 const ORDER_STATUSES = ["awaiting_shipment", "received_inspecting", "revised_pending_customer", "approved_paid", "rejected", "returned", "cancelled"];
-const TABS = ["Customers", "Profit & Loss", "Reports", "Expenses", "Leads & Notifications"];
+const TABS = ["Customers", "Profit & Loss", "Technician pay", "Reports", "Expenses", "Leads & Notifications"];
 const EXPENSE_CATEGORIES = ["Rent", "Wages", "Utilities", "Supplies", "Marketing", "Insurance", "Other"];
 
 export default function CRMDashboard() {
@@ -52,6 +53,7 @@ export default function CRMDashboard() {
   const [referrals, setReferrals] = useState([]);
   const [tillRecords, setTillRecords] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [payRuns, setPayRuns] = useState([]);
   const [tab, setTab] = useState("Customers");
   const [search, setSearch] = useState("");
   const [openCustomer, setOpenCustomer] = useState(null);
@@ -60,6 +62,7 @@ export default function CRMDashboard() {
     (async () => {
       const [o, s, l, n, e, inv, bulk, ref, till, sq] = await Promise.all([loadJSON("orders", true), loadJSON("sales", true), loadJSON("quote_leads", true), loadJSON("notification_queue", true), loadJSON("expenses", true), loadJSON("inventory", true), loadJSON("bulk_quote_requests", true), loadJSON("referrals", true), loadJSON("till_records", true), loadJSON("support_queries", true)]);
       setTickets((await loadJSON("repair_tickets", true)) || []);
+      setPayRuns((await loadJSON("tech_pay_runs", true)) || []);
       setOrders(o); setSales(s); setLeads(l); setNotifications(n); setExpenses(e); setInventory(inv); setBulkRequests(bulk); setReferrals(ref); setTillRecords(till); setSupportQueries(sq || []);
     })();
   }, []);
@@ -75,6 +78,19 @@ export default function CRMDashboard() {
     if (!Array.isArray(fresh)) throw new Error("expenses list unreadable");
     return fresh;
   }
+  // One payment to one technician for some finished jobs: the jobs are marked paid
+  // (with how and a reference) and the payment is kept as a pay run for the history.
+  async function payTechnician({ technician, jobIds, amount, via, ref }) {
+    const at = new Date().toISOString(), by = (window.shopAuth && window.shopAuth.currentUser() || {}).username || "";
+    const run = { id: "PAY-" + Math.floor(100000 + Math.random() * 900000), technician, jobIds, amount: Math.round(amount * 100) / 100, via, ref, at, by };
+    const next = tickets.map((t) => (jobIds.includes(t.id) ? { ...t, techPaidAt: at, techPaidBy: by, techPaidVia: via, techPaidRef: ref, techPaidRunId: run.id } : t));
+    if (!(await saveJSON("repair_tickets", next, true))) return false;
+    setTickets(next);
+    const runs = [run, ...payRuns];
+    if (await saveJSON("tech_pay_runs", runs, true)) setPayRuns(runs);
+    return true;
+  }
+
   async function addExpense(exp) {
     let latest;
     try { latest = await latestExpenses(); } catch (e) { window.alert("Couldn't reach the server, so the expense wasn't saved. Check the connection and try again."); return; }
@@ -337,11 +353,12 @@ export default function CRMDashboard() {
           <PnlTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }} fmt={fmt}
             sales={sales || []} tickets={tickets} expenses={expenses || []} inventory={inventory || []} tillRecords={tillRecords || []}
             onMarkPaid={async (ids) => {
-              const at = new Date().toISOString(), by = (window.shopAuth && window.shopAuth.currentUser() || {}).username || "";
-              const next = tickets.map((t) => (ids.includes(t.id) ? { ...t, techPaidAt: at, techPaidBy: by } : t));
-              if (await saveJSON("repair_tickets", next, true)) setTickets(next);
+              const jobs = tickets.filter((t) => ids.includes(t.id));
+              await payTechnician({ technician: jobs[0]?.assignedTo || "Not assigned", jobIds: ids, amount: jobs.reduce((s, t) => s + (Number(t.techPay) || 0), 0), via: "Not recorded", ref: "" });
             }} />
         )}
+
+        {tab === "Technician pay" && <TechPayTab tickets={tickets} runs={payRuns} onPay={payTechnician} />}
 
         {tab === "Expenses" && (
           <ExpensesTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
