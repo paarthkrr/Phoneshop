@@ -24,6 +24,7 @@ import { NAV_CSS, DesktopMenu, MobileDrawer, MobileBackdrop } from "./site-nav.j
 import { ROLE_LABELS, currentRole, canSeeScreen } from "./roles.js";
 import DarkModeToggle from "./dark-mode-toggle.jsx";
 import CustomerDisplay from "./customer-display.jsx";
+import PortalShell from "./portal-shell.jsx";
 
 /* =================================================================
    APP SHELL
@@ -78,7 +79,7 @@ const StaffInspectionConsole = staffScreen(() => import("./staff-inspection-cons
 const POSInventory = staffScreen(() => import("./pos-inventory.jsx"));
 const RepairTickets = staffScreen(() => import("./repair-tickets.jsx"));
 const TillReconciliation = staffScreen(() => import("./till-reconciliation.jsx"));
-const CRMDashboard = staffScreen(() => import("./crm-enhanced.jsx"));
+const CRMDashboard = staffScreen(() => import("./crm-dashboard.jsx"));
 const SecuritySetup = staffScreen(() => import("./security.jsx"));
 const Activity = staffScreen(() => import("./activity.jsx"));
 const UnlockChecker = staffScreen(() => import("./unlock-checker.jsx"));
@@ -92,20 +93,6 @@ const CUSTOMER_LINKS = [
   { to: "/shop", label: "Shop refurbished" },
   { to: "/repairs", label: "Repairs" },
   { to: "/accessories", label: "Accessories" },
-];
-
-const STAFF_LINKS = [
-  { to: "/portal", label: "Dashboard" },
-  { to: "/portal/pricing", label: "Pricing" },
-  { to: "/portal/inspect", label: "Inspect" },
-  { to: "/portal/pos", label: "POS" },
-  { to: "/portal/repairs", label: "Repairs" },
-  { to: "/portal/till", label: "Till" },
-  { to: "/portal/crm", label: "CRM" },
-  { to: "/portal/team", label: "Team" },
-  { to: "/portal/activity", label: "Activity" },
-  { to: "/portal/unlock", label: "Unlock" },
-  { to: "/portal/products", label: "Products" },
 ];
 
 // Top strip. Wide screens show every message on one line; phones show one
@@ -129,8 +116,6 @@ function Nav() {
   // Redraw when someone signs in, so the menu shows only their role's screens straight away.
   const [, setAuthTick] = useState(0);
   useEffect(() => { const f = () => setAuthTick((n) => n + 1); window.addEventListener("mv-auth-change", f); return () => window.removeEventListener("mv-auth-change", f); }, []);
-  const role = isStaff ? currentRole() : null;
-  const links = isStaff ? STAFF_LINKS.filter((l) => canSeeScreen(l.to, role)) : CUSTOMER_LINKS;
   const [menuOpen, setMenuOpen] = useState(false);
   // Close the mobile menu whenever the page changes, so tapping a link
   // doesn't leave the menu hanging open over the new page.
@@ -226,26 +211,10 @@ function Nav() {
         /* Form controls don't inherit the page font by default — they fall back to the
            phone's system font, which made forms look mismatched. Inherit everywhere. */
         button, input, select, textarea, optgroup { font-family: inherit; }
-        /* Staff tools were written with small (11-13px) text; scale the whole staff
-           area up proportionally so it's comfortable to read on a phone or tablet. */
-
-        /* ---- Staff portal look: graphite header with a chrome active tab, silver page, softer cards.
-           Styling only (scoped to body.cs-staff-mode); no layout or logic changes. ---- */
-        body.cs-staff-mode { background: linear-gradient(180deg, #EEF1F6 0%, #E4E8F0 100%) fixed; }
-        body.cs-staff-mode .cs-glass-nav { border-bottom: 1px solid #2A2F3C !important; box-shadow: 0 6px 24px rgba(5,6,8,.25); }
-        body.cs-staff-mode .cs-glass-nav::before { background: linear-gradient(180deg, #232733 0%, #0E0F13 100%); -webkit-backdrop-filter: none; backdrop-filter: none; }
-        body.cs-staff-mode .cs-glass-nav a, body.cs-staff-mode .cs-glass-nav span { color: #D6DCE8 !important; }
-        body.cs-staff-mode .cs-glass-nav a:hover { color: #FFFFFF !important; }
-        body.cs-staff-mode .cs-glass-nav .cs-nav-link.active { background: linear-gradient(180deg, #FFFFFF, #C9D0DC); color: #0E0F13 !important; border-radius: 999px; font-weight: 700; }
-        body.cs-staff-mode .cs-glass-nav .cs-nav-link.active::after { display: none; }
-        body.cs-staff-mode .cs-glass-nav .cs-nav-link { border-radius: 999px; }
-        body.cs-staff-mode .cs-glass-nav .cs-menu-btn { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.25); color: #FFFFFF; }
-        body.cs-staff-mode .cs-glass-nav .cs-mobile-menu { background: #0E0F13; border-top-color: #2A2F3C !important; }
-        body.cs-staff-mode .cs-glass-nav .cs-mobile-menu a { border-bottom-color: #232733 !important; }
+        /* Staff pages draw their own frame (portal-shell.jsx); this bar is for the public site. */
+        body.cs-staff-mode .cs-glass-nav { display: none; }
         body.cs-staff-mode main div[style*="border: 1px solid rgb(226, 230, 236)"] { border-radius: 14px !important; box-shadow: 0 8px 26px rgba(15,27,61,.07); }
-        body.cs-staff-mode main > div[style*="background: rgb(255, 255, 255)"] { background: transparent !important; }
-        .cs-staff-mode main { zoom: 1.06; }
-        @media (max-width: 720px) { .cs-staff-mode main { zoom: 1.12; } }
+        body.cs-staff-mode .ps-body > div[style*="background: rgb(255, 255, 255)"] { background: transparent !important; }
         ::selection { background: rgba(33,80,200,0.18); }
         .cs-mobile-cta { display: none; }
         @media (max-width: 720px) {
@@ -292,74 +261,24 @@ function Nav() {
       {!isStaff && <AnnouncementBar />}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, fontFamily: "'Archivo', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
-          <Link to={isStaff ? "/portal/index.html" : "/"} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, textTransform: "none" }}><img src="/logo-mark.svg" alt="" width="25" height="34" style={{ display: "block" }} /><span style={{ fontFamily: "'Outfit', 'Archivo', sans-serif", fontSize: 24, letterSpacing: "-0.015em", lineHeight: 1, whiteSpace: "nowrap" }}><span style={{ fontWeight: 400 }}>Mobile</span> <span style={{ fontWeight: 800, color: brass }}>Recellr</span></span></span>{isStaff && <span style={{ fontSize: 12, color: muted, fontFamily: "'Archivo', sans-serif", marginLeft: 8, fontWeight: 400 }}>STAFF</span>}
+          <Link to="/" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, color: paper, textDecoration: "none", letterSpacing: "-0.01em" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, textTransform: "none" }}><img src="/logo-mark.svg" alt="" width="25" height="34" style={{ display: "block" }} /><span style={{ fontFamily: "'Outfit', 'Archivo', sans-serif", fontSize: 24, letterSpacing: "-0.015em", lineHeight: 1, whiteSpace: "nowrap" }}><span style={{ fontWeight: 400 }}>Mobile</span> <span style={{ fontWeight: 800, color: brass }}>Recellr</span></span></span>
           </Link>
           <div className="cs-nav-links" style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {!isStaff && <DesktopMenu pathname={normPath(location.pathname)} />}
-            {isStaff && links.map((l) => {
-              const active = normPath(location.pathname) === l.to;
-              return (
-                <Link key={l.to} to={l.to} className={`cs-nav-link${active ? " active" : ""}`} aria-current={active ? "page" : undefined}
-                  style={{
-                    padding: "7px 13px", fontSize: 13.5, fontWeight: active ? 700 : 500, textDecoration: "none",
-                    color: active ? brass : paper,
-                  }}>
-                  {l.label}
-                </Link>
-              );
-            })}
           </div>
         </div>
-        {!isStaff ? (
+        {!isStaff && (
           <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <DarkModeToggle />
             <Link to="/quote" className="mm-quote-btn desk">Get a Quote</Link>
           </div>
-        ) : (
-          <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            {window.shopAuth && window.shopAuth.currentUser() && (
-              <span style={{ fontSize: 12.5, color: muted }}>
-                {window.shopAuth.currentUser().username}
-                {" · "}
-                <a href="#" onClick={(e) => { e.preventDefault(); window.shopAuth.logout(window.SHOP_API_BASE_URL); window.location.reload(); }} style={{ color: muted, textDecoration: "underline" }}>log out</a>
-              </span>
-            )}
-            <Link to="/" style={{ fontSize: 12.5, color: muted, textDecoration: "underline" }}>← Exit to public site</Link>
-          </div>
         )}
-        {isStaff ? (
-          <button className="cs-menu-btn" onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen} aria-controls="cs-mobile-menu" aria-label={menuOpen ? "Close menu" : "Open menu"}>
-            {menuOpen ? "✕" : "☰"}
-          </button>
-        ) : (
-          <button className={`cs-burger${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen} aria-controls="cs-mobile-menu" aria-label={menuOpen ? "Close menu" : "Open menu"}>
-            <span /><span /><span />
-          </button>
-        )}
+        <button className={`cs-burger${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen} aria-controls="cs-mobile-menu" aria-label={menuOpen ? "Close menu" : "Open menu"}>
+          <span /><span /><span />
+        </button>
       </div>
       {!isStaff && <MobileDrawer open={menuOpen} />}
-      {isStaff && <div id="cs-mobile-menu" className={`cs-mobile-menu${menuOpen ? " open" : ""}`}
-        style={{ flexDirection: "column", borderTop: `1px solid ${line}`, padding: "8px 16px 14px", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-        {links.map((l) => {
-          const active = normPath(location.pathname) === l.to;
-          return (
-            <Link key={l.to} to={l.to} aria-current={active ? "page" : undefined}
-              style={{ padding: "12px 4px", fontSize: 16, fontWeight: active ? 700 : 500, color: active ? brass : paper, textDecoration: "none", borderBottom: "1px solid #F4F6F9" }}>
-              {l.label}
-            </Link>
-          );
-        })}
-        {isStaff && (
-          <>
-            {window.shopAuth && window.shopAuth.currentUser() && (
-              <a href="#" onClick={(e) => { e.preventDefault(); window.shopAuth.logout(window.SHOP_API_BASE_URL); window.location.reload(); }}
-                style={{ padding: "12px 4px", fontSize: 14, color: muted }}>Log out ({window.shopAuth.currentUser().username})</a>
-            )}
-            <Link to="/" style={{ padding: "12px 4px", fontSize: 14, color: muted }}>← Exit to public site</Link>
-          </>
-        )}
-      </div>}
     </nav>
     {!isStaff && <MobileBackdrop open={menuOpen} onClose={() => setMenuOpen(false)} />}
     </>
@@ -465,23 +384,23 @@ function StaffGate({ children }) {
   }
 
   if (status === "checking") return null;
-  if (status === "setup") return <SecuritySetup limits={limits} onDone={setupStepDone} />;
+  if (status === "setup") return <PortalShell bare><SecuritySetup limits={limits} onDone={setupStepDone} /></PortalShell>;
   if (status === "ok") {
     const role = currentRole();
     if (!canSeeScreen(normPath(location.pathname), role)) {
       return (
-        <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", fontFamily: "'Archivo', system-ui, sans-serif", color: "#111827" }}>
+        <PortalShell><div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", fontFamily: "'Archivo', system-ui, sans-serif", color: "#111827" }}>
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontWeight: 400, fontSize: 24, margin: "0 0 8px" }}>Not part of your access</h1>
           <p style={{ color: "#5B6472", fontSize: 15, lineHeight: 1.6 }}>Your role is <strong>{ROLE_LABELS[role] || role}</strong>, and your access doesn't include this screen. Ask the Owner if you need it.</p>
-          <Link to="/portal" style={{ color: "#2150C8", fontWeight: 700 }}>Go to Today →</Link>
-        </div>
+          <Link to="/portal" style={{ color: "#2150C8", fontWeight: 700 }}>Back to the dashboard →</Link>
+        </div></PortalShell>
       );
     }
-    return children;
+    return <PortalShell>{children}</PortalShell>;
   }
 
   return (
-    <div style={{ maxWidth: 320, margin: "70px auto", padding: 20, fontFamily: "'Archivo', sans-serif" }}>
+    <PortalShell bare><div style={{ maxWidth: 320, margin: "70px auto", padding: 20, fontFamily: "'Archivo', sans-serif" }}>
       <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, marginBottom: 16, color: paper }}>
         {mode === "login" ? "Staff sign in" : mode === "recover" ? "Reset admin password" : "Create the first staff account"}
       </div>
@@ -517,7 +436,7 @@ function StaffGate({ children }) {
         Forgot password?
       </button>}
       {mode === "recover" && <div style={{ fontSize: 12, color: "#5B6472", lineHeight: 1.5 }}>Use the backup code you saved from the Team page (usernames aren't case-sensitive). Lost your phone? This also switches two-step sign-in off so you can set it up again. No code? Ask the Owner to reset your password from the Team page.</div>}
-    </div>
+    </div></PortalShell>
   );
 }
 
@@ -747,7 +666,8 @@ function AnimatedRoutes() {
   const isStaff = isStaffPath(normPath(location.pathname));
   return (
     <>
-    <main key={location.pathname} className={"cs-page-enter" + slide}>
+    {/* Staff pages skip the slide: a transformed <main> would drag the portal's fixed sidebar and tab bar along with it. */}
+    <main key={location.pathname} className={isStaff ? undefined : "cs-page-enter" + slide}>
       <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "#5B6472", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />

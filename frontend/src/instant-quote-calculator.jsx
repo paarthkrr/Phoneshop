@@ -500,6 +500,16 @@ const QICONS = {
 };
 const QIco = ({ k }) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{QICONS[k]}</svg>;
 
+// After a choice, bring the next question into view so nobody has to hunt for it.
+// Waits a frame for the next section to render; respects reduced motion.
+function goNext(id) {
+  setTimeout(() => {
+    const el = document.getElementById(id); if (!el) return;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }, 90);
+}
+
 export default function QuoteCalculator() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
   const [live, setLive] = useState(null);   // config loaded from the shared admin database
@@ -1210,7 +1220,7 @@ export default function QuoteCalculator() {
                   ))}
                 </div>
               </div>
-              <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "20px 20px 22px", background: "#fff", position: "sticky", top: 80, zIndex: 10 }}>
+              <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "20px 20px 22px", background: "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                   <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(24px, 4vw, 32px)", lineHeight: 1.12, margin: 0 }}>{selected.brand} {selected.model}</h2>
                   <button onClick={() => { setSelected(null); setSearch(""); setTierId(null); }} style={{ background: "none", border: "none", color: brass, fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>Change</button>
@@ -1234,7 +1244,7 @@ export default function QuoteCalculator() {
                   <div style={{ fontSize: 15, marginBottom: 10 }}><strong>Condition:</strong> <span style={{ color: muted }}>{tier ? tier.label : "choose one"}</span></div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }} role="radiogroup" aria-label="Condition">
                     {TIERS_A.map((t) => (
-                      <button key={t.id} role="radio" aria-checked={tierId === t.id} onClick={() => { setTierId(t.id); setFaults({}); setBlockers({}); setHasIssues(null); }} style={pill(tierId === t.id)}>
+                      <button key={t.id} role="radio" aria-checked={tierId === t.id} onClick={() => { setTierId(t.id); setFaults({}); setBlockers({}); setHasIssues(null); if (t.mode === "full" || t.mode === "functional-only") goNext("mvq-issues"); }} style={pill(tierId === t.id)}>
                         <span style={{ width: 10, height: 10, borderRadius: "50%", background: DOT[t.id] || brass, display: "inline-block" }} />{t.label}
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: muted }}>up to {fmt(sealed * t.factor, region, REGIONS_A)}</span>
                       </button>
@@ -1253,18 +1263,18 @@ export default function QuoteCalculator() {
 
         {selected && tier && !submittedOrder && (tier.mode === "full" || tier.mode === "functional-only") && (
           <>
-            <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, fontWeight: 400, margin: "0 0 4px" }}>Anything wrong with it?</h2>
+            <h2 id="mvq-issues" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, fontWeight: 400, margin: "0 0 4px", scrollMarginTop: 130 }}>Anything wrong with it?</h2>
             <div style={{ fontSize: 13.5, color: muted, marginBottom: 12 }}>Being accurate now means your price won't change at inspection.</div>
             <div role="radiogroup" aria-label="Anything wrong with it?" style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
               {[[false, "No, it all works"], [true, "Yes, something's wrong"]].map(([val, label]) => (
-                <button key={label} role="radio" aria-checked={hasIssues === val} onClick={() => { setHasIssues(val); if (!val) setFaults({}); }}
+                <button key={label} role="radio" aria-checked={hasIssues === val} onClick={() => { setHasIssues(val); if (!val) setFaults({}); goNext(val ? "mvq-faults" : "mvq-checks"); }}
                   style={{ flex: "1 1 160px", minHeight: 48, padding: "12px 16px", borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
                     border: `2px solid ${hasIssues === val ? brass : line}`, background: hasIssues === val ? "rgba(33,80,200,0.07)" : "#fff", color: hasIssues === val ? brass : paper }}>
                   {label}
                 </button>
               ))}
             </div>
-            {hasIssues && <div style={{ fontSize: 13, color: muted, marginBottom: 10 }}>Open a section and tick everything that applies.</div>}
+            {hasIssues && <div id="mvq-faults" style={{ fontSize: 13, color: muted, marginBottom: 10, scrollMarginTop: 130 }}>Open a section and tick everything that applies.</div>}
             {hasIssues && FAULT_GROUPS_A.map((g) => {
               if (tier.mode === "functional-only" && g.cosmetic) return null;
               const ticked = g.faults.filter((f) => faults[f.id]).length;
@@ -1294,7 +1304,7 @@ export default function QuoteCalculator() {
               );
             })}
 
-            <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, margin: "8px 0 20px", padding: "10px 2px" }}>
+            <label id="mvq-checks" style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, margin: "8px 0 20px", padding: "10px 2px", scrollMarginTop: 130 }}>
               <input type="checkbox" checked={hasAccessories} onChange={(e) => setHasAccessories(e.target.checked)} />
               Original box & charger included
               <span style={{ color: green, fontSize: 13 }}>+{Math.round(ACCESSORY_BONUS_PCT * 100)}%</span>
@@ -1313,17 +1323,25 @@ export default function QuoteCalculator() {
         )}
 
         {calc && !checkout && !submittedOrder && (
-          <div style={{ position: "fixed", bottom: 70, left: 12, right: 12, background: "#fff", border: `2px solid ${brass}`, boxShadow: "0 -4px 20px rgba(0,0,0,0.15)", borderRadius: 16, padding: "12px 16px", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ position: "sticky", bottom: 12, background: panel, border: `1px solid ${brass}`, boxShadow: "0 8px 28px rgba(32,28,24,0.16)", borderRadius: 12, padding: "14px 16px", marginTop: 20, maxHeight: "70vh", overflowY: "auto" }}>
             {calc.blocked ? (
-              <div style={{ flex: 1 }}>
-                <div style={{ color: red, fontSize: 14, fontWeight: 700 }}>Quote unavailable</div>
+              <div>
+                <div style={{ color: red, fontSize: 15, marginBottom: 4 }}>Quote unavailable</div>
+                <div style={{ color: muted, fontSize: 13 }}>
+                  This device can't be purchased until the flagged issue is resolved — remove any accounts
+                  or resolve the reported status, then request a new quote.
+                </div>
               </div>
             ) : (
               <>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, color: muted }}>Your quote</div>
-                  <div key={Math.round(calc.total)} className="mv-pop" aria-live="polite" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 24, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}>
+                  <div style={{ fontSize: 13, color: muted }}>Your quote</div>
+                  <div key={Math.round(calc.total)} className="mv-pop" aria-live="polite" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 30, color: brass }}>{fmt(calc.total, region, REGIONS_A)}</div>
                 </div>
+                <button onClick={() => setShowBreakdown((v) => !v)} aria-expanded={showBreakdown}
+                  style={{ background: "none", border: "none", padding: "4px 0", color: brass, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  {showBreakdown ? "▾ Hide how we worked this out" : "▸ How we worked this out"}
+                </button>
                 {showBreakdown && <>
                 {/* Live "device signature": the inspection ring turns amber where a fault is declared */}
                 <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "4px 0 12px" }}>

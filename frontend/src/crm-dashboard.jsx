@@ -196,10 +196,10 @@ export default function CRMDashboard() {
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, letterSpacing: '-0.01em', marginBottom: 4 }}>Customers & Reports</div>
         <div style={{ color: muted, fontSize: 13, marginBottom: 18 }}>{customers.length} customer{customers.length === 1 ? "" : "s"} on record, built from every trade-in and sale.</div>
 
-        <div style={{ display: "flex", gap: 6, marginBottom: 20, borderBottom: `1px solid ${line}`, paddingBottom: 14 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20, borderBottom: `1px solid ${line}`, paddingBottom: 14 }}>
           {TABS.map((t) => (
             <button key={t} onClick={() => { setTab(t); setOpenCustomer(null); }}
-              style={{ padding: "7px 14px", borderRadius: 2, fontSize: 13, cursor: "pointer",
+              style={{ padding: "7px 14px", borderRadius: 2, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap",
                 border: `1px solid ${tab === t ? brass : line}`, background: tab === t ? brassDim : "transparent", color: tab === t ? brass : paper }}>
               {t}
             </button>
