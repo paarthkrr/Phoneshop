@@ -25,7 +25,9 @@ const CSS = `
 .ps-act:hover{color:#fff}
 .ps-main{margin-left:244px;min-width:0;overflow-x:clip}
 .ps-top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px;padding:14px 28px;background:rgba(244,246,250,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid #E3E7EF}
-.ps-title{font-family:'Archivo Black',sans-serif;font-size:19px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-title{font-family:'Archivo',sans-serif;font-weight:700;font-size:15px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-crumb{color:#8A93A3;font-weight:500}
+.ps-crumb::after{content:"›";margin:0 8px}
 .ps-chip{display:flex;align-items:center;gap:8px;font-size:13px;color:#5B6472}
 .ps-mlogo{display:none}
 .ps-gridbtn{display:none}
@@ -35,7 +37,8 @@ const CSS = `
   .ps-side{display:none}
   .ps-main{margin-left:0}
   .ps-top{padding:10px 14px;background:#0F1626;border-bottom:0;color:#fff}
-  .ps-title{font-family:'Archivo',sans-serif;font-weight:700;font-size:16px;color:#fff}
+  .ps-title{font-size:16px;color:#fff}
+  .ps-crumb{display:none}
   .ps-chip{display:none}
   .ps-mlogo{display:flex}
   .ps-gridbtn{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.14);text-decoration:none}
@@ -46,6 +49,12 @@ const CSS = `
   .ps-tab.on svg{background:rgba(33,80,200,.1);border-radius:10px}
 }
 .ps-bare{max-width:none}
+/* The portal screens were drawn as narrow single columns with square corners. Give them the
+   dashboard's width and shapes here, without touching each screen's own code. */
+.ps-body > div > div[style*="margin: 0px auto"]{max-width:1000px !important}
+.ps-body button,.ps-body select,.ps-body textarea,.ps-body input:not([type=checkbox]):not([type=radio]):not([type=range]){border-radius:10px !important}
+.ps-body input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),.ps-body select{min-height:40px}
+.ps-body div[style*="border-left: 3px solid"]{border-radius:12px !important;background:#fff}
 `;
 
 // Legacy /staff/... addresses show the same screens; light up the matching item.
@@ -114,7 +123,7 @@ export default function PortalShell({ children, bare = false, path }) {
       <div className="ps-main">
         <header className="ps-top">
           <Link to="/portal" className="ps-mlogo" aria-label="Dashboard"><img src="/logo-mark.svg" alt="" width="20" height="27" /></Link>
-          <h1 className="ps-title">{title}</h1>
+          <h1 className="ps-title">{current && current.to !== "/portal" && <span className="ps-crumb">Staff portal</span>}{title}</h1>
           {user && <div className="ps-chip"><span className="ps-av" style={{ width: 30, height: 30, fontSize: 13 }}>{String(user.username || "?").slice(0, 1).toUpperCase()}</span>{user.username} · {ROLE_LABELS[role] || role}</div>}
           <Link to="/portal#tools" className="ps-gridbtn" aria-label="All tools"><PIcon k="grid" size={19} /></Link>
         </header>
