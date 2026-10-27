@@ -63,3 +63,71 @@ export async function addToSharedList(key, record) {
     return false;
   }
 }
+
+// ---- Grades, sources and the price standard ----
+// The shop's standard: a phone of a grade should sell for its cost × markup.
+// Cost here is the FULL cost (what we paid plus every repair's parts and labour).
+export const GRADES = [
+  { id: "A", label: "Grade A — Excellent", markup: 1.35 },
+  { id: "B", label: "Grade B — Good", markup: 1.20 },
+  { id: "C", label: "Grade C — Fair", markup: 1.08 },
+  { id: "parts", label: "Parts only", markup: 0.5 },
+];
+export const SOURCES = ["Walk-in", "Facebook Marketplace", "Gumtree", "eBay", "Wholesale / auction", "Online trade-in", "Other"];
+export const sourceOf = (item) => item.source || (item.sourceOrderId ? "Online trade-in" : item.id && String(item.id).startsWith("QA-") ? "Quick Add (scanner)" : "Walk-in");
+
+// A shop price ending in 9 at the top of its ten ($742 → $749, $1,000 → $999).
+export const shopPrice = (n) => (n > 0 ? Math.max(9, Math.ceil(n / 10) * 10 - 1) : 0);
+export function targetPrice(cost, gradeId) {
+  const g = GRADES.find((x) => x.id === gradeId);
+  return g && cost > 0 ? shopPrice(cost * g.markup) : null;
+}
+
+const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const days = (a, b) => (a && b ? Math.max(0, Math.round((new Date(b) - new Date(a)) / 864e5)) : null);
+const partsOf = (t) => (Array.isArray(t.parts) ? t.parts.reduce((s, p) => s + n(p && p.cost), 0) : 0);
+
+// Everything that happened to one phone, in order, with its money. Pure: give it
+// the stock item and the shared lists; it doesn't read or write storage.
+export function phoneStory(item, { tickets = [], sales = [], orders = [] } = {}, now = new Date()) {
+  const jobs = tickets.filter((t) => t && t.inventoryItemId === item.id).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  const sale = sales.find((s) => s && s.itemId === item.id && s.channel !== "repair") || null;
+  const order = item.sourceOrderId ? orders.find((o) => o && o.id === item.sourceOrderId) || null : null;
+  const repairs = jobs.map((t) => ({
+    id: t.id, status: t.status, issue: t.issue, technician: t.assignedTo || "", opened: t.createdAt, finished: t.completedAt || null,
+    parts: (t.parts || []).map((p) => ({ name: p.name, cost: n(p.cost) })), partsCost: partsOf(t), labour: n(t.techPay),
+    labourPaid: !!t.techPaidAt, minutes: n(t.timeSpentMins),
+  }));
+  const repairCost = repairs.reduce((s, r) => s + r.partsCost + r.labour, 0);
+  // costBasis already includes repair costs that were added when a job finished;
+  // jobs still open (or whose cost couldn't be added) are counted on top.
+  const added = (item.refurbJobs || []).reduce((s, j) => s + n(j.cost), 0);
+  const addedIds = new Set((item.refurbJobs || []).map((j) => j.jobId));
+  const pending = repairs.filter((r) => !addedIds.has(r.id)).reduce((s, r) => s + r.partsCost + r.labour, 0);
+  const bought = n(item.costBasis) - added;
+  const totalCost = n(item.costBasis) + pending; // = bought + every repair's parts and labour
+  const readyAt = item.listedAt || item.repairedAt || (repairs.length ? repairs[repairs.length - 1].finished : null) || null;
+  const target = targetPrice(totalCost, item.gradeId);
+  const soldFor = sale ? n(sale.salePrice) : null;
+  const askingFor = item.listedPrice != null ? n(item.listedPrice) : null;
+  const price = soldFor ?? askingFor;
+  const events = [
+    { at: item.receivedAt, kind: "bought", text: `Bought ${order ? `online trade-in ${order.id}` : `from ${sourceOf(item)}`}${item.sellerName || item.sellerIdOwnerName ? ` (${item.sellerName || item.sellerIdOwnerName})` : ""}`, amount: -bought },
+    ...repairs.flatMap((r) => [
+      { at: r.opened, kind: "repair", text: `Repair ${r.id} opened: ${r.issue || "fix up"}` },
+      ...(r.finished ? [{ at: r.finished, kind: "repair", text: `Repair ${r.id} done${r.technician ? ` by ${r.technician}` : ""}`, amount: -(r.partsCost + r.labour) }] : []),
+    ]),
+    ...(item.gradedAt ? [{ at: item.gradedAt, kind: "graded", text: `Graded ${item.gradeId}` }] : []),
+    ...(item.listedAt ? [{ at: item.listedAt, kind: "listed", text: `Listed online at $${n((item.priceHistory || [])[0]?.price ?? item.listedPrice)}` }] : []),
+    ...((item.priceHistory || []).slice(1).map((h) => ({ at: h.from, kind: "price", text: `Price changed to $${n(h.price)}` }))),
+    ...(sale ? [{ at: sale.soldAt, kind: "sold", text: `Sold${sale.customerName ? ` to ${sale.customerName}` : ""}${sale.channel === "web" ? " online" : " in store"}`, amount: soldFor }] : []),
+    ...(item.status === "written_off" ? [{ at: item.writeOffAt, kind: "writeoff", text: `Written off: ${item.writeOffReason || ""}`, amount: 0 }] : []),
+  ].filter((e) => e.at).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  return {
+    source: sourceOf(item), order, sale, repairs, bought, repairCost, totalCost, target, askingFor, soldFor,
+    profit: price != null ? price - totalCost : null, margin: price ? (price - totalCost) / price : null,
+    belowStandard: target != null && price != null && price < target,
+    daysToReady: days(item.receivedAt, readyAt), daysInShop: days(item.receivedAt, sale ? sale.soldAt : item.status === "sold" ? item.soldAt : now.toISOString()),
+    events,
+  };
+}
