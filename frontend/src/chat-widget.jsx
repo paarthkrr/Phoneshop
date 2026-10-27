@@ -10,7 +10,7 @@ const isStaffPath = (p) => /^\/(portal|staff)(\/|$)/.test(p);
 const CSS = `
   .rc-launch { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 39; display: flex; align-items: center; gap: 10px; flex-direction: row-reverse; }
   .rc-launch.low { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
-  .rc-fab { position: relative; width: 58px; height: 58px; border-radius: 50%; border: none; cursor: pointer; background: linear-gradient(135deg, #1B43AA, #2150C8); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 28px rgba(33,80,200,.45); animation: rc-in .5s cubic-bezier(.16,1,.3,1) both .6s; -webkit-tap-highlight-color: transparent; transition: transform .15s ease; }
+  .rc-fab { position: relative; width: 58px; height: 58px; border-radius: 50%; border: none; cursor: pointer; background: linear-gradient(135deg, #1B43AA, var(--mr-brand)); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 28px rgba(33,80,200,.45); animation: rc-in .5s cubic-bezier(.16,1,.3,1) both .6s; -webkit-tap-highlight-color: transparent; transition: transform .15s ease; }
   .rc-fab:hover { transform: translateY(-2px) scale(1.04); }
   .rc-fab:active { transform: scale(.95); }
   .rc-fab::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(33,80,200,.55); animation: rc-ring 2.4s ease-out 2.2s 3; }
@@ -23,7 +23,7 @@ const CSS = `
      small chat button at mid-height, clear of the price and the Continue button. */
   @media (max-width: 720px) { .rc-wa.low { display: none; } .rc-launch.low { bottom: 46vh; right: 8px; } .rc-launch.low .rc-fab { width: 46px; height: 46px; } .rc-launch.low .rc-tease { display: none; } }
   .rc-dot { position: absolute; top: 4px; right: 4px; width: 13px; height: 13px; border-radius: 50%; background: #E5484D; border: 2px solid #fff; animation: rc-pop .35s cubic-bezier(.16,1,.3,1) both; }
-  .rc-tease { max-width: 210px; padding: 10px 14px; background: #fff; color: #0F1B3D; border-radius: 16px 16px 4px 16px; font: 500 13.5px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 10px 28px rgba(17,24,39,.18); animation: rc-tease .45s cubic-bezier(.16,1,.3,1) both; cursor: pointer; }
+  .rc-tease { max-width: 210px; padding: 10px 14px; background: var(--mr-surface); color: #0F1B3D; border-radius: 16px 16px 4px 16px; font: 500 13.5px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; box-shadow: 0 10px 28px rgba(17,24,39,.18); animation: rc-tease .45s cubic-bezier(.16,1,.3,1) both; cursor: pointer; }
   .rc-fab { animation: rc-in .5s cubic-bezier(.16,1,.3,1) both .6s, rc-wiggle 14s ease-in-out 9s infinite; }
   @keyframes rc-wiggle { 0%, 4%, 100% { transform: none; } 1% { transform: rotate(-9deg); } 2% { transform: rotate(8deg); } 3% { transform: rotate(-4deg); } }
   @keyframes rc-in { from { opacity: 0; transform: translateY(14px) scale(.8); } to { opacity: 1; transform: none; } }

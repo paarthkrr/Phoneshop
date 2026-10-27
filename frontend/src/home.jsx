@@ -25,13 +25,13 @@ const TOP_CSS = `
 .mvt-track{display:flex;gap:16px;width:max-content;animation:mvt-scroll 60s linear infinite}
 .mvt-wrap:hover .mvt-track,.mvt-track:focus-within{animation-play-state:paused}
 @keyframes mvt-scroll{to{transform:translateX(-50%)}}
-.mvt-card{flex:0 0 200px;background:#fff;border:1px solid #E2E6EC;border-radius:18px;padding:14px;text-decoration:none;color:#111827;box-shadow:0 6px 20px rgba(17,24,39,.06);transition:transform .25s ease,box-shadow .25s ease}
+.mvt-card{flex:0 0 200px;background:var(--mr-surface);border:1px solid var(--mr-line);border-radius:18px;padding:14px;text-decoration:none;color:var(--mr-text);box-shadow:0 6px 20px rgba(17,24,39,.06);transition:transform .25s ease,box-shadow .25s ease}
 .mvt-card:hover{transform:translateY(-8px) rotateX(4deg) rotateY(-2deg);box-shadow:0 24px 48px rgba(120,20,40,.2)}
-.mvt-img{height:190px;border-radius:14px;background:linear-gradient(180deg,#F7F9FC,#EEF2F8);display:flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden}
+.mvt-img{height:190px;border-radius:14px;background:linear-gradient(180deg,var(--mr-surface-2),var(--mr-surface-2));display:flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden}
 .mvt-img img{max-height:170px;max-width:90%;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(17,24,39,.18))}.mvt-img svg{max-height:96%;max-width:96%;width:auto;height:auto}
 .mvt-name{font-weight:800;font-size:15px;margin-bottom:4px}
-.mvt-price{font-family:'Archivo Black',sans-serif;font-size:22px;color:#2150C8}
-.mvt-cta{font-size:13px;font-weight:700;color:#2150C8;margin-top:6px}
+.mvt-price{font-family:'Archivo Black',sans-serif;font-size:22px;color:var(--mr-brand)}
+.mvt-cta{font-size:13px;font-weight:700;color:var(--mr-brand);margin-top:6px}
 @media(max-width:720px){.mvt-card{flex-basis:165px}.mvt-img{height:160px}.mvt-img img{max-height:145px}}
 @media(prefers-reduced-motion:reduce){.mvt-track{animation:none}.mvt-wrap{overflow-x:auto}}
 `;
@@ -43,7 +43,7 @@ function TopPhones({ phones }) {
         {p.imageUrl ? <img src={p.imageUrl} alt={dup ? "" : p.model} loading="lazy" /> : <DeviceArtCard type="phone" size={168} brand={p.brand} model={p.model} />}
       </div>
       <div className="mvt-name">{p.model}</div>
-      <div style={{ fontSize: 12.5, color: "#5B6472" }}>Get up to</div>
+      <div style={{ fontSize: 12.5, color: "var(--mr-muted)" }}>Get up to</div>
       <div className="mvt-price">${p.upTo.toLocaleString()}</div>
       <div className="mvt-cta">Get my quote →</div>
     </a>
@@ -54,9 +54,9 @@ function TopPhones({ phones }) {
       <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 20px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26 }}>Top phones we buy</div>
-          <div style={{ color: "#5B6472", fontSize: 14.5 }}>Real prices from our quote tool. Tap a phone for your exact offer.</div>
+          <div style={{ color: "var(--mr-muted)", fontSize: 14.5 }}>Real prices from our quote tool. Tap a phone for your exact offer.</div>
         </div>
-        <a href="/sell/apple" style={{ color: "#2150C8", fontWeight: 700, fontSize: 14.5 }}>See all models →</a>
+        <a href="/sell/apple" style={{ color: "var(--mr-brand)", fontWeight: 700, fontSize: 14.5 }}>See all models →</a>
       </div>
       <div className="mvt-wrap">
         <div className="mvt-track">{phones.map((p, n) => card(p, n, false))}{phones.map((p, n) => card(p, n, true))}</div>
@@ -126,7 +126,7 @@ function upToFor(d, cfg) {
 const HERO_CSS = `
 .mvx-hero{position:relative;overflow:hidden;color:#fff;min-height:auto;background:linear-gradient(160deg,#2A1520 0%,#12080C 50%,#050304 100%);display:flex;align-items:center}
 .mvx-hero-inner{position:relative;max-width:1180px;margin:0 auto;padding:60px 22px;display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center;width:100%}
-.mvx-chrome{background:linear-gradient(180deg,#FFFFFF 0%,#F5E6EA 40%,#C97A8A 60%,#FFFFFF 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mvx-chrome{background:linear-gradient(180deg,var(--mr-surface) 0%,#F5E6EA 40%,#C97A8A 60%,var(--mr-surface) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mvx-eyebrow{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.3em;color:rgba(255,255,255,.6);margin-bottom:18px}
 .mvx-eyebrow i{width:24px;height:1px;background:linear-gradient(90deg,#C97A8A,transparent);display:block}
 .mvx-h1{font-family:'Outfit','Archivo',sans-serif;font-weight:800;font-size:clamp(40px,6vw,78px);line-height:.95;letter-spacing:-.04em;margin:0 0 18px;color:#fff}
@@ -173,7 +173,7 @@ const HERO_CSS = `
 .mvx-cash{font-size:11px;color:#7DDEA0;background:rgba(125,222,160,.12);padding:3px 7px;border-radius:6px}
 .mvx-quote-btn{display:block;text-align:center;padding:12px;border-radius:11px;background:linear-gradient(180deg,#A0485C,#6B2D3C);color:#fff;font-weight:700;text-decoration:none}
 .mvx-quote-note{font-size:11px;color:rgba(255,255,255,.4);margin-top:8px;line-height:1.4}
-.mvx-benefits{background:#F7F4F5;border-bottom:1px solid #E8E0E2}
+.mvx-benefits{background:var(--mr-surface-2);border-bottom:1px solid var(--mr-line)}
 .mvx-benefits-inner{max-width:1180px;margin:0 auto;padding:18px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .mvx-benefits-inner div{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;font-weight:600;color:#2A1A1E}
 .mvx-benefits-inner svg{width:18px;height:18px;color:#8B3A4C}
@@ -362,8 +362,8 @@ async function loadJSON(key, shared) {
   }
 }
 
-const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
-  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+  brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", line = "var(--mr-line)";
 
 // The three things people actually come here to do — each gets equal,
 // prominent billing up top, the way PhoneExchange and Mobile Monster lead
@@ -412,28 +412,28 @@ function BentoTrust() {
     <div className="bt-band">
     <section aria-label="Why choose Mobile Recellr" className="bt-wrap">
       <style>{FX_CSS + `
-        .bt-band { background: linear-gradient(180deg, #F4F6F9 0%, #E6EAF0 100%); padding: 24px 0 28px; margin-bottom: 20px; }
+        .bt-band { background: linear-gradient(180deg, var(--mr-surface-2) 0%, #E6EAF0 100%); padding: 24px 0 28px; margin-bottom: 20px; }
         .bt-wrap { max-width: 1140px; margin: 0 auto; padding: 0 20px; }
         .bt-head { font-family: 'Outfit', 'Archivo', sans-serif; font-weight: 800; font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.035em; text-align: center; margin: 0 0 22px; background: linear-gradient(180deg, #3A404D 0%, #11141B 45%, #5B6373 60%, #1A1E27 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .bt-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr));
           grid-template-areas: "big big war war" "big big pm pm" "gad dat ret bat" "par par any any"; }
-        .bt-card { position: relative; border: 1px solid rgba(255,255,255,.95); border-radius: 22px; padding: 18px; background: linear-gradient(150deg, rgba(255,255,255,.92), rgba(255,255,255,.7)); box-shadow: 0 18px 40px rgba(31,36,48,.08), inset 0 1px 0 #fff; color: #111827; min-width: 0;
+        .bt-card { position: relative; border: 1px solid rgba(255,255,255,.95); border-radius: 22px; padding: 18px; background: linear-gradient(150deg, rgba(255,255,255,.92), rgba(255,255,255,.7)); box-shadow: 0 18px 40px rgba(31,36,48,.08), inset 0 1px 0 #fff; color: var(--mr-text); min-width: 0;
           transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
         .bt-card:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(17,24,39,.08); border-color: #C9D5F5; }
-        .bt-ic { width: 42px; height: 42px; border-radius: 12px; background: #EEF3FF; color: #2150C8; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .bt-ic { width: 42px; height: 42px; border-radius: 12px; background: var(--mr-brand-soft); color: var(--mr-brand); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
         .bt-t { font-weight: 800; font-size: 15.5px; margin-bottom: 4px; }
-        .bt-d { color: #5B6472; font-size: 13.5px; line-height: 1.5; }
+        .bt-d { color: var(--mr-muted); font-size: 13.5px; line-height: 1.5; }
         .bt-wide { display: flex; gap: 16px; align-items: center; }
         .bt-wide .bt-ic { margin-bottom: 0; flex: 0 0 auto; }
-        .bt-war { background: #F5F8FF; border-color: #D9E3FB; }
+        .bt-war { background: var(--mr-surface-2); border-color: #D9E3FB; }
         .bt-big { overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; min-height: 280px; padding: 26px; border: none; color: #fff;
           background: radial-gradient(90% 90% at 85% 15%, #2A3046 0%, rgba(42,48,70,0) 60%), linear-gradient(150deg, #0B0C10 0%, #161A24 60%, #222838 100%); }
         .bt-big::before { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.08); }
         .bt-big .bt-ic { position: absolute; top: 24px; left: 26px; width: 52px; height: 52px; border-radius: 15px; background: rgba(255,255,255,.14); color: #fff; }
-        .bt-big .bt-t { font-family: 'Outfit', 'Archivo', sans-serif; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(180deg, #FFFFFF 0%, #CDD3DE 40%, #8A93A3 56%, #ECEFF4 70%, #AEB6C4 100%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: clamp(22px, 2.6vw, 28px); line-height: 1.15; margin-bottom: 8px; position: relative; }
+        .bt-big .bt-t { font-family: 'Outfit', 'Archivo', sans-serif; font-weight: 800; letter-spacing: -0.03em; background: linear-gradient(180deg, var(--mr-surface) 0%, #CDD3DE 40%, #8A93A3 56%, #ECEFF4 70%, #AEB6C4 100%); -webkit-background-clip: text; background-clip: text; color: transparent; font-size: clamp(22px, 2.6vw, 28px); line-height: 1.15; margin-bottom: 8px; position: relative; }
         .bt-big .bt-d { color: rgba(255,255,255,.86); font-size: 15px; max-width: 420px; position: relative; }
         .bt-cta { position: relative; align-self: flex-start; margin-top: 18px; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 18px; border-radius: 999px;
-          background: #fff; color: #1B43AA; font-weight: 800; font-size: 14px; text-decoration: none; transition: transform .15s ease; }
+          background: var(--mr-surface); color: #1B43AA; font-weight: 800; font-size: 14px; text-decoration: none; transition: transform .15s ease; }
         .bt-cta:hover { transform: translateX(3px); }
         @media (max-width: 900px) {
           .bt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: none; grid-auto-flow: row dense; }
@@ -556,15 +556,15 @@ export default function Home() {
         .mv-hero::before { content: ""; position: absolute; top: -140px; left: 50%; width: 620px; height: 620px; margin-left: -310px;
           background: radial-gradient(circle, rgba(33,80,200,0.16) 0%, rgba(33,80,200,0) 65%); pointer-events: none; }
         .mv-hero > * { position: relative; }
-        .mv-action:hover { border-color: #2150C8 !important; }
+        .mv-action:hover { border-color: var(--mr-brand) !important; }
         .mv-action:hover .mv-arrow { transform: translateX(5px); }
         .mv-arrow { display: inline-block; transition: transform 0.2s ease; }
         @keyframes mv-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
         .mv-float { }
-        .mv-chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: #fff;
-          border: 1px solid rgba(32,28,24,0.16); color: #111827; text-decoration: none; font-size: 14px; font-weight: 600;
+        .mv-chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--mr-surface);
+          border: 1px solid rgba(32,28,24,0.16); color: var(--mr-text); text-decoration: none; font-size: 14px; font-weight: 600;
           transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease; }
-        .mv-chip:hover { border-color: #2150C8; color: #2150C8; transform: translateY(-1px); }
+        .mv-chip:hover { border-color: var(--mr-brand); color: var(--mr-brand); transform: translateY(-1px); }
         @media (prefers-reduced-motion: reduce) { .mv-rise, .mv-hero::before, .mv-float { animation: none !important; } }
       `}</style>
 
@@ -582,7 +582,7 @@ export default function Home() {
             <p style={{ color: "rgba(255,255,255,.7)", fontSize: 15, margin: "0 auto 22px", maxWidth: 480 }}>
               {spinUnit.brand} {spinUnit.model}{spinUnit.storage ? ` · ${spinUnit.storage}` : ""} — photos of the exact phone you'd receive. Drag to turn it.
             </p>
-            <div style={{ background: "#fff", borderRadius: 20, padding: "18px 12px", maxWidth: 420, margin: "0 auto" }}>
+            <div style={{ background: "var(--mr-surface)", borderRadius: 20, padding: "18px 12px", maxWidth: 420, margin: "0 auto" }}>
               <SpinViewer frames={spinUnit.spinUrls} poster={spinUnit.photoUrl} alt={`${spinUnit.brand} ${spinUnit.model}`} />
             </div>
             <a href="/shop" className="mv-chip" style={{ marginTop: 22 }}>Shop refurbished phones <span className="mv-arrow" aria-hidden="true">→</span></a>
@@ -631,7 +631,7 @@ export default function Home() {
       {/* ---- Featured deal (only when stock is listed) ---- */}
       {featured && (
         <div style={{ ...section, marginBottom: 16 }}>
-          <a href="/shop" className="cs-card" style={{ display: "flex", alignItems: "center", gap: 18, border: "2px solid #2150C8", background: panel, padding: 18, color: paper, textDecoration: "none", flexWrap: "wrap" }}>
+          <a href="/shop" className="cs-card" style={{ display: "flex", alignItems: "center", gap: 18, border: "2px solid var(--mr-brand)", background: panel, padding: 18, color: paper, textDecoration: "none", flexWrap: "wrap" }}>
             <DeviceArtCard type={inferDeviceType(featured.model, featured.category)} size={78} brand={featured.brand} model={featured.model}
               imageUrl={featured.photoUrl || photos[`${featured.brand}|${featured.model}`]} label={`${featured.brand} ${featured.model}`} />
             <div style={{ flex: 1, minWidth: 180 }}>
@@ -656,13 +656,13 @@ export default function Home() {
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%", padding: "0 clamp(20px, 5vw, 44px)", maxWidth: 480, color: "#fff" }}>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(22px, 4vw, 30px)", lineHeight: 1.15, marginBottom: 10 }}>Real technicians.<br />Honest parts.</div>
             <div style={{ fontSize: 14.5, lineHeight: 1.6, opacity: 0.92, marginBottom: 18 }}>We diagnose first and tell you honestly what's wrong, before quoting anything.</div>
-            <a href="/repairs" className="cs-btn" style={{ alignSelf: "flex-start", padding: "12px 22px", background: "#fff", color: "#111827", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 10 }}>Book a repair →</a>
+            <a href="/repairs" className="cs-btn" style={{ alignSelf: "flex-start", padding: "12px 22px", background: "var(--mr-surface)", color: "var(--mr-text)", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 10 }}>Book a repair →</a>
           </div>
         </Photo>
       </div>
 
       {/* ---- How selling works: "From drawer to dollars" ---- */}
-      <div style={{ background: "#F4F6F9", padding: "56px 0", marginBottom: 20 }}>
+      <div style={{ background: "var(--mr-surface-2)", padding: "56px 0", marginBottom: 20 }}>
         <div style={section}>
           <div style={{ textAlign: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.14em", color: brass, marginBottom: 8 }}>LESS HASSLE. MORE CASH.</div>
@@ -673,7 +673,7 @@ export default function Home() {
             {STEPS.map((s) => (
               <div key={s.n}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, fontFamily: "'Archivo Black', sans-serif", color: brass, fontSize: 13, marginBottom: 18 }}>0{s.n}<span style={{ flex: 1, height: 1, background: line }} /></div>
-                <div style={{ width: 46, height: 46, borderRadius: 12, background: "#fff", color: brass, display: "grid", placeItems: "center", marginBottom: 16, boxShadow: "0 6px 16px rgba(17,24,39,.06)" }}>
+                <div style={{ width: 46, height: 46, borderRadius: 12, background: "var(--mr-surface)", color: brass, display: "grid", placeItems: "center", marginBottom: 16, boxShadow: "0 6px 16px rgba(17,24,39,.06)" }}>
                   <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: STEP_ICONS[s.n] }} />
                 </div>
                 <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 8 }}>{s.title}</div>
@@ -726,7 +726,7 @@ export default function Home() {
         <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
           {[["📱", "Screen replacement", "From $85", "Cracked or unresponsive display."], ["🔋", "Battery replacement", "From $59", "Phone dying by lunchtime?"],
             ["🔌", "Charging port", "From $55", "Often just dust — we check and clean first."], ["📷", "Camera repair", "From $75", "Blurry, cracked or not focusing."]].map(([i, t, p, d]) => (
-            <a key={t} href="/repairs" className="cs-card" style={{ display: "block", border: "1px solid #E2E6EC", background: panel, padding: 16, color: paper, textDecoration: "none" }}>
+            <a key={t} href="/repairs" className="cs-card" style={{ display: "block", border: "1px solid var(--mr-line)", background: panel, padding: 16, color: paper, textDecoration: "none" }}>
               <div style={{ fontSize: 24, marginBottom: 6 }} aria-hidden="true">{i}</div>
               <div style={{ fontWeight: 700, fontSize: 14.5 }}>{t}</div>
               <div style={{ color: brass, fontWeight: 700, fontSize: 14, margin: "3px 0 6px" }}>{p}</div>
@@ -763,7 +763,7 @@ export default function Home() {
       {/* ---- Visit us (only once the address is set in Business settings) ---- */}
       {biz.address && (
         <div style={{ ...section, marginBottom: 20 }}>
-          <div style={{ border: "1px solid #E2E6EC", borderRadius: 14, background: panel, padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, alignItems: "center" }}>
+          <div style={{ border: "1px solid var(--mr-line)", borderRadius: 14, background: panel, padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 18, alignItems: "center" }}>
             <div>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 21, marginBottom: 8 }}>Visit us in store</div>
               <div style={{ fontSize: 14.5, lineHeight: 1.6 }}>{biz.address}</div>
@@ -774,7 +774,7 @@ export default function Home() {
               <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(biz.address)}`} target="_blank" rel="noopener" className="cs-btn"
                 style={{ padding: "13px 20px", background: brass, color: "#fff", fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📍 Get directions</a>
               {biz.phone && <a href={`tel:${biz.phone.replace(/\s/g, "")}`} className="cs-btn"
-                style={{ padding: "13px 20px", border: "1.5px solid #E2E6EC", color: paper, fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📞 Call {biz.phone}</a>}
+                style={{ padding: "13px 20px", border: "1.5px solid var(--mr-line)", color: paper, fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📞 Call {biz.phone}</a>}
             </div>
           </div>
         </div>
@@ -794,13 +794,13 @@ export default function Home() {
       </div>
 
       {/* ---- Final call to action (Lovable design idea) ---- */}
-      <div style={{ background: "linear-gradient(120deg,#1E3A8A,#2150C8 60%,#0EA5E9)", color: "#fff", padding: "54px 0", marginTop: 20 }}>
+      <div style={{ background: "linear-gradient(120deg,#1E3A8A,var(--mr-brand) 60%,#0EA5E9)", color: "#fff", padding: "54px 0", marginTop: 20 }}>
         <div style={{ ...section, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(28px, 5vw, 40px)", lineHeight: 1.12 }}>That old phone has a future.</div>
             <div style={{ fontSize: 15.5, opacity: 0.88, marginTop: 10 }}>And there could be cash in yours. We collect anywhere in Sydney and pay on the spot.</div>
           </div>
-          <a href="/quote" className="cs-btn" style={{ background: "#fff", color: "#1E3A8A", padding: "15px 26px", borderRadius: 12, fontWeight: 800, fontSize: 15.5, textDecoration: "none", boxShadow: "0 12px 30px rgba(0,0,0,.2)" }}>Find out what it's worth →</a>
+          <a href="/quote" className="cs-btn" style={{ background: "#FFFFFF", color: "#1E3A8A", padding: "15px 26px", borderRadius: 12, fontWeight: 800, fontSize: 15.5, textDecoration: "none", boxShadow: "0 12px 30px rgba(0,0,0,.2)" }}>Find out what it's worth →</a>
         </div>
       </div>
     </div>

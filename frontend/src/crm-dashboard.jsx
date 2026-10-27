@@ -194,8 +194,8 @@ export default function CRMDashboard() {
     return { monthly, totalRevenue, totalCost, marginPct, grossProfit, totalExpenses, writtenOffLoss, tillVariance, netProfit, inspected: inspected.length, avgDeltaPct, exactMatches, funnel, topModels };
   }, [orders, sales, expenses, inventory, tillRecords]);
 
-  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+  const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+    brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 
   if (orders === null) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading customer records…</div>;
 
@@ -533,7 +533,7 @@ function ExpensesTab({ colors, expenses, onAdd, onDelete, fmt }) {
         <button disabled={!description.trim() || !amount} onClick={() => {
             onAdd({ category, description: description.trim(), amount: parseFloat(amount), date });
             setDescription(""); setAmount("");
-          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: description.trim() && amount ? brass : line, color: description.trim() && amount ? "#1a1408" : muted, fontSize: 13, fontWeight: 600, cursor: description.trim() && amount ? "pointer" : "default" }}>
+          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: description.trim() && amount ? brass : line, color: description.trim() && amount ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: description.trim() && amount ? "pointer" : "default" }}>
           Add expense
         </button>
       </div>
@@ -694,8 +694,8 @@ function TechSplit({ t, muted, red, money }) {
   const c = b.customer, s = b.shop;
   return (
     <div style={{ marginTop: 4 }}>
-      {c && c.jobs > 0 && <div style={row}><strong style={{ color: "#111827" }}>Counter repairs:</strong> {c.jobs} · {hrs(c.minutes)} · {avgMin(c)} · pay {money(c.pay)} ({money(c.pay / c.jobs)}/job, {perHour(c.pay, c.minutes)}) · takings {money(c.revenue)}{c.revenue ? ` · pay is ${Math.round((c.pay / c.revenue) * 100)}% of takings` : ""}</div>}
-      {s && s.jobs > 0 && <div style={row}><strong style={{ color: "#111827" }}>Shop phones:</strong> {s.jobs} · {hrs(s.minutes)} · {avgMin(s)} · pay {money(s.pay)} ({money(s.pay / s.jobs)}/phone, {perHour(s.pay, s.minutes)}) · parts {money(s.parts)} · repair cost {money((s.pay + s.parts) / s.jobs)}/phone</div>}
+      {c && c.jobs > 0 && <div style={row}><strong style={{ color: "var(--mr-text)" }}>Counter repairs:</strong> {c.jobs} · {hrs(c.minutes)} · {avgMin(c)} · pay {money(c.pay)} ({money(c.pay / c.jobs)}/job, {perHour(c.pay, c.minutes)}) · takings {money(c.revenue)}{c.revenue ? ` · pay is ${Math.round((c.pay / c.revenue) * 100)}% of takings` : ""}</div>}
+      {s && s.jobs > 0 && <div style={row}><strong style={{ color: "var(--mr-text)" }}>Shop phones:</strong> {s.jobs} · {hrs(s.minutes)} · {avgMin(s)} · pay {money(s.pay)} ({money(s.pay / s.jobs)}/phone, {perHour(s.pay, s.minutes)}) · parts {money(s.parts)} · repair cost {money((s.pay + s.parts) / s.jobs)}/phone</div>}
       {t.rework > 0 && <div style={{ ...row, color: red }}>↩ {t.rework} warranty comeback{t.rework === 1 ? "" : "s"} this period on their jobs</div>}
     </div>
   );

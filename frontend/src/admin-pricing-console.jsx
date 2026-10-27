@@ -1,3 +1,5 @@
+import BrandColours from "./brand-colours.jsx";
+import { applyBrand, rememberBrand } from "./theme.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -28,6 +30,8 @@ const DEFAULT_CONFIG = {
     // in with a real number. No shop should have "13+ years in business"
     // fabricated for it on day one.
     yearsInBusiness: "", devicesSoldCount: "", googleRating: "",
+    // Site colours (hex). Blank = the built-in Recellr blue and wine.
+    brandColor: "", accentColor: "",
   },
   holdingCostPct: 0.02,
   regions: {
@@ -255,6 +259,8 @@ export default function AdminPricingConsole() {
       const entries = notes.map((note) => ({ ts: Date.now(), field: section, note }));
       const h = await pushHistory(entries);
       setConfig(JSON.parse(JSON.stringify(draft)));
+      // Keep this browser on the saved colours for its next visit.
+      rememberBrand({ brand: draft.businessSettings?.brandColor, accent: draft.businessSettings?.accentColor });
       setHistory(h);
       setStatus(`Saved ${notes.length} change${notes.length > 1 ? "s" : ""}.`);
       setTimeout(() => setStatus(""), 2500);
@@ -265,12 +271,14 @@ export default function AdminPricingConsole() {
 
   function discardSection() {
     setDraft(JSON.parse(JSON.stringify(config)));
+    // Undo the live colour preview too.
+    applyBrand({ brand: config.businessSettings?.brandColor, accent: config.businessSettings?.accentColor });
     setStatus("Discarded unsaved changes.");
     setTimeout(() => setStatus(""), 2000);
   }
 
-  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+  const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+    brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 
   const numInput = (value, onChange, opts = {}) => (
     <input
@@ -341,6 +349,9 @@ export default function AdminPricingConsole() {
               <input type="checkbox" checked={draft.businessSettings.gstRegistered} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, gstRegistered: e.target.checked } })} />
               Registered for GST (10%) — shows a GST breakdown on invoices when on
             </label>
+
+            <BrandColours brand={draft.businessSettings.brandColor} accent={draft.businessSettings.accentColor} colors={{ muted, line, paper }}
+              onChange={(c) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, ...c } })} />
 
             <div style={{ fontSize: 13, marginTop: 20, marginBottom: 4 }}>Storefront trust stats (optional)</div>
             <div style={{ fontSize: 12, color: muted, marginBottom: 10 }}>
@@ -580,14 +591,14 @@ export default function AdminPricingConsole() {
 }
 
 function Section({ title, children, onSave, onDiscard, dirty, status, line, muted }) {
-  const brass = "#2150C8", panel = "#FFFFFF", paper = "#111827";
+  const brass = "var(--mr-brand)", panel = "var(--mr-surface)", paper = "var(--mr-text)";
   return (
     <div>
       <div style={{ fontSize: 15, marginBottom: 12 }}>{title}</div>
       <div style={{ marginBottom: 16 }}>{children}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, position: "sticky", bottom: 12, background: panel, border: `1px solid ${line}`, borderRadius: 3, padding: "10px 14px" }}>
         <button onClick={onSave} disabled={!dirty}
-          style={{ padding: "9px 18px", borderRadius: 3, border: "none", background: dirty ? brass : line, color: dirty ? "#1a1408" : muted, fontSize: 13, fontWeight: 600, cursor: dirty ? "pointer" : "default" }}>
+          style={{ padding: "9px 18px", borderRadius: 3, border: "none", background: dirty ? brass : line, color: dirty ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: dirty ? "pointer" : "default" }}>
           Save changes
         </button>
         {dirty && <button onClick={onDiscard} style={{ padding: "9px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 13, cursor: "pointer" }}>Discard</button>}

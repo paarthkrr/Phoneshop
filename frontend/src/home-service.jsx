@@ -1,7 +1,7 @@
 import React from "react";
 import { DOORSTEP } from "./doorstep.js";
 
-const paper = "#111827", muted = "#5B6472", brass = "#2150C8", line = "#E2E6EC";
+const paper = "var(--mr-text)", muted = "var(--mr-muted)", brass = "var(--mr-brand)", line = "var(--mr-line)";
 
 // One page, three clearly separate offers: selling to us, buying from us, repairs.
 const CARDS = [
@@ -18,9 +18,9 @@ const CARDS = [
 
 export default function HomeService() {
   return (
-    <div style={{ background: "#fff", color: paper, minHeight: "100%", fontFamily: "'Outfit', 'Archivo', system-ui, sans-serif" }}>
+    <div style={{ background: "var(--mr-surface)", color: paper, minHeight: "100%", fontFamily: "'Outfit', 'Archivo', system-ui, sans-serif" }}>
       <style>{`.hs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}@media(max-width:860px){.hs-grid{grid-template-columns:1fr}}
-        .hs-card{display:flex;flex-direction:column;border:1px solid ${line};border-radius:18px;padding:22px;background:#fff}
+        .hs-card{display:flex;flex-direction:column;border:1px solid ${line};border-radius:18px;padding:22px;background:var(--mr-surface)}
         .hs-cta{margin-top:auto;display:block;text-align:center;padding:13px;border-radius:12px;background:${brass};color:#fff;text-decoration:none;font-weight:700;font-size:15px}`}</style>
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "44px 16px 80px" }}>
         <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: "-0.02em" }}>Mobile Recellr, at your door</h1>

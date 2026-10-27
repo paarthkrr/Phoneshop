@@ -15,8 +15,8 @@ async function loadJSON(key, shared) {
   }
 }
 
-const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
-  brass = "#2150C8", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+  brass = "var(--mr-brand)", line = "var(--mr-line)";
 
 export default function ContactUs() {
   const [businessSettings, setBusinessSettings] = useState(null);
@@ -54,7 +54,7 @@ export default function ContactUs() {
                   style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "12px 18px", background: "#25D366", color: "#fff", fontWeight: 800, borderRadius: 12, textDecoration: "none", fontSize: 15 }}>
                   💬 Chat on WhatsApp
                 </a>
-                <div style={{ fontSize: 12.5, color: "#5B6472", marginTop: 6 }}>Fastest way to reach us. Send photos of your phone for a quick check.</div>
+                <div style={{ fontSize: 12.5, color: "var(--mr-muted)", marginTop: 6 }}>Fastest way to reach us. Send photos of your phone for a quick check.</div>
               </>
             ) : (
               <div style={{ color: muted, fontSize: 14 }}>Phone number coming soon — check back shortly.</div>
@@ -75,7 +75,7 @@ export default function ContactUs() {
             {address ? (
               <div style={{ fontSize: 15, lineHeight: 1.6 }}>{address}</div>
             ) : (
-              <div style={{ fontSize: 15, lineHeight: 1.6 }}>Drop-off and collection are arranged by message. {businessSettings.whatsapp ? <a href={waLink(businessSettings.whatsapp, "Hi Mobile Recellr, I'd like to arrange a drop-off. ")} target="_blank" rel="noopener" style={{ color: "#2150C8", fontWeight: 700 }}>WhatsApp us</a> : "Message us"} and we'll confirm the place and time — or book a free home collection anywhere in Sydney.</div>
+              <div style={{ fontSize: 15, lineHeight: 1.6 }}>Drop-off and collection are arranged by message. {businessSettings.whatsapp ? <a href={waLink(businessSettings.whatsapp, "Hi Mobile Recellr, I'd like to arrange a drop-off. ")} target="_blank" rel="noopener" style={{ color: "var(--mr-brand)", fontWeight: 700 }}>WhatsApp us</a> : "Message us"} and we'll confirm the place and time — or book a free home collection anywhere in Sydney.</div>
             )}
           </div>
 

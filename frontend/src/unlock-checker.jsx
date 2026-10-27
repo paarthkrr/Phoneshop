@@ -126,7 +126,7 @@ const STATUS_COLOR = {
 const T = {
   bg:      "#0F1117",
   surface: "#181B23",
-  border:  "#252931",
+  border: "#252931",
   muted:   "#4B5563",
   body:    "#9CA3AF",
   text:    "#E5E7EB",

@@ -103,7 +103,7 @@ function WasLine({ item, size = 12.5 }) {
   if (!w) return null;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: size, lineHeight: 1.3 }}>
-      <span style={{ color: "#5B6472" }}>Was <s>{fmt(w.was, item.currency)}</s></span>
+      <span style={{ color: "var(--mr-muted)" }}>Was <s>{fmt(w.was, item.currency)}</s></span>
       <span style={{ background: "#B42318", color: "#fff", fontWeight: 800, borderRadius: 999, padding: "2px 8px", fontSize: size - 1 }}>Save {fmt(w.save, item.currency)}</span>
     </span>
   );
@@ -227,8 +227,8 @@ export default function Storefront() {
     setTrackResult(found || null);
   }
 
-  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+  const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+    brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 
   if (inventory === null) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading available devices…</div>;
 
@@ -245,7 +245,7 @@ export default function Storefront() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
 
       {view !== "confirmed" && view !== "checkout" && view !== "detail" && (
-        <div style={{ background: paper, color: ink, textAlign: "center", padding: "8px 16px", fontSize: 12.5, fontWeight: 500 }}>
+        <div style={{ background: "var(--mr-surface-2)", color: "var(--mr-text)", borderBottom: "1px solid var(--mr-line)", textAlign: "center", padding: "8px 16px", fontSize: 12.5, fontWeight: 500 }}>
           ✓ Genuine or Premium Parts &nbsp;·&nbsp; ✓ Price Match Guarantee &nbsp;·&nbsp; ✓ {WARRANTY_MONTHS}-Month Warranty &nbsp;·&nbsp; ✓ All Gadgets — Phones, Tablets, Laptops & Watches
         </div>
       )}
@@ -312,7 +312,7 @@ export default function Storefront() {
                   {featured.map((item) => (
                     <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
                       style={{ textAlign: "left", padding: "16px", border: `1px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
-                      <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", background: "#FFFFFF", borderRadius: 3, marginBottom: 10 }}>
+                      <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", background: "var(--mr-surface)", borderRadius: 3, marginBottom: 10 }}>
                         <DeviceArt type={inferDeviceType(item.model, item.category)} size={56} brand={item.brand} model={item.model} imageUrl={item.photoUrl || modelPhotos[`${item.brand}|${item.model}`]} label={`${item.brand} ${item.model}`} />
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: brass, marginBottom: 6 }}>FEATURED</div>
@@ -442,7 +442,7 @@ export default function Storefront() {
             })}</script>
             <button onClick={() => setView("browse")} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to browsing</button>
             <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "#FFFFFF", borderRadius: 3, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "var(--mr-surface)", borderRadius: 3, marginBottom: 16 }}>
                 <DeviceArt type={inferDeviceType(selectedItem.model, selectedItem.category)} size={110} brand={selectedItem.brand} model={selectedItem.model} imageUrl={selectedItem.photoUrl || modelPhotos[`${selectedItem.brand}|${selectedItem.model}`]} label={`${selectedItem.brand} ${selectedItem.model}`} />
               </div>
               {hasSpin(selectedItem) && <SpinViewer frames={selectedItem.spinUrls} poster={selectedItem.photoUrl} alt={`${selectedItem.brand} ${selectedItem.model}`} />}
@@ -469,7 +469,7 @@ export default function Storefront() {
               </div>
 
               {/* Specifications (PhoneExchange-style). Only facts we can stand behind. */}
-              <div style={{ border: `1px solid ${line}`, borderRadius: 14, padding: "12px 16px", marginBottom: 16, background: "#fff" }}>
+              <div style={{ border: `1px solid ${line}`, borderRadius: 14, padding: "12px 16px", marginBottom: 16, background: "var(--mr-surface)" }}>
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 16, marginBottom: 4 }}>Specifications</div>
                 {[
                   ["Model", `${selectedItem.brand} ${selectedItem.model}`],
@@ -490,7 +490,7 @@ export default function Storefront() {
               </div>
 
               <button className="cs-btn" onClick={() => setView("checkout")}
-                style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Buy this device →
               </button>
             </div>
@@ -539,7 +539,7 @@ export default function Storefront() {
             </div>
             <button className="cs-btn" disabled={!canOrder || submitting} onClick={handleCheckout}
               style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                background: canOrder ? brass : line, color: canOrder ? "#1a1408" : muted,
+                background: canOrder ? brass : line, color: canOrder ? "#fff" : muted,
                 fontSize: 14, fontWeight: 600, cursor: canOrder ? "pointer" : "default" }}>
               {submitting && <span className="cs-spinner"></span>}
               {submitting ? "Placing order…" : "Place order"}
@@ -584,7 +584,7 @@ export default function Storefront() {
                 <div style={{ display: "flex", gap: 8 }}>
                   <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email" aria-label="Order number or email to track your order"
                     style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
-                  <button onClick={handleTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Find</button>
+                  <button onClick={handleTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Find</button>
                 </div>
                 {trackResult === null && <div style={{ marginTop: 10, fontSize: 13, color: red }}>No order found with that number or email.</div>}
                 {trackResult && (

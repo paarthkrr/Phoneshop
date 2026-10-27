@@ -1,47 +1,17 @@
-/* Burgundy iPhone-style accents (deep wine red) */
+/* Accent colour (deep wine by default; set in the Pricing Console): the top strip,
+   the main call-to-action buttons and headline prices. Everything else uses the brand colour. */
 .cs-announce {
-  background: linear-gradient(90deg, #6B2D3C 0%, #8B3A4C 50%, #6B2D3C 100%) !important;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--mr-accent-base) 85%, #000) 0%, var(--mr-accent-base) 50%, color-mix(in srgb, var(--mr-accent-base) 85%, #000) 100%) !important;
   color: #FFFFFF !important;
 }
-.cs-announce a { color: #F5E6EA !important; }
-
-/* Burgundy on active nav links and primary buttons */
-.dd-trigger.active, .cs-nav-link.active {
-  color: #6B2D3C !important;
-}
-.mm-quote-btn, .mvx-cta, button[type="submit"], .cs-btn-primary {
-  background: linear-gradient(180deg, #8B3A4C, #6B2D3C) !important;
+.cs-announce a { color: #FFFFFF !important; }
+.dd-trigger.active, .cs-nav-link.active { color: var(--mr-accent) !important; }
+.mm-quote-btn, .mvx-cta, .cs-btn-primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mr-accent-base) 85%, #fff), var(--mr-accent-base)) !important;
   color: #FFFFFF !important;
-  border-color: #6B2D3C !important;
+  border-color: var(--mr-accent-base) !important;
 }
-.mm-quote-btn:hover, .mvx-cta:hover {
-  background: linear-gradient(180deg, #A0485C, #7A3344) !important;
-}
-
-/* Selected storage buttons on quote page */
-button[aria-pressed="true"], .storage-btn.selected, .size-btn.selected {
-  background: #6B2D3C !important;
-  color: #FFFFFF !important;
-  border-color: #6B2D3C !important;
-}
-
-/* Condition cards hover / accent */
-.condition-card:hover, .condition-option:hover {
-  border-color: #8B3A4C !important;
-}
-
-/* Featured price numbers */
-.mvt-price, .quote-price, .up-to-price {
-  color: #6B2D3C !important;
-}
-
-/* Dark mode adjustments */
-body.dark-mode .cs-announce {
-  background: linear-gradient(90deg, #4A1E28, #6B2D3C) !important;
-}
-body.dark-mode .mvt-price, body.dark-mode .quote-price {
-  color: #C97A8A !important;
-}
-body.dark-mode button[aria-pressed="true"] {
-  background: #8B3A4C !important;
-}
+.mm-quote-btn:hover, .mvx-cta:hover { background: linear-gradient(180deg, color-mix(in srgb, var(--mr-accent-base) 70%, #fff), color-mix(in srgb, var(--mr-accent-base) 90%, #fff)) !important; }
+.storage-btn.selected, .size-btn.selected { background: var(--mr-accent-base) !important; color: #FFFFFF !important; border-color: var(--mr-accent-base) !important; }
+.condition-card:hover, .condition-option:hover { border-color: var(--mr-accent) !important; }
+.mvt-price, .quote-price, .up-to-price { color: var(--mr-accent) !important; }

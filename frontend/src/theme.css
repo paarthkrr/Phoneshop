@@ -1,0 +1,71 @@
+/* Mobile Recellr theme. Every colour on the site and in the portal comes from these
+   variables, so dark mode and a new brand colour change everything at once.
+   --mr-brand-base / --mr-accent-base are set from the Pricing Console (brand colours,
+   or picked from the logo); the rest are worked out from them here.
+   html[data-theme] is set before first paint (index.html) from the visitor's choice:
+   "light", "dark", or the phone/computer setting. */
+:root {
+  --mr-brand-base: #2150C8;
+  --mr-accent-base: #7A1F2B;
+  --mr-bg: #FFFFFF;
+  --mr-surface: #FFFFFF;
+  --mr-surface-2: #F4F6F9;
+  --mr-text: #111827;
+  --mr-muted: #5B6472;
+  --mr-line: #E2E6EC;
+  --mr-brand: var(--mr-brand-base);
+  --mr-accent: var(--mr-accent-base);
+  --mr-brand-soft: color-mix(in srgb, var(--mr-brand) 10%, transparent);
+  --mr-accent-soft: color-mix(in srgb, var(--mr-accent) 12%, transparent);
+  --mr-ok: #0E7A4F;
+  --mr-bad: #B42318;
+  --mr-shadow: 0 10px 30px rgba(15, 22, 38, .08);
+  --mr-glass: rgba(255, 255, 255, .82);
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  --mr-bg: #0B0F17;
+  --mr-surface: #121826;
+  --mr-surface-2: #1A2132;
+  --mr-text: #E8ECF3;
+  --mr-muted: #9AA4B5;
+  --mr-line: #263044;
+  /* Brand colours lifted so they read on a dark background. */
+  --mr-brand: color-mix(in srgb, var(--mr-brand-base) 72%, #ffffff);
+  --mr-accent: color-mix(in srgb, var(--mr-accent-base) 62%, #ffffff);
+  --mr-brand-soft: color-mix(in srgb, var(--mr-brand) 16%, transparent);
+  --mr-accent-soft: color-mix(in srgb, var(--mr-accent) 18%, transparent);
+  --mr-ok: #34D399;
+  --mr-bad: #F87171;
+  --mr-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  --mr-glass: rgba(11, 15, 23, .82);
+  color-scheme: dark;
+}
+html, body { background: var(--mr-bg); color: var(--mr-text); }
+html[data-theme] body { transition: background-color .25s ease, color .25s ease; }
+
+/* Things drawn for a white page that need help in dark mode. */
+html[data-theme="dark"] img[src$=".svg"][data-invert-dark] { filter: invert(1) hue-rotate(180deg); }
+html[data-theme="dark"] input, html[data-theme="dark"] textarea, html[data-theme="dark"] select { color: var(--mr-text); }
+html[data-theme="dark"] input::placeholder, html[data-theme="dark"] textarea::placeholder { color: color-mix(in srgb, var(--mr-muted) 80%, transparent); }
+
+/* Theme switch (header, phone menu). */
+.mr-theme-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--mr-line);
+  background: var(--mr-surface); color: var(--mr-text); font: 600 13px/1 inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.mr-theme-btn:hover { border-color: var(--mr-brand); }
+.mr-theme-btn svg { width: 16px; height: 16px; }
+
+/* Frosted (see-through white) surfaces, made for a white page. */
+html[data-theme="dark"] .cs-glass-nav::before { background: var(--mr-glass) !important; }
+html[data-theme="dark"] .cs-mobile-cta { background: var(--mr-glass) !important; border-top-color: var(--mr-line) !important; }
+html[data-theme="dark"] .bt-card { background: linear-gradient(150deg, rgba(26, 33, 50, .92), rgba(18, 24, 38, .72)) !important; border-color: var(--mr-line) !important; box-shadow: var(--mr-shadow) !important; }
+html[data-theme="dark"] .cs-card { background: var(--mr-surface); border-color: var(--mr-line) !important; }
+
+/* Homepage pieces drawn for a light page. */
+html[data-theme="dark"] .mvx-benefits-inner div { color: var(--mr-text) !important; }
+html[data-theme="dark"] .mvx-benefits-inner svg { color: var(--mr-accent) !important; }
+html[data-theme="dark"] .bt-band { background: linear-gradient(180deg, var(--mr-bg) 0%, var(--mr-surface) 100%) !important; }
+html[data-theme="dark"] .bt-head { background: linear-gradient(180deg, #FFFFFF 0%, #C9D0DC 55%, #FFFFFF 100%) !important; -webkit-background-clip: text !important; background-clip: text !important; }
+/* The exploded iPhone is photographed on white and blended onto a light stage, so in
+   dark mode it stays a light stage, set in as a rounded panel instead of a full-width band. */
+html[data-theme="dark"] .xv { margin: 24px 12px; border-radius: 28px; }

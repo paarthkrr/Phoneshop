@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 
 // Sign-in safety screens: the "finish securing your account" step after
 // sign-in, two-step setup (authenticator app), and sign-in history.
-const paper = "#111827", muted = "#5B6472", brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC", panel2 = "#F4F6F9";
+const paper = "var(--mr-text)", muted = "var(--mr-muted)", brass = "var(--mr-brand)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)", panel2 = "var(--mr-surface-2)";
 const field = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 15, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" };
 const btn = (bg, fg = "#fff") => ({ padding: "12px 18px", borderRadius: 10, border: "none", background: bg, color: fg, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
 const PASSWORD_HINT = "At least 12 characters. A short sentence is easiest, like “green kettle on tuesday”.";

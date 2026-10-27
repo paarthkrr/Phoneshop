@@ -345,8 +345,8 @@ export default function RepairTickets() {
     return withinWarranty;
   }
 
-  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+  const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+    brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
   const colors = { ink, panel, panel2, paper, muted, brass, brassDim, red, green, line };
 
   if (tickets === null) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading repair queue…</div>;
@@ -455,7 +455,7 @@ export default function RepairTickets() {
               <button onClick={() => {
                   const q = trackQuery.trim().toLowerCase();
                   setTrackResult((tickets || []).find((t) => t.id.toLowerCase() === q || t.customer.phone === trackQuery.trim()) || null);
-                }} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                }} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                 Find
               </button>
             </div>
@@ -644,7 +644,7 @@ function DiagnosisSummary({ colors, symptoms, brand, model, stock, compact, need
               const added = (neededIds || []).includes(p.id);
               return (
                 <button key={p.id} type="button" disabled={added || !onNeed} onClick={() => onNeed && onNeed(p.id)}
-                  style={{ padding: "7px 10px", borderRadius: 3, fontSize: 12, cursor: added || !onNeed ? "default" : "pointer", border: `1px solid ${added ? green : line}`, background: added ? "#EEF5EC" : "#fff", color: added ? green : paper, fontFamily: "inherit" }}>
+                  style={{ padding: "7px 10px", borderRadius: 3, fontSize: 12, cursor: added || !onNeed ? "default" : "pointer", border: `1px solid ${added ? green : line}`, background: added ? "#EEF5EC" : "var(--mr-surface)", color: added ? green : paper, fontFamily: "inherit" }}>
                   {added ? "✓ " : "+ "}{p.label} · <span style={{ color: inStock ? green : "#8B2E2E" }}>{inStock ? `${inStock} in stock` : "none in stock"}</span>
                 </button>
               );
@@ -652,7 +652,7 @@ function DiagnosisSummary({ colors, symptoms, brand, model, stock, compact, need
           </div>
         </div>
       )}
-      {d.notes.map((n) => <div key={n.text} style={{ fontSize: 12.5, background: "#EEF1FB", color: "#1C2B57", borderRadius: 3, padding: "8px 10px", marginBottom: 8 }}>ℹ️ {n.text}</div>)}
+      {d.notes.map((n) => <div key={n.text} style={{ fontSize: 12.5, background: "var(--mr-brand-soft)", color: "#1C2B57", borderRadius: 3, padding: "8px 10px", marginBottom: 8 }}>ℹ️ {n.text}</div>)}
       <button type="button" onClick={() => setShowChecks((v) => !v)} style={{ background: "none", border: "none", color: brass, fontSize: 12.5, cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
         {showChecks ? "Hide checks" : `Show what to check (${d.checks.length})`}
       </button>
@@ -884,7 +884,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         <button disabled={!partName.trim() || !partCost} onClick={() => {
             onUpdate({ parts: [...(ticket.parts || []), { name: partName.trim(), cost: parseFloat(partCost), scanned: false, by: me || "unattributed", at: new Date().toISOString() }] });
             setPartName(""); setPartCost("");
-          }} style={{ padding: "9px 14px", borderRadius: 3, border: "none", background: partName.trim() && partCost ? brass : line, color: partName.trim() && partCost ? "#1a1408" : muted, fontSize: 12.5, cursor: partName.trim() && partCost ? "pointer" : "default" }}>
+          }} style={{ padding: "9px 14px", borderRadius: 3, border: "none", background: partName.trim() && partCost ? brass : line, color: partName.trim() && partCost ? "#fff" : muted, fontSize: 12.5, cursor: partName.trim() && partCost ? "pointer" : "default" }}>
           Add
         </button>
       </div>

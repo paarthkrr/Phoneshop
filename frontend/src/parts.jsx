@@ -28,8 +28,8 @@ const CART_KEY = "mv_cart";
 const ICONS = [[/band|strap/i, "⌚"], [/case|cover/i, "📱"], [/protector/i, "🛡️"], [/back glass|housing/i, "🪟"], [/screen|display/i, "📲"], [/batter/i, "🔋"], [/camera|lens/i, "📷"], [/port|flex/i, "🔌"], [/glass/i, "🛡️"], [/charg|cable|power/i, "🔌"], [/kit|diy|tool|part/i, "🧰"], [/audio|ear|head/i, "🎧"]];
 const iconFor = (cat) => (ICONS.find(([re]) => re.test(cat || "")) || [null, "✨"])[1];
 
-const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+  brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 const input = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
 const primary = (on = true) => ({ padding: "12px 20px", borderRadius: 10, border: "none", background: on ? brass : "#C9C3B8", color: "#fff", fontSize: 14, fontWeight: 700, cursor: on ? "pointer" : "default", fontFamily: "inherit" });
 
@@ -182,9 +182,9 @@ export default function Parts() {
               <div style={{ fontSize: 22 }} aria-hidden="true">{iconFor(l.category)}</div>
               <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{l.name}</div><div style={{ fontSize: 12, color: muted }}>{fmt(l.sellPrice)} each</div></div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button aria-label={`One fewer ${l.name}`} onClick={() => setQty(l, l.qty - 1)} style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${line}`, background: "#fff", cursor: "pointer" }}>−</button>
+                <button aria-label={`One fewer ${l.name}`} onClick={() => setQty(l, l.qty - 1)} style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${line}`, background: "var(--mr-surface)", cursor: "pointer" }}>−</button>
                 <span style={{ minWidth: 20, textAlign: "center" }}>{l.qty}</span>
-                <button aria-label={`One more ${l.name}`} disabled={l.qty >= l.qtyOnHand} onClick={() => setQty(l, l.qty + 1)} style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${line}`, background: "#fff", cursor: "pointer" }}>+</button>
+                <button aria-label={`One more ${l.name}`} disabled={l.qty >= l.qtyOnHand} onClick={() => setQty(l, l.qty + 1)} style={{ width: 34, height: 34, borderRadius: 8, border: `1px solid ${line}`, background: "var(--mr-surface)", cursor: "pointer" }}>+</button>
               </div>
               <div style={{ width: 70, textAlign: "right", fontWeight: 700 }}>{fmt(l.qty * l.sellPrice)}</div>
             </div>
@@ -224,7 +224,7 @@ export default function Parts() {
     return wrap(<>
       <button onClick={closeProduct} style={{ background: "none", border: "none", color: brass, fontSize: 14, cursor: "pointer", padding: 0, marginBottom: 16 }}>← All accessories</button>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 24 }}>
-        <div style={{ aspectRatio: "1 / 1", borderRadius: 16, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" }}>
+        <div style={{ aspectRatio: "1 / 1", borderRadius: 16, background: "var(--mr-surface-2)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" }}>
           {product.imageUrl ? <img src={product.imageUrl} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 96 }} aria-hidden="true">{iconFor(product.category)}</span>}
           {off > 0 && <span style={{ position: "absolute", top: 12, left: 12, background: "#B42318", color: "#fff", fontWeight: 800, fontSize: 13, borderRadius: 999, padding: "5px 11px" }}>Save {off}%</span>}
         </div>
@@ -240,9 +240,9 @@ export default function Parts() {
           {product.description && <p style={{ fontSize: 15, lineHeight: 1.65, color: paper, marginTop: 0 }}>{product.description}</p>}
           {inCart ? (
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <button aria-label="One fewer" onClick={() => setQty(product, inCart - 1)} style={{ width: 46, height: 46, borderRadius: 12, border: `1px solid ${line}`, background: "#fff", fontSize: 20, cursor: "pointer" }}>−</button>
+              <button aria-label="One fewer" onClick={() => setQty(product, inCart - 1)} style={{ width: 46, height: 46, borderRadius: 12, border: `1px solid ${line}`, background: "var(--mr-surface)", fontSize: 20, cursor: "pointer" }}>−</button>
               <strong style={{ fontSize: 16 }}>{inCart} in cart</strong>
-              <button aria-label="One more" disabled={inCart >= product.qtyOnHand} onClick={() => setQty(product, inCart + 1)} style={{ width: 46, height: 46, borderRadius: 12, border: `1px solid ${line}`, background: "#fff", fontSize: 20, cursor: "pointer" }}>+</button>
+              <button aria-label="One more" disabled={inCart >= product.qtyOnHand} onClick={() => setQty(product, inCart + 1)} style={{ width: 46, height: 46, borderRadius: 12, border: `1px solid ${line}`, background: "var(--mr-surface)", fontSize: 20, cursor: "pointer" }}>+</button>
             </div>
           ) : (
             <button className="cs-btn" onClick={() => setQty(product, 1)} style={{ ...primary(), width: "100%", padding: 15, fontSize: 16, marginBottom: 12 }}>Add to cart</button>
@@ -278,13 +278,13 @@ export default function Parts() {
       </div>
       {CrossLinks}
     </>) : (<>
-      <div style={{ background: "#F4F6F9", borderRadius: 14, padding: 14, marginBottom: 12 }}>
+      <div style={{ background: "var(--mr-surface-2)", borderRadius: 14, padding: 14, marginBottom: 12 }}>
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>📱 Shop by your phone</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <select value={phoneBrand} onChange={(e) => { setPhoneBrand(e.target.value); setModelFilter(""); setUrl("model", ""); }} aria-label="Phone brand" style={{ ...input, marginBottom: 0, flex: 1, minWidth: 130, background: "#fff" }}>
+          <select value={phoneBrand} onChange={(e) => { setPhoneBrand(e.target.value); setModelFilter(""); setUrl("model", ""); }} aria-label="Phone brand" style={{ ...input, marginBottom: 0, flex: 1, minWidth: 130, background: "var(--mr-surface)" }}>
             <option value="">Brand</option>{phoneBrands.map((b) => <option key={b}>{b}</option>)}
           </select>
-          <select value={modelFilter} onChange={(e) => { setModelFilter(e.target.value); setUrl("model", e.target.value); setVisible(24); }} aria-label="Phone model" disabled={!phoneBrand && !modelFilter} style={{ ...input, marginBottom: 0, flex: 2, minWidth: 170, background: "#fff" }}>
+          <select value={modelFilter} onChange={(e) => { setModelFilter(e.target.value); setUrl("model", e.target.value); setVisible(24); }} aria-label="Phone model" disabled={!phoneBrand && !modelFilter} style={{ ...input, marginBottom: 0, flex: 2, minWidth: 170, background: "var(--mr-surface)" }}>
             <option value="">{phoneBrand ? "Model" : "Pick a brand first"}</option>
             {modelFilter && !brandModels.includes(modelFilter) && <option>{modelFilter}</option>}
             {brandModels.map((m) => <option key={m}>{m}</option>)}
@@ -294,10 +294,10 @@ export default function Parts() {
       </div>
       <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search, or type your phone (e.g. iPhone 15) to see what fits" aria-label="Search accessories or your phone model" style={input} />
       <div id="mv-filters" />
-      <div role="tablist" aria-label="Department" style={{ display: "flex", gap: 6, margin: "6px 0 10px", background: "#F4F6F9", borderRadius: 12, padding: 4 }}>
+      <div role="tablist" aria-label="Department" style={{ display: "flex", gap: 6, margin: "6px 0 10px", background: "var(--mr-surface-2)", borderRadius: 12, padding: 4 }}>
         {[["all", "All"], ["accessories", "📱 Accessories"], ["parts", "🔧 Repair parts"]].map(([k, l]) => (
           <button key={k} role="tab" aria-selected={dept === k} onClick={() => { setDept(k); setCategoryFilter("All"); setVisible(24); setUrl("dept", k === "all" ? "" : k); }}
-            style={{ flex: 1, padding: "10px 6px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700, background: dept === k ? "#fff" : "transparent", color: dept === k ? brass : paper, boxShadow: dept === k ? "0 1px 3px rgba(17,24,39,0.12)" : "none" }}>{l}</button>
+            style={{ flex: 1, padding: "10px 6px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 700, background: dept === k ? "var(--mr-surface)" : "transparent", color: dept === k ? brass : paper, boxShadow: dept === k ? "0 1px 3px rgba(17,24,39,0.12)" : "none" }}>{l}</button>
         ))}
       </div>
       {dept === "parts" && <div style={{ fontSize: 13, color: muted, marginBottom: 10 }}>Genuine and premium-quality replacement parts, clearly labelled. Parts are model-specific — pick your phone above to see only parts that fit. Want us to fit it? <a href="/repairs" style={{ color: brass }}>Book a repair</a> (90-day warranty).</div>}
@@ -305,7 +305,7 @@ export default function Parts() {
         {categories.map((c) => (
           <button key={c} onClick={() => setCategoryFilter(c)} aria-pressed={categoryFilter === c}
             style={{ padding: "9px 14px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 40,
-              border: `1.5px solid ${categoryFilter === c ? brass : "rgba(32,28,24,0.2)"}`, background: categoryFilter === c ? brassDim : "#fff", color: categoryFilter === c ? brass : paper }}>
+              border: `1.5px solid ${categoryFilter === c ? brass : "rgba(32,28,24,0.2)"}`, background: categoryFilter === c ? brassDim : "var(--mr-surface)", color: categoryFilter === c ? brass : paper }}>
             {c === "All" ? "All" : `${iconFor(c)} ${c}`}
           </button>
         ))}
@@ -323,7 +323,7 @@ export default function Parts() {
           return (
             <div key={a.id} className="cs-card" style={{ border: `1px solid ${line}`, padding: 14, background: panel, display: "flex", flexDirection: "column" }}>
               <div role="button" tabIndex={0} aria-label={`View ${a.name}`} onClick={() => openProduct(a.id)} onKeyDown={(e) => { if (e.key === "Enter") openProduct(a.id); }}
-                style={{ height: 150, borderRadius: 10, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden", cursor: "pointer", position: "relative" }}>
+                style={{ height: 150, borderRadius: 10, background: "var(--mr-surface-2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, overflow: "hidden", cursor: "pointer", position: "relative" }}>
                 {pct(a) > 0 && <span style={{ position: "absolute", top: 8, left: 8, background: "#B42318", color: "#fff", fontWeight: 800, fontSize: 12, borderRadius: 999, padding: "3px 8px", zIndex: 1 }}>-{pct(a)}%</span>}
                 {a.imageUrl ? <img src={a.imageUrl} alt={a.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   : <span style={{ fontSize: 40 }} aria-hidden="true">{iconFor(a.category)}</span>}
@@ -338,9 +338,9 @@ export default function Parts() {
               <div style={{ marginTop: "auto" }}>
                 {inCart ? (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                    <button aria-label={`One fewer ${a.name}`} onClick={() => setQty(a, inCart - 1)} style={{ width: 40, height: 40, borderRadius: 10, border: `1px solid ${line}`, background: "#fff", cursor: "pointer", fontSize: 16 }}>−</button>
+                    <button aria-label={`One fewer ${a.name}`} onClick={() => setQty(a, inCart - 1)} style={{ width: 40, height: 40, borderRadius: 10, border: `1px solid ${line}`, background: "var(--mr-surface)", cursor: "pointer", fontSize: 16 }}>−</button>
                     <span style={{ fontWeight: 700 }}>{inCart} in cart</span>
-                    <button aria-label={`One more ${a.name}`} disabled={inCart >= a.qtyOnHand} onClick={() => setQty(a, inCart + 1)} style={{ width: 40, height: 40, borderRadius: 10, border: `1px solid ${line}`, background: "#fff", cursor: "pointer", fontSize: 16 }}>+</button>
+                    <button aria-label={`One more ${a.name}`} disabled={inCart >= a.qtyOnHand} onClick={() => setQty(a, inCart + 1)} style={{ width: 40, height: 40, borderRadius: 10, border: `1px solid ${line}`, background: "var(--mr-surface)", cursor: "pointer", fontSize: 16 }}>+</button>
                   </div>
                 ) : (
                   <button className="cs-btn" onClick={() => setQty(a, 1)} style={{ ...primary(), width: "100%" }}>Add to cart</button>
@@ -351,7 +351,7 @@ export default function Parts() {
         })}
       </div>
       {filtered.length > visible && (
-        <button onClick={() => setVisible(visible + 24)} style={{ ...primary(), width: "100%", marginTop: 18, background: "#fff", color: brass, border: `1.5px solid ${brass}` }}>
+        <button onClick={() => setVisible(visible + 24)} style={{ ...primary(), width: "100%", marginTop: 18, background: "var(--mr-surface)", color: brass, border: `1.5px solid ${brass}` }}>
           Show more ({filtered.length - visible} more)
         </button>
       )}

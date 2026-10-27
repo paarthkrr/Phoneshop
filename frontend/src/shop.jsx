@@ -44,18 +44,18 @@ export function Shop({ onSelect }) {
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
       <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Shop Refurbished</h1>
-      <p style={{ color: "#5B6472", marginBottom: 20 }}>All models listed. In-stock items available for purchase.</p>
+      <p style={{ color: "var(--mr-muted)", marginBottom: 20 }}>All models listed. In-stock items available for purchase.</p>
       
       <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
         {brands.map(b => (
           <button key={b} onClick={() => setBrand(b)}
             style={{ padding: "8px 16px", borderRadius: 20, border: brand === b ? "none" : "1px solid #E2E6EC",
-              background: brand === b ? "#8B3A4C" : "#fff", color: brand === b ? "#fff" : "#111", fontWeight: 600, cursor: "pointer" }}>
+              background: brand === b ? "#8B3A4C" : "var(--mr-surface)", color: brand === b ? "#fff" : "#111", fontWeight: 600, cursor: "pointer" }}>
             {b}
           </button>
         ))}
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search model..."
-          style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #E2E6EC", marginLeft: "auto" }} />
+          style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--mr-line)", marginLeft: "auto" }} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
@@ -65,9 +65,9 @@ export function Shop({ onSelect }) {
           const minPrice = inStock ? Math.min(...stock.map(s => s.price || 9999)) : null;
           return (
             <div key={m.model} onClick={() => inStock && onSelect?.(stock[0])}
-              style={{ background: "#fff", borderRadius: 14, padding: 16, border: "1px solid #E2E6EC",
+              style={{ background: "var(--mr-surface)", borderRadius: 14, padding: 16, border: "1px solid var(--mr-line)",
                 opacity: inStock ? 1 : 0.6, cursor: inStock ? "pointer" : "default" }}>
-              <div style={{ fontSize: 13, color: "#5B6472", marginBottom: 4 }}>{m.brand}</div>
+              <div style={{ fontSize: 13, color: "var(--mr-muted)", marginBottom: 4 }}>{m.brand}</div>
               <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{m.model}</div>
               {inStock ? (
                 <>

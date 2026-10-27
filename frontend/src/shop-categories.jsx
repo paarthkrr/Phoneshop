@@ -28,13 +28,13 @@ export function ShopCategories({ inventory = [], onSelect }) {
     <div style={{ padding: "20px 0" }}>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
         <select value={brand} onChange={e => { setBrand(e.target.value); setSeries(""); }}
-          style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #E2E6EC", fontSize: 15 }}>
+          style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid var(--mr-line)", fontSize: 15 }}>
           <option value="">All Brands</option>
           {brands.map(b => <option key={b} value={b}>{b} ({Object.values(grouped[b]).flat().length})</option>)}
         </select>
         {brand && (
           <select value={series} onChange={e => setSeries(e.target.value)}
-            style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #E2E6EC", fontSize: 15 }}>
+            style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid var(--mr-line)", fontSize: 15 }}>
             <option value="">All Models</option>
             {seriesList.map(s => <option key={s} value={s}>{s} ({grouped[brand][s].length})</option>)}
           </select>
@@ -43,15 +43,15 @@ export function ShopCategories({ inventory = [], onSelect }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
         {items.map(item => (
           <div key={item.id} onClick={() => onSelect?.(item)}
-            style={{ background: "#fff", borderRadius: 12, padding: 12, border: "1px solid #E2E6EC", cursor: "pointer" }}>
+            style={{ background: "var(--mr-surface)", borderRadius: 12, padding: 12, border: "1px solid var(--mr-line)", cursor: "pointer" }}>
             {item.photoUrl && <img src={item.photoUrl} alt={item.model} style={{ width: "100%", height: 140, objectFit: "contain", marginBottom: 8 }} />}
             <div style={{ fontWeight: 700, fontSize: 14 }}>{item.model}</div>
-            <div style={{ color: "#5B6472", fontSize: 13 }}>{item.storage} · {item.condition}</div>
+            <div style={{ color: "var(--mr-muted)", fontSize: 13 }}>{item.storage} · {item.condition}</div>
             <div style={{ color: "#8B3A4C", fontWeight: 700, marginTop: 6 }}>${item.price?.toLocaleString()}</div>
           </div>
         ))}
       </div>
-      {!items.length && brand && <div style={{ color: "#5B6472", padding: 20 }}>No stock in this category</div>}
+      {!items.length && brand && <div style={{ color: "var(--mr-muted)", padding: 20 }}>No stock in this category</div>}
     </div>
   );
 }

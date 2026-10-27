@@ -15,7 +15,7 @@ async function loadJSON(key, shared) {
   }
 }
 
-const muted = "#5B6472", brass = "#2150C8", line = "#E2E6EC";
+const muted = "var(--mr-muted)", brass = "var(--mr-brand)", line = "var(--mr-line)";
 
 // One shared footer for every customer-facing page — previously each page
 // either had its own duplicated copy (storefront, calculator) or none at
@@ -50,18 +50,18 @@ export default function SiteFooter() {
   return (
     <footer className="sf">
       <style>{`
-        .sf { margin-top: 56px; background: #F6F8FC; border-top: 1px solid ${line}; font-family: 'Archivo', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; font-size: 14px; }
+        .sf { margin-top: 56px; background: var(--mr-surface-2); border-top: 1px solid ${line}; font-family: 'Archivo', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: var(--mr-text); font-size: 14px; }
         .sf-in { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
         .sf-why { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; padding: 26px 0; border-bottom: 1px solid ${line}; }
-        .sf-why div { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: #1F2937; }
+        .sf-why div { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--mr-text); }
         .sf-why svg { flex: none; color: ${brass}; }
         .sf-main { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)); gap: 32px; padding: 34px 0 30px; }
         .sf-col { display: flex; flex-direction: column; gap: 9px; }
-        .sf-h { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #111827; }
+        .sf-h { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: var(--mr-text); }
         .sf-link { color: ${muted}; text-decoration: none; line-height: 1.35; width: fit-content; transition: color .15s ease; }
         .sf-link:hover { color: ${brass}; }
         .sf-contact { display: flex; flex-direction: column; gap: 7px; color: ${muted}; line-height: 1.4; }
-        .sf-contact a { color: #1F2937; text-decoration: none; }
+        .sf-contact a { color: var(--mr-text); text-decoration: none; }
         .sf-contact a:hover { color: ${brass}; }
         .sf-wa { display: inline-flex; align-items: center; gap: 8px; width: fit-content; margin-top: 6px; padding: 9px 14px; border-radius: 999px; background: #25D366; color: #fff !important; font-weight: 700; font-size: 13.5px; }
         .sf-bar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 0 22px; border-top: 1px solid ${line}; font-size: 12.5px; color: ${muted}; }

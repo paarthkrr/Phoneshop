@@ -32,7 +32,7 @@ const SCENES = {
 export const PHOTOS = Object.fromEntries(Object.keys(SCENES).map((k) => [k, { alt: "" }]));
 
 const CSS = `
-.mvb{position:relative;overflow:hidden;background:radial-gradient(120% 140% at 85% 20%,#2150C8 0%,#1E3A8A 38%,#0B1530 78%);isolation:isolate}
+.mvb{position:relative;overflow:hidden;background:radial-gradient(120% 140% at 85% 20%,var(--mr-brand) 0%,#1E3A8A 38%,#0B1530 78%);isolation:isolate}
 .mvb::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:32px 32px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 45%);mask-image:linear-gradient(90deg,transparent,#000 45%);z-index:-1}
 .mvb-glow{position:absolute;width:60%;height:120%;right:-10%;top:-10%;background:radial-gradient(closest-side,rgba(14,165,233,.45),transparent);filter:blur(10px);z-index:-1}
 .mvb-tiles{position:absolute;right:5%;top:50%;transform:translateY(-50%);display:grid;grid-template-columns:repeat(2,auto);gap:14px}
