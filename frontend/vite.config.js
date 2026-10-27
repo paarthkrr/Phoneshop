@@ -162,10 +162,11 @@ function withMeta(html, route, base) {
   // Swap the generic "Loading\u2026" block for this page's real content (staff tools keep the plain loader).
   if (!isStaffRoute(route)) {
     // Replace the WHOLE #boot-msg block (it has nested divs, so match greedily
-    // up to the last </div> before #root's closing </div> + the boot script —
+    // up to the last </div> before #root's closing </div> and </body> (the build moves
+    // the module script into <head>, so it can't be the anchor) —
     // a non-greedy match stopped at the first nested </div></div> and left the
     // rest of the skeleton behind, which leaked into <body> as a stuck spinner).
-    out = out.replace(/<div id="boot-msg"[\s\S]*<\/div>(?=\s*<\/div>\s*<script)/, seoBody(route));
+    out = out.replace(/<div id="boot-msg"[\s\S]*<\/div>(?=\s*<\/div>\s*<\/body>)/, seoBody(route));
   }
   return out;
 }
