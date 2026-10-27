@@ -46,6 +46,17 @@ ReactDOM.createRoot(rootEl).render(
 // successfully — so a later, unrelated error doesn't wipe out an
 // already-working page with a false "failed to load" message.
 rootEl.dataset.appMounted = "true"; document.documentElement.classList.add("app-mounted");
+// Belt-and-suspenders: the build injects per-route SEO content into the #boot-msg
+// skeleton, and a templating edge case could orphan leftover skeleton pieces as
+// direct <body> children (a stuck "Loading…" spinner + a fake quote bar that React
+// never manages, so they'd stay on screen forever). React owns #root only, so
+// anything else sitting directly in <body> at mount time is boot leftover — drop it.
+try {
+  Array.prototype.slice.call(document.body.children).forEach((el) => {
+    if (el === rootEl || el.tagName === "SCRIPT") return;
+    el.remove();
+  });
+} catch (e) { /* non-fatal */ }
 // A successful start resets the boot guard in index.html, so a future
 // failure still gets its one automatic retry, and removes the retry's
 // cache-bypass marker from the address bar so bookmarks stay clean.

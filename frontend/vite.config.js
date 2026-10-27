@@ -161,7 +161,11 @@ function withMeta(html, route, base) {
   out = out.replace("</head>", `    ${extra}${ld ? "\n    " + ld : ""}\n  </head>`);
   // Swap the generic "Loading\u2026" block for this page's real content (staff tools keep the plain loader).
   if (!isStaffRoute(route)) {
-    out = out.replace(/<div id="boot-msg"[\s\S]*?<\/div>\s*(?=<\/div>)/, seoBody(route));
+    // Replace the WHOLE #boot-msg block (it has nested divs, so match greedily
+    // up to the last </div> before #root's closing </div> + the boot script —
+    // a non-greedy match stopped at the first nested </div></div> and left the
+    // rest of the skeleton behind, which leaked into <body> as a stuck spinner).
+    out = out.replace(/<div id="boot-msg"[\s\S]*<\/div>(?=\s*<\/div>\s*<script)/, seoBody(route));
   }
   return out;
 }
