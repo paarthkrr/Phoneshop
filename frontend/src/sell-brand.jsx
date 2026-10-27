@@ -10,7 +10,7 @@ import { baseBuybackAUD, DEFAULT_RETENTION_POINTS, DEFAULT_BRAND_FACTOR, DEFAULT
 // figure is never higher than what the customer can actually be quoted.
 export const SELL_BRANDS = { apple: "Apple", samsung: "Samsung", google: "Google", oppo: "Oppo", motorola: "Motorola", xiaomi: "Xiaomi", oneplus: "OnePlus", nothing: "Nothing", vivo: "Vivo" };
 
-const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472", brass = "#2150C8";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)", muted = "var(--mr-muted)", brass = "var(--mr-brand)";
 
 async function loadConfig() {
   try { if (!window.storage) return null; const r = await window.storage.get("pricing-config", true); return r ? JSON.parse(r.value) : null; } catch (e) { return null; }
@@ -53,7 +53,7 @@ export default function SellBrand() {
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
-      <div style={{ background: "linear-gradient(135deg, #2150C8 0%, #16348a 100%)", color: "#fff", padding: "44px 16px 40px" }}>
+      <div style={{ background: "linear-gradient(135deg, var(--mr-brand) 0%, #16348a 100%)", color: "#fff", padding: "44px 16px 40px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}><a href="/" style={{ color: "#fff" }}>Home</a> › <a href="/quote" style={{ color: "#fff" }}>Sell</a> › {brand}</div>
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(28px, 5vw, 42px)", lineHeight: 1.1, margin: "0 0 10px" }}>Sell your {label}</h1>
@@ -67,7 +67,7 @@ export default function SellBrand() {
           <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 14 }}>
             {shown.map((d) => (
               <a key={d.model} href={`/quote?q=${encodeURIComponent(d.model)}`} className="cs-card"
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", border: "1px solid #E2E6EC", background: panel, padding: "18px 12px", color: paper, textDecoration: "none" }}>
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", border: "1px solid var(--mr-line)", background: panel, padding: "18px 12px", color: paper, textDecoration: "none" }}>
                 <DeviceArt type={inferDeviceType(d.model, d.category)} size={58} brand={d.brand} model={d.model} imageUrl={d.imageUrl} label={`${d.brand} ${d.model}`} />
                 <div style={{ fontWeight: 700, fontSize: 14.5, margin: "12px 0 4px" }}>{d.model}</div>
                 <div style={{ fontSize: 12.5, color: muted }}>Get up to</div>
@@ -82,7 +82,7 @@ export default function SellBrand() {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 22 }}>
           {Object.entries(SELL_BRANDS).filter(([, b]) => b !== brand).map(([s, b]) => (
-            <a key={s} href={`/sell/${s}`} className="mv-chip" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, padding: "0 14px", borderRadius: 999, background: "#fff", border: "1px solid rgba(32,28,24,0.16)", color: paper, textDecoration: "none", fontSize: 13.5, fontWeight: 600 }}>
+            <a key={s} href={`/sell/${s}`} className="mv-chip" style={{ display: "inline-flex", alignItems: "center", minHeight: 40, padding: "0 14px", borderRadius: 999, background: "var(--mr-surface)", border: "1px solid rgba(32,28,24,0.16)", color: paper, textDecoration: "none", fontSize: 13.5, fontWeight: 600 }}>
               Sell {b === "Apple" ? "iPhone" : b}
             </a>
           ))}

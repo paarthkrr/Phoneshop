@@ -80,8 +80,8 @@ export function DeviceRequestForm({ initialQuery = "", onClose }) {
     setState(saved ? "done" : "error");
   }
 
-  const box = { border: "1px solid #E2E6EC", borderRadius: 16, background: "#fff", padding: 18, marginTop: 12 };
-  const input = { width: "100%", padding: "12px 13px", borderRadius: 10, border: "1px solid #E2E6EC", background: "#F7F9FC", fontSize: 15, fontFamily: "inherit", color: "#111827", boxSizing: "border-box", minHeight: 46 };
+  const box = { border: "1px solid var(--mr-line)", borderRadius: 16, background: "var(--mr-surface)", padding: 18, marginTop: 12 };
+  const input = { width: "100%", padding: "12px 13px", borderRadius: 10, border: "1px solid var(--mr-line)", background: "var(--mr-surface-2)", fontSize: 15, fontFamily: "inherit", color: "var(--mr-text)", boxSizing: "border-box", minHeight: 46 };
   const label = { display: "block", fontSize: 12.5, fontWeight: 700, color: "#374151", margin: "0 0 5px" };
   const err = (m) => touched && m ? <div role="alert" style={{ color: "#B42318", fontSize: 12.5, marginTop: 4 }}>{m}</div> : null;
 
@@ -92,8 +92,8 @@ export function DeviceRequestForm({ initialQuery = "", onClose }) {
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
         </div>
         <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 4 }}>Got it, we'll price your {brand} {f.model.trim()}</div>
-        <div style={{ color: "#5B6472", fontSize: 14, lineHeight: 1.5 }}>We'll {isEmail(f.email) ? "email" : "message"} you as soon as it's on our price list, usually within one business day.</div>
-        {onClose && <button type="button" onClick={onClose} style={{ marginTop: 14, border: "none", background: "none", color: "#2150C8", fontWeight: 700, fontSize: 14, cursor: "pointer", minHeight: 44 }}>Back to search</button>}
+        <div style={{ color: "var(--mr-muted)", fontSize: 14, lineHeight: 1.5 }}>We'll {isEmail(f.email) ? "email" : "message"} you as soon as it's on our price list, usually within one business day.</div>
+        {onClose && <button type="button" onClick={onClose} style={{ marginTop: 14, border: "none", background: "none", color: "var(--mr-brand)", fontWeight: 700, fontSize: 14, cursor: "pointer", minHeight: 44 }}>Back to search</button>}
       </div>
     );
   }
@@ -104,7 +104,7 @@ export function DeviceRequestForm({ initialQuery = "", onClose }) {
         <div style={{ fontWeight: 800, fontSize: 17 }}>Can't find your device?</div>
         {onClose && <button type="button" onClick={onClose} aria-label="Close" style={{ border: "none", background: "#F1F3F7", borderRadius: 10, width: 36, height: 36, fontSize: 18, cursor: "pointer", flexShrink: 0 }}>×</button>}
       </div>
-      <div style={{ color: "#5B6472", fontSize: 13.5, marginBottom: 14, lineHeight: 1.5 }}>Tell us what you have. We'll add it to our price list and send you an offer, no obligation.</div>
+      <div style={{ color: "var(--mr-muted)", fontSize: 13.5, marginBottom: 14, lineHeight: 1.5 }}>Tell us what you have. We'll add it to our price list and send you an offer, no obligation.</div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
         <div>
@@ -122,17 +122,17 @@ export function DeviceRequestForm({ initialQuery = "", onClose }) {
           {err(errors.model)}
         </div>
         <div>
-          <label style={label} htmlFor="drq-storage">Storage <span style={{ fontWeight: 400, color: "#6B7280" }}>(if you know)</span></label>
+          <label style={label} htmlFor="drq-storage">Storage <span style={{ fontWeight: 400, color: "var(--mr-muted)" }}>(if you know)</span></label>
           <input id="drq-storage" value={f.storage} onChange={set("storage")} placeholder="e.g. 256GB" style={input} autoComplete="off" />
         </div>
       </div>
 
-      <div style={{ margin: "14px 0 4px", fontSize: 12.5, fontWeight: 700, color: "#374151" }}>Condition <span style={{ fontWeight: 400, color: "#6B7280" }}>(optional)</span></div>
+      <div style={{ margin: "14px 0 4px", fontSize: 12.5, fontWeight: 700, color: "#374151" }}>Condition <span style={{ fontWeight: 400, color: "var(--mr-muted)" }}>(optional)</span></div>
       <div role="radiogroup" aria-label="Condition" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {CONDITIONS.map((c) => (
           <button type="button" key={c} role="radio" aria-checked={f.condition === c} onClick={() => setF({ ...f, condition: f.condition === c ? "" : c })}
             style={{ minHeight: 40, padding: "0 14px", borderRadius: 999, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit",
-              border: `1px solid ${f.condition === c ? "#2150C8" : "#E2E6EC"}`, background: f.condition === c ? "#EEF3FF" : "#fff", color: f.condition === c ? "#2150C8" : "#111827", fontWeight: f.condition === c ? 700 : 500 }}>
+              border: `1px solid ${f.condition === c ? "var(--mr-brand)" : "var(--mr-line)"}`, background: f.condition === c ? "#EEF3FF" : "var(--mr-surface)", color: f.condition === c ? "#2150C8" : "#111827", fontWeight: f.condition === c ? 700 : 500 }}>
             {c}
           </button>
         ))}
@@ -157,15 +157,15 @@ export function DeviceRequestForm({ initialQuery = "", onClose }) {
       {/* Hidden from people; bots tend to fill every field. */}
       <input type="text" name="website" value={f.website} onChange={set("website")} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }} />
 
-      <label style={{ ...label, marginTop: 14 }} htmlFor="drq-note">Anything else? <span style={{ fontWeight: 400, color: "#6B7280" }}>(optional)</span></label>
+      <label style={{ ...label, marginTop: 14 }} htmlFor="drq-note">Anything else? <span style={{ fontWeight: 400, color: "var(--mr-muted)" }}>(optional)</span></label>
       <textarea id="drq-note" value={f.note} onChange={set("note")} rows={2} placeholder="e.g. cracked back, battery 85%" style={{ ...input, minHeight: 64, resize: "vertical" }} />
 
       <button type="submit" disabled={state === "sending"} className="fx-shimmer"
-        style={{ marginTop: 14, width: "100%", minHeight: 50, border: "none", borderRadius: 12, background: "#2150C8", color: "#fff", fontWeight: 800, fontSize: 15.5, cursor: state === "sending" ? "default" : "pointer", fontFamily: "inherit", opacity: state === "sending" ? 0.7 : 1 }}>
+        style={{ marginTop: 14, width: "100%", minHeight: 50, border: "none", borderRadius: 12, background: "var(--mr-brand)", color: "#fff", fontWeight: 800, fontSize: 15.5, cursor: state === "sending" ? "default" : "pointer", fontFamily: "inherit", opacity: state === "sending" ? 0.7 : 1 }}>
         {state === "sending" ? "Sending…" : "Get my price"}
       </button>
       {state === "error" && <div role="alert" style={{ color: "#B42318", fontSize: 13, marginTop: 8 }}>That didn't go through. Check your connection and try again, or message us on WhatsApp.</div>}
-      <div style={{ color: "#6B7280", fontSize: 12, marginTop: 8 }}>We only use your details to send this price.</div>
+      <div style={{ color: "var(--mr-muted)", fontSize: 12, marginTop: 8 }}>We only use your details to send this price.</div>
     </form>
   );
 }

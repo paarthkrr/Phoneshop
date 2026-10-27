@@ -8,7 +8,7 @@ import { ScanButton } from "./barcode-scanner.jsx";
 //    listing per model is created automatically, with a ready-made description.
 //  • Bulk import: paste rows straight from Excel / Google Sheets.
 //  • List: search, edit price/stock inline, bulk price change / hide / remove.
-const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472", brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)", brass = "var(--mr-brand)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 export const CATEGORIES = [...ACCESSORY_CATEGORIES, ...PART_CATEGORIES];
 const MARKUP = { "Cases & covers": 3, "Screen protectors": 4, "Chargers & cables": 2.5, "DIY repair kits": 1.8, "Audio": 2, "Power banks": 2, "Watch bands": 3, "Other": 2.5,
   "Screens & displays": 1.6, "Batteries": 1.8, "Back glass & housings": 1.8, "Charging ports & flex": 2, "Cameras & lenses": 1.8, "Other parts": 1.8 };

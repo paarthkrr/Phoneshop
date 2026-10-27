@@ -125,8 +125,8 @@ export default function TillReconciliation() {
     await persist(next);
   }
 
-  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+  const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+    brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 
   if (sales === null) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading till…</div>;
 
@@ -165,7 +165,7 @@ export default function TillReconciliation() {
             <input value={openingInput} onChange={(e) => setOpeningInput(e.target.value)} placeholder="Opening float amount" type="number"
               style={{ width: "100%", padding: "11px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             <button disabled={openingInput === ""} onClick={openDay}
-              style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: openingInput !== "" ? brass : line, color: openingInput !== "" ? "#1a1408" : muted, fontSize: 14, fontWeight: 600, cursor: openingInput !== "" ? "pointer" : "default" }}>
+              style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: openingInput !== "" ? brass : line, color: openingInput !== "" ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: openingInput !== "" ? "pointer" : "default" }}>
               Open till
             </button>
           </div>
@@ -220,7 +220,7 @@ export default function TillReconciliation() {
               <textarea value={closingNotes} onChange={(e) => setClosingNotes(e.target.value)} placeholder="Notes on any discrepancy (optional)"
                 style={{ width: "100%", minHeight: 50, padding: 10, borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 12, boxSizing: "border-box" }} />
               <button disabled={actualCount === ""} onClick={closeDay}
-                style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: actualCount !== "" ? brass : line, color: actualCount !== "" ? "#1a1408" : muted, fontSize: 14, fontWeight: 600, cursor: actualCount !== "" ? "pointer" : "default" }}>
+                style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: actualCount !== "" ? brass : line, color: actualCount !== "" ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: actualCount !== "" ? "pointer" : "default" }}>
                 Close till for today
               </button>
             </div>

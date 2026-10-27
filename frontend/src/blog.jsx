@@ -2,8 +2,8 @@ import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { POSTS } from "./blog-posts.js";
 
-const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
-  brass = "#2150C8", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+  brass = "var(--mr-brand)", line = "var(--mr-line)";
 
 // Real, useful guides tied to actual expertise and actual site features —
 // each one written to genuinely help the reader, not just stuff keywords.

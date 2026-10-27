@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 
 // Activity: every change staff make in the portal (Owner only). Important
 // changes are also emailed to the owner, bundled every couple of minutes.
-const paper = "#111827", muted = "#5B6472", brass = "#2150C8", red = "#8B2E2E", line = "#E2E6EC", panel2 = "#F4F6F9";
+const paper = "var(--mr-text)", muted = "var(--mr-muted)", brass = "var(--mr-brand)", red = "var(--mr-bad)", line = "var(--mr-line)", panel2 = "var(--mr-surface-2)";
 const ROLE = { admin: "Owner", manager: "Manager", staff: "Counter", technician: "Technician" };
 const VERB = { added: "Added", changed: "Changed", removed: "Deleted", note: "" };
 
@@ -59,7 +59,7 @@ export default function Activity() {
       {!rows ? <div style={{ color: muted }}>Loading…</div> : !rows.length ? <div style={{ color: muted }}>Nothing yet. Changes appear here as the team works.</div> : (
         <div>
           {rows.map((r) => <Entry key={r.id} r={r} area={areas[r.area] || r.area} />)}
-          {more && <button onClick={() => load(rows[rows.length - 1].id)} style={{ padding: "12px 18px", borderRadius: 10, border: `1px solid ${line}`, background: "#fff", color: brass, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Show older</button>}
+          {more && <button onClick={() => load(rows[rows.length - 1].id)} style={{ padding: "12px 18px", borderRadius: 10, border: `1px solid ${line}`, background: "var(--mr-surface)", color: brass, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Show older</button>}
         </div>
       )}
     </Wrap>
@@ -86,7 +86,7 @@ function Entry({ r, area }) {
 
 function Wrap({ children }) {
   return (
-    <div style={{ background: "#fff", color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
+    <div style={{ background: "var(--mr-surface)", color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
       <div style={{ maxWidth: 820, margin: "0 auto", padding: "28px 16px 60px" }}>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, marginBottom: 6 }}>Activity</div>
         <div style={{ color: muted, fontSize: 15, marginBottom: 20, lineHeight: 1.6 }}>Every change the team makes in the portal. Important ones (payouts, prices, deletions, bank details, expenses, write-offs, team changes) are also emailed to you. Bank and ID details are never shown here.</div>

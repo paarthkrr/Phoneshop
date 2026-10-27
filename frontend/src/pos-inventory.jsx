@@ -313,8 +313,8 @@ export default function POSInventory() {
   async function persistOrders(next) { await saveJSON(ORDERS_KEY, next, true); setOrders(next); }
   async function persistSales(next) { await saveJSON(SALES_KEY, next, true); setSales(next); }
 
-  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+  const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+    brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 
   if (!loaded) return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading POS…</div>;
 
@@ -531,7 +531,7 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search device"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden" }}>
-            {filtered.length > 20 && <div style={{ fontSize: 12, color: "#5B6472", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
+            {filtered.length > 20 && <div style={{ fontSize: 12, color: "var(--mr-muted)", margin: "0 0 8px" }}>Showing 20 of {filtered.length} matches — keep typing (e.g. add the model number) to narrow it down.</div>}
             {filtered.slice(0, 20).map((d, i) => (
               <div key={d.brand + d.model} style={{ padding: "8px 14px", borderTop: i === 0 ? "none" : `1px solid ${line}` }}>
                 <div style={{ fontSize: 12, color: muted, marginBottom: 4 }}>{d.brand} {d.model}</div>
@@ -696,7 +696,7 @@ function ReceiveOrdersTab({ colors, orders, regions, onReceive }) {
               style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
             <ScanButton onScan={(c) => setImeiDrafts((s) => ({ ...s, [o.id]: c }))} title="Scan IMEI barcode" />
             <button disabled={!imeiDrafts[o.id]?.trim()} onClick={() => onReceive(o, imeiDrafts[o.id].trim())}
-              style={{ padding: "8px 14px", borderRadius: 3, border: "none", background: imeiDrafts[o.id]?.trim() ? brass : line, color: imeiDrafts[o.id]?.trim() ? "#1a1408" : muted, fontSize: 12.5, cursor: imeiDrafts[o.id]?.trim() ? "pointer" : "default" }}>
+              style={{ padding: "8px 14px", borderRadius: 3, border: "none", background: imeiDrafts[o.id]?.trim() ? brass : line, color: imeiDrafts[o.id]?.trim() ? "#fff" : muted, fontSize: 12.5, cursor: imeiDrafts[o.id]?.trim() ? "pointer" : "default" }}>
               Add to inventory
             </button>
           </div>
@@ -771,7 +771,7 @@ function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplet
           {(o.status === "pending_payment" || o.status === "pending_pickup") && (
             <div style={{ display: "flex", gap: 8 }}>
               {o.paymentMethod === "bank_transfer" && (
-                <button onClick={() => onMarkPaid(o.id)} style={{ flex: 1, padding: "8px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                <button onClick={() => onMarkPaid(o.id)} style={{ flex: 1, padding: "8px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                   Mark payment received
                 </button>
               )}
@@ -840,7 +840,7 @@ function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
             onAdd({ name: name.trim(), category, cost: parseFloat(cost), sellPrice: parseFloat(sellPrice), qtyOnHand: parseInt(qty),
               compatibleWith: compatibleWith.trim(), imageUrl: imageUrl.trim(), showOnline });
             setName(""); setCost(""); setSellPrice(""); setQty(""); setCompatibleWith(""); setImageUrl(""); setShowOnline(true);
-          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: ready ? brass : line, color: ready ? "#1a1408" : muted, fontSize: 13, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
+          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: ready ? brass : line, color: ready ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
           Add to stock
         </button>
       </div>
@@ -1003,7 +1003,7 @@ function QuickAddTab({ colors, onAdd }) {
             <option value="D">Grade D - Fair</option>
           </select>
         </div>
-        <button onClick={handleAddPending} style={{ width: '100%', padding: 12, background: green, color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={handleAddPending} style={{ width: '100%', padding: 12, background: green, color: 'var(--mr-surface)', border: 'none', borderRadius: 4, fontWeight: 600, cursor: 'pointer' }}>
           Add to Inventory
         </button>
       </div>
@@ -1025,7 +1025,7 @@ function QuickAddTab({ colors, onAdd }) {
                 <div style={{ fontSize: 12, color: muted }}>Color: {item.color || 'N/A'} · Grade: {item.grade || 'A'} · Year: {item.year || ''}</div>
                 <div style={{ fontSize: 11, color: muted, marginTop: 4 }}>IMEI: •••{item.imei?.slice(-4) || '••••'}</div>
               </div>
-              <button onClick={() => onAdd(item)} style={{ padding: '8px 16px', background: green, color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>
+              <button onClick={() => onAdd(item)} style={{ padding: '8px 16px', background: green, color: 'var(--mr-surface)', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>
                 Add to Inventory
               </button>
             </div>
@@ -1112,13 +1112,13 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
           }
         `}</style>
         <button onClick={() => setLabelItem(null)} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to inventory</button>
-        <div id="print-label" style={{ background: "#fff", color: "#000", padding: 16, borderRadius: 3, width: "4in", boxSizing: "border-box", fontFamily: "Archivo, sans-serif" }}>
+        <div id="print-label" style={{ background: "var(--mr-surface)", color: "#000", padding: 16, borderRadius: 3, width: "4in", boxSizing: "border-box", fontFamily: "Archivo, sans-serif" }}>
           <div style={{ fontSize: 13, fontWeight: 600 }}>{labelItem.brand} {labelItem.model}</div>
           <div style={{ fontSize: 11 }}>{labelItem.storage} · Grade {labelItem.gradeId || "—"} · {labelItem.id}</div>
           <div style={{ marginTop: 6 }}><Code39Barcode value={labelItem.imei} height={40} narrow={1.4} /></div>
           <div style={{ fontSize: 10, letterSpacing: 1, marginTop: 2 }}>{labelItem.imei}</div>
         </div>
-        <button onClick={() => window.print()} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#1a1408", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={() => window.print()} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
           Print label
         </button>
       </div>

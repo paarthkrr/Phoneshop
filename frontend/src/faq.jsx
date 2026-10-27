@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
-const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
-  brass = "#2150C8", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+  brass = "var(--mr-brand)", line = "var(--mr-line)";
 
 // Real questions a phone repair/trade-in customer actually has, answered
 // honestly against what this system actually does — not generic filler.

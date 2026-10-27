@@ -22,7 +22,9 @@ import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
 import { NAV_CSS, DesktopMenu, MobileDrawer, MobileBackdrop } from "./site-nav.jsx";
 import { ROLE_LABELS, currentRole, canSeeScreen } from "./roles.js";
-import DarkModeToggle from "./dark-mode-toggle.jsx";
+import ThemeToggle, { useThemeSync, loadBrand } from "./theme.jsx";
+import "./burgundy-theme.css";
+import "./luxury-home.css";
 import CustomerDisplay from "./customer-display.jsx";
 import PortalShell from "./portal-shell.jsx";
 
@@ -41,8 +43,8 @@ import PortalShell from "./portal-shell.jsx";
    are separate concerns; this file only solves routing.
 ================================================================= */
 
-const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
-  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+  brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", line = "var(--mr-line)";
 
 // The staff area lives at /portal. It used to be /staff, but Render's CDN
 // kept a broken saved copy of /staff that can't be cleared from code, so
@@ -145,7 +147,7 @@ function Nav() {
         html, body { margin: 0; padding: 0; }
         /* Safety net: nothing wider than the screen can make the whole page slide sideways. */
         body { overflow-x: clip; }
-        body { font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; background: #FFFFFF; line-height: 1.45; }
+        body { font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: var(--mr-text); background: var(--mr-surface); line-height: 1.45; }
         img, svg, video { max-width: 100%; }
 
         /* Frosted header: the page shows through softly as it scrolls under.
@@ -153,11 +155,11 @@ function Nav() {
            backdrop-filter on the nav would trap the menu's fixed backdrop inside it. */
         .cs-glass-nav::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
           background: rgba(255,255,255,0.82); -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px); }
-        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .cs-glass-nav::before { background: #FFFFFF; } }
-        @media (prefers-reduced-transparency: reduce) { .cs-glass-nav::before { background: #FFFFFF; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .cs-glass-nav::before { background: var(--mr-surface); } }
+        @media (prefers-reduced-transparency: reduce) { .cs-glass-nav::before { background: var(--mr-surface); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 
         /* ---- Mobile menu: desktop links collapse into a menu button under 980px (the full row needs ~980px; tablets used to wrap it onto two lines) ---- */
-        .cs-menu-btn { display: none; background: none; border: 1px solid #E2E6EC; border-radius: 3px; padding: 5px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: #111827; }
+        .cs-menu-btn { display: none; background: none; border: 1px solid var(--mr-line); border-radius: 3px; padding: 5px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: var(--mr-text); }
         .cs-mobile-menu { display: none; }
         @media (max-width: 980px) {
           .cs-nav-links, .cs-nav-aside { display: none !important; }
@@ -270,7 +272,7 @@ function Nav() {
         </div>
         {!isStaff && (
           <div className="cs-nav-aside" style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <DarkModeToggle />
+            <ThemeToggle />
             <Link to="/quote" className="mm-quote-btn desk">Get a Quote</Link>
           </div>
         )}
@@ -389,10 +391,10 @@ function StaffGate({ children }) {
     const role = currentRole();
     if (!canSeeScreen(normPath(location.pathname), role)) {
       return (
-        <PortalShell><div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", fontFamily: "'Archivo', system-ui, sans-serif", color: "#111827" }}>
+        <PortalShell><div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", fontFamily: "'Archivo', system-ui, sans-serif", color: "var(--mr-text)" }}>
           <h1 style={{ fontFamily: "'Archivo Black', sans-serif", fontWeight: 400, fontSize: 24, margin: "0 0 8px" }}>Not part of your access</h1>
-          <p style={{ color: "#5B6472", fontSize: 15, lineHeight: 1.6 }}>Your role is <strong>{ROLE_LABELS[role] || role}</strong>, and your access doesn't include this screen. Ask the Owner if you need it.</p>
-          <Link to="/portal" style={{ color: "#2150C8", fontWeight: 700 }}>Back to the dashboard →</Link>
+          <p style={{ color: "var(--mr-muted)", fontSize: 15, lineHeight: 1.6 }}>Your role is <strong>{ROLE_LABELS[role] || role}</strong>, and your access doesn't include this screen. Ask the Owner if you need it.</p>
+          <Link to="/portal" style={{ color: "var(--mr-brand)", fontWeight: 700 }}>Back to the dashboard →</Link>
         </div></PortalShell>
       );
     }
@@ -411,7 +413,7 @@ function StaffGate({ children }) {
         style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 14 }} />
       {mode === "login" && needCode && (
         <>
-          <div style={{ fontSize: 13.5, color: "#5B6472", margin: "4px 0 6px" }}>Enter the 6-digit code from your authenticator app.</div>
+          <div style={{ fontSize: 13.5, color: "var(--mr-muted)", margin: "4px 0 6px" }}>Enter the 6-digit code from your authenticator app.</div>
           <input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="000000" aria-label="6-digit code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus
             onKeyDown={(e) => { if (e.key === "Enter" && code.length === 6) handleLogin(); }}
             style={{ width: "100%", padding: 10, marginBottom: 8, border: `1px solid ${line}`, boxSizing: "border-box", fontSize: 20, letterSpacing: "0.3em", textAlign: "center" }} />
@@ -435,12 +437,13 @@ function StaffGate({ children }) {
         style={{ width: "100%", padding: 6, background: "transparent", border: "none", color: brass, textDecoration: "underline", cursor: "pointer", fontSize: 12.5 }}>
         Forgot password?
       </button>}
-      {mode === "recover" && <div style={{ fontSize: 12, color: "#5B6472", lineHeight: 1.5 }}>Use the backup code you saved from the Team page (usernames aren't case-sensitive). Lost your phone? This also switches two-step sign-in off so you can set it up again. No code? Ask the Owner to reset your password from the Team page.</div>}
+      {mode === "recover" && <div style={{ fontSize: 12, color: "var(--mr-muted)", lineHeight: 1.5 }}>Use the backup code you saved from the Team page (usernames aren't case-sensitive). Lost your phone? This also switches two-step sign-in off so you can set it up again. No code? Ask the Owner to reset your password from the Team page.</div>}
     </div></PortalShell>
   );
 }
 
 export default function App() {
+  useThemeSync();
   const [storageReady, setStorageReady] = useState(false);
 
   // Installed once, for EVERY visitor — customer or staff, logged in or
@@ -468,6 +471,7 @@ export default function App() {
     if (window.SHOP_API_BASE_URL) {
       try { fetch(`${window.SHOP_API_BASE_URL}/health`, { cache: "no-store" }).catch(() => {}); } catch (e) {}
     }
+    loadBrand(); // brand colours from the Pricing Console
     setStorageReady(true);
   }, []);
 
@@ -668,7 +672,7 @@ function AnimatedRoutes() {
     <>
     {/* Staff pages skip the slide: a transformed <main> would drag the portal's fixed sidebar and tab bar along with it. */}
     <main key={location.pathname} className={isStaff ? undefined : "cs-page-enter" + slide}>
-      <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "#5B6472", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
+      <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "var(--mr-muted)", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />
         <Route path="/quote" element={<QuoteCalculator />} />

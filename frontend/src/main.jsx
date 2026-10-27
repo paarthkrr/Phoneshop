@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "./theme.css"; // colours for light and dark mode, before anything draws
 import "./storage-shim.js"; // sets up window.shopAuth
 import App from "./App.jsx";
 
@@ -21,10 +22,10 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return (
-        <div style={{ maxWidth: 480, margin: "60px auto", padding: 20, fontFamily: "system-ui, sans-serif", color: "#111827", background: "#FFFFFF", border: "2px solid #8B2E2E", borderRadius: 4 }}>
+        <div style={{ maxWidth: 480, margin: "60px auto", padding: 20, fontFamily: "system-ui, sans-serif", color: "var(--mr-text)", background: "var(--mr-surface)", border: "2px solid #8B2E2E", borderRadius: 4 }}>
           <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>Something went wrong loading this page</div>
-          <div style={{ fontSize: 13, color: "#5B6472", marginBottom: 14 }}>Please screenshot this and send it back — it tells us exactly what to fix.</div>
-          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: 11, background: "#fff", border: "1px solid #E2E6EC", padding: 10, borderRadius: 3 }}>
+          <div style={{ fontSize: 13, color: "var(--mr-muted)", marginBottom: 14 }}>Please screenshot this and send it back — it tells us exactly what to fix.</div>
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: 11, background: "var(--mr-surface)", border: "1px solid var(--mr-line)", padding: 10, borderRadius: 3 }}>
             {this.state.error.stack || this.state.error.message}
           </pre>
         </div>

@@ -25,7 +25,7 @@ const SECTIONS = [
   },
 ];
 
-const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472", brass = "#2150C8", red = "#8B2E2E", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)", muted = "var(--mr-muted)", brass = "var(--mr-brand)", red = "var(--mr-bad)", line = "var(--mr-line)";
 
 function Video({ v }) {
   const [playing, setPlaying] = useState(false);

@@ -307,13 +307,13 @@ export default function StaffInspectionConsole() {
   }
   async function toggleArchive(o) { await updateOrder(o.id, { archived: !o.archived }); setOpenId(null); }
 
-  const C = { ink: "#F4F6FA", panel: "#FFFFFF", panel2: "#F4F6F9", paper: "#111827", muted: "#5B6472", brass: "#2150C8", brassDim: "rgba(33,80,200,0.08)", red: "#B42318", redDim: "#FDEEEE", green: "#0E7A4F", greenDim: "#E8F6EF", amber: "#B54708", line: "#E3E7EF" };
+  const C = { ink: "var(--mr-bg)", panel: "var(--mr-surface)", panel2: "var(--mr-surface-2)", paper: "var(--mr-text)", muted: "var(--mr-muted)", brass: "var(--mr-brand)", brassDim: "var(--mr-brand-soft)", red: "var(--mr-bad)", redDim: "color-mix(in srgb, var(--mr-bad) 12%, transparent)", green: "var(--mr-ok)", greenDim: "color-mix(in srgb, var(--mr-ok) 12%, transparent)", amber: "#B54708", line: "var(--mr-line)" };
   const card = { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 16, marginBottom: 14 };
   const chip = (on, tone = C.brass) => ({ padding: "9px 14px", borderRadius: 999, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-    border: `1.5px solid ${on ? tone : C.line}`, background: on ? (tone === C.red ? C.redDim : tone === C.green ? C.greenDim : C.brassDim) : "#fff", color: on ? tone : C.paper });
-  const bigBtn = (bg, fg = "#fff", on = true) => ({ flex: "1 1 180px", minHeight: 50, padding: "12px 16px", borderRadius: 14, border: "none", background: on ? bg : "#E5E7EB", color: on ? fg : "#9AA3B2",
+    border: `1.5px solid ${on ? tone : C.line}`, background: on ? (tone === C.red ? C.redDim : tone === C.green ? C.greenDim : C.brassDim) : "var(--mr-surface)", color: on ? tone : C.paper });
+  const bigBtn = (bg, fg = "#fff", on = true) => ({ flex: "1 1 180px", minHeight: 50, padding: "12px 16px", borderRadius: 14, border: "none", background: on ? bg : "var(--mr-surface-2)", color: on ? fg : "var(--mr-muted)",
     fontSize: 15, fontWeight: 700, cursor: on ? "pointer" : "not-allowed", fontFamily: "inherit" });
-  const outBtn = (tone) => ({ flex: "1 1 160px", minHeight: 46, padding: "10px 14px", borderRadius: 14, border: `1.5px solid ${tone}`, background: "#fff", color: tone, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
+  const outBtn = (tone) => ({ flex: "1 1 160px", minHeight: 46, padding: "10px 14px", borderRadius: 14, border: `1.5px solid ${tone}`, background: "var(--mr-surface)", color: tone, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
   const h3 = { fontSize: 15, fontWeight: 700, margin: "0 0 10px", display: "flex", alignItems: "center", gap: 8 };
   const step = (n) => <span style={{ width: 24, height: 24, borderRadius: "50%", background: C.brass, color: "#fff", display: "inline-grid", placeItems: "center", fontSize: 12.5, fontWeight: 800 }}>{n}</span>;
 
@@ -329,7 +329,7 @@ export default function StaffInspectionConsole() {
   }
 
   const outcome = open && (open.status === "received_inspecting" || open.status === "awaiting_shipment") && !viewOnly;
-  const statusChip = (s) => <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "#F1F4FB", color: STATUS_COLOR(s, C.brass, C.muted, C.red, C.green) }}>{STATUS_LABELS[s] || s}</span>;
+  const statusChip = (s) => <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "var(--mr-surface-2)", color: STATUS_COLOR(s, C.brass, C.muted, C.red, C.green) }}>{STATUS_LABELS[s] || s}</span>;
 
   return (
     <div style={{ color: C.paper, fontFamily: "'Archivo', system-ui, sans-serif" }}>
@@ -342,9 +342,9 @@ export default function StaffInspectionConsole() {
                 <div style={{ color: C.muted, fontSize: 13.5 }}>Mark a phone received, check it, then pay, revise or reject. Paying puts it straight into stock.</div>
               </div>
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, phone, order, model or IMEI" aria-label="Search trade-ins"
-                style={{ flex: "1 1 260px", maxWidth: 380, padding: "11px 14px", border: `1px solid ${C.line}`, background: "#fff", fontSize: 14 }} />
+                style={{ flex: "1 1 260px", maxWidth: 380, padding: "11px 14px", border: `1px solid ${C.line}`, background: "var(--mr-surface)", fontSize: 14 }} />
             </div>
-            {done && <div role="status" style={{ ...card, background: C.greenDim, borderColor: "#BFE5D2", color: C.green, fontWeight: 600, fontSize: 14 }}>✓ {done}</div>}
+            {done && <div role="status" style={{ ...card, background: C.greenDim, borderColor: "color-mix(in srgb, var(--mr-ok) 35%, transparent)", color: C.green, fontWeight: 600, fontSize: 14 }}>✓ {done}</div>}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
               {["all", ...FLOW, "archived"].map((s) => (
                 <button key={s} onClick={() => setFilter(s)} style={chip(filter === s)}>
@@ -424,11 +424,11 @@ export default function StaffInspectionConsole() {
                   <div style={h3}>{step(1)} Checks before paying</div>
                   <label style={{ display: "block", fontSize: 13, color: C.muted, marginBottom: 6 }}>IMEI (dial *#06#)</label>
                   <input value={imei} onChange={(e) => setImei(e.target.value)} inputMode="numeric" placeholder="15 digits" aria-invalid={!!imei && !!imeiErr}
-                    style={{ width: "100%", maxWidth: 320, padding: "11px 14px", border: `1.5px solid ${imei && imeiErr ? C.red : C.line}`, fontSize: 16, letterSpacing: ".06em", background: "#fff" }} />
+                    style={{ width: "100%", maxWidth: 320, padding: "11px 14px", border: `1.5px solid ${imei && imeiErr ? C.red : C.line}`, fontSize: 16, letterSpacing: ".06em", background: "var(--mr-surface)" }} />
                   {imei && imeiErr && <div style={{ fontSize: 12.5, color: C.red, marginTop: 4 }}>{imeiErr}</div>}
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8, marginTop: 12 }}>
                     {CHECKS.map((c) => (
-                      <label key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "11px 12px", borderRadius: 12, border: `1.5px solid ${checks[c.id] ? C.green : C.line}`, background: checks[c.id] ? C.greenDim : "#fff", cursor: "pointer", fontSize: 13.5 }}>
+                      <label key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "11px 12px", borderRadius: 12, border: `1.5px solid ${checks[c.id] ? C.green : C.line}`, background: checks[c.id] ? C.greenDim : "var(--mr-surface)", cursor: "pointer", fontSize: 13.5 }}>
                         <input type="checkbox" checked={!!checks[c.id]} onChange={(e) => setChecks((s) => ({ ...s, [c.id]: e.target.checked }))} style={{ marginTop: 2 }} />
                         <span><b>{c.label}</b><span style={{ display: "block", color: C.muted, fontSize: 12 }}>{c.help}</span></span>
                       </label>
@@ -446,7 +446,7 @@ export default function StaffInspectionConsole() {
                   {faultGroups.map((g) => {
                     const n = g.faults.filter((f) => reassessFaults[f.id]).length;
                     return (
-                      <details key={g.group} open={n > 0} style={{ border: `1px solid ${C.line}`, borderRadius: 12, marginBottom: 8, background: "#fff", overflow: "hidden" }}>
+                      <details key={g.group} open={n > 0} style={{ border: `1px solid ${C.line}`, borderRadius: 12, marginBottom: 8, background: "var(--mr-surface)", overflow: "hidden" }}>
                         <summary style={{ cursor: "pointer", padding: "12px 14px", fontSize: 14, fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
                           <span>{g.group}</span><span style={{ fontSize: 12.5, color: n ? C.red : C.muted, fontWeight: 600 }}>{n ? `${n} ticked` : `${g.faults.length} checks`}</span>
                         </summary>
@@ -479,11 +479,11 @@ export default function StaffInspectionConsole() {
                     <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={addToStock} onChange={(e) => setAddToStock(e.target.checked)} />Add to stock when paid</label>
                     {addToStock && <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={needsRepair} onChange={(e) => setNeedsRepair(e.target.checked)} />Needs repair before selling</label>}
                   </div>
-                  {addToStock && needsRepair && <input value={repairIssue} onChange={(e) => setRepairIssue(e.target.value)} placeholder={ticked.length ? `What to fix (default: ${ticked.join(", ")})` : "What to fix"} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 14, marginBottom: 10, background: "#fff" }} />}
+                  {addToStock && needsRepair && <input value={repairIssue} onChange={(e) => setRepairIssue(e.target.value)} placeholder={ticked.length ? `What to fix (default: ${ticked.join(", ")})` : "What to fix"} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 14, marginBottom: 10, background: "var(--mr-surface)" }} />}
                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (the customer sees it on a revised offer; required to revise or reject)"
-                    style={{ width: "100%", minHeight: 56, padding: 12, border: `1px solid ${C.line}`, background: "#fff", color: C.paper, fontSize: 14, marginBottom: 10 }} />
+                    style={{ width: "100%", minHeight: 56, padding: 12, border: `1px solid ${C.line}`, background: "var(--mr-surface)", color: C.paper, fontSize: 14, marginBottom: 10 }} />
                   {open.customer.payoutMethod && open.customer.payoutMethod !== "cash" && (
-                    <input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder={`${open.customer.payoutMethod === "bank" ? "Bank transfer" : "PayPal"} reference (optional)`} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 14, marginBottom: 10, background: "#fff" }} />
+                    <input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder={`${open.customer.payoutMethod === "bank" ? "Bank transfer" : "PayPal"} reference (optional)`} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 14, marginBottom: 10, background: "var(--mr-surface)" }} />
                   )}
                   {!priceOk && <div role="alert" style={{ fontSize: 13, color: C.red, marginBottom: 10 }}>This order has no quoted price, so there's nothing to pay against. Set the price with a revised offer, or reject it.</div>}
                   {priceOk && !readyToPay && <div style={{ fontSize: 13, color: C.amber, marginBottom: 10 }}>To pay: {[imeiErr && "a valid IMEI", ...missingChecks.map((c) => c.short)].filter(Boolean).join(", ")}.</div>}
@@ -547,7 +547,7 @@ export default function StaffInspectionConsole() {
                   {open.status === "approved_paid" && !viewOnly && !open.inventoryItemId && !open.receivedToInventory && (
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ color: C.paper, marginBottom: 6 }}>The customer accepted online, so the phone isn't in stock yet.</div>
-                      <input value={imei} onChange={(e) => setImei(e.target.value)} inputMode="numeric" placeholder="IMEI" style={{ padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 15, marginRight: 8, background: "#fff" }} />
+                      <input value={imei} onChange={(e) => setImei(e.target.value)} inputMode="numeric" placeholder="IMEI" style={{ padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 15, marginRight: 8, background: "var(--mr-surface)" }} />
                       <button disabled={!!imeiErr || saving} onClick={async () => {
                         const item = newStockItem({ brand: open.device.brand, model: open.device.model, storage: open.device.storage, imei, costBasis: open.inspection?.confirmedTotal ?? open.quotedTotal,
                           region: open.region, currency: open.currency, sourceOrderId: open.id, faults: open.inspection?.faultsFound || open.faultLabels || [], staff });
@@ -613,7 +613,7 @@ function ShippingTrackingField({ order, onSave, colors }) {
           <option>Other</option>
         </select>
         <button disabled={!trackingNumber.trim() || saved} onClick={() => { onSave({ trackingNumber: trackingNumber.trim(), carrier, issuedAt: new Date().toISOString() }); setSaved(true); }}
-          style={{ padding: "7px 12px", borderRadius: 3, border: "none", background: trackingNumber.trim() && !saved ? brass : line, color: trackingNumber.trim() && !saved ? "#1a1408" : muted, fontSize: 12, cursor: trackingNumber.trim() && !saved ? "pointer" : "default" }}>
+          style={{ padding: "7px 12px", borderRadius: 3, border: "none", background: trackingNumber.trim() && !saved ? brass : line, color: trackingNumber.trim() && !saved ? "#fff" : muted, fontSize: 12, cursor: trackingNumber.trim() && !saved ? "pointer" : "default" }}>
           {saved ? "Saved" : "Save"}
         </button>
       </div>

@@ -5,25 +5,25 @@ import React, { useEffect, useState } from "react";
 import { GOOGLE_REVIEW_URL } from "./business-info.js";
 
 const CSS = `
-.gr{background:#fff;padding:44px 20px 40px;border-top:1px solid #EEF0F3}
+.gr{background:var(--mr-surface);padding:44px 20px 40px;border-top:1px solid var(--mr-line)}
 .gr-in{max-width:1120px;margin:0 auto}
 .gr-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .gr-kicker{font-size:12px;letter-spacing:.22em;color:#7a1630;font-weight:700;margin-bottom:6px}
-.gr-title{font-family:'Archivo Black',sans-serif;font-size:clamp(22px,3vw,30px);margin:0;color:#0f1115}
+.gr-title{font-family:'Archivo Black',sans-serif;font-size:clamp(22px,3vw,30px);margin:0;color:var(--mr-text)}
 .gr-score{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:14.5px;color:#374151}
-.gr-score b{font-size:22px;color:#0f1115}
+.gr-score b{font-size:22px;color:var(--mr-text)}
 .gr-stars{color:#F5A623;letter-spacing:1px}
 .gr-links{display:flex;gap:10px;flex-wrap:wrap}
 .gr-links a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none}
-.gr-links .p{background:#0f1115;color:#fff}.gr-links .s{border:1px solid #D9DDE3;color:#0f1115}
+.gr-links .p{background:#0f1115;color:#fff}.gr-links .s{border:1px solid var(--mr-line);color:var(--mr-text)}
 .gr-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,1fr);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;-webkit-overflow-scrolling:touch}
-.gr-card{scroll-snap-align:start;border:1px solid #E7E9ED;border-radius:16px;padding:16px;background:#FBFBFC;display:flex;flex-direction:column;gap:8px;min-height:170px}
-.gr-who{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:#0f1115}
+.gr-card{scroll-snap-align:start;border:1px solid var(--mr-line);border-radius:16px;padding:16px;background:var(--mr-surface-2);display:flex;flex-direction:column;gap:8px;min-height:170px}
+.gr-who{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:var(--mr-text)}
 .gr-who img,.gr-who i{width:32px;height:32px;border-radius:50%;flex:none;background:#E5E7EB;display:block}
 .gr-who a{color:inherit;text-decoration:none}
-.gr-when{font-size:12px;color:#6B7280;font-weight:500}
+.gr-when{font-size:12px;color:var(--mr-muted);font-weight:500}
 .gr-text{font-size:14px;line-height:1.5;color:#374151;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
-.gr-attr{font-size:11.5px;color:#6B7280;margin-top:10px}
+.gr-attr{font-size:11.5px;color:var(--mr-muted);margin-top:10px}
 @media (min-width:1000px){ .gr-row{grid-auto-flow:row;grid-template-columns:repeat(3,1fr);overflow:visible} .gr-row .gr-card:nth-child(n+4){display:none} }
 `;
 

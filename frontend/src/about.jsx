@@ -5,8 +5,8 @@ import Photo from "./photo.jsx";
 // Same palette every other customer-facing page uses — kept as local
 // constants (not imported) to match the established pattern in this
 // codebase, where each route file is self-contained.
-const ink = "#FFFFFF", panel = "#FFFFFF", paper = "#111827", muted = "#5B6472",
-  brass = "#2150C8", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+  brass = "var(--mr-brand)", line = "var(--mr-line)";
 
 export default function AboutUs() {
   return (

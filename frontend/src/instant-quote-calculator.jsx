@@ -944,8 +944,8 @@ export default function QuoteCalculator() {
 
   // Mobile Recellr palette — bold Australian retail: warm paper background,
   // heritage signage red as the single brand accent, bold black structure.
-  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+  const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+    brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
@@ -959,7 +959,7 @@ export default function QuoteCalculator() {
           box-shadow: 0 18px 40px rgba(18,8,12,.18); }
         .mvq-eyebrow { font-size: 11.5px; letter-spacing: .26em; font-weight: 700; color: rgba(255,255,255,.62); margin-bottom: 8px; }
         .mvq-h1 { font-family: 'Outfit','Archivo',sans-serif; font-weight: 800; font-size: clamp(30px, 7vw, 40px); line-height: 1; letter-spacing: -.035em; margin: 0 0 8px;
-          background: linear-gradient(180deg,#FFFFFF 0%,#F5E6EA 45%,#C97A8A 70%,#FFFFFF 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+          background: linear-gradient(180deg,var(--mr-surface) 0%,#F5E6EA 45%,#C97A8A 70%,var(--mr-surface) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .mvq-sub { font-size: 14.5px; line-height: 1.5; color: rgba(255,255,255,.78); margin: 0 0 14px; max-width: 520px; }
         .mvq-chips { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
         @media (min-width: 640px) { .mvq-chips { grid-template-columns: repeat(4, minmax(0,1fr)); } .mvq-hero { padding: 24px 22px 20px; } }
@@ -968,13 +968,13 @@ export default function QuoteCalculator() {
         .mvq-chip svg { width: 17px; height: 17px; flex: none; color: #E9A9B7; }
         button.mvq-chip { cursor: pointer; } button.mvq-chip:hover { background: rgba(255,255,255,.14); }
         .mvq-steps { display: flex; list-style: none; padding: 0; margin: 0 0 22px; }
-        .mvq-steps li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; font-size: 12px; color: #6B7280; font-weight: 600; }
+        .mvq-steps li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; font-size: 12px; color: var(--mr-muted); font-weight: 600; }
         .mvq-steps li::before { content: ""; position: absolute; top: 13px; left: -50%; right: 50%; height: 2px; background: #E5E7EB; z-index: 0; }
         .mvq-steps li:first-child::before { display: none; }
         .mvq-steps li.done::before, .mvq-steps li.on::before { background: #8B3A4C; }
         .mvq-steps b { position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px;
-          background: #fff; border: 2px solid #E5E7EB; color: #6B7280; transition: all .3s ease; }
-        .mvq-steps li.on { color: #111827; } .mvq-steps li.on b { border-color: #8B3A4C; color: #8B3A4C; box-shadow: 0 0 0 4px rgba(139,58,76,.12); }
+          background: var(--mr-surface); border: 2px solid var(--mr-line); color: var(--mr-muted); transition: all .3s ease; }
+        .mvq-steps li.on { color: var(--mr-text); } .mvq-steps li.on b { border-color: #8B3A4C; color: #8B3A4C; box-shadow: 0 0 0 4px rgba(139,58,76,.12); }
         .mvq-steps li.done b { background: #8B3A4C; border-color: #8B3A4C; color: #fff; }
       `}</style>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 130px" }}>
@@ -1131,7 +1131,7 @@ export default function QuoteCalculator() {
                     <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10, marginBottom: 6 }}>
                       {TILES.map(([icon, name, b, c]) => (
                         <button key={name} onClick={() => { setBrandFilter(b); setCategoryFilter(c); }} className="cs-card"
-                          style={{ display: "grid", justifyItems: "center", gap: 6, padding: "18px 10px", borderRadius: 16, border: `1.5px solid ${line}`, background: "#fff", cursor: "pointer", fontFamily: "inherit", color: paper }}>
+                          style={{ display: "grid", justifyItems: "center", gap: 6, padding: "18px 10px", borderRadius: 16, border: `1.5px solid ${line}`, background: "var(--mr-surface)", cursor: "pointer", fontFamily: "inherit", color: paper }}>
                           <span aria-hidden="true" style={{ height: 52, display: "flex", alignItems: "center" }}><DeviceArt type={icon[0]} size={48} brand={icon[1]} model={icon[2]} /></span><span style={{ fontWeight: 800, fontSize: 15.5 }}>{name}</span>
                         </button>
                       ))}
@@ -1145,7 +1145,7 @@ export default function QuoteCalculator() {
               {BRANDS.filter((b) => b === "All" || CATALOG_A.some((d) => d.brand === b && (d.category || "phone") === categoryFilter)).map((b) => (
                 <button key={b} onClick={() => setBrandFilter(b)}
                   style={{ minHeight: 40, padding: "8px 14px", borderRadius: 10, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit",
-                    border: `1px solid ${brandFilter === b ? brass : line}`, background: brandFilter === b ? brassDim : "#fff", color: brandFilter === b ? brass : paper }}>
+                    border: `1px solid ${brandFilter === b ? brass : line}`, background: brandFilter === b ? brassDim : "var(--mr-surface)", color: brandFilter === b ? brass : paper }}>
                   {b === "All" ? "All brands" : b}
                 </button>
               ))}
@@ -1173,7 +1173,7 @@ export default function QuoteCalculator() {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search model, e.g. iPhone 15 Pro Max" aria-label="Search for your device model"
               style={{ width: "100%", padding: "13px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper,
                 fontSize: 15, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
-            <div style={{ border: `1px solid ${line}`, borderRadius: 16, overflow: "hidden", background: "#fff", display: (brandFilter !== "All" || categoryFilter !== "All" || search.trim()) ? "block" : "none" }}>
+            <div style={{ border: `1px solid ${line}`, borderRadius: 16, overflow: "hidden", background: "var(--mr-surface)", display: (brandFilter !== "All" || categoryFilter !== "All" || search.trim()) ? "block" : "none" }}>
               {filtered.slice(0, showAllModels ? filtered.length : 40).map((d, di) => {
                 const mult = REGIONS_A[region].mult;
                 const sizes = Object.keys(d.retail);
@@ -1183,7 +1183,7 @@ export default function QuoteCalculator() {
                   <div key={d.brand + d.model} className="mvq-model" style={{ borderTop: di === 0 ? "none" : `1px solid ${line}`, padding: "12px 12px 10px" }}>
                     <div role="button" tabIndex={0} onClick={() => pick(sizes[0])} onKeyDown={(e) => { if (e.key === "Enter") pick(sizes[0]); }}
                       style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} aria-label={`${d.brand} ${d.model}, up to ${fmt(upTo, region, REGIONS_A)}`}>
-                      <div style={{ width: 62, height: 62, borderRadius: 14, background: "#F4F6F9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+                      <div style={{ width: 62, height: 62, borderRadius: 14, background: "var(--mr-surface-2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
                         <DeviceArt type={inferDeviceType(d.model, d.category)} size={46} brand={d.brand} model={d.model} imageUrl={d.imageUrl} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1195,7 +1195,7 @@ export default function QuoteCalculator() {
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9, paddingLeft: 76 }}>
                       {sizes.map((sz) => (
                         <button key={sz} onClick={() => pick(sz)}
-                          style={{ padding: "6px 11px", borderRadius: 10, fontSize: 12.5, cursor: "pointer", border: `1px solid ${line}`, background: "#fff", color: paper, fontFamily: "inherit" }}>
+                          style={{ padding: "6px 11px", borderRadius: 10, fontSize: 12.5, cursor: "pointer", border: `1px solid ${line}`, background: "var(--mr-surface)", color: paper, fontFamily: "inherit" }}>
                           {sz} <span style={{ color: brass }}>· up to {fmt(baseBuybackAUD(d, sz, RETENTION_A, BRAND_FACTOR_A) * mult * (1 - HOLDING_COST_A), region, REGIONS_A)}</span>
                         </button>
                       ))}
@@ -1204,7 +1204,7 @@ export default function QuoteCalculator() {
                 );
               })}
               {filtered.length > 40 && !showAllModels && (
-                <button onClick={() => setShowAllModels(true)} style={{ width: "100%", minHeight: 48, border: "none", borderTop: `1px solid ${line}`, background: "#F4F6F9", color: brass, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit" }}>
+                <button onClick={() => setShowAllModels(true)} style={{ width: "100%", minHeight: 48, border: "none", borderTop: `1px solid ${line}`, background: "var(--mr-surface-2)", color: brass, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit" }}>
                   Show all {filtered.length} models
                 </button>
               )}
@@ -1214,7 +1214,7 @@ export default function QuoteCalculator() {
               <div id="mvq-ask" style={{ scrollMarginTop: 90 }}><DeviceRequestForm key={search.trim()} initialQuery={search} onClose={filtered.length === 0 && search.trim() ? undefined : () => setAskDevice(false)} /></div>
             ) : (
               <button type="button" onClick={() => setAskDevice(true)}
-                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 48, marginTop: 12, padding: "0 14px", borderRadius: 14, border: "1px dashed #B9C6E8", background: "#F7F9FF", color: brass, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minHeight: 48, marginTop: 12, padding: "0 14px", borderRadius: 14, border: "1px dashed #B9C6E8", background: "var(--mr-surface-2)", color: brass, fontWeight: 700, fontSize: 14.5, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
                 Can't find your device? We'll price it for you
               </button>
@@ -1241,10 +1241,10 @@ export default function QuoteCalculator() {
           return (
             <div className="mvq-product" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 18, marginBottom: 24, alignItems: "start" }}>
               <div style={{ display: "grid", gap: 14 }}>
-                <div style={{ border: `1px solid ${line}`, borderRadius: 18, background: "linear-gradient(180deg,#F7F9FC,#EEF2F8)", display: "flex", alignItems: "center", justifyContent: "center", padding: "26px 10px", minHeight: 280 }}>
+                <div style={{ border: `1px solid ${line}`, borderRadius: 18, background: "linear-gradient(180deg,var(--mr-surface-2),var(--mr-surface-2))", display: "flex", alignItems: "center", justifyContent: "center", padding: "26px 10px", minHeight: 280 }}>
                   <DeviceArt type={inferDeviceType(selected.model, selected.category)} size={220} brand={selected.brand} model={selected.model} imageUrl={selected.imageUrl} label={`${selected.brand} ${selected.model}`} />
                 </div>
-                <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "16px 18px", background: "#fff" }}>
+                <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "16px 18px", background: "var(--mr-surface)" }}>
                   <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 17, marginBottom: 8 }}>Specifications</div>
                   {specs.map(([k, v], i) => (
                     <div key={k} style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 10, padding: "10px 0", borderTop: i ? `1px solid ${line}` : "none", fontSize: 14 }}>
@@ -1253,7 +1253,7 @@ export default function QuoteCalculator() {
                   ))}
                 </div>
               </div>
-              <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "20px 20px 22px", background: "#fff" }}>
+              <div style={{ border: `1px solid ${line}`, borderRadius: 18, padding: "20px 20px 22px", background: "var(--mr-surface)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                   <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(24px, 4vw, 32px)", lineHeight: 1.12, margin: 0 }}>{selected.brand} {selected.model}</h2>
                   <button onClick={() => { setSelected(null); setSearch(""); setTierId(null); }} style={{ background: "none", border: "none", color: brass, fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>Change</button>
@@ -1284,7 +1284,7 @@ export default function QuoteCalculator() {
                     ))}
                   </div>
                   {tier && (
-                    <div style={{ marginTop: 12, fontSize: 13.5, color: muted, background: "#F4F6F9", borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ marginTop: 12, fontSize: 13.5, color: muted, background: "var(--mr-surface-2)", borderRadius: 10, padding: "10px 12px" }}>
                       <strong style={{ color: paper }}>{tier.label}:</strong> {tier.sub}. Up to {fmt(sealed * tier.factor, region, REGIONS_A)} before any issues below.
                     </div>
                   )}
@@ -1312,7 +1312,7 @@ export default function QuoteCalculator() {
               if (tier.mode === "functional-only" && g.cosmetic) return null;
               const ticked = g.faults.filter((f) => faults[f.id]).length;
               return (
-                <details key={g.group} style={{ marginBottom: 10, border: `1px solid ${line}`, borderRadius: 12, background: "#fff", overflow: "hidden" }}>
+                <details key={g.group} style={{ marginBottom: 10, border: `1px solid ${line}`, borderRadius: 12, background: "var(--mr-surface)", overflow: "hidden" }}>
                   <summary style={{ cursor: "pointer", padding: "14px 16px", minHeight: 24, fontSize: 15, fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span>{g.group}</span><span style={{ fontSize: 13, fontWeight: 600, color: ticked ? red : muted }}>{ticked ? `${ticked} selected` : `${g.faults.length} checks`}</span>
                   </summary>

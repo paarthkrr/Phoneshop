@@ -4,7 +4,7 @@ import { TwoStepCard, SignInHistory } from "./security.jsx";
 
 // Team: admins add staff, reset forgotten passwords and remove people who've
 // left. Everyone can change their own password here too.
-const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472", brass = "#2150C8", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)", brass = "var(--mr-brand)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 const field = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 15, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" };
 const btn = (bg, fg = "#fff") => ({ padding: "12px 18px", borderRadius: 10, border: "none", background: bg, color: fg, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
 
@@ -92,7 +92,7 @@ export default function Team() {
                 </div>
                 {u.username !== me.username && <>
                   <select aria-label={`Role for ${u.username}`} value={u.role} onChange={(e) => changeRole(u.username, e.target.value)}
-                    style={{ padding: "11px 10px", borderRadius: 10, border: `1px solid ${line}`, background: "#fff", fontSize: 14.5, fontFamily: "inherit", color: paper }}>
+                    style={{ padding: "11px 10px", borderRadius: 10, border: `1px solid ${line}`, background: "var(--mr-surface)", fontSize: 14.5, fontFamily: "inherit", color: paper }}>
                     {ROLE_ORDER.map((k) => <option key={k} value={k}>{ROLE_LABELS[k]}</option>)}
                   </select>
                   <button style={btn("transparent", brass)} onClick={() => resetPw(u.username)}>Reset password</button>
@@ -112,7 +112,7 @@ export default function Team() {
       <Card title="Change my password">
         <input style={field} type="password" placeholder="Current password" aria-label="Current password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} autoComplete="current-password" />
         <input style={field} type="password" placeholder="New password (12+ characters, a short sentence works)" aria-label="New password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} autoComplete="new-password" />
-        <button style={btn(paper)} onClick={changeMine}>Change password</button>
+        <button style={btn(paper, "var(--mr-bg)")} onClick={changeMine}>Change password</button>
       </Card>
       <SignInHistory Card={Card} everyone={isAdmin} />
     </Wrap>

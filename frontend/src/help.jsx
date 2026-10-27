@@ -40,8 +40,8 @@ async function queueNotification(entry) {
 }
 const genId = () => "HLP-" + Math.floor(100000 + Math.random() * 900000);
 
-const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-  brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
+  brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 
 const CATEGORIES = ["Question about a repair", "Question about an order", "Question about a device I'm selling", "Something else"];
 
