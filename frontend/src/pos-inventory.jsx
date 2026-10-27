@@ -1,6 +1,8 @@
 import { UnitPhotos } from "./spin-360.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
+import { newShopRepairJob, addToSharedList } from "./device-flow.js";
+import { sydneyDay, sydneyToday } from "./sydney-time.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { ScanButton } from "./barcode-scanner.jsx";
 import { generateBarcode } from "./barcode-gen.js";
@@ -247,7 +249,8 @@ export default function POSInventory() {
         let localInv = [];
         try { localInv = JSON.parse(localStorage.getItem('inventory') || '[]'); } catch {}
         const merged = [...(inv || []), ...localInv.filter(l => !(inv || []).some(i => i.id === l.id))];
-        setInventory(merged); setSales(s || []);
+        // Quick Add (USB scanner) saved phones as "available"; everywhere else that's "in stock".
+        setInventory(merged.map((i) => (i.status === "available" ? { ...i, status: "in_stock", gradeId: i.gradeId || i.grade || null } : i))); setSales(s || []);
       const authed = getAuthedUser();
       if (authed) { setAuthedUser(authed); setStaffName(authed.username); } // real login overrides free text entirely
       else if (staff) setStaffName(staff);
@@ -331,11 +334,15 @@ export default function POSInventory() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8, marginBottom: 16 }}>
           <div style={{ background: panel2, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: brass }}>{inventory.filter(i => i.status === "in_stock").length}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: brass }}>{inventory.filter(i => i.status === "in_stock" || i.status === "listed").length}</div>
             <div style={{ fontSize: 11, color: muted }}>In Stock</div>
           </div>
           <div style={{ background: panel2, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: green }}>{sales.filter(s => s.soldAt && s.soldAt.slice(0,10) === new Date().toISOString().slice(0,10)).length}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#7A1F2B" }}>{inventory.filter(i => i.status === "in_repair").length}</div>
+            <div style={{ fontSize: 11, color: muted }}>In Repair</div>
+          </div>
+          <div style={{ background: panel2, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: green }}>{sales.filter(s => s.soldAt && sydneyDay(s.soldAt) === sydneyToday()).length}</div>
             <div style={{ fontSize: 11, color: muted }}>Today Sales</div>
           </div>
           <div style={{ background: panel2, borderRadius: 8, padding: "12px 14px", textAlign: "center" }}>
@@ -381,13 +388,13 @@ export default function POSInventory() {
 
         {tab === "Quick Add" && (
           <QuickAddTab colors={{ panel, panel2, paper, muted, brass, brassDim, green, line }} onAdd={async (item) => {
-            await persistInventory([{ ...item, staffHandled: staffName || "unattributed" }, ...inventory]);
+            await persistInventory([{ ...item, status: item.status === "available" ? "in_stock" : item.status, gradeId: item.gradeId || item.grade || null, receivedAt: item.receivedAt || new Date().toISOString(), staffHandled: staffName || "unattributed" }, ...inventory]);
             setTab("Inventory");
           }} />
         )}
         {tab === "Inventory" && (
           <InventoryTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
-            inventory={inventory} regions={regions}
+            inventory={inventory} regions={regions} staffName={staffName}
             onUpdate={async (id, patch) => { await persistInventory(inventory.map((i) => (i.id === id ? { ...i, ...patch } : i))); }} />
         )}
 
@@ -979,9 +986,13 @@ function QuickAddTab({ colors, onAdd }) {
   );
 }
 
-function InventoryTab({ colors, inventory, regions, onUpdate }) {
+function InventoryTab({ colors, inventory, regions, onUpdate, staffName }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [repairFor, setRepairFor] = useState(null); // item being sent to the repair bench
+  const [repairIssue, setRepairIssue] = useState("");
+  const [flash, setFlash] = useState("");
   const [labelItem, setLabelItem] = useState(null);
   const [writeOffItem, setWriteOffItem] = useState(null);
   const [writeOffReason, setWriteOffReason] = useState("Damaged");
@@ -991,7 +1002,20 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
   const [sellPriceEdit, setSellPriceEdit] = useState(null); // { id, value }
   const [photoItemId, setPhotoItemId] = useState(null);
   const [editItem, setEditItem] = useState(null);
-  const filtered = inventory.filter((i) => filter === "all" || i.status === filter);
+  const q = search.trim().toLowerCase();
+  const filtered = inventory
+    .filter((i) => filter === "all" || i.status === filter)
+    .filter((i) => !q || [i.id, i.imei, i.brand, i.model, i.storage, i.sourceOrderId].some((v) => String(v || "").toLowerCase().includes(q)));
+  const daysIn = (i) => (i.receivedAt ? Math.floor((Date.now() - new Date(i.receivedAt).getTime()) / 864e5) : null);
+  // Our own phone onto the repair bench: a shop job in Repairs, and the phone stays
+  // off sale ("in repair") until that job is finished.
+  async function sendToRepair(item) {
+    const job = newShopRepairJob({ item, issue: repairIssue.trim() || (item.faults && item.faults.length ? `Fix: ${item.faults.join(", ")}` : "Fix up to sell"), staff: staffName });
+    if (!(await addToSharedList("repair_tickets", job))) { setFlash("Couldn't open the repair job. Try again."); return; }
+    await onUpdate(item.id, { status: "in_repair", repairJobId: job.id, ...(item.status === "listed" ? { unlistedAt: new Date().toISOString() } : {}) });
+    setRepairFor(null); setRepairIssue("");
+    setFlash(`${item.brand} ${item.model} is on the repair bench as ${job.id}. It comes back to stock when the job is done.`);
+  }
   const visible = filtered.slice(0, visibleCount);
   const WRITE_OFF_REASONS = ["Damaged", "Stolen", "Lost", "Unsellable", "Other"];
 
@@ -1056,6 +1080,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
         <button onClick={() => setEditItem(null)} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back</button>
         <div style={{ border: `1px solid ${line}`, borderRadius: 6, padding: 16, background: panel2 }}>
           <div style={{ fontWeight: 600, marginBottom: 12 }}>Edit {editItem.model}</div>
+          <div style={{ fontSize: 12.5, color: muted, marginBottom: 10 }}>Grade and sale price are set from the stock list (the grade buttons and Change price).</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div><label style={{ fontSize: 12, color: muted }}>Model</label><input id="ed-model" defaultValue={editItem.model || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>Storage</label><input id="ed-storage" defaultValue={editItem.storage || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
@@ -1063,11 +1088,6 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
             <div><label style={{ fontSize: 12, color: muted }}>Year</label><input id="ed-year" defaultValue={editItem.year || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>IMEI</label><input id="ed-imei" defaultValue={editItem.imei || ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
             <div><label style={{ fontSize: 12, color: muted }}>Buy Price ($)</label><input id="ed-price" type="number" defaultValue={editItem.costBasis ?? editItem.price ?? ""} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }} /></div>
-            <div><label style={{ fontSize: 12, color: muted }}>Grade</label>
-              <select id="ed-grade" defaultValue={editItem.grade || "A"} style={{ width: "100%", padding: 8, marginTop: 4, borderRadius: 4, border: `1px solid ${line}`, background: panel, color: paper }}>
-                <option value="A">A - Like New</option><option value="B">B - Excellent</option><option value="C">C - Good</option><option value="D">D - Fair</option>
-              </select>
-            </div>
           </div>
           <button onClick={() => {
             // This is the BUY price (what we paid). It never touches the sale price on the
@@ -1079,7 +1099,6 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
               color: document.getElementById("ed-color").value,
               year: document.getElementById("ed-year").value,
               imei: document.getElementById("ed-imei").value,
-              grade: document.getElementById("ed-grade").value,
             };
             if (Number.isFinite(buy) && buy > 0) { patch.costBasis = buy; if (editItem.costBasis == null) patch.price = buy; }
             onUpdate(editItem.id, patch);
@@ -1092,14 +1111,17 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
 
   return (
     <div>
+      <input value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(30); }} placeholder="Search IMEI, model, stock no. or order"
+        aria-label="Search stock" style={{ width: "100%", padding: "10px 12px", border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 10 }} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-        {["all", "in_stock", "listed", "reserved", "sold", "written_off"].map((s) => (
+        {["all", "in_stock", "in_repair", "listed", "reserved", "sold", "written_off"].map((s) => (
           <button key={s} onClick={() => { setFilter(s); setVisibleCount(30); }} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",
             border: `1px solid ${filter === s ? brass : line}`, background: filter === s ? brassDim : "transparent", color: filter === s ? brass : paper }}>
-            {s === "all" ? "All" : s.replace("_", " ")}
+            {s === "all" ? "All" : s.replace("_", " ")} ({s === "all" ? inventory.length : inventory.filter((i) => i.status === s).length})
           </button>
         ))}
       </div>
+      {flash && <div role="status" style={{ fontSize: 13, color: green, border: `1px solid ${line}`, padding: "8px 12px", marginBottom: 12 }}>{flash}</div>}
       <div style={{ fontSize: 12, color: muted, marginBottom: 10 }}>{filtered.length} item{filtered.length === 1 ? "" : "s"}{visibleCount < filtered.length ? ` — showing first ${visibleCount}` : ""}</div>
       {filtered.length === 0 && <div style={{ color: muted, fontSize: 13 }}>No items here yet.</div>}
       {visible.map((item) => (
@@ -1110,18 +1132,34 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
           </div>
           <div style={{ fontSize: 12, color: muted, marginBottom: 8 }}>
             IMEI {item.imei} · cost {fmt(item.costBasis, item.region, regions)} {item.sourceOrderId ? `· from ${item.sourceOrderId}` : "· in-store buy"}
+            {daysIn(item) != null && item.status !== "sold" && ` · ${daysIn(item)} day${daysIn(item) === 1 ? "" : "s"} in stock`}
+            {Array.isArray(item.faults) && item.faults.length > 0 && <span style={{ color: red }}> · faults: {item.faults.join(", ")}</span>}
             {item.sellerIdNumber && ` · ID ${item.sellerIdType} ending ${item.sellerIdNumber.slice(-4).padStart(item.sellerIdNumber.length, "•")}`}
           </div>
           {photoItemId === item.id && <UnitPhotos item={item} colors={colors} onSave={(patch) => onUpdate(item.id, patch)} onClose={() => setPhotoItemId(null)} />}
           {item.status === "written_off" && (
             <div style={{ fontSize: 12, color: red }}>Written off — {item.writeOffReason}{item.writeOffNote && `: ${item.writeOffNote}`}</div>
           )}
+          {item.status === "in_repair" && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12.5, color: "#7A1F2B" }}>
+              🔧 On the repair bench{item.repairJobId ? ` (${item.repairJobId})` : ""}. It comes back to stock when the job is marked done in Repairs.
+              <button onClick={() => onUpdate(item.id, { status: "in_stock" })} style={{ padding: "5px 10px", fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>Back to stock now</button>
+            </div>
+          )}
+          {repairFor === item.id && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", margin: "6px 0 10px" }}>
+              <input value={repairIssue} onChange={(e) => setRepairIssue(e.target.value)} autoFocus placeholder={item.faults && item.faults.length ? `What to fix (default: ${item.faults.join(", ")})` : "What to fix"}
+                style={{ flex: "1 1 220px", padding: "8px 10px", fontSize: 13, border: `1px solid ${line}` }} />
+              <button onClick={() => sendToRepair(item)} style={{ padding: "8px 12px", fontSize: 12.5, border: "none", background: "#7A1F2B", color: "#fff", cursor: "pointer", fontWeight: 600 }}>Open repair job</button>
+              <button onClick={() => setRepairFor(null)} style={{ padding: "8px 10px", fontSize: 12.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>Cancel</button>
+            </div>
+          )}
           {item.status === "reserved" && (
             <div style={{ fontSize: 12, color: brass, fontStyle: "italic" }}>
               Reserved for a pending online order — grading and write-off are locked until the Web Orders tab completes or cancels it.
             </div>
           )}
-          {item.status !== "sold" && item.status !== "written_off" && item.status !== "reserved" && (
+          {item.status !== "sold" && item.status !== "written_off" && item.status !== "reserved" && item.status !== "in_repair" && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               {GRADES.map((g) => (
                 <button key={g.id} onClick={() => onUpdate(item.id, { gradeId: g.id, ...(pricePatch(item, Math.round(item.costBasis * g.markup)) || { listedPrice: Math.round(item.costBasis * g.markup) }) })}
@@ -1189,6 +1227,14 @@ function InventoryTab({ colors, inventory, regions, onUpdate }) {
                   Publish listing
                 </button>
               )}
+              {item.status === "listed" && (
+                <button onClick={() => onUpdate(item.id, { status: "in_stock", unlistedAt: new Date().toISOString() })} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
+                  Take off website
+                </button>
+              )}
+              <button onClick={() => { setRepairFor(item.id); setRepairIssue(""); }} style={{ padding: "6px 10px", borderRadius: 2, fontSize: 12, border: "1px solid #7A1F2B", background: "transparent", color: "#7A1F2B", cursor: "pointer" }}>
+                Send to repair
+              </button>
               <button onClick={() => setWriteOffItem(item)} style={{ marginLeft: "auto", padding: "6px 10px", borderRadius: 2, fontSize: 12, border: `1px solid ${red}`, background: "transparent", color: red, cursor: "pointer" }}>
                 Write off
               </button>

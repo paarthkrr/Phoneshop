@@ -517,6 +517,9 @@ const STATUS_LABELS = {
   revised_pending_customer: "Revised offer — awaiting your response",
   approved_paid: "Approved — payment sent",
   returned: "Returned to you",
+  rejected: "Didn't pass our checks — we'll arrange its return",
+  held: "On hold — we'll be in touch",
+  cancelled: "Cancelled",
 };
 
 const QICONS = {

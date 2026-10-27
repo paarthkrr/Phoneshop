@@ -266,6 +266,7 @@ export default function DailyDashboard() {
     { to: "/portal/repairs", label: "Repairs ready for pickup", n: s.repairsReady.length, tone: "g" },
     { to: "/portal/repairs", label: "Repair jobs open more than 5 days", n: s.repairsStale.length, tone: "r" },
     { to: "/portal/repairs", label: "New online repair bookings to call back", n: s.waiting.repairBookings, tone: "" },
+    { to: "/portal/inspect", label: "Rejected trade-ins to hand back", n: data.orders.filter((o) => o.status === "rejected" && !o.archived).length, tone: "r" },
     { to: "/portal/pos", label: "Online phone orders to fulfil", n: s.waiting.webOrders, tone: "" },
     { to: "/portal/pos", label: "Accessory orders to pack or hand over", n: s.waiting.accessoryOrders, tone: "" },
     { to: "/portal/pricing", label: "Price match requests to answer", n: s.waiting.priceMatches, tone: "" },

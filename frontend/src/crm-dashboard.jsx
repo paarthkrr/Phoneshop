@@ -36,7 +36,7 @@ async function saveJSON(key, value, shared) {
   try { await window.storage.set(key, JSON.stringify(value), shared); return true; } catch (e) { return false; }
 }
 
-const ORDER_STATUSES = ["awaiting_shipment", "received_inspecting", "revised_pending_customer", "approved_paid", "returned"];
+const ORDER_STATUSES = ["awaiting_shipment", "received_inspecting", "revised_pending_customer", "approved_paid", "rejected", "returned", "cancelled"];
 const TABS = ["Customers", "Profit & Loss", "Reports", "Expenses", "Leads & Notifications"];
 const EXPENSE_CATEGORIES = ["Rent", "Wages", "Utilities", "Supplies", "Marketing", "Insurance", "Other"];
 
