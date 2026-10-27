@@ -77,7 +77,7 @@ function Entry({ r, area }) {
       {r.important && <div style={{ fontSize: 13.5, color: red, fontWeight: 700, marginTop: 2 }}>⚑ {r.important} (emailed to owner)</div>}
       {changes.length > 0 && (
         <ul style={{ margin: "6px 0 0", paddingLeft: 18, fontSize: 13.5, color: paper, lineHeight: 1.6 }}>
-          {changes.map((c, i) => <li key={i}><code style={{ fontSize: 12.5 }}>{c.field}</code>: {c.hidden ? <em>changed (hidden for privacy)</em> : <>{c.from} → <strong>{c.to}</strong></>}</li>)}
+          {changes.map((c, i) => <li key={i} style={{ overflowWrap: "anywhere" }}><code style={{ fontSize: 12.5 }}>{c.field}</code>: {c.hidden ? <em>changed (hidden for privacy)</em> : <>{c.from} → <strong>{c.to}</strong></>}</li>)}
         </ul>
       )}
     </div>

@@ -179,9 +179,10 @@ const HERO_CSS = `
 .mvx-benefits-inner svg{width:18px;height:18px;color:#8B3A4C}
 @media(max-width:900px){
   .mvx-hero{min-height:auto!important;height:auto!important}
-  .mvx-hero-inner{grid-template-columns:1fr;padding:24px 16px;gap:12px}
+  .mvx-hero-inner{grid-template-columns:minmax(0,1fr);padding:24px 16px;gap:12px}
+  .mvx-hero-inner>*{min-width:0}
   .mvx-stage{height:auto;padding-top:8px;min-height:auto!important}
-  .mvx-stage{grid-template-columns:1fr;justify-content:center}
+  .mvx-stage{grid-template-columns:minmax(0,420px);justify-content:center}
   .mvx-card{width:100%;margin:0 auto;box-sizing:border-box}
   .mvx-glow{display:none}
   .mvx-benefits-inner{grid-template-columns:repeat(2,1fr);padding:12px 14px}
@@ -528,14 +529,16 @@ export default function Home() {
 
   useEffect(() => {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const els = document.querySelectorAll(".reveal");
+    // :not(.in), and re-run when the phone strip arrives: it renders only after its prices
+    // load, so a one-off pass on mount never saw it and it stayed invisible (a blank band).
+    const els = document.querySelectorAll(".reveal:not(.in)");
     if (!els.length || !("IntersectionObserver" in window)) return;
     const io = new IntersectionObserver((entries) => {
       entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
     }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  },[topPhones.length]);
 
 
   const section = { maxWidth: 1140, margin: "0 auto", padding: "0 20px" };
