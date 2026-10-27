@@ -251,16 +251,25 @@ export default function RepairTickets() {
     if (!t) return "";
     const completedAt = new Date().toISOString();
     const extra = partsCostOf(t) + (Number(t.techPay) || 0);
-    let costAdded = false;
-    if (t.inventoryItemId && !t.refurbCostAdded && hasArea("register") && extra > 0) {
+    let costAdded = false, backInStock = false;
+    if (t.inventoryItemId && hasArea("register")) {
       const inv = (await loadJSON("inventory", true)) || [];
-      if (inv.some((i) => i.id === t.inventoryItemId)) {
-        costAdded = await saveJSON("inventory", inv.map((i) => i.id === t.inventoryItemId
-          ? { ...i, costBasis: (Number(i.costBasis) || 0) + extra, refurbJobs: [...(i.refurbJobs || []), { jobId: t.id, cost: extra, at: completedAt }] } : i), true);
+      const item = inv.find((i) => i.id === t.inventoryItemId);
+      const addCost = !t.refurbCostAdded && extra > 0;
+      // The phone was taken off sale while it was on the bench; finishing the job puts it back.
+      const release = item && item.status === "in_repair";
+      if (item && (addCost || release)) {
+        const ok = await saveJSON("inventory", inv.map((i) => i.id === t.inventoryItemId ? {
+          ...i,
+          ...(addCost ? { costBasis: (Number(i.costBasis) || 0) + extra, refurbJobs: [...(i.refurbJobs || []), { jobId: t.id, cost: extra, at: completedAt }] } : {}),
+          ...(release ? { status: "in_stock", repairedAt: completedAt } : {}),
+        } : i), true);
+        costAdded = ok && addCost; backInStock = ok && release;
       }
     }
     await updateTicket(ticketId, { status: "completed", completedAt, ...(costAdded ? { refurbCostAdded: true } : {}) }, true);
-    if (costAdded) return `Done. ${fmt(extra)} parts and labour added to this phone's cost in stock.`;
+    if (costAdded) return `Done. ${fmt(extra)} parts and labour added to this phone's cost${backInStock ? ", and it's back in stock" : " in stock"}.`;
+    if (backInStock) return "Done. The phone is back in stock, ready to grade and list.";
     if (extra > 0 && t.inventoryItemId) return `Done. Ask the counter to add ${fmt(extra)} repair cost to this phone in stock.`;
     return "Done. The phone is ready to go back on sale.";
   }

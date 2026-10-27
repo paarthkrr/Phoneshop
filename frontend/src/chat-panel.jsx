@@ -183,9 +183,9 @@ async function saveSupportQuery({ name, contact, message }) {
 // ---- order tracking (reference numbers only; email lookups stay on the Track pages) ----
 const PURCHASE = { steps: ["Order placed", "Paid", "Completed"], idx: { pending_payment: 0, pending_pickup: 0, paid: 1, completed: 2 }, label: { pending_payment: "Awaiting payment", pending_pickup: "Ready to be collected", paid: "Paid, getting it ready", completed: "Completed", cancelled: "Cancelled" } };
 const TRACKERS = [
-  { key: "orders", noun: "Trade-in", steps: ["Awaiting your device", "Inspecting", "Paid"], idx: { awaiting_shipment: 0, received_inspecting: 1, revised_pending_customer: 1, approved_paid: 2, returned: 2 },
-    label: { awaiting_shipment: "Awaiting your device", received_inspecting: "Received, we're inspecting it", revised_pending_customer: "Revised offer, waiting for your response", approved_paid: "Approved, payment sent", returned: "Returned to you" },
-    note: { revised_pending_customer: "We sent you a revised offer. Please accept or decline it on the Track page.", awaiting_shipment: "Bring it in, hand it over at collection or post it, then we'll inspect it." }, page: "/quote" },
+  { key: "orders", noun: "Trade-in", steps: ["Awaiting your device", "Inspecting", "Paid"], idx: { awaiting_shipment: 0, received_inspecting: 1, revised_pending_customer: 1, approved_paid: 2, returned: 2, rejected: 1, held: 1, cancelled: 2 },
+    label: { awaiting_shipment: "Awaiting your device", received_inspecting: "Received, we're inspecting it", revised_pending_customer: "Revised offer, waiting for your response", approved_paid: "Approved, payment sent", returned: "Returned to you", rejected: "We couldn't buy this phone", held: "On hold, we'll be in touch", cancelled: "Cancelled" },
+    note: { rejected: "It didn't pass our checks. We'll arrange to give it back to you.", revised_pending_customer: "We sent you a revised offer. Please accept or decline it on the Track page.", awaiting_shipment: "Bring it in, hand it over at collection or post it, then we'll inspect it." }, page: "/quote" },
   { key: "repair_requests", noun: "Repair request", steps: ["Received", "We've been in touch"], idx: { new: 0, contacted: 1 }, label: { new: "Received, we'll be in touch shortly", contacted: "We've reached out to you" }, page: "/repairs" },
   { key: "purchase_orders", noun: "Purchase", ...PURCHASE, page: "/shop" },
   { key: "accessory_orders", noun: "Accessories order", steps: ["Order placed", "Ready / sent", "Completed"], idx: { new: 0, ready: 1, completed: 2 },

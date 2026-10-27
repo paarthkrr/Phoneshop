@@ -2,6 +2,7 @@ import { PHONE_FAULT_GROUPS, FAULT_GROUPS_BY_CATEGORY } from "./instant-quote-ca
 import { DEFAULT_TIERS, ACCESSORY_BONUS_PCT } from "./pricing.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { currentRole, hasArea } from "./roles.js";
+import { imeiProblem, cleanImei, newStockItem, newShopRepairJob, addToSharedList } from "./device-flow.js";
 
 /* =================================================================
    STAFF INSPECTION CONSOLE
@@ -104,13 +105,25 @@ const STATUS_LABELS = {
   awaiting_shipment: "Awaiting device",
   received_inspecting: "Inspecting",
   revised_pending_customer: "Revised — awaiting customer",
-  approved_paid: "Approved — payment sent",
+  approved_paid: "Paid",
+  rejected: "Rejected",
   returned: "Returned to customer",
+  held: "Held (police)",
+  cancelled: "Cancelled",
 };
+const FLOW = ["awaiting_shipment", "received_inspecting", "revised_pending_customer", "rejected", "approved_paid", "returned", "cancelled"];
 const STATUS_COLOR = (s, brass, muted, red, green) => ({
-  awaiting_shipment: muted, received_inspecting: brass, revised_pending_customer: red,
-  approved_paid: green, returned: muted,
+  awaiting_shipment: muted, received_inspecting: brass, revised_pending_customer: "#B54708",
+  approved_paid: green, rejected: red, held: red, returned: muted, cancelled: muted,
 }[s] || muted);
+// Every box ticked before money changes hands (second-hand dealer rules and our own fraud checks).
+const CHECKS = [
+  { id: "blacklist", label: "IMEI not blacklisted", short: "blacklist check", help: "Checked on the Unlock checker or the carrier's lookup" },
+  { id: "account", label: "Find My / Google account off", short: "account removed", help: "Signed out and erased in front of you" },
+  { id: "id", label: "Photo ID sighted", short: "ID sighted", help: "Name matches the order; keep the ID details" },
+  { id: "matches", label: "Same phone as ordered", short: "model and storage match", help: "Model, storage and not a replica" },
+];
+const REJECT_REASONS = ["Blacklisted / reported stolen", "Account lock can't be removed", "Not the phone ordered", "Fake or replaced parts", "No valid ID", "Customer changed their mind", "Other"];
 
 export default function StaffInspectionConsole() {
   const viewOnly = !!currentRole() && !hasArea("register"); // without the register area (e.g. Technicians) staff can look but not act
@@ -123,6 +136,17 @@ export default function StaffInspectionConsole() {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [mode, setMode] = useState(""); // "" | "reject"
+  const [imei, setImei] = useState("");
+  const [checks, setChecks] = useState({});
+  const [addToStock, setAddToStock] = useState(true);
+  const [needsRepair, setNeedsRepair] = useState(false);
+  const [repairIssue, setRepairIssue] = useState("");
+  const [payRef, setPayRef] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
+  const [msg, setMsg] = useState("");
+  const [done, setDone] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -143,13 +167,14 @@ export default function StaffInspectionConsole() {
     return m;
   }, [config]);
   const openCategory = orders?.find((o) => o.id === openId)?.device?.category;
+  // The same checklist the customer saw for this kind of device (phone, tablet, laptop, watch).
+  const faultGroups = useMemo(() => withSavedPcts(FAULT_GROUPS_BY_CATEGORY[openCategory] || PHONE_FAULT_GROUPS, config?.faultGroups), [config, openCategory]);
   const faultList = useMemo(() => {
-    // The same checklist the customer saw for this kind of device (phone, tablet, laptop, watch).
-    const groups = withSavedPcts(FAULT_GROUPS_BY_CATEGORY[openCategory] || PHONE_FAULT_GROUPS, config?.faultGroups);
+    const groups = faultGroups;
     const list = [];
     groups.forEach((g) => g.faults.forEach((f) => list.push({ ...f, cosmetic: !!g.cosmetic })));
     return list;
-  }, [config, openCategory]);
+  }, [faultGroups]);
   const faultById = useMemo(() => Object.fromEntries(faultList.map((f) => [f.id, f])), [faultList]);
   const holdingPct = config?.holdingCostPct ?? HOLDING_COST_PCT;
 
@@ -196,235 +221,332 @@ export default function StaffInspectionConsole() {
     ) || null;
   }, [open, priceMatches]);
 
-  async function handleHonorPriceMatch() {
-    if (!open || !matchedPriceMatch) return;
-    await updateOrder(open.id, {
-      status: "approved_paid",
-      inspection: { confirmedTotal: matchedPriceMatch.approvedPrice, staffNote: `Price match honored (${matchedPriceMatch.id}, vs ${matchedPriceMatch.competitorName})`, inspectedAt: new Date().toISOString(), tierId: open.tierId, priceMatchId: matchedPriceMatch.id },
-    });
-    setOpenId(null);
-  }
+  const staff = (() => { try { return window.shopAuth?.currentUser()?.username || ""; } catch (e) { return ""; } })();
+  const isOwner = currentRole() === "admin";
 
   function openOrder(o) {
     setOpenId(o.id);
     setReassessTier(o.tierId);
-    setReassessFaults({});
-    setNote("");
+    // Start from what the customer declared, so staff only add or remove what differs.
+    const declared = new Set(o.faultLabels || []);
+    const pre = {};
+    (FAULT_GROUPS_BY_CATEGORY[o.device?.category] || PHONE_FAULT_GROUPS).forEach((g) => g.faults.forEach((f) => { if (declared.has(f.label)) pre[f.id] = true; }));
+    setReassessFaults(pre);
+    setNote(""); setMode(""); setImei(o.inspection?.imei || ""); setChecks({}); setNeedsRepair(false); setRepairIssue("");
+    setAddToStock(true); setPayRef(""); setRejectReason(""); setMsg("");
   }
 
   async function updateOrder(id, patch) {
     setSaving(true);
     const list = await loadJSON(ORDERS_KEY, true) || orders || [];
-    const next = list.map((o) => (o.id === id ? { ...o, ...patch } : o));
-    await saveJSON(ORDERS_KEY, next, true);
+    const next = list.map((o) => (o.id === id ? { ...o, ...patch, history: [...(o.history || []), { at: new Date().toISOString(), by: staff || "unattributed", status: patch.status || o.status, ...(patch.archived != null ? { archived: patch.archived } : {}) }] } : o));
+    const ok = await saveJSON(ORDERS_KEY, next, true);
     setOrders(next);
     setSaving(false);
+    return ok;
   }
 
-  async function handleApprove() {
-    if (!open || !reassessed) return;
+  const ticked = Object.keys(reassessFaults).filter((k) => reassessFaults[k] && faultById[k]).map((k) => faultById[k].label);
+  const imeiErr = imeiProblem(imei);
+  const missingChecks = CHECKS.filter((c) => !checks[c.id]);
+  const priceOk = !!reassessed && Number.isFinite(reassessed.total) && reassessed.total > 0;
+  const readyToPay = !imeiErr && missingChecks.length === 0 && priceOk;
+
+  // Paying is the end of inspection and the start of stock: one step records the
+  // payout, puts the phone in stock (or straight onto the repair bench) and closes the order.
+  async function payAndStock(total, extra = {}) {
+    if (!open) return;
+    const now = new Date().toISOString();
+    let item = null, repairMsg = "";
+    if (addToStock) {
+      item = newStockItem({ brand: open.device.brand, model: open.device.model, storage: open.device.storage, imei, costBasis: total,
+        region: open.region, currency: open.currency, sourceOrderId: open.id, faults: ticked, staff, needsRepair });
+      const added = await addToSharedList("inventory", item);
+      if (!added) { setMsg("Couldn't add the phone to stock, nothing was changed. Try again."); return; }
+      if (needsRepair) {
+        const job = newShopRepairJob({ item, issue: repairIssue.trim() || (ticked.length ? `Fix: ${ticked.join(", ")}` : "Fix up to sell"), staff });
+        repairMsg = (await addToSharedList("repair_tickets", job)) ? ` Repair job ${job.id} is on the bench.` : " Couldn't open the repair job — open it from Repairs.";
+      }
+    }
     await updateOrder(open.id, {
-      status: "approved_paid",
-      inspection: { confirmedTotal: reassessed.total, staffNote: note, inspectedAt: new Date().toISOString(), tierId: reassessed.tier.id },
+      status: "approved_paid", paidAt: now,
+      inspection: { confirmedTotal: total, staffNote: note, inspectedAt: now, inspectedBy: staff, tierId: reassessed?.tier.id || open.tierId, faultsFound: ticked,
+        imei: cleanImei(imei), checks: CHECKS.map((c) => c.id), paidVia: open.customer.payoutMethod || "cash", paidRef: payRef.trim(), ...extra },
+      ...(item ? { receivedToInventory: true, inventoryItemId: item.id } : {}),
     });
     setOpenId(null);
+    setDone(`${open.id}: paid ${fmt(total, open.region, regions)}.${item ? ` ${item.id} is ${needsRepair ? "waiting for repair" : "in stock"}.` : ""}${repairMsg}`);
   }
+
   async function handleRevise() {
     if (!open || !reassessed) return;
     await updateOrder(open.id, {
       status: "revised_pending_customer",
-      inspection: { confirmedTotal: reassessed.total, staffNote: note, inspectedAt: new Date().toISOString(), tierId: reassessed.tier.id },
+      inspection: { confirmedTotal: reassessed.total, staffNote: note, inspectedAt: new Date().toISOString(), inspectedBy: staff, tierId: reassessed.tier.id, faultsFound: ticked, imei: cleanImei(imei) },
     });
     setOpenId(null);
+    setDone(`${open.id}: revised offer of ${fmt(reassessed.total, open.region, regions)} sent. It shows on the customer's Track page.`);
   }
-  async function handleReturn() {
+  async function handleReject() {
+    if (!open || !rejectReason) return;
+    await updateOrder(open.id, { status: "rejected", rejection: { reason: rejectReason, note: note.trim(), at: new Date().toISOString(), by: staff, imei: cleanImei(imei) } });
+    setMode("");
+  }
+  async function setStatus(status, extra = {}) {
     if (!open) return;
-    await updateOrder(open.id, { status: "returned" });
-    setOpenId(null);
+    await updateOrder(open.id, { status, ...extra });
+    if (status !== "received_inspecting") setOpenId(null);
   }
-  async function handleMarkReceived() {
-    if (!open) return;
-    await updateOrder(open.id, { status: "received_inspecting" });
-  }
+  async function toggleArchive(o) { await updateOrder(o.id, { archived: !o.archived }); setOpenId(null); }
 
-  const ink = "#FFFFFF", panel = "#FFFFFF", panel2 = "#F4F6F9", paper = "#111827", muted = "#5B6472",
-    brass = "#2150C8", brassDim = "rgba(33,80,200,0.10)", red = "#8B2E2E", green = "#3F6B34", line = "#E2E6EC";
+  const C = { ink: "#F4F6FA", panel: "#FFFFFF", panel2: "#F4F6F9", paper: "#111827", muted: "#5B6472", brass: "#2150C8", brassDim: "rgba(33,80,200,0.08)", red: "#B42318", redDim: "#FDEEEE", green: "#0E7A4F", greenDim: "#E8F6EF", amber: "#B54708", line: "#E3E7EF" };
+  const card = { background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 16, marginBottom: 14 };
+  const chip = (on, tone = C.brass) => ({ padding: "9px 14px", borderRadius: 999, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+    border: `1.5px solid ${on ? tone : C.line}`, background: on ? (tone === C.red ? C.redDim : tone === C.green ? C.greenDim : C.brassDim) : "#fff", color: on ? tone : C.paper });
+  const bigBtn = (bg, fg = "#fff", on = true) => ({ flex: "1 1 180px", minHeight: 50, padding: "12px 16px", borderRadius: 14, border: "none", background: on ? bg : "#E5E7EB", color: on ? fg : "#9AA3B2",
+    fontSize: 15, fontWeight: 700, cursor: on ? "pointer" : "not-allowed", fontFamily: "inherit" });
+  const outBtn = (tone) => ({ flex: "1 1 160px", minHeight: 46, padding: "10px 14px", borderRadius: 14, border: `1.5px solid ${tone}`, background: "#fff", color: tone, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
+  const h3 = { fontSize: 15, fontWeight: 700, margin: "0 0 10px", display: "flex", alignItems: "center", gap: 8 };
+  const step = (n) => <span style={{ width: 24, height: 24, borderRadius: "50%", background: C.brass, color: "#fff", display: "inline-grid", placeItems: "center", fontSize: 12.5, fontWeight: 800 }}>{n}</span>;
 
-  const filtered = (orders || []).filter((o) => filter === "all" || o.status === filter);
+  const q = search.trim().toLowerCase();
+  const visibleOrders = (orders || []).filter((o) => (filter === "archived" ? o.archived : !o.archived));
+  const filtered = visibleOrders
+    .filter((o) => filter === "all" || filter === "archived" || o.status === filter)
+    .filter((o) => !q || [o.id, o.customer?.name, o.customer?.phone, o.customer?.email, o.device?.brand, o.device?.model, o.inspection?.imei].some((v) => String(v || "").toLowerCase().includes(q)));
+  const count = (s) => visibleOrders.filter((o) => o.status === s).length;
 
   if (orders === null) {
-    return <div style={{ background: ink, color: muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading orders…</div>;
+    return <div style={{ color: C.muted, padding: 40, fontFamily: "'Archivo', sans-serif" }}>Loading trade-ins…</div>;
   }
 
-  return (
-    <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 60px" }}>
-        <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, letterSpacing: '-0.01em', marginBottom: 4 }}>Inspection Queue</div>
-        <div style={{ color: muted, fontSize: 13, marginBottom: 18 }}>
-          {orders.length} order{orders.length === 1 ? "" : "s"} total. Open one to confirm the condition and release payment.
-        </div>
+  const outcome = open && (open.status === "received_inspecting" || open.status === "awaiting_shipment") && !viewOnly;
+  const statusChip = (s) => <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "#F1F4FB", color: STATUS_COLOR(s, C.brass, C.muted, C.red, C.green) }}>{STATUS_LABELS[s] || s}</span>;
 
+  return (
+    <div style={{ color: C.paper, fontFamily: "'Archivo', system-ui, sans-serif" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "22px 16px 60px" }}>
         {!open && (
           <>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-              {["all", "awaiting_shipment", "received_inspecting", "revised_pending_customer", "approved_paid", "returned"].map((s) => (
-                <button key={s} onClick={() => setFilter(s)}
-                  style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",
-                    border: `1px solid ${filter === s ? brass : line}`, background: filter === s ? brassDim : "transparent",
-                    color: filter === s ? brass : paper }}>
-                  {s === "all" ? "All" : STATUS_LABELS[s]}
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+              <div>
+                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, letterSpacing: "-0.01em" }}>Trade-ins</div>
+                <div style={{ color: C.muted, fontSize: 13.5 }}>Mark a phone received, check it, then pay, revise or reject. Paying puts it straight into stock.</div>
+              </div>
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, phone, order, model or IMEI" aria-label="Search trade-ins"
+                style={{ flex: "1 1 260px", maxWidth: 380, padding: "11px 14px", border: `1px solid ${C.line}`, background: "#fff", fontSize: 14 }} />
+            </div>
+            {done && <div role="status" style={{ ...card, background: C.greenDim, borderColor: "#BFE5D2", color: C.green, fontWeight: 600, fontSize: 14 }}>✓ {done}</div>}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+              {["all", ...FLOW, "archived"].map((s) => (
+                <button key={s} onClick={() => setFilter(s)} style={chip(filter === s)}>
+                  {s === "all" ? `All (${visibleOrders.length})` : s === "archived" ? "Archived" : `${STATUS_LABELS[s]} (${count(s)})`}
                 </button>
               ))}
             </div>
-
-            {filtered.length === 0 && <div style={{ color: muted, fontSize: 13 }}>No orders in this view yet.</div>}
-            {filtered.map((o) => (
-              <button key={o.id} onClick={() => openOrder(o)}
-                style={{ display: "block", width: "100%", textAlign: "left", padding: "12px 14px", marginBottom: 8,
-                  border: `1px solid ${line}`, borderLeft: `3px solid ${STATUS_COLOR(o.status, brass, muted, red, green)}`,
-                  borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13 }}>{o.id}</span>
-                  <span style={{ fontSize: 12, color: STATUS_COLOR(o.status, brass, muted, red, green) }}>{STATUS_LABELS[o.status]}</span>
-                </div>
-                <div style={{ fontSize: 13, marginTop: 2 }}>{o.device.brand} {o.device.model} · {o.device.storage}</div>
-                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{o.customer.name} · {fmt(o.quotedTotal, o.region, regions)}{o.priceCheck && o.priceCheck.verified === false ? " · ⚠ check price" : ""}</div>
-              </button>
-            ))}
+            {filtered.length === 0 && <div style={{ ...card, color: C.muted, fontSize: 14 }}>{q ? "Nothing matches that search." : "No trade-ins here."}</div>}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 12 }}>
+              {filtered.map((o) => (
+                <button key={o.id} onClick={() => openOrder(o)}
+                  style={{ ...card, marginBottom: 0, textAlign: "left", cursor: "pointer", fontFamily: "inherit", borderLeft: `4px solid ${STATUS_COLOR(o.status, C.brass, C.muted, C.red, C.green)}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 12.5, color: C.muted, fontWeight: 600 }}>{o.id}</span>{statusChip(o.status)}
+                  </div>
+                  <div style={{ fontSize: 15.5, fontWeight: 700 }}>{o.device.brand} {o.device.model}</div>
+                  <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{[o.device.storage, o.tierLabel, o.customer?.name].filter(Boolean).join(" · ")}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 13 }}>
+                    <span style={{ color: C.muted }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : ""}{o.priceCheck && o.priceCheck.verified === false ? " · ⚠ check price" : ""}</span>
+                    <b>{fmt(o.inspection?.confirmedTotal ?? o.quotedTotal, o.region, regions)}</b>
+                  </div>
+                </button>
+              ))}
+            </div>
           </>
         )}
 
         {open && (
           <div>
-            <button onClick={() => setOpenId(null)} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>
-              ← Back to queue
-            </button>
+            <button onClick={() => setOpenId(null)} style={{ background: "none", border: "none", color: C.brass, fontSize: 14, fontWeight: 700, marginBottom: 12, cursor: "pointer", padding: 0, fontFamily: "inherit" }}>← All trade-ins</button>
 
-            <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
-              <div style={{ fontSize: 15, marginBottom: 4 }}>{open.id}</div>
-              <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>
-                {open.device.brand} {open.device.model} · {open.device.storage} · submitted as "{open.tierLabel}"
+            <div style={{ ...card, display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 12, alignItems: "start" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}><span style={{ fontSize: 13, color: C.muted, fontWeight: 600 }}>{open.id}</span>{statusChip(open.status)}{open.archived && <span style={{ fontSize: 12, color: C.muted }}>· archived</span>}</div>
+                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22 }}>{open.device.brand} {open.device.model}</div>
+                <div style={{ fontSize: 13.5, color: C.muted, marginTop: 2 }}>{open.device.storage} · customer said "{open.tierLabel}"{open.faultLabels?.length ? ` · declared: ${open.faultLabels.join(", ")}` : " · no faults declared"}{open.hasAccessories ? " · with box & charger" : ""}</div>
+                <div style={{ fontSize: 14, marginTop: 10 }}><b>{open.customer.name}</b> · <a href={`tel:${open.customer.phone}`} style={{ color: C.brass }}>{open.customer.phone}</a> · {open.customer.email}</div>
+                <div style={{ fontSize: 12.5, color: C.muted, marginTop: 3 }}>Name on ID: {open.customer.idOwnerName || open.customer.name}. {open.fulfillment === "post" ? "Posting it in." : "In person."}</div>
+                {open.customer.payoutMethod && (
+                  <div style={{ fontSize: 13, marginTop: 6 }}>Payout: <b>{open.customer.payoutMethod === "cash" ? "💵 Cash on collection / drop-off" : open.customer.payoutMethod === "bank" ? `Bank · BSB ${open.customer.bankBsb} · Acc ${open.customer.bankAccountNumber}` : `PayPal · ${open.customer.paypalEmail}`}</b></div>
+                )}
+                {open.priceCheck && open.priceCheck.verified === false && (
+                  <div role="alert" style={{ fontSize: 13, color: C.red, marginTop: 8, fontWeight: 600 }}>
+                    ⚠ {open.priceCheck.quoteTooHigh ? `Quoted above the price list (about ${fmt(open.priceCheck.maxQuote, open.region, regions)} at most). Don't honour it without checking.` : open.priceCheck.reason ? `Couldn't verify this quote (${open.priceCheck.reason}).` : "The price from the customer's browser didn't match the price list. The price below uses the shop's own list."}
+                  </div>
+                )}
               </div>
-              <div style={{ fontSize: 13 }}>{open.customer.name} · {open.customer.email} · {open.customer.phone}</div>
-              <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>
-                Name on ID (customer entered): {open.customer.idOwnerName || "not given"}. Check their photo ID in person before paying.
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12.5, color: C.muted }}>Quoted</div>
+                <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22 }}>{fmt(open.quotedTotal, open.region, regions)}</div>
               </div>
-              {open.priceCheck && open.priceCheck.verified === false && (
-                <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", marginTop: 4, fontWeight: 600 }}>
-                  ⚠ Price check: {open.priceCheck.quoteTooHigh
-                    ? `the quoted amount is above what the price list allows (about ${fmt(open.priceCheck.maxQuote, open.region, regions)} at most). Don't honour it without checking.`
-                    : open.priceCheck.reason
-                      ? `couldn't verify this quote (${open.priceCheck.reason}).`
-                      : "the price sent from the customer's browser didn't match the price list. Re-assessment below uses the shop's own price."}
-                </div>
-              )}
-              {open.customer.payoutMethod && (
-                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>
-                  Payout via {open.customer.payoutMethod === "cash" ? "💵 CASH (pay on collection / drop-off)" : open.customer.payoutMethod === "bank" ? "bank transfer" : "PayPal"}{open.customer.payoutMethod === "cash" ? "" : ": "}{open.customer.payoutMethod === "cash" ? null : 
-                    open.customer.payoutMethod === "bank"
-                      ? `BSB ${open.customer.bankBsb} · Acc ${open.customer.bankAccountNumber}`
-                      : open.customer.paypalEmail
-                  }
-                </div>
-              )}
-              <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>
-                Customer originally declared: {open.faultLabels?.length ? open.faultLabels.join(", ") : "no faults, plus accessories: " + (open.hasAccessories ? "yes" : "no")}
-              </div>
-              {viewOnly && <div style={{ marginTop: 10, fontSize: 13, color: "#5B6472" }}>View only: ask the Counter, a Manager or the Owner to update this trade-in.</div>}
-              {!viewOnly && open.fulfillment === "post" && open.status === "awaiting_shipment" && (
-                <ShippingTrackingField order={open} onSave={(shipping) => updateOrder(open.id, { shipping })} colors={{ paper, muted, brass, panel2, line }} />
-              )}
-              {!viewOnly && open.status === "awaiting_shipment" && (
-                <button onClick={handleMarkReceived} style={{ marginTop: 10, padding: "8px 14px", borderRadius: 3, border: `1px solid ${brass}`, background: "transparent", color: brass, fontSize: 12.5, cursor: "pointer" }}>
-                  Mark as received — start inspection
-                </button>
-              )}
             </div>
 
-            {!viewOnly && (open.status === "received_inspecting" || open.status === "awaiting_shipment") && (
+            {viewOnly && <div style={{ ...card, fontSize: 14, color: C.muted }}>View only: ask the Counter, a Manager or the Owner to update this trade-in.</div>}
+
+            {!viewOnly && open.status === "awaiting_shipment" && (
+              <div style={card}>
+                <div style={h3}>Waiting for the phone</div>
+                {open.fulfillment === "post" && <ShippingTrackingField order={open} onSave={(shipping) => updateOrder(open.id, { shipping })} colors={{ paper: C.paper, muted: C.muted, brass: C.brass, panel2: C.panel2, line: C.line }} />}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                  <button onClick={() => setStatus("received_inspecting", { receivedAt: new Date().toISOString() })} style={bigBtn(C.brass)}>Phone is here — start inspection</button>
+                  <button onClick={() => setStatus("cancelled", { cancellation: { reason: "Customer cancelled", at: new Date().toISOString(), by: staff } })} style={outBtn(C.muted)}>Customer cancelled</button>
+                  <button onClick={() => setStatus("cancelled", { cancellation: { reason: "No-show / never arrived", at: new Date().toISOString(), by: staff } })} style={outBtn(C.muted)}>No-show</button>
+                </div>
+              </div>
+            )}
+
+            {outcome && open.status === "received_inspecting" && (
               <>
-                <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Re-assess condition</div>
-                <div style={{ marginBottom: 14 }}>
-                  {tiers.map((t) => (
-                    <button key={t.id} onClick={() => setReassessTier(t.id)}
-                      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", marginBottom: 6, cursor: "pointer",
-                        background: (reassessTier || open.tierId) === t.id ? brassDim : panel, border: "none",
-                        borderLeft: `3px solid ${(reassessTier || open.tierId) === t.id ? brass : "transparent"}`, borderRadius: 3, color: paper, fontSize: 13 }}>
-                      {t.label}
-                    </button>
-                  ))}
+                <div style={card}>
+                  <div style={h3}>{step(1)} Checks before paying</div>
+                  <label style={{ display: "block", fontSize: 13, color: C.muted, marginBottom: 6 }}>IMEI (dial *#06#)</label>
+                  <input value={imei} onChange={(e) => setImei(e.target.value)} inputMode="numeric" placeholder="15 digits" aria-invalid={!!imei && !!imeiErr}
+                    style={{ width: "100%", maxWidth: 320, padding: "11px 14px", border: `1.5px solid ${imei && imeiErr ? C.red : C.line}`, fontSize: 16, letterSpacing: ".06em", background: "#fff" }} />
+                  {imei && imeiErr && <div style={{ fontSize: 12.5, color: C.red, marginTop: 4 }}>{imeiErr}</div>}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8, marginTop: 12 }}>
+                    {CHECKS.map((c) => (
+                      <label key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "11px 12px", borderRadius: 12, border: `1.5px solid ${checks[c.id] ? C.green : C.line}`, background: checks[c.id] ? C.greenDim : "#fff", cursor: "pointer", fontSize: 13.5 }}>
+                        <input type="checkbox" checked={!!checks[c.id]} onChange={(e) => setChecks((s) => ({ ...s, [c.id]: e.target.checked }))} style={{ marginTop: 2 }} />
+                        <span><b>{c.label}</b><span style={{ display: "block", color: C.muted, fontSize: 12 }}>{c.help}</span></span>
+                      </label>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8 }}>Failed a check? Use <b>Reject</b> below with the reason.</div>
                 </div>
 
-                <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Faults found on inspection</div>
-                <div style={{ border: `1px solid ${line}`, borderRadius: 3, overflow: "hidden", marginBottom: 14 }}>
-                  {faultList.map((f, i) => (
-                    <label key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 14px",
-                      borderTop: i === 0 ? "none" : `1px solid ${line}`, fontSize: 12.5, cursor: "pointer" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <input type="checkbox" checked={!!reassessFaults[f.id]} onChange={(e) => setReassessFaults((s) => ({ ...s, [f.id]: e.target.checked }))} />
-                        {f.label}
-                      </span>
-                      <span style={{ color: red }}>−{Math.round(f.pct * 100)}%</span>
-                    </label>
-                  ))}
+                <div style={card}>
+                  <div style={h3}>{step(2)} Condition you found</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                    {tiers.map((t) => <button key={t.id} onClick={() => setReassessTier(t.id)} style={chip((reassessTier || open.tierId) === t.id)}>{t.label}</button>)}
+                  </div>
+                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>Faults found {ticked.length ? `(${ticked.length} ticked)` : "(none)"} — the customer's declared faults start ticked. Open a section to change.</div>
+                  {faultGroups.map((g) => {
+                    const n = g.faults.filter((f) => reassessFaults[f.id]).length;
+                    return (
+                      <details key={g.group} open={n > 0} style={{ border: `1px solid ${C.line}`, borderRadius: 12, marginBottom: 8, background: "#fff", overflow: "hidden" }}>
+                        <summary style={{ cursor: "pointer", padding: "12px 14px", fontSize: 14, fontWeight: 700, display: "flex", justifyContent: "space-between" }}>
+                          <span>{g.group}</span><span style={{ fontSize: 12.5, color: n ? C.red : C.muted, fontWeight: 600 }}>{n ? `${n} ticked` : `${g.faults.length} checks`}</span>
+                        </summary>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "4px 14px 14px" }}>
+                          {g.faults.map((f) => (
+                            <button key={f.id} type="button" onClick={() => setReassessFaults((s) => ({ ...s, [f.id]: !s[f.id] }))} aria-pressed={!!reassessFaults[f.id]} style={{ ...chip(!!reassessFaults[f.id], C.red), fontWeight: 500, fontSize: 13 }}>
+                              {f.label} <span style={{ opacity: 0.7 }}>−{Math.round(f.pct * 100)}%</span>
+                            </button>
+                          ))}
+                        </div>
+                      </details>
+                    );
+                  })}
                 </div>
 
-                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note for the customer (required if revising the offer)"
-                  style={{ width: "100%", minHeight: 60, padding: 12, borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 14, boxSizing: "border-box" }} />
-
-                {reassessed && (
-                  <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 14, marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, color: muted }}>Originally quoted</span>
-                      <span style={{ fontSize: 13 }}>{fmt(open.quotedTotal, open.region, regions)}</span>
+                <div style={card}>
+                  <div style={h3}>{step(3)} Outcome</div>
+                  {reassessed && (
+                    <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "baseline", marginBottom: 12 }}>
+                      <span style={{ fontSize: 13.5, color: C.muted }}>Quoted <b style={{ color: C.paper }}>{fmt(open.quotedTotal, open.region, regions)}</b></span>
+                      <span style={{ fontSize: 13.5, color: C.muted }}>On inspection <b style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, color: Math.round(reassessed.total) < Math.round(open.quotedTotal) ? C.red : C.green }}>{fmt(reassessed.total, open.region, regions)}</b></span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 13, color: muted }}>Confirmed on inspection</span>
-                      <span style={{ fontSize: 18, color: brass }}>{fmt(reassessed.total, open.region, regions)}</span>
+                  )}
+                  {matchedPriceMatch && (
+                    <div style={{ border: `1.5px solid ${C.green}`, borderRadius: 12, padding: 12, marginBottom: 12, fontSize: 13.5 }}>
+                      Approved price match {matchedPriceMatch.id} (vs {matchedPriceMatch.competitorName}): promised <b>{fmt(matchedPriceMatch.approvedPrice, open.region, regions)}</b>. Paying below honours it.
                     </div>
+                  )}
+                  <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 13.5, marginBottom: 10 }}>
+                    <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={addToStock} onChange={(e) => setAddToStock(e.target.checked)} />Add to stock when paid</label>
+                    {addToStock && <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={needsRepair} onChange={(e) => setNeedsRepair(e.target.checked)} />Needs repair before selling</label>}
                   </div>
-                )}
-
-                {matchedPriceMatch && (
-                  <div style={{ border: `1px solid ${green}`, borderRadius: 3, padding: 14, marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, marginBottom: 4 }}>⚠ This customer has an APPROVED price match on file</div>
-                    <div style={{ fontSize: 12, color: muted, marginBottom: 10 }}>
-                      {matchedPriceMatch.id} — approved to match {matchedPriceMatch.competitorName}'s quote. They were promised {fmt(matchedPriceMatch.approvedPrice, open.region, regions)}, not the standard inspection amount above.
+                  {addToStock && needsRepair && <input value={repairIssue} onChange={(e) => setRepairIssue(e.target.value)} placeholder={ticked.length ? `What to fix (default: ${ticked.join(", ")})` : "What to fix"} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 14, marginBottom: 10, background: "#fff" }} />}
+                  <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (the customer sees it on a revised offer; required to revise or reject)"
+                    style={{ width: "100%", minHeight: 56, padding: 12, border: `1px solid ${C.line}`, background: "#fff", color: C.paper, fontSize: 14, marginBottom: 10 }} />
+                  {open.customer.payoutMethod && open.customer.payoutMethod !== "cash" && (
+                    <input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder={`${open.customer.payoutMethod === "bank" ? "Bank transfer" : "PayPal"} reference (optional)`} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.line}`, fontSize: 14, marginBottom: 10, background: "#fff" }} />
+                  )}
+                  {!priceOk && <div role="alert" style={{ fontSize: 13, color: C.red, marginBottom: 10 }}>This order has no quoted price, so there's nothing to pay against. Set the price with a revised offer, or reject it.</div>}
+                  {priceOk && !readyToPay && <div style={{ fontSize: 13, color: C.amber, marginBottom: 10 }}>To pay: {[imeiErr && "a valid IMEI", ...missingChecks.map((c) => c.short)].filter(Boolean).join(", ")}.</div>}
+                  {msg && <div role="alert" style={{ fontSize: 13, color: C.red, marginBottom: 10 }}>{msg}</div>}
+                  {mode !== "reject" ? (
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {matchedPriceMatch
+                        ? <button disabled={saving || !readyToPay} onClick={() => payAndStock(matchedPriceMatch.approvedPrice, { priceMatchId: matchedPriceMatch.id, staffNote: `Price match honored (${matchedPriceMatch.id})` })} style={bigBtn(C.green, "#fff", readyToPay && !saving)}>Pay {fmt(matchedPriceMatch.approvedPrice, open.region, regions)} (price match)</button>
+                        : <button disabled={saving || !readyToPay || !reassessed} onClick={() => payAndStock(reassessed.total)} style={bigBtn(C.green, "#fff", readyToPay && !saving)}>Pay {reassessed ? fmt(reassessed.total, open.region, regions) : ""}{addToStock ? (needsRepair ? " → repair" : " → stock") : ""}</button>}
+                      <button disabled={saving || !note.trim() || !priceOk} onClick={handleRevise} style={{ ...outBtn(C.brass), opacity: note.trim() && priceOk ? 1 : 0.5 }}>Send revised offer</button>
+                      <button onClick={() => setMode("reject")} style={outBtn(C.red)}>Reject</button>
                     </div>
-                    <button onClick={handleHonorPriceMatch} disabled={saving}
-                      style={{ width: "100%", padding: "11px", borderRadius: 3, border: "none", background: green, color: "#0c1a12", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                      Honor price match — approve & pay {fmt(matchedPriceMatch.approvedPrice, open.region, regions)}
-                    </button>
-                  </div>
-                )}
-
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={handleApprove} disabled={saving}
-                    style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", background: green, color: "#0c1a12", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
-                    Matches — approve & pay
-                  </button>
-                  <button onClick={handleRevise} disabled={saving || !note.trim()}
-                    style={{ flex: 1, padding: "12px", borderRadius: 3, border: `1px solid ${red}`, background: "transparent", color: red, fontSize: 13.5, cursor: note.trim() ? "pointer" : "default", opacity: note.trim() ? 1 : 0.5 }}>
-                    Send revised offer
-                  </button>
+                  ) : (
+                    <div style={{ border: `1.5px solid ${C.red}`, borderRadius: 14, padding: 14 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 10 }}>Why can't we buy it?</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                        {REJECT_REASONS.map((r) => <button key={r} onClick={() => setRejectReason(r)} style={chip(rejectReason === r, C.red)}>{r}</button>)}
+                      </div>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <button disabled={!rejectReason || saving} onClick={handleReject} style={bigBtn(C.red, "#fff", !!rejectReason && !saving)}>Reject trade-in</button>
+                        <button onClick={() => setMode("")} style={outBtn(C.muted)}>Back</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
 
             {!viewOnly && open.status === "revised_pending_customer" && (
-              <div style={{ border: `1px solid ${red}`, borderRadius: 3, padding: 14 }}>
-                <div style={{ fontSize: 13, marginBottom: 8 }}>Awaiting the customer's response to the revised offer.</div>
-                <div style={{ fontSize: 13, color: muted, marginBottom: 12 }}>Revised: {fmt(open.inspection?.confirmedTotal, open.region, regions)} — "{open.inspection?.staffNote}"</div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={handleApprove} style={{ flex: 1, padding: "10px", borderRadius: 3, border: "none", background: green, color: "#0c1a12", fontSize: 13, cursor: "pointer" }}>Customer accepted — pay</button>
-                  <button onClick={handleReturn} style={{ flex: 1, padding: "10px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 13, cursor: "pointer" }}>Customer declined — return</button>
+              <div style={card}>
+                <div style={h3}>Waiting on the customer</div>
+                <div style={{ fontSize: 14, color: C.muted, marginBottom: 12 }}>Revised to <b style={{ color: C.paper }}>{fmt(open.inspection?.confirmedTotal, open.region, regions)}</b>{open.inspection?.staffNote ? ` — "${open.inspection.staffNote}"` : ""}. They can accept or decline on the Track page, or tell you in person.</div>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 13.5, marginBottom: 10 }}>
+                  <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={addToStock} onChange={(e) => setAddToStock(e.target.checked)} />Add to stock when paid</label>
+                  {addToStock && <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={needsRepair} onChange={(e) => setNeedsRepair(e.target.checked)} />Needs repair before selling</label>}
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button disabled={saving} onClick={() => { setReassessFaults({}); payAndStock(open.inspection?.confirmedTotal ?? open.quotedTotal, { staffNote: open.inspection?.staffNote || "", faultsFound: open.inspection?.faultsFound || [], tierId: open.inspection?.tierId || open.tierId }); }} style={bigBtn(C.green)}>Accepted — pay {fmt(open.inspection?.confirmedTotal, open.region, regions)}</button>
+                  <button onClick={() => setStatus("returned", { returnedAt: new Date().toISOString() })} style={outBtn(C.muted)}>Declined — returned to customer</button>
                 </div>
               </div>
             )}
 
-            {(open.status === "approved_paid" || open.status === "returned") && (
-              <div style={{ color: muted, fontSize: 13 }}>This order is closed: {STATUS_LABELS[open.status]}.</div>
+            {!viewOnly && open.status === "rejected" && (
+              <div style={{ ...card, borderColor: "#F3C7C2" }}>
+                <div style={h3}>Rejected: {open.rejection?.reason}</div>
+                {open.rejection?.note && <div style={{ fontSize: 14, color: C.muted, marginBottom: 10 }}>"{open.rejection.note}"</div>}
+                <div style={{ fontSize: 13.5, color: C.muted, marginBottom: 12 }}>{/stolen|blacklist/i.test(open.rejection?.reason || "") ? "Don't hand a blacklisted phone back without checking with the police first." : "Give the phone back to the customer and mark it below."}</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button onClick={() => setStatus("returned", { returnedAt: new Date().toISOString() })} style={bigBtn(C.brass)}>Returned to customer</button>
+                  <button onClick={() => setStatus("held", { heldAt: new Date().toISOString() })} style={outBtn(C.red)}>Held / handed to police</button>
+                  <button onClick={() => setStatus("received_inspecting")} style={outBtn(C.muted)}>Undo — inspect again</button>
+                </div>
+              </div>
+            )}
+
+            {["approved_paid", "returned", "cancelled", "held"].includes(open.status) && (
+              <div style={card}>
+                <div style={h3}>{STATUS_LABELS[open.status]}</div>
+                <div style={{ fontSize: 14, color: C.muted }}>
+                  {open.status === "approved_paid" && <>Paid {fmt(open.inspection?.confirmedTotal, open.region, regions)}{open.inspection?.paidVia ? ` by ${open.inspection.paidVia}` : ""}{open.inspection?.paidRef ? ` (ref ${open.inspection.paidRef})` : ""}{open.inspection?.inspectedBy ? ` · ${open.inspection.inspectedBy}` : ""}{open.inspection?.imei ? ` · IMEI ${open.inspection.imei}` : ""}. {open.inventoryItemId ? `In stock as ${open.inventoryItemId}.` : open.receivedToInventory ? "Added to stock." : "Not in stock yet — add it from Register › Receive Orders."}</>}
+                  {open.status === "cancelled" && <>{open.cancellation?.reason || "Cancelled"}.</>}
+                  {open.status === "returned" && <>The phone went back to the customer.</>}
+                  {open.status === "held" && <>Held: {open.rejection?.reason}.</>}
+                </div>
+                {(open.history || []).length > 0 && (
+                  <div style={{ marginTop: 12, fontSize: 12.5, color: C.muted }}>
+                    {open.history.slice(-5).map((h, i) => <div key={i}>{new Date(h.at).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })} · {h.by} · {h.archived === true ? "archived" : h.archived === false ? "restored" : STATUS_LABELS[h.status] || h.status}</div>)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!viewOnly && (isOwner || ["returned", "cancelled", "held", "approved_paid"].includes(open.status)) && (
+              <button onClick={() => toggleArchive(open)} style={{ background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit", padding: 0 }}>
+                {open.archived ? "Restore to the list" : "Archive (hide from the list)"}
+              </button>
             )}
           </div>
         )}
