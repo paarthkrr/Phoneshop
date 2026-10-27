@@ -95,6 +95,7 @@ function ageMonths(releaseDate) {
 }
 function fmt(n, regionCode, regionsMap) {
   const r = (regionsMap || REGIONS)[regionCode] || REGIONS.AU;
+  if (n == null || !Number.isFinite(Number(n))) return "—"; // no amount on the record yet
   const val = r.round >= 10 ? Math.round(n / r.round) * r.round : Math.round(n);
   return `${r.symbol}${val.toLocaleString()}`;
 }
