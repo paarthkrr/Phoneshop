@@ -10,7 +10,7 @@ const isBsb = (v) => /^\d{6}$/.test(digits(v));
 const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 /* =================================================================
    STOREFRONT
@@ -159,6 +159,30 @@ export default function Storefront() {
     const it = listed.find((i) => String(i.id) === id);
     if (it) { setSelectedItem(it); setView("detail"); }
   }, [routerLoc.search, listed]);
+  // A phone opens as /shop?item=ID, so the phone's back button closes it (and lands
+  // back where you were in the list) instead of leaving the shop.
+  const navigate = useNavigate();
+  const browseY = React.useRef(0);
+  const openItem = (item) => {
+    browseY.current = window.scrollY;
+    const p = new URLSearchParams(routerLoc.search); p.set("item", item.id);
+    setSubmitError(""); setSelectedItem(item); setView("detail");
+    navigate({ search: `?${p}` });
+  };
+  const backToBrowse = () => {
+    if (new URLSearchParams(routerLoc.search).get("item")) navigate(-1); else setView("browse");
+  };
+  useEffect(() => {
+    if (!new URLSearchParams(routerLoc.search).get("item") && (view === "detail" || view === "checkout")) setView("browse");
+  }, [routerLoc.search]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    document.body.classList.toggle("sf-detail", view === "detail");
+    return () => document.body.classList.remove("sf-detail");
+  }, [view]);
+  useEffect(() => {
+    if (view === "browse") { const y = browseY.current; requestAnimationFrame(() => window.scrollTo(0, y)); }
+    else window.scrollTo(0, 0);
+  }, [view]);
   const filtered = listed.filter((i) => {
     const q = search.trim().toLowerCase();
     const brandOk = (brandFilter === "All" || i.brand === brandFilter) && (gradeFilter === "All" || i.gradeId === gradeFilter);
@@ -311,7 +335,7 @@ export default function Storefront() {
               ) : (
                 <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
                   {featured.map((item) => (
-                    <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
+                    <button key={item.id} className="cs-card" onClick={() => openItem(item)}
                       style={{ textAlign: "left", padding: "16px", border: `1px solid ${line}`, borderRadius: 3, background: panel, color: paper, cursor: "pointer" }}>
                       <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", background: "var(--mr-surface)", borderRadius: 3, marginBottom: 10 }}>
                         <DeviceArt type={inferDeviceType(item.model, item.category)} size={56} brand={item.brand} model={item.model} imageUrl={item.photoUrl || modelPhotos[`${item.brand}|${item.model}`]} label={`${item.brand} ${item.model}`} />
@@ -359,7 +383,7 @@ export default function Storefront() {
               </div>
             )}
             {filtered.map((item) => (
-              <button key={item.id} className="cs-card" onClick={() => { setSelectedItem(item); setView("detail"); setSubmitError(""); }}
+              <button key={item.id} className="cs-card" onClick={() => openItem(item)}
                 style={{ display: "block", width: "100%", textAlign: "left", padding: "14px", marginBottom: 10, borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, cursor: "pointer" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -441,7 +465,7 @@ export default function Storefront() {
                 "itemCondition": "https://schema.org/UsedCondition",
               },
             })}</script>
-            <button onClick={() => setView("browse")} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to browsing</button>
+            <button onClick={backToBrowse} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to browsing</button>
             <div style={{ border: `1px solid ${line}`, borderRadius: 4, padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "center", padding: "18px 0", background: "var(--mr-surface)", borderRadius: 3, marginBottom: 16 }}>
                 <DeviceArt type={inferDeviceType(selectedItem.model, selectedItem.category)} size={110} brand={selectedItem.brand} model={selectedItem.model} imageUrl={selectedItem.photoUrl || modelPhotos[`${selectedItem.brand}|${selectedItem.model}`]} label={`${selectedItem.brand} ${selectedItem.model}`} />
@@ -494,6 +518,19 @@ export default function Storefront() {
                 style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Buy this device →
               </button>
+            </div>
+            {/* On a phone the bottom bar becomes "price + Buy" for this phone, one tap from anywhere on the page. */}
+            <style>{`body.sf-detail .cs-mobile-cta{display:none!important}
+              .sf-buybar{display:none}
+              @media (max-width:720px){.sf-buybar{display:flex;align-items:center;gap:12px;position:fixed;left:0;right:0;bottom:0;z-index:901;
+                padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:var(--mr-glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+                border-top:1px solid var(--mr-line);box-shadow:0 -6px 20px rgba(15,22,38,.08)}}`}</style>
+            <div className="sf-buybar" role="region" aria-label="Buy this phone">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{selectedItem.brand} {selectedItem.model}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: paper }}>${Number(selectedItem.listedPrice).toLocaleString()}</div>
+              </div>
+              <button onClick={() => setView("checkout")} style={{ padding: "13px 22px", borderRadius: 12, border: "none", background: brass, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Buy now →</button>
             </div>
           </div>
         )}
@@ -567,7 +604,7 @@ export default function Storefront() {
                 Come by the shop with {fmt(confirmedOrder.price, confirmedOrder.currency)} cash and mention order {confirmedOrder.id} to collect it.
               </div>
             )}
-            <button onClick={() => { setView("browse"); setConfirmedOrder(null); setSelectedItem(null); setCustomer({ name: "", email: "", phone: "", address: "" }); }}
+            <button onClick={() => { const p = new URLSearchParams(routerLoc.search); p.delete("item"); navigate({ search: p.toString() ? `?${p}` : "" }, { replace: true }); setView("browse"); setConfirmedOrder(null); setSelectedItem(null); setCustomer({ name: "", email: "", phone: "", address: "" }); }}
               style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 14, cursor: "pointer" }}>
               Keep browsing
             </button>

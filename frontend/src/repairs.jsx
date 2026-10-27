@@ -74,6 +74,15 @@ export default function Repairs() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [model, setModel] = useState("");
+  const modelRef = React.useRef(null);
+  const pickRepair = (r) => {
+    setIssue((cur) => {
+      const prev = REPAIRS_BY_DEVICE[deviceType].find((x) => cur.startsWith(`${x.name}. `));
+      return `${r.name}. ${prev ? cur.slice(prev.name.length + 2) : cur}`; // keep anything they'd already typed
+    });
+    document.getElementById("book")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => modelRef.current?.focus({ preventScroll: true }), 450);
+  };
   const [issue, setIssue] = useState("");
   const [method, setMethod] = useState("instore");
   const [address, setAddress] = useState("");
@@ -196,15 +205,17 @@ export default function Repairs() {
 
         <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 32 }}>
           {REPAIRS_BY_DEVICE[deviceType].map((r) => (
-            <div key={r.name} className="cs-card" style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, background: panel }}>
+            // Tap a repair to book it: it fills in what's wrong and jumps to the form.
+            <button key={r.name} type="button" className="cs-card" onClick={() => pickRepair(r)} aria-label={`Book ${r.name}, from $${r.from}`}
+              style={{ border: `1px solid ${issue.startsWith(r.name) ? brass : line}`, borderRadius: 3, padding: 14, background: panel, color: paper, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
               <div style={{ marginBottom: 8 }}><DeviceArt type={deviceType.toLowerCase()} size={36} /></div>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{r.name}</div>
-              <div style={{ fontSize: 12, color: muted }}>From ${r.from}</div>
-            </div>
+              <div style={{ fontSize: 12, color: muted }}>From ${r.from} · <span style={{ color: brass, fontWeight: 600 }}>Book →</span></div>
+            </button>
           ))}
         </div>
 
-        <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 22, background: panel }}>
+        <div id="book" style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 22, background: panel, scrollMarginTop: 90 }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 16 }}>Request a repair</div>
 
           <div role="group" aria-label="Repair method" style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -270,7 +281,7 @@ export default function Repairs() {
           {email && !isEmail(email) && <div role="alert" style={{ fontSize: 12, color: "#8B2E2E", margin: "-4px 0 10px" }}>That email address doesn't look right — we need it to reply to you.</div>}
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={door ? "Mobile number (needed for doorstep)" : "Phone number (optional)"} aria-label="Phone number" type="tel" autoComplete="tel" inputMode="tel"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
-          <input value={model} onChange={(e) => setModel(e.target.value)} placeholder={`${deviceType} model, e.g. "iPhone 14 Pro"`} aria-label="Device model"
+          <input ref={modelRef} value={model} onChange={(e) => setModel(e.target.value)} placeholder={`${deviceType} model, e.g. "iPhone 14 Pro"`} aria-label="Device model"
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
           <textarea value={issue} onChange={(e) => setIssue(e.target.value)} placeholder="What's wrong with it?" aria-label="Describe the issue" rows={4}
             style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 6, outline: "none", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit" }} />
