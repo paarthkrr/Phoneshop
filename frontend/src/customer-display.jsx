@@ -6,7 +6,9 @@ export default function CustomerDisplay() {
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
+    // Only the shop's own pages may update this screen; a message from any other site is ignored.
     const handler = (e) => {
+      if (e.origin !== window.location.origin) return;
       if (e.data?.type === "cart-update") {
         setCart(e.data.items || []);
         setTotal(e.data.total || 0);
