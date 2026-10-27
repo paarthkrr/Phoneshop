@@ -69,7 +69,7 @@ export default function CRMEnhanced() {
   if (!data) return <div style={{ padding: 40, textAlign: "center" }}>Loading...</div>;
 
   return (
-    <div style={{ padding: 24, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ padding: 24, fontFamily: "'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }}>
       <h1 style={{ fontSize: 24, fontWeight: 600, margin: "0 0 16px" }}>Customer CRM</h1>
       <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or phone..." style={{ width: "100%", maxWidth: 400, padding: "12px 16px", borderRadius: 10, border: "1px solid #E5E7EB", marginBottom: 16 }} />
       
