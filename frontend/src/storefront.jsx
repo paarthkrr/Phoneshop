@@ -1,3 +1,4 @@
+import AddressInput from "./address-input.jsx";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { wasPrice } from "./price-history.js";
@@ -527,8 +528,8 @@ export default function Storefront() {
             </div>
             {paymentMethod === "cash_on_pickup"
               ? <div style={{ fontSize: 13, color: paper, marginBottom: 10 }}>You'll collect it from our store, so no address is needed.</div>
-              : <textarea value={customer.address} onChange={(e) => setCustomer((c) => ({ ...c, address: e.target.value }))} placeholder="Shipping address" aria-label="Shipping address" autoComplete="street-address"
-              style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, minHeight: 60, boxSizing: "border-box" }} />}
+              : <AddressInput value={customer.address} onChange={(v) => setCustomer((c) => ({ ...c, address: v }))} placeholder="Shipping address — start typing" ariaLabel="Shipping address"
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, boxSizing: "border-box" }} />}
             <div style={{ fontSize: 12, color: muted, marginBottom: 16 }}>
               No card payments are processed on this device yet — you'll get {paymentMethod === "bank_transfer" ? "our bank details" : "pickup instructions"} on the confirmation screen.
             </div>

@@ -1,3 +1,4 @@
+import AddressInput from "./address-input.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { DEFAULT_RETENTION_POINTS, retentionAt, DEFAULT_BRAND_FACTOR, ageMonths, CATEGORY_FACTOR, DEFAULT_REGIONS, DEFAULT_TIERS, ACCESSORY_BONUS_PCT, DEFAULT_HOLDING_COST_PCT, baseBuybackAUD } from "./pricing.js";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
@@ -1495,7 +1496,7 @@ export default function QuoteCalculator() {
                 <div style={{ fontSize: 12.5, color: muted, border: `1px solid ${line}`, borderRadius: 3, padding: 12, marginBottom: 10 }}>
                   We collect from <strong style={{ color: paper }}>{live?.businessSettings?.pickupArea || "anywhere in Sydney"}</strong>. We'll call or email to book a time, run our 49-point check on the spot, check your photo ID, and pay you — cash if you like. <a href="/terms#pickup" target="_blank" rel="noopener" style={{ color: brass }}>Conditions apply</a>.
                 </div>
-                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Pickup address" aria-label="Pickup address" autoComplete="street-address"
+                <AddressInput value={address} onChange={setAddress} placeholder="Pickup address — start typing" ariaLabel="Pickup address"
                   style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
               </>
             )}

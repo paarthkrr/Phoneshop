@@ -1,3 +1,4 @@
+import AddressInput from "./address-input.jsx";
 import React, { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import Photo from "./photo.jsx";
@@ -202,7 +203,7 @@ export default function Parts() {
         <input value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} placeholder="Email address" aria-label="Email address" type="email" autoComplete="email" inputMode="email" style={input} />
         {customer.email && !isEmail(customer.email) && <div role="alert" style={{ fontSize: 12, color: red, margin: "-4px 0 10px" }}>That email address doesn't look right — we'll need it for your order updates.</div>}
         <input value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} placeholder="Phone (optional)" aria-label="Phone" type="tel" autoComplete="tel" inputMode="tel" style={input} />
-        {fulfilment === "delivery" && <textarea value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} placeholder="Delivery address" aria-label="Delivery address" autoComplete="street-address" rows={3} style={{ ...input, resize: "vertical" }} />}
+        {fulfilment === "delivery" && <AddressInput value={customer.address} onChange={(v) => setCustomer({ ...customer, address: v })} placeholder="Delivery address — start typing" ariaLabel="Delivery address" style={input} />}
 
         <div style={{ background: panel, borderRadius: 14, padding: 16, margin: "8px 0 14px", fontSize: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span>Subtotal</span><span>{fmt(subtotal)}</span></div>

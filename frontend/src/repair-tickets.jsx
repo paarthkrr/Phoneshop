@@ -144,6 +144,20 @@ export default function RepairTickets() {
     setRepairRequests(next);
   }
 
+  // A barcode nobody has seen before, scanned on a job: the part is added to Parts
+  // Stock with that barcode (so the next scan finds it) and one is fitted to the job.
+  async function createPartAndFit(ticketId, code, { name, cost, qty }) {
+    const t = (tickets || []).find((x) => x.id === ticketId);
+    if (!t) return false;
+    const received = Math.max(1, parseInt(qty, 10) || 1);
+    const part = { id: genPartId(), name: name.trim(), sku: "", barcode: String(code).trim(), qtyOnHand: received - 1, costPerUnit: Math.max(0, parseFloat(cost) || 0),
+      lowStockThreshold: 2, receivedAt: new Date().toISOString(), firstScannedOn: t.device.model };
+    await persistStock([part, ...(partsStock || [])]);
+    const nextParts = [...(t.parts || []), { name: part.name, cost: part.costPerUnit, stockItemId: part.id, scanned: true, barcode: part.barcode, by: staffName || "unattributed", at: new Date().toISOString() }];
+    await updateTicket(ticketId, { parts: nextParts });
+    return true;
+  }
+
   async function addStockItem(item) {
     await persistStock([{ id: genPartId(), qtyOnHand: 0, lowStockThreshold: 2, ...item }, ...(partsStock || [])]);
   }
@@ -442,6 +456,7 @@ export default function RepairTickets() {
             onUseStock={(stockItem, meta) => usePartFromStock(open.id, stockItem, meta)}
             onCompleteShop={() => completeShopJob(open.id)}
             onAddUnknownBarcode={(code) => { setStockPrefill(code); setOpenId(null); setView("stock"); }}
+            onCreatePart={(code, data) => createPartAndFit(open.id, code, data)}
             onReopenWarranty={() => reopenForWarranty(open)}
             onComplete={(payMethod, finalPrice) => completeRepairWithPayment(open.id, payMethod, finalPrice)}
             onBack={() => setOpenId(null)} />
@@ -669,7 +684,7 @@ function DiagnosisSummary({ colors, symptoms, brand, model, stock, compact, need
   );
 }
 
-function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, onUseStock, onReopenWarranty, onComplete, onCompleteShop, onAddUnknownBarcode, onBack }) {
+function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, onUseStock, onReopenWarranty, onComplete, onCompleteShop, onAddUnknownBarcode, onCreatePart, onBack }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [partName, setPartName] = useState(""); const [partCost, setPartCost] = useState("");
   const [finalPrice, setFinalPrice] = useState(String(ticket.finalPrice ?? ticket.quotedPrice));
@@ -677,6 +692,8 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
   const [stockNotice, setStockNotice] = useState("");
   const [completingPayMethod, setCompletingPayMethod] = useState(null); // null = not confirming yet
   const [unknownCode, setUnknownCode] = useState("");
+  const [newPart, setNewPart] = useState({ name: "", cost: "", qty: "1" });
+  const [pickFind, setPickFind] = useState("");
   const [shopDoneNote, setShopDoneNote] = useState("");
   const [editing, setEditing] = useState(false);
   useEffect(() => { setEditing(false); }, [ticket.id]);
@@ -690,7 +707,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
     const c = String(code).trim().toLowerCase();
     const hit = (stock || []).find((x) => (x.barcode && String(x.barcode).trim().toLowerCase() === c) || (x.sku && String(x.sku).trim().toLowerCase() === c));
     setUnknownCode("");
-    if (!hit) { setUnknownCode(code); setStockNotice(""); return; }
+    if (!hit) { setUnknownCode(code); setStockNotice(""); setNewPart({ name: `${ticket.device.model} `, cost: "", qty: "1" }); return; }
     if (hit.qtyOnHand <= 0) { setStockNotice(`${hit.name} shows 0 in stock. Count the shelf and fix the stock number.`); return; }
     const ok = await onUseStock(hit, { scanned: true, barcode: code });
     setStockNotice(ok ? `✓ Scanned: ${hit.name}. Fitted to this job, 1 taken off stock.` : `${hit.name} is out of stock.`);
@@ -847,11 +864,26 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         <span style={{ fontSize: 12, color: muted }}>Scan every part you fit. It is logged to this job and taken off stock.</span>
       </div>
       {unknownCode && (
-        <div style={{ border: `1px solid ${red}`, borderRadius: 3, padding: 12, marginBottom: 12, fontSize: 13 }}>
-          Barcode <strong style={{ fontFamily: "ui-monospace, monospace" }}>{unknownCode}</strong> isn't in Parts Stock yet.
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button type="button" onClick={() => onAddUnknownBarcode(unknownCode)} style={{ padding: "7px 12px", borderRadius: 3, fontSize: 12.5, border: "none", background: brass, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>Add it to stock</button>
-            <button type="button" onClick={() => setUnknownCode("")} style={{ padding: "7px 12px", borderRadius: 3, fontSize: 12.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Dismiss</button>
+        <div style={{ border: `1px solid ${brass}`, borderRadius: 12, padding: 14, marginBottom: 12, fontSize: 13, background: brassDim }}>
+          <div style={{ marginBottom: 8 }}>New barcode <strong style={{ fontFamily: "ui-monospace, monospace" }}>{unknownCode}</strong>. Name it once — next time this barcode is recognised straight away.</div>
+          <datalist id="part-names">{[...new Set((stock || []).map((x) => x.name))].map((n) => <option key={n} value={n} />)}</datalist>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input value={newPart.name} onChange={(e) => setNewPart((p) => ({ ...p, name: e.target.value }))} list="part-names" autoFocus placeholder="Part name, e.g. iPhone 13 Pro screen (OLED)" aria-label="Part name"
+              style={{ flex: "2 1 220px", padding: "9px 10px", border: `1px solid ${line}`, fontSize: 13.5, background: "#fff" }} />
+            <input value={newPart.cost} onChange={(e) => setNewPart((p) => ({ ...p, cost: e.target.value }))} inputMode="decimal" placeholder="Cost each $" aria-label="Cost each"
+              style={{ flex: "0 1 110px", padding: "9px 10px", border: `1px solid ${line}`, fontSize: 13.5, background: "#fff" }} />
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>How many came in
+              <input value={newPart.qty} onChange={(e) => setNewPart((p) => ({ ...p, qty: e.target.value }))} inputMode="numeric" aria-label="How many came in" style={{ width: 54, padding: "9px 8px", border: `1px solid ${line}`, fontSize: 13.5, background: "#fff" }} />
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <button type="button" disabled={!newPart.name.trim() || newPart.name.trim() === ticket.device.model} onClick={async () => {
+                const ok = onCreatePart && await onCreatePart(unknownCode, newPart);
+                setStockNotice(ok ? `✓ ${newPart.name.trim()} saved with its barcode and fitted to this job${Number(newPart.qty) > 1 ? ` (${Number(newPart.qty) - 1} left in stock)` : ""}.` : "Couldn't save the part. Try again.");
+                if (ok) setUnknownCode("");
+              }} style={{ padding: "9px 14px", borderRadius: 8, fontSize: 13, border: "none", background: brass, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, opacity: newPart.name.trim() && newPart.name.trim() !== ticket.device.model ? 1 : 0.5 }}>Save part & fit to this job</button>
+            <button type="button" onClick={() => onAddUnknownBarcode(unknownCode)} style={{ padding: "9px 12px", borderRadius: 8, fontSize: 12.5, border: `1px solid ${line}`, background: "#fff", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Add in Parts Stock instead</button>
+            <button type="button" onClick={() => setUnknownCode("")} style={{ padding: "9px 12px", borderRadius: 8, fontSize: 12.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
           </div>
         </div>
       )}
@@ -860,8 +892,13 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
       {stock && stock.length > 0 && (
         <details style={{ marginBottom: 12 }}>
           <summary style={{ fontSize: 12, color: muted, cursor: "pointer", marginBottom: 6 }}>No barcode on the part? Pick it from stock (logged as not scanned)</summary>
+          <input value={pickFind} onChange={(e) => setPickFind(e.target.value)} placeholder="Search parts" aria-label="Search parts" style={{ width: "100%", padding: "8px 10px", border: `1px solid ${line}`, fontSize: 13, marginBottom: 8 }} />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-            {stock.map((s) => (
+            {[...stock]
+              .filter((s) => !pickFind.trim() || `${s.name} ${s.sku || ""} ${s.barcode || ""}`.toLowerCase().includes(pickFind.trim().toLowerCase()))
+              // Parts for this phone's model first.
+              .sort((a, b) => (String(b.name).toLowerCase().includes(String(ticket.device.model).toLowerCase()) ? 1 : 0) - (String(a.name).toLowerCase().includes(String(ticket.device.model).toLowerCase()) ? 1 : 0))
+              .map((s) => (
               <button key={s.id} disabled={s.qtyOnHand <= 0}
                 onClick={async () => {
                   const ok = await onUseStock(s, { scanned: false });

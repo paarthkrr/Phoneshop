@@ -1,3 +1,4 @@
+import AddressInput from "./address-input.jsx";
 import DeviceArt from "./device-art.jsx";
 import Photo from "./photo.jsx";
 // Friendly validation shared by the customer forms
@@ -225,7 +226,8 @@ export default function Repairs() {
           {door && (
             <div style={{ border: `1px solid ${line}`, borderRadius: 10, padding: 14, marginBottom: 12, background: panel2 }}>
               <div style={{ fontSize: 12.5, color: muted, lineHeight: 1.5, marginBottom: 10 }}>A technician comes to you in Sydney, repairs on the spot, you pay after. {DOORSTEP.creditNote} Inner zone ${DOORSTEP.zones.A.fee} (about 10 km of Sydney CBD, Blacktown or Macquarie Park), outer zone ${DOORSTEP.zones.B.fee}. Not every repair can be done at a doorstep (some need the bench); we'll tell you honestly before we come.</div>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street address" aria-label="Street address" autoComplete="street-address"
+              <AddressInput value={address} onChange={setAddress} placeholder="Street address — start typing" ariaLabel="Street address"
+                onPick={(a) => { if (/^\d{4}$/.test(a.postcode || "")) setPostcode(a.postcode); }}
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box" }} />
               <input value={postcode} onChange={(e) => setPostcode(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="Postcode" aria-label="Postcode" inputMode="numeric" autoComplete="postal-code"
                 style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 8, outline: "none", boxSizing: "border-box" }} />

@@ -2023,6 +2023,7 @@ app.get("/barcode-lookup", requireAuth, async (req, res) => {
 
 require("./chat.js").register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey });
 require("./reviews.js").register(app, { makeLimiter });
+require("./address.js").register(app, { makeLimiter });
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
