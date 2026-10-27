@@ -24,8 +24,11 @@ const PRICE = Object.fromEntries((REPAIRS_BY_DEVICE.Phone || []).map((r) => [r.n
 // Frames: AI-upscaled (Real-ESRGAN) from the source clip, printed labels removed, cropped to
 // the parts. Two sizes: hd (960 wide) for big/sharp canvases, sd (640 wide) for phones.
 const COUNT = 80, W = 960, H = 1802;
-const SRC = (i, q = "sd") => `/photos/exploded/${q}/${String(i).padStart(3, "0")}.webp`;
-const DURATION = 3200; // ms for a full open or close (tap/auto): slow enough to watch it come apart
+// ?v= bumps whenever the frames are replaced: the host sends no cache header for them, so
+// browsers would otherwise keep showing an older set they had stored.
+const FRAMES_V = 3;
+const SRC = (i, q = "sd") => `/photos/exploded/${q}/${String(i).padStart(3, "0")}.webp?v=${FRAMES_V}`;
+const DURATION = 2600; // ms for a full open or close (tap/auto): slow enough to watch it come apart
 const MIN_OPEN_MS = 1800; // scroll mode: however fast the scroll, a full open takes at least this long
 export const SHOWCASE_MODE = "scroll";
 // Backdrop. The frames' own backdrop is pure white, and the picture is multiplied onto the
@@ -72,7 +75,7 @@ const SPOTS = [
 ];
 const PRICED = SPOTS.filter((s) => s.price);
 
-const ease = (t) => t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 const CSS = `
 .xv{position:relative;overflow:hidden;overflow:clip;background:var(--xv-bg,#EEF1F6);color:#111827;padding:clamp(40px,7vh,80px) 20px}
@@ -130,9 +133,6 @@ const CSS = `
   .xv-tag{font-size:11px;padding:4px 8px}
   .xv-co.plain{display:none}
 }
-
-.xv-close{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;background:rgba(15,17,21,.85);color:#fff;border:none;font-size:20px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;transition:opacity .3s}
-.xv-close:hover{background:#7a1630}
 .xv-hint{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:rgba(15,17,21,.82);color:#fff;font-size:12.5px;
   font-weight:600;letter-spacing:.02em;transition:opacity .3s ease;pointer-events:none;z-index:2;white-space:nowrap}
 .xv-load{position:absolute;left:12%;right:12%;bottom:1.5%;height:2px;border-radius:2px;background:rgba(17,24,39,.08);overflow:hidden;z-index:2;transition:opacity .4s}
@@ -178,7 +178,7 @@ export default function DeviceShowcase() {
     if (mq && mq.matches) setReduced(true);
     tintRef.current = pickTint();
     section.current?.style.setProperty("--xv-bg", tintRef.current);
-    step.current = 2; // faster load: every 2nd frame
+    step.current = window.innerWidth < 760 ? 2 : 1;
     // the pinned stage sits just under the sticky header
     const nav = document.querySelector(".cs-glass-nav");
     const setTop = () => { if (nav && section.current) section.current.style.setProperty("--xv-top", `${nav.getBoundingClientRect().bottom > 0 ? nav.offsetHeight : 0}px`); };
@@ -252,9 +252,9 @@ export default function DeviceShowcase() {
   useEffect(() => {
     const c = canvas.current, s = stage.current; if (!c || !s) return undefined;
     const fit = () => {
-      const dpr = Math.min(3, window.devicePixelRatio || 1);
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
       c.width = Math.round(s.clientWidth * dpr); c.height = Math.round(s.clientHeight * dpr);
-      const ctx = c.getContext("2d"); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      const ctx = c.getContext("2d"); ctx.imageSmoothingQuality = "high";
       decoded.current.forEach((b) => b && b.close && b.close()); decoded.current.clear(); shown.current = -1;
       draw(frame.current);
     };
@@ -269,7 +269,7 @@ export default function DeviceShowcase() {
     let cancelled = false;
     const load = async () => {
       // big or high-density canvases get the sharp set; phones the lighter one
-      tier.current = "hd";
+      tier.current = (canvas.current?.width || 0) > 700 ? "hd" : "sd";
       const idx = [];
       for (let i = 0; i < COUNT; i += step.current) idx.push(i);
       if (idx[idx.length - 1] !== COUNT - 1) idx.push(COUNT - 1);
@@ -341,7 +341,7 @@ export default function DeviceShowcase() {
       setPhase((p) => (p === ph ? p : ph));
       wantOpen.current = isOpen;
       setOpen((o) => (o === isOpen ? o : isOpen)); setSettled((v) => (v === isOpen ? v : isOpen));
-      raf = requestAnimationFrame(tick);
+      if (Math.abs(t - cur) > 0) raf = requestAnimationFrame(tick); else { raf = 0; last = 0; }
     };
     const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
     window.addEventListener("scroll", kick, { passive: true }); window.addEventListener("resize", kick);
@@ -409,8 +409,6 @@ export default function DeviceShowcase() {
           {/* first frame shows straight away (and is the still image for reduced motion) */}
           <img src={reduced ? SRC(COUNT - 1, "hd") : SRC(0)} alt="An iPhone coming apart into its parts: cameras, display, logic board, battery, speakers and charging port" width={W} height={H} fetchpriority="high" decoding="async" />
           {!reduced && <canvas ref={canvas} aria-hidden="true" />}
-          {!reduced && open && <button type="button" className="xv-close" onClick={(e) => { e.stopPropagation(); toggle(); }} aria-label="Close">×</button>}
-
           {!reduced && <div className="xv-hint" style={{ opacity: open || (scrollMode && moved) ? 0 : 1 }}>{!ready ? "Loading…" : scrollMode ? <span className="xv-cue" style={{ color: "#fff", margin: 0 }}><i />Scroll to open</span> : mode === "auto" ? "Tap to replay" : "Tap to open"}</div>}
           {!reduced && <div className="xv-load" style={{ opacity: ready ? 0 : 1 }}><i style={{ width: `${Math.round(loaded * 100)}%` }} /></div>}
         </div>
