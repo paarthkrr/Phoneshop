@@ -259,6 +259,35 @@ function fmt(n, region, regionsMap) {
   return `${r.symbol}${val.toLocaleString()}`;
 }
 
+// Animated count-up for the headline quote: the number rolls from its old
+// value to the new one whenever the device, storage or condition changes,
+// so the price feels live and reactive instead of snapping. Honours
+// reduced-motion (then it just sets the final value).
+function AnimatedPrice({ value, region, regionsMap, style }) {
+  const target = roundMoney(value, region, regionsMap);
+  const sym = ((regionsMap || DEFAULT_REGIONS)[region] || {}).symbol || "$";
+  const [shown, setShown] = useState(target);
+  const fromRef = React.useRef(target);
+  const rafRef = React.useRef(0);
+  React.useEffect(() => {
+    const reduce = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const from = fromRef.current;
+    if (reduce || from === target) { setShown(target); fromRef.current = target; return undefined; }
+    const dur = 520, t0 = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    const tick = (now) => {
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      setShown(Math.round(from + (target - from) * e));
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    };
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target]);
+  return <span style={style}>{sym}{Number(shown).toLocaleString()}</span>;
+}
+
 
 const CONFIG_KEY = "pricing-config";
 
@@ -1230,9 +1259,9 @@ export default function QuoteCalculator() {
                   <span style={{ color: "#047857", fontWeight: 700 }}>● We're buying this model</span>
                 </div>
                 <div style={{ fontSize: 13, color: muted }}>{tier ? `Your offer · ${tier.label}` : "Up to (sealed, best condition)"}</div>
-                <div className="mv-pop" aria-live="polite" key={tier ? Math.round(calc.total) : Math.round(sealed)} style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(34px, 6vw, 46px)", lineHeight: 1.1, color: paper }}>
-                  {fmt(tier ? calc.total : sealed, region, REGIONS_A)}
-                </div>
+                <AnimatedPrice value={tier ? calc.total : sealed} region={region} regionsMap={REGIONS_A}
+                  style={{ display: "inline-block", fontFamily: "'Archivo Black', sans-serif", fontSize: "clamp(34px, 6vw, 46px)", lineHeight: 1.1, color: paper }} />
+                <div aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>{fmt(tier ? calc.total : sealed, region, REGIONS_A)}</div>
                 <div style={{ fontSize: 13.5, color: muted, margin: "6px 0 16px" }}>Paid in <strong style={{ color: paper }}>cash</strong> at collection, or by bank transfer / PayPal.</div>
                 <div style={{ borderTop: `1px solid ${line}`, paddingTop: 16 }}>
                   <div style={{ fontSize: 15, marginBottom: 10 }}><strong>Storage:</strong> <span style={{ color: muted }}>{selected.storage}</span></div>
