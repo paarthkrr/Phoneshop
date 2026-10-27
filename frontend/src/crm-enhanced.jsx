@@ -75,6 +75,13 @@ export default function CRMEnhanced() {
       
       <div style={{ display: "grid", gridTemplateColumns: selected ? "300px 1fr" : "1fr", gap: 16 }}>
         <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E5E7EB", maxHeight: "70vh", overflow: "auto" }}>
+          {filtered.length === 0 && (
+            <div style={{ padding: 32, textAlign: "center", color: "#6B7280", fontSize: 14 }}>
+              {customers.length === 0
+                ? "No customers yet. They'll appear here automatically once you take orders or log repairs."
+                : "No customer matches that search."}
+            </div>
+          )}
           {filtered.map((c, i) => (
             <div key={i} onClick={() => setSelected(c)} style={{ padding: 16, borderBottom: "1px solid #E5E7EB", cursor: "pointer", background: selected === c ? "#F3F4F6" : "transparent" }}>
               <div style={{ fontWeight: 600 }}>{c.name || "Unknown"}</div>
