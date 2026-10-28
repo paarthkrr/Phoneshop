@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import MessageCustomer, { repairMessages, printRepairTicket } from "./customer-messages.jsx";
 import { hasArea } from "./roles.js";
 import { partsCostOf } from "./pnl.js";
 import { ScanButton } from "./barcode-scanner.jsx";
@@ -737,6 +738,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         <div style={{ fontSize: 12.5, marginTop: 2 }}>⏱ {estimateVsActual(ticket)}</div>
         <div style={{ fontSize: 12, color: muted, marginTop: 4 }}>Handled by {ticket.staffHandled}</div>
         {!editing && <button type="button" onClick={() => setEditing(true)} style={{ marginTop: 10, padding: "7px 12px", borderRadius: 3, fontSize: 12.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit job details</button>}
+        {!editing && !shop && <button type="button" onClick={() => printRepairTicket(ticket, { repairLabel: repairTypes.find((r) => r.id === ticket.repairTypeId)?.label || "" })} style={{ marginTop: 10, marginLeft: 8, padding: "7px 12px", borderRadius: 3, fontSize: 12.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit" }}>🖨 Print job ticket</button>}
       </div>
       {editing && <EditJob colors={colors} ticket={ticket} repairTypes={repairTypes} team={team} me={me} onCancel={() => setEditing(false)} onSave={(patch) => { onUpdate(patch); setEditing(false); }} />}
 
@@ -763,6 +765,8 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         </div>
       )}
 
+      {!shop && <MessageCustomer phone={ticket.customer.phone} email={ticket.customer.email} templates={repairMessages(ticket)} contactLog={ticket.contactLog}
+        onSent={(e) => onUpdate({ contactLog: [...(ticket.contactLog || []), { ...e, by: typeof me === "string" ? me : me?.username || "" }] })} />}
       {completingPayMethod && ticket.status !== "completed" && (
         <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
           {Number(ticket.deposit) > 0 && (

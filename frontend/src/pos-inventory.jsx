@@ -1,4 +1,5 @@
 import { UnitPhotos } from "./spin-360.jsx";
+import MessageCustomer, { orderMessages } from "./customer-messages.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
 import { newShopRepairJob, addToSharedList, GRADES, targetPrice, SOURCES, sourceOf, imeiProblem, cleanImei } from "./device-flow.js";
@@ -438,6 +439,7 @@ export default function POSInventory() {
         {tab === "Web Orders" && (
           <WebOrdersTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
             purchaseOrders={purchaseOrders} inventory={inventory}
+            onContact={(order, e) => persistPurchaseOrders(purchaseOrders.map((o) => o.id === order.id ? { ...o, contactLog: [...(o.contactLog || []), { ...e, by: staffName || "" }] } : o))}
             onMarkPaid={async (orderId) => {
               await persistPurchaseOrders(purchaseOrders.map((o) => o.id === orderId ? { ...o, status: "paid" } : o));
             }}
@@ -736,7 +738,7 @@ function AccessoryOrdersPanel({ colors, orders, onReady, onComplete, onCancel })
   );
 }
 
-function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplete, onCancel }) {
+function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplete, onCancel, onContact }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [filter, setFilter] = useState("open");
   const STATUS_LABELS = { pending_payment: "Awaiting payment", pending_pickup: "Awaiting pickup", paid: "Paid — ready to ship/hand over", completed: "Completed", cancelled: "Cancelled" };
@@ -768,6 +770,15 @@ function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplet
           <div style={{ fontSize: 13, marginBottom: 2 }}>{o.brand} {o.model} · {o.storage} · Grade {o.gradeId}</div>
           <div style={{ fontSize: 12, color: muted, marginBottom: 8 }}>{o.customer.name} · {o.customer.email} · {o.paymentMethod === "bank_transfer" ? "Bank transfer" : "Cash on pickup"}</div>
           <div style={{ fontSize: 13, color: brass, marginBottom: 10 }}>{o.currency}{Math.round(o.price).toLocaleString()}</div>
+          {o.status !== "cancelled" && onContact && (
+            <details style={{ marginBottom: 10 }}>
+              <summary style={{ cursor: "pointer", fontSize: 13, color: brass }}>💬 Message {o.customer.name || "the customer"}{o.contactLog?.length ? ` (${o.contactLog.length} sent)` : ""}</summary>
+              <div style={{ marginTop: 8 }}>
+                <MessageCustomer phone={o.customer.phone} email={o.customer.email} contactLog={o.contactLog} title="Message the customer"
+                  templates={orderMessages({ ...o, orderId: o.id, item: { brand: o.brand, model: o.model } })} onSent={(e) => onContact(o, e)} />
+              </div>
+            </details>
+          )}
           {(o.status === "pending_payment" || o.status === "pending_pickup") && (
             <div style={{ display: "flex", gap: 8 }}>
               {o.paymentMethod === "bank_transfer" && (

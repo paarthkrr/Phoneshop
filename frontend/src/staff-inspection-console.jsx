@@ -1,4 +1,5 @@
 import { PHONE_FAULT_GROUPS, FAULT_GROUPS_BY_CATEGORY } from "./instant-quote-calculator.jsx";
+import MessageCustomer, { tradeInMessages } from "./customer-messages.jsx";
 import { DEFAULT_TIERS, ACCESSORY_BONUS_PCT } from "./pricing.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { currentRole, hasArea } from "./roles.js";
@@ -404,6 +405,11 @@ export default function StaffInspectionConsole() {
               </div>
             </div>
 
+            {!viewOnly && open.status !== "rejected" && open.status !== "returned" && (
+              <MessageCustomer phone={open.customer.phone} email={open.customer.email} contactLog={open.contactLog}
+                templates={tradeInMessages({ ...open, orderId: open.id }, open.inspection?.confirmedTotal ?? open.quotedTotal)}
+                onSent={(e) => updateOrder(open.id, { contactLog: [...(open.contactLog || []), { ...e, by: staff }] })} />
+            )}
             {viewOnly && <div style={{ ...card, fontSize: 14, color: C.muted }}>View only: ask the Counter, a Manager or the Owner to update this trade-in.</div>}
 
             {!viewOnly && open.status === "awaiting_shipment" && (
