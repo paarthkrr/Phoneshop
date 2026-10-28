@@ -316,7 +316,7 @@ export default function StaffInspectionConsole() {
     fontSize: 15, fontWeight: 700, cursor: on ? "pointer" : "not-allowed", fontFamily: "inherit" });
   const outBtn = (tone) => ({ flex: "1 1 160px", minHeight: 46, padding: "10px 14px", borderRadius: 14, border: `1.5px solid ${tone}`, background: "var(--mr-surface)", color: tone, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
   const h3 = { fontSize: 15, fontWeight: 700, margin: "0 0 10px", display: "flex", alignItems: "center", gap: 8 };
-  const step = (n) => <span style={{ width: 24, height: 24, borderRadius: "50%", background: C.brass, color: "#fff", display: "inline-grid", placeItems: "center", fontSize: 12.5, fontWeight: 800 }}>{n}</span>;
+  const step = (n) => <span style={{ width: 24, height: 24, borderRadius: "50%", background: "var(--mr-brand-fill)", color: "#fff", display: "inline-grid", placeItems: "center", fontSize: 12.5, fontWeight: 800 }}>{n}</span>;
 
   const q = search.trim().toLowerCase();
   const visibleOrders = (orders || []).filter((o) => (filter === "archived" ? o.archived : !o.archived));
@@ -619,7 +619,7 @@ function ShippingTrackingField({ order, onSave, colors }) {
           <option>Other</option>
         </select>
         <button disabled={!trackingNumber.trim() || saved} onClick={() => { onSave({ trackingNumber: trackingNumber.trim(), carrier, issuedAt: new Date().toISOString() }); setSaved(true); }}
-          style={{ padding: "7px 12px", borderRadius: 3, border: "none", background: trackingNumber.trim() && !saved ? brass : line, color: trackingNumber.trim() && !saved ? "#fff" : muted, fontSize: 12, cursor: trackingNumber.trim() && !saved ? "pointer" : "default" }}>
+          style={{ padding: "7px 12px", borderRadius: 3, border: "none", background: trackingNumber.trim() && !saved ? "var(--mr-brand-fill)" : line, color: trackingNumber.trim() && !saved ? "#fff" : muted, fontSize: 12, cursor: trackingNumber.trim() && !saved ? "pointer" : "default" }}>
           {saved ? "Saved" : "Save"}
         </button>
       </div>

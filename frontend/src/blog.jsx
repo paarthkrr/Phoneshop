@@ -10,6 +10,16 @@ const ink = "var(--mr-bg)", panel = "var(--mr-surface)", paper = "var(--mr-text)
 // slug doubles as the URL fragment and the schema's identifier.
 
 
+// Each guide points to the page that answers the search behind it.
+const RELATED = {
+  "iphone-screen-repair-cost-sydney": ["/iphone-screen-repair-sydney", "iPhone screen repair in Sydney: prices and same-day booking"],
+  "charging-port-dust-or-real-fault": ["/phone-repair-sydney", "Phone repair in Sydney, diagnosed before we quote"],
+  "refurbished-grades-explained": ["/used-phones-sydney", "Used and refurbished phones in Sydney, graded and tested"],
+  "how-much-is-my-old-phone-worth": ["/quote", "Get an instant quote for your phone"],
+  "sell-phone-or-trade-in-with-apple-samsung": ["/quote", "Get an instant quote for your phone"],
+  "how-to-prepare-your-phone-before-selling": ["/quote", "Ready? Get an instant quote"],
+};
+
 export default function Blog() {
   const { slug } = useParams();
   const post = POSTS.find((p) => p.slug === slug);
@@ -34,16 +44,23 @@ export default function Blog() {
           "headline": post.title,
           "datePublished": post.date,
           "author": { "@type": "Organization", "name": "Mobile Recellr" },
+          "publisher": { "@type": "Organization", "name": "Mobile Recellr", "logo": { "@type": "ImageObject", "url": "https://mobilerecellr.com.au/logo-512.png" } },
+          "mainEntityOfPage": `https://mobilerecellr.com.au/blog/${post.slug}`,
         })}</script>
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 16px 80px" }}>
           <a href="/blog" style={{ color: brass, fontSize: 13, marginBottom: 20, display: "inline-block", textDecoration: "none" }}>← All guides</a>
-          <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, lineHeight: 1.15, marginBottom: 10 }}>{post.title}</div>
+          <h1 style={{ margin: 0, fontWeight: 400, fontFamily: "'Archivo Black', sans-serif", fontSize: 26, lineHeight: 1.15, marginBottom: 10 }}>{post.title}</h1>
           <div style={{ color: muted, fontSize: 12.5, marginBottom: 26 }}>{new Date(post.date).toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })}</div>
           {post.body.map((para, i) => (
             <p key={i} style={{ fontSize: 15, lineHeight: 1.75, marginBottom: 18 }}>{para}</p>
           ))}
+          {RELATED[post.slug] && (
+            <p style={{ fontSize: 15, lineHeight: 1.75, marginBottom: 18 }}>
+              Related: <a href={RELATED[post.slug][0]} style={{ color: brass }}>{RELATED[post.slug][1]}</a>
+            </p>
+          )}
           <div style={{ marginTop: 30, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <a href="/repairs" className="cs-btn" style={{ padding: "11px 20px", background: brass, color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Book a repair</a>
+            <a href="/repairs" className="cs-btn" style={{ padding: "11px 20px", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 13.5, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Book a repair</a>
             <a href="/quote" className="cs-btn" style={{ padding: "11px 20px", border: `1px solid ${line}`, color: paper, fontSize: 13.5, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get a trade-in quote</a>
           </div>
         </div>

@@ -471,7 +471,7 @@ export default function RepairTickets() {
               <button onClick={() => {
                   const q = trackQuery.trim().toLowerCase();
                   setTrackResult((tickets || []).find((t) => t.id.toLowerCase() === q || t.customer.phone === trackQuery.trim()) || null);
-                }} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                }} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                 Find
               </button>
             </div>
@@ -614,7 +614,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
           inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, estimateMins, dueAt: dueAt ? new Date(dueAt + "T17:00:00").toISOString() : null,
           quotedPrice: parseFloat(quotedPrice) || 0, deposit: parseFloat(deposit) || 0, depositPayMethod })}
         style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 6,
-          background: ready ? brass : line, color: ready ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
+          background: ready ? "var(--mr-brand-fill)" : line, color: ready ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
         {shop ? "Create shop job" : "Create job ticket"}
       </button>
     </div>
@@ -652,7 +652,7 @@ function PriceApproval({ colors, ticket, onUpdate }) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ fontSize: 13 }}>$</span>
         <input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" aria-label="Price to approve" style={{ width: 100, padding: "8px 10px", fontSize: 14, border: `1px solid ${line}`, borderRadius: 8, background: "var(--mr-surface)", color: paper }} />
-        <button type="button" disabled={!(p > 0)} onClick={send} style={{ padding: "9px 14px", borderRadius: 8, border: "none", background: p > 0 ? brass : line, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: p > 0 ? "pointer" : "default", fontFamily: "inherit" }}>Create approval link</button>
+        <button type="button" disabled={!(p > 0)} onClick={send} style={{ padding: "9px 14px", borderRadius: 8, border: "none", background: p > 0 ? "var(--mr-brand-fill)" : line, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: p > 0 ? "pointer" : "default", fontFamily: "inherit" }}>Create approval link</button>
         {req && <button type="button" onClick={() => setOpen(false)} style={{ padding: "8px 10px", fontSize: 12.5, borderRadius: 8, border: `1px solid ${line}`, background: "transparent", color: muted, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>}
       </div>
     </div>
@@ -923,7 +923,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
                 const ok = onCreatePart && await onCreatePart(unknownCode, newPart);
                 setStockNotice(ok ? `✓ ${newPart.name.trim()} saved with its barcode and fitted to this job${Number(newPart.qty) > 1 ? ` (${Number(newPart.qty) - 1} left in stock)` : ""}.` : "Couldn't save the part. Try again.");
                 if (ok) setUnknownCode("");
-              }} style={{ padding: "9px 14px", borderRadius: 8, fontSize: 13, border: "none", background: brass, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, opacity: newPart.name.trim() && newPart.name.trim() !== ticket.device.model ? 1 : 0.5 }}>Save part & fit to this job</button>
+              }} style={{ padding: "9px 14px", borderRadius: 8, fontSize: 13, border: "none", background: "var(--mr-brand-fill)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, opacity: newPart.name.trim() && newPart.name.trim() !== ticket.device.model ? 1 : 0.5 }}>Save part & fit to this job</button>
             <button type="button" onClick={() => onAddUnknownBarcode(unknownCode)} style={{ padding: "9px 12px", borderRadius: 8, fontSize: 12.5, border: `1px solid ${line}`, background: "var(--mr-surface)", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Add in Parts Stock instead</button>
             <button type="button" onClick={() => setUnknownCode("")} style={{ padding: "9px 12px", borderRadius: 8, fontSize: 12.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
           </div>
@@ -963,7 +963,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         <button disabled={!partName.trim() || !partCost} onClick={() => {
             onUpdate({ parts: [...(ticket.parts || []), { name: partName.trim(), cost: parseFloat(partCost), scanned: false, by: me || "unattributed", at: new Date().toISOString() }] });
             setPartName(""); setPartCost("");
-          }} style={{ padding: "9px 14px", borderRadius: 3, border: "none", background: partName.trim() && partCost ? brass : line, color: partName.trim() && partCost ? "#fff" : muted, fontSize: 12.5, cursor: partName.trim() && partCost ? "pointer" : "default" }}>
+          }} style={{ padding: "9px 14px", borderRadius: 3, border: "none", background: partName.trim() && partCost ? "var(--mr-brand-fill)" : line, color: partName.trim() && partCost ? "#fff" : muted, fontSize: 12.5, cursor: partName.trim() && partCost ? "pointer" : "default" }}>
           Add
         </button>
       </div>
@@ -1312,7 +1312,7 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefill
               style={{ ...field, width: "100%", resize: "vertical", marginBottom: 8, fontFamily: "ui-monospace, monospace", fontSize: 12.5 }} />
             <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
               <button type="button" onClick={() => { setRows(parseSupplierOrder(paste)); setRecNote(""); }} disabled={!paste.trim()}
-                style={{ padding: "8px 14px", borderRadius: 3, border: `1px solid ${brass}`, background: paste.trim() ? brass : line, color: paste.trim() ? "#fff" : muted, fontSize: 12.5, fontWeight: 600, cursor: paste.trim() ? "pointer" : "default" }}>Read the list →</button>
+                style={{ padding: "8px 14px", borderRadius: 3, border: `1px solid ${brass}`, background: paste.trim() ? "var(--mr-brand-fill)" : line, color: paste.trim() ? "#fff" : muted, fontSize: 12.5, fontWeight: 600, cursor: paste.trim() ? "pointer" : "default" }}>Read the list →</button>
               <label style={{ padding: "8px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 12.5, cursor: "pointer" }}>
                 ⬆ Upload CSV file<input type="file" accept=".csv,text/csv,text/plain" onChange={onCsvFile} style={{ display: "none" }} />
               </label>
@@ -1363,7 +1363,7 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefill
             if (barcode.trim() && byCode(barcode)) { setNote(`Barcode ${barcode.trim()} is already used by ${byCode(barcode).name}.`); return; }
             onAdd({ name: name.trim(), sku: sku.trim(), barcode: barcode.trim(), qtyOnHand: parseInt(qty), costPerUnit: parseFloat(cost), lowStockThreshold: parseInt(threshold) || 2 });
             setName(""); setSku(""); setBarcode(""); setQty(""); setCost(""); setThreshold("2"); setNote("");
-          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: ready ? brass : line, color: ready ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
+          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: ready ? "var(--mr-brand-fill)" : line, color: ready ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
           Add to stock
         </button>
       </div>
@@ -1485,7 +1485,7 @@ function EditJob({ colors, ticket, repairTypes, team, me, onCancel, onSave }) {
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
         <button type="button" onClick={onCancel} style={{ padding: "9px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-        <button type="button" disabled={!ok} onClick={save} style={{ flex: 1, padding: "9px", borderRadius: 3, border: "none", background: ok ? brass : line, color: ok ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: ok ? "pointer" : "default", fontFamily: "inherit" }}>Save changes</button>
+        <button type="button" disabled={!ok} onClick={save} style={{ flex: 1, padding: "9px", borderRadius: 3, border: "none", background: ok ? "var(--mr-brand-fill)" : line, color: ok ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: ok ? "pointer" : "default", fontFamily: "inherit" }}>Save changes</button>
       </div>
     </div>
   );

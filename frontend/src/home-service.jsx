@@ -21,7 +21,7 @@ export default function HomeService() {
     <div style={{ background: "var(--mr-surface)", color: paper, minHeight: "100%", fontFamily: "'Outfit', 'Archivo', system-ui, sans-serif" }}>
       <style>{`.hs-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}@media(max-width:860px){.hs-grid{grid-template-columns:1fr}}
         .hs-card{display:flex;flex-direction:column;border:1px solid ${line};border-radius:18px;padding:22px;background:var(--mr-surface)}
-        .hs-cta{margin-top:auto;display:block;text-align:center;padding:13px;border-radius:12px;background:${brass};color:#fff;text-decoration:none;font-weight:700;font-size:15px}`}</style>
+        .hs-cta{margin-top:auto;display:block;text-align:center;padding:13px;border-radius:12px;background:${"var(--mr-brand-fill)"};color:#fff;text-decoration:none;font-weight:700;font-size:15px}`}</style>
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "44px 16px 80px" }}>
         <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: "-0.02em" }}>Mobile Recellr, at your door</h1>
         <p style={{ color: muted, fontSize: 16, lineHeight: 1.55, maxWidth: 640, margin: "10px 0 28px" }}>Collection and repairs across Sydney, delivery Australia-wide. Three different services, each with its own price, so you know exactly what you pay before we turn up.</p>

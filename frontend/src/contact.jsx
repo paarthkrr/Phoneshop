@@ -51,7 +51,7 @@ export default function ContactUs() {
               <>
                 <a href={`tel:${phone.replace(/\s/g, "")}`} className="cs-btn" style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 22, color: brass, textDecoration: "none" }}>{phone}</a>
                 <a href={waLink(businessSettings.whatsapp, "Hi Mobile Recellr, ")} target="_blank" rel="noopener" className="cs-btn"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "12px 18px", background: "#25D366", color: "#fff", fontWeight: 800, borderRadius: 12, textDecoration: "none", fontSize: 15 }}>
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "12px 18px", background: "#25D366", color: "#06301A", fontWeight: 800, borderRadius: 12, textDecoration: "none", fontSize: 15 }}>
                   💬 Chat on WhatsApp
                 </a>
                 <div style={{ fontSize: 12.5, color: "var(--mr-muted)", marginTop: 6 }}>Fastest way to reach us. Send photos of your phone for a quick check.</div>
@@ -91,7 +91,7 @@ export default function ContactUs() {
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 12 }}>Already have an order?</div>
           <div style={{ color: muted, fontSize: 14, marginBottom: 16 }}>You can check its status yourself without waiting for a reply — usually faster than emailing us.</div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link to="/quote" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Trade-In</Link>
+            <Link to="/quote" className="cs-btn" style={{ padding: "12px 22px", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Trade-In</Link>
             <Link to="/shop" className="cs-btn" style={{ padding: "12px 22px", border: `1px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Track a Purchase</Link>
           </div>
         </div>

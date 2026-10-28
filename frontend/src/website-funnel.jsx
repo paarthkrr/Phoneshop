@@ -36,7 +36,7 @@ export default function WebsiteFunnel({ colors }) {
             <div key={k} style={{ display: "grid", gridTemplateColumns: "minmax(110px, 160px) 1fr auto", gap: 10, alignItems: "center", fontSize: 13, marginBottom: 5 }}>
               <span>{data.labels[k]}</span>
               <span style={{ height: 12, borderRadius: 999, background: "var(--mr-surface-2)", overflow: "hidden" }}>
-                <span style={{ display: "block", height: "100%", width: `${Math.max(2, (n / top) * 100)}%`, background: brass, borderRadius: 999 }} />
+                <span style={{ display: "block", height: "100%", width: `${Math.max(2, (n / top) * 100)}%`, background: "var(--mr-brand-fill)", borderRadius: 999 }} />
               </span>
               <span style={{ fontVariantNumeric: "tabular-nums", minWidth: 90, textAlign: "right" }}><b>{n.toLocaleString()}</b>{prev != null && <span style={{ color: muted }}> · {pct(n, prev)}%</span>}</span>
             </div>

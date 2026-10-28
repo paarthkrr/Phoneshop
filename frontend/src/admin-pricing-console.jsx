@@ -636,7 +636,7 @@ function Section({ title, children, onSave, onDiscard, dirty, status, line, mute
       <div style={{ marginBottom: 16 }}>{children}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, position: "sticky", bottom: 12, background: panel, border: `1px solid ${line}`, borderRadius: 3, padding: "10px 14px" }}>
         <button onClick={onSave} disabled={!dirty}
-          style={{ padding: "9px 18px", borderRadius: 3, border: "none", background: dirty ? brass : line, color: dirty ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: dirty ? "pointer" : "default" }}>
+          style={{ padding: "9px 18px", borderRadius: 3, border: "none", background: dirty ? "var(--mr-brand-fill)" : line, color: dirty ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: dirty ? "pointer" : "default" }}>
           Save changes
         </button>
         {dirty && <button onClick={onDiscard} style={{ padding: "9px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 13, cursor: "pointer" }}>Discard</button>}

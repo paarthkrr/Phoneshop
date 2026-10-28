@@ -161,7 +161,7 @@ export function DeviceRequestForm({ initialQuery = "", onClose }) {
       <textarea id="drq-note" value={f.note} onChange={set("note")} rows={2} placeholder="e.g. cracked back, battery 85%" style={{ ...input, minHeight: 64, resize: "vertical" }} />
 
       <button type="submit" disabled={state === "sending"} className="fx-shimmer"
-        style={{ marginTop: 14, width: "100%", minHeight: 50, border: "none", borderRadius: 12, background: "var(--mr-brand)", color: "#fff", fontWeight: 800, fontSize: 15.5, cursor: state === "sending" ? "default" : "pointer", fontFamily: "inherit", opacity: state === "sending" ? 0.7 : 1 }}>
+        style={{ marginTop: 14, width: "100%", minHeight: 50, border: "none", borderRadius: 12, background: "var(--mr-brand-fill)", color: "#fff", fontWeight: 800, fontSize: 15.5, cursor: state === "sending" ? "default" : "pointer", fontFamily: "inherit", opacity: state === "sending" ? 0.7 : 1 }}>
         {state === "sending" ? "Sending…" : "Get my price"}
       </button>
       {state === "error" && <div role="alert" style={{ color: "#B42318", fontSize: 13, marginTop: 8 }}>That didn't go through. Check your connection and try again, or message us on WhatsApp.</div>}

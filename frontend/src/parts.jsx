@@ -32,7 +32,7 @@ const iconFor = (cat) => (ICONS.find(([re]) => re.test(cat || "")) || [null, "âœ
 const ink = "var(--mr-bg)", panel = "var(--mr-surface)", panel2 = "var(--mr-surface-2)", paper = "var(--mr-text)", muted = "var(--mr-muted)",
   brass = "var(--mr-brand)", brassDim = "var(--mr-brand-soft)", red = "var(--mr-bad)", green = "var(--mr-ok)", line = "var(--mr-line)";
 const input = { width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 10, outline: "none", boxSizing: "border-box", fontFamily: "inherit" };
-const primary = (on = true) => ({ padding: "12px 20px", borderRadius: 10, border: "none", background: on ? brass : "#C9C3B8", color: "#fff", fontSize: 14, fontWeight: 700, cursor: on ? "pointer" : "default", fontFamily: "inherit" });
+const primary = (on = true) => ({ padding: "12px 20px", borderRadius: 10, border: "none", background: on ? "var(--mr-brand-fill)" : "#C9C3B8", color: "#fff", fontSize: 14, fontWeight: 700, cursor: on ? "pointer" : "default", fontFamily: "inherit" });
 
 export default function Parts() {
   const [accessories, setAccessories] = useState(null);

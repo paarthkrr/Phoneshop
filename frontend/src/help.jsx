@@ -94,7 +94,7 @@ export default function Help() {
         <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", textAlign: "center" }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, marginBottom: 10 }}>We've got it — {submitted.id}</div>
           <div style={{ color: muted, fontSize: 14, marginBottom: 24 }}>We'll get back to you at {submitted.email}. Keep this reference number if you follow up.</div>
-          <a href="/" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Back to homepage</a>
+          <a href="/" className="cs-btn" style={{ padding: "12px 22px", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Back to homepage</a>
         </div>
       </div>
     );
@@ -130,7 +130,7 @@ export default function Help() {
 
         <button className="cs-btn" onClick={handleSubmit} disabled={!name.trim() || !isEmail(email) || !message.trim() || submitting}
           style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            background: name.trim() && isEmail(email) && message.trim() ? brass : line, color: name.trim() && isEmail(email) && message.trim() ? "#fff" : muted,
+            background: name.trim() && isEmail(email) && message.trim() ? "var(--mr-brand-fill)" : line, color: name.trim() && isEmail(email) && message.trim() ? "#fff" : muted,
             fontSize: 14, fontWeight: 600, cursor: name.trim() && isEmail(email) && message.trim() ? "pointer" : "default" }}>
           {submitting && <span className="cs-spinner"></span>}
           {submitting ? "Sending…" : "Send"}

@@ -430,7 +430,7 @@ function StaffGate({ children }) {
       {error && <div style={{ color: "#8B2E2E", fontSize: 13, marginBottom: 8 }}>{error}</div>}
       {success && <div style={{ color: "#3F6B34", fontSize: 13, marginBottom: 8 }}>{success}</div>}
       <button onClick={mode === "login" ? handleLogin : mode === "recover" ? handleRecover : handleRegister}
-        style={{ width: "100%", padding: 11, background: brass, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", marginBottom: 10 }}>
+        style={{ width: "100%", padding: 11, background: "var(--mr-brand-fill)", color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", marginBottom: 10 }}>
         {mode === "login" ? "Sign in" : mode === "recover" ? "Reset password" : "Create account"}
       </button>
       <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setSuccess(""); setNeedCode(false); }}
@@ -535,10 +535,10 @@ function MobileCTA() {
     <div className="cs-mobile-cta" role="navigation" aria-label="Quick actions">
       {/* The main button fits the page: book on the repairs page, get a price everywhere else. */}
       {path !== "/repairs" && /-(repair|replacement)-sydney$/.test(path)
-        ? <a href="/repairs#book" style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Book a repair</a>
+        ? <a href="/repairs#book" style={{ ...btn, background: "var(--mr-brand-fill)", color: "#fff", flex: phone ? 1.4 : 1 }}>Book a repair</a>
         : path === "/repairs"
-        ? <a href="#book" onClick={(e) => { const el = document.getElementById("book"); if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth" }); } }} style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Book a repair</a>
-        : <a href="/quote" style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Get a quote</a>}
+        ? <a href="#book" onClick={(e) => { const el = document.getElementById("book"); if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth" }); } }} style={{ ...btn, background: "var(--mr-brand-fill)", color: "#fff", flex: phone ? 1.4 : 1 }}>Book a repair</a>
+        : <a href="/quote" style={{ ...btn, background: "var(--mr-brand-fill)", color: "#fff", flex: phone ? 1.4 : 1 }}>Get a quote</a>}
       {phone
         ? <a href={`tel:${phone.replace(/\s/g, "")}`} style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>📞 Call us</a>
         : <a href="/repairs" style={{ ...btn, border: `1.5px solid ${line}`, color: paper }}>Book a repair</a>}

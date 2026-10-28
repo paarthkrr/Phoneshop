@@ -17,7 +17,7 @@ const CSS = `
 .ps-grp{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#6B7893;padding:14px 10px 6px}
 .ps-link{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;color:#C9D2E3;text-decoration:none;font-size:14px;font-weight:500;margin-bottom:2px}
 .ps-link:hover{background:rgba(255,255,255,.06);color:#fff}
-.ps-link.on{background:var(--mr-brand);color:#fff;font-weight:700;box-shadow:0 6px 16px rgba(33,80,200,.35)}
+.ps-link.on{background:var(--mr-brand-fill);color:#fff;font-weight:700;box-shadow:0 6px 16px rgba(33,80,200,.35)}
 .ps-me{margin-top:auto;border-top:1px solid #1E2940;padding:14px 6px 2px;display:flex;flex-direction:column;gap:6px}
 .ps-me-name{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:14px}
 .ps-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--mr-brand),#7A1F2B);display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;flex:none}

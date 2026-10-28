@@ -63,7 +63,7 @@ export default function SeoLanding({ slug: fixed }) {
         {page.stock && <><h2 style={h2}>In stock now</h2><InStock /></>}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "22px 0 6px" }}>
-          <Link to={page.cta[0]} className="cs-btn" style={{ padding: "14px 22px", borderRadius: 12, background: brass, color: "#fff", fontWeight: 700, textDecoration: "none" }}>{page.cta[1]} →</Link>
+          <Link to={page.cta[0]} className="cs-btn" style={{ padding: "14px 22px", borderRadius: 12, background: "var(--mr-brand-fill)", color: "#fff", fontWeight: 700, textDecoration: "none" }}>{page.cta[1]} →</Link>
           <Link to="/contact" style={{ padding: "14px 22px", borderRadius: 12, border: `1.5px solid ${line}`, color: paper, fontWeight: 700, textDecoration: "none" }}>Ask a question</Link>
         </div>
 
