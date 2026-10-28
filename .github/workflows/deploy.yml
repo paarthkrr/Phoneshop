@@ -59,6 +59,7 @@ jobs:
           # the exact commit Checks passed on
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       # The service's Root Directory setting (/frontend or backend) picks the folder to build.
+      # A project token already names the project and environment, so only the service is given.
       - name: Deploy to Railway
         if: steps.token.outputs.ok == 'true'
-        run: railway up --ci --project "$PROJECT_ID" --environment "$ENVIRONMENT_ID" --service "${{ matrix.service }}"
+        run: railway up --ci --service "${{ matrix.service }}"
