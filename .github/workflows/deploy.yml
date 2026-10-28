@@ -68,6 +68,12 @@ jobs:
         if: steps.token.outputs.ok == 'true'
         run: |
           set +e
+          # A pasted token often carries a space, newline or quotes: strip them.
+          RAILWAY_TOKEN=$(printf '%s' "$RAILWAY_TOKEN" | tr -d "[:space:]\"'")
+          export RAILWAY_TOKEN
+          # Describe the token without showing it: length and shape only.
+          if printf '%s' "$RAILWAY_TOKEN" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'; then shape="UUID (the format Railway tokens use)"; else shape="NOT a UUID (Railway tokens look like xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"; fi
+          echo "Token: ${#RAILWAY_TOKEN} characters, shape: $shape"
           railway up --ci --service "${{ matrix.service }}" > /tmp/up.log 2>&1
           code=$?
           cat /tmp/up.log
