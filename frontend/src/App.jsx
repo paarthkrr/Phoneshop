@@ -1,4 +1,5 @@
 import { withBusinessDefaults, waLink } from "./business-info.js";
+import RepairApproval from "./repair-approval.jsx";
 import SeoLanding from "./seo-landing.jsx";
 import { SEO_SLUGS } from "./seo-pages.js";
 import { track } from "./track.js";
@@ -730,6 +731,7 @@ function AnimatedRoutes() {
         <Route path="/staff/repairs" element={<StaffGate><RepairTickets /></StaffGate>} />
         <Route path="/staff/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
         <Route path="/staff/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
+        <Route path="/approve/:id" element={<RepairApproval />} />
         {SEO_SLUGS.map((slug) => <Route key={slug} path={`/${slug}`} element={<SeoLanding slug={slug} />} />)}
         <Route path="*" element={<NotFound />} />
       </Routes>

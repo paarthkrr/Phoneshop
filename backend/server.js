@@ -1815,6 +1815,7 @@ app.put("/storage/:key", tryAuth, async (req, res) => {
         finalValue = (Array.isArray(changedIds) && mergeOnlyChanged(value, existingValue, changedIds)) || mergeKeepingNewer(value, existingValue);
       }
       if (scope === "shared" && req.params.key === "orders") finalValue = keepCustomerDecisions(finalValue, existingValue);
+      if (scope === "shared" && req.params.key === "repair_tickets") finalValue = keepRepairApprovals(finalValue, existingValue);
       if (hidesBank) finalValue = restoreBank(finalValue, existingValue);
       if (scope === "shared" && req.params.key === "repair_tickets" && !hasArea(req.user, "reports")) finalValue = keepPay(finalValue, existingValue);
       if (scope === "shared" && req.params.key === "notification_queue") {   // staff-sent customer updates (e.g. "repair ready")
@@ -1918,6 +1919,75 @@ app.post("/public/orders/:orderId/respond", async (req, res) => {
     res.status(400).json({ error: e.message });
   }
 });
+
+// ---- Customer approves a repair price from a link ----
+// Staff send /approve/<job id>?k=<key>. The key is random per request (job numbers are
+// guessable), so only the person who got the message can see the price or answer it.
+// The page shows just the device, what's wrong and the price: nothing else on the job.
+const keyMatches = (a, b) => typeof a === "string" && typeof b === "string" && a.length === b.length && a.length >= 20 && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+function approvalView(t) {
+  return {
+    id: t.id, device: [t.device?.brand, t.device?.model, t.device?.storage].filter(Boolean).join(" "),
+    issue: String(t.approvalRequest?.note || t.issue || "").slice(0, 300), price: t.approvalRequest?.price,
+    deposit: Number(t.deposit) > 0 ? Number(t.deposit) : 0, sentAt: t.approvalRequest?.sentAt,
+    decision: t.customerApproval && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest?.sentAt || 0) ? t.customerApproval.decision : null,
+    closed: ["completed", "not_repairable"].includes(t.status),
+  };
+}
+app.get("/public/repair-approval/:id", async (req, res) => {
+  if (!publicRespondAllowed(req)) return res.status(429).json({ error: "too many requests, please try again later" });
+  try {
+    const t = (await loadSharedList("repair_tickets")).find((x) => x && x.id === req.params.id);
+    if (!t || !t.approvalRequest || !keyMatches(String(req.query.k || ""), t.approvalRequest.key)) return res.status(404).json({ error: "not_found" });
+    res.json(approvalView(t));
+  } catch (e) { res.status(400).json({ error: "could not load" }); }
+});
+app.post("/public/repair-approval/:id", async (req, res) => {
+  if (!publicRespondAllowed(req)) return res.status(429).json({ error: "too many requests, please try again later" });
+  try {
+    const { k, decision } = req.body || {};
+    if (decision !== "approve" && decision !== "decline") return res.status(400).json({ error: "decision must be approve or decline" });
+    const out = await withListLock("shared", "repair_tickets", async (existingValue, write) => {
+      const list = existingValue ? JSON.parse(existingValue) : [];
+      const i = list.findIndex((x) => x && x.id === req.params.id);
+      const t = list[i];
+      if (i === -1 || !t.approvalRequest || !keyMatches(String(k || ""), t.approvalRequest.key)) return { status: 404, body: { error: "not_found" } };
+      if (["completed", "not_repairable"].includes(t.status)) return { status: 409, body: { error: "this job is already closed" } };
+      const at = new Date().toISOString();
+      list[i] = { ...t, customerApproval: { decision, at, price: t.approvalRequest.price } };
+      await write(JSON.stringify(list), "public");
+      return { status: 200, body: approvalView(list[i]), ticket: list[i] };
+    });
+    if (out.ticket) {
+      const t = out.ticket;
+      void sendEmail({ to: OWNER_EMAIL(), subject: `Repair ${t.id}: customer ${t.customerApproval.decision === "approve" ? "APPROVED" : "declined"} $${t.approvalRequest.price}`,
+        text: [`${t.customer?.name || "The customer"} ${t.customerApproval.decision === "approve" ? "approved" : "declined"} the repair price for job ${t.id}.`,
+          `Device: ${approvalView(t).device}`, `Price: $${t.approvalRequest.price}`, "Open the Repair Bench to carry on: https://mobilerecellr.com.au/portal/repairs"].join("\n\n"), kind: "repair approval" });
+    }
+    res.status(out.status).json(out.body);
+  } catch (e) { res.status(400).json({ error: "could not save" }); }
+});
+
+// A customer's repair approval must survive a staff save made from a copy loaded before
+// they answered; a new price request sent after their answer starts over.
+function keepRepairApprovals(finalJson, existingJson) {
+  try {
+    const list = JSON.parse(finalJson), old = existingJson ? JSON.parse(existingJson) : [];
+    if (!Array.isArray(list) || !Array.isArray(old)) return finalJson;
+    const answered = new Map(old.filter((t) => t && t.customerApproval && t.customerApproval.at).map((t) => [t.id, t.customerApproval]));
+    let changed = false;
+    const out = list.map((t) => {
+      const prev = t && answered.get(t.id);
+      if (!prev) return t;
+      const at = Date.parse(prev.at);
+      if (t.customerApproval && Date.parse(t.customerApproval.at) >= at) return t;
+      if (t.approvalRequest && Date.parse(t.approvalRequest.sentAt) > at) return t;
+      changed = true;
+      return { ...t, customerApproval: prev };
+    });
+    return changed ? JSON.stringify(out) : finalJson;
+  } catch (e) { return finalJson; }
+}
 
 // ---- ID photos (encrypted at rest, retention-enforced) ----
 // subjectKey is a free-form string the caller chooses to find the photo
