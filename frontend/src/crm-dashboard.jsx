@@ -208,7 +208,7 @@ export default function CRMDashboard() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');`}</style>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 60px" }}>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, letterSpacing: '-0.01em', marginBottom: 4 }}>Customers & Reports</div>
         <div style={{ color: muted, fontSize: 13, marginBottom: 18 }}>{customers.length} customer{customers.length === 1 ? "" : "s"} on record, built from every trade-in and sale.</div>

@@ -5,6 +5,7 @@ import path from "node:path";
 import { POSTS } from "./src/blog-posts.js";
 import { metaFor, SELL_BRAND_NAMES } from "./src/seo-meta.js";
 import { REPAIRS_BY_DEVICE } from "./src/repair-prices.js";
+import { SEO_PAGES, SEO_SLUGS, pagePrices } from "./src/seo-pages.js";
 
 // Why the app file has a FIXED name (assets/app.js) instead of Vite's usual
 // random-per-build name:
@@ -66,7 +67,7 @@ const STATIC_ROUTES = [
 ];
 // Guides and sell-by-brand pages come straight from their source lists, so a
 // new guide or brand gets its page file, SEO tags and sitemap entry automatically.
-const ROUTES = [...STATIC_ROUTES, ...POSTS.map((p) => `blog/${p.slug}`), ...Object.keys(SELL_BRAND_NAMES).map((b) => `sell/${b}`)];
+const ROUTES = [...STATIC_ROUTES, ...SEO_SLUGS, ...POSTS.map((p) => `blog/${p.slug}`), ...Object.keys(SELL_BRAND_NAMES).map((b) => `sell/${b}`)];
 // Pages Google should index (not staff tools or duplicate aliases).
 const SITEMAP_EXCLUDE = new Set(["sell", "parts", "help"]);
 const isStaffRoute = (r) => /^(portal|staff)(\/|$)/.test(r);
@@ -90,6 +91,7 @@ const SEO_H1 = {
 };
 function seoH1(route) {
   if (SEO_H1[route] != null) return SEO_H1[route];
+  if (SEO_PAGES[route]) return SEO_PAGES[route].h1;
   const brand = route.startsWith("sell/") && SELL_BRAND_NAMES[route.slice(5)];
   if (brand) return `Sell your ${brand} in Sydney`;
   const meta = metaFor(route ? "/" + route : "/");
@@ -99,7 +101,23 @@ function seoH1(route) {
 // description, and links to the main pages. React replaces this on mount, so
 // visitors see real text instead of "Loading\u2026" and crawlers (and social
 // scrapers that don't run JS) get genuine content and internal links.
+// Search landing pages: the whole page in the HTML (intro, prices, how it works, FAQ, links).
+function seoLandingBody(route) {
+  const p = SEO_PAGES[route];
+  const h2 = (t) => `<h2 style="font-size:20px;color:#111827;margin:26px 0 10px">${esc(t)}</h2>`;
+  const prices = pagePrices(p, REPAIRS_BY_DEVICE).map((r) => `<li>${esc(r.device)} ${esc(r.name.toLowerCase())}: from $${r.from}</li>`).join("");
+  return `<div id="boot-msg" style="max-width:760px;margin:40px auto;padding:20px;font-family:system-ui,sans-serif;color:#374151;line-height:1.6">
+        <h1 style="font-size:30px;line-height:1.15;color:#111827;margin:0 0 12px">${esc(p.h1)}</h1>
+        ${p.intro.map((t) => `<p>${esc(t)}</p>`).join("")}
+        ${prices ? `<ul>${prices}</ul><p style="font-size:13px">Starting prices. The exact price for your model and part is confirmed before any work.</p>` : ""}
+        <p><a href="${esc(p.cta[0])}" style="color:#2150C8">${esc(p.cta[1])}</a></p>
+        ${p.sections.map((x) => h2(x.h) + `<ul>${x.list.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>`).join("")}
+        ${h2("Questions people ask")}${p.faq.map(([q, a]) => `<h3 style="font-size:16px;color:#111827;margin:14px 0 4px">${esc(q)}</h3><p style="margin:0">${esc(a)}</p>`).join("")}
+        ${h2("Related")}<nav>${p.links.map(([h, t]) => `<a href="${esc(h)}" style="color:#2150C8;margin:0 12px 6px 0;display:inline-block">${esc(t)}</a>`).join("")}</nav>
+      </div>`;
+}
 function seoBody(route) {
+  if (SEO_PAGES[route]) return seoLandingBody(route);
   const meta = metaFor(route ? "/" + route : "/");
   const h1 = esc(seoH1(route));
   const intro = meta ? esc(meta.desc) : "";
@@ -127,6 +145,17 @@ function jsonLd(route, base) {
         itemOffered: { "@type": "Service", name: `${device} ${r.name.toLowerCase()}`, areaServed: "Sydney, NSW", provider: { "@type": "ElectronicsStore", name: "Mobile Recellr", url: base + "/" } },
       }))),
     });
+  }
+  const seo = SEO_PAGES[route];
+  if (seo) {
+    out.push({ "@context": "https://schema.org", "@type": "FAQPage",
+      mainEntity: seo.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) });
+    const rows = pagePrices(seo, REPAIRS_BY_DEVICE);
+    if (rows.length) out.push({ "@context": "https://schema.org", "@type": "Service", name: seo.h1, url: `${base}/${route}`, areaServed: { "@type": "City", name: "Sydney" },
+      provider: { "@type": "ElectronicsStore", name: "Mobile Recellr", url: base + "/", telephone: "+61 411 931 999" },
+      offers: rows.map((r) => ({ "@type": "Offer", priceCurrency: "AUD", priceSpecification: { "@type": "PriceSpecification", minPrice: r.from, priceCurrency: "AUD" }, name: `${r.device} ${r.name.toLowerCase()}` })) });
+    out.push({ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: base + "/" }, { "@type": "ListItem", position: 2, name: seo.h1, item: `${base}/${route}` }] });
   }
   const parts = route.split("/").filter(Boolean);
   if (parts.length > 1) {
@@ -183,7 +212,7 @@ function pagePerRoute() {
       fs.writeFileSync(path.join(options.dir, "index.html"), withMeta(html, "", base));
       const today = new Date().toISOString().slice(0, 10);
       const urls = ["", ...ROUTES.filter((r) => !isStaffRoute(r) && !SITEMAP_EXCLUDE.has(r))];
-      const pri = (r) => r === "" ? "1.0" : ["quote", "repairs", "shop", "accessories"].includes(r) || r.startsWith("sell/") ? "0.8" : r.startsWith("blog") ? "0.6" : "0.4";
+      const pri = (r) => r === "" ? "1.0" : ["quote", "repairs", "shop", "accessories", ...SEO_SLUGS].includes(r) || r.startsWith("sell/") ? "0.8" : r.startsWith("blog") ? "0.6" : "0.4";
       fs.writeFileSync(path.join(options.dir, "sitemap.xml"),
         `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         urls.map((r) => `  <url><loc>${base}/${r}</loc><lastmod>${today}</lastmod><priority>${pri(r)}</priority></url>`).join("\n") + "\n</urlset>\n");

@@ -961,7 +961,7 @@ export default function QuoteCalculator() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');
         @keyframes mv-pop { 0% { transform: scale(0.82); opacity: 0.4; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
         .mv-pop { display: inline-block; animation: mv-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; transform-origin: right center; }
         @media (prefers-reduced-motion: reduce) { .mv-pop { animation: none; } }

@@ -76,6 +76,12 @@ export default function Repairs() {
   const [phone, setPhone] = useState("");
   const [model, setModel] = useState("");
   const REPAIRS_BY_DEVICE = useRepairPrices();
+  // Links like /repairs#book (from the repair pages and the bottom bar) open the booking form.
+  React.useEffect(() => {
+    if (window.location.hash !== "#book") return;
+    const t = setTimeout(() => document.getElementById("book")?.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
+    return () => clearTimeout(t);
+  }, []);
   const modelRef = React.useRef(null);
   const pickRepair = (r) => {
     setIssue((cur) => {
@@ -152,7 +158,7 @@ export default function Repairs() {
   if (submitted) {
     return (
       <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');`}</style>
         <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", textAlign: "center" }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, marginBottom: 10 }}>Got it — {submitted.id}</div>
           <div style={{ color: muted, fontSize: 14, marginBottom: 24 }}>We'll reach out at {submitted.email} to confirm details for your {submitted.deviceType.toLowerCase()}. {submitted.method === "doorstep" ? "This is a request, not a confirmed booking yet. We'll message you shortly to confirm the time slot and the technician who is coming." : submitted.method === "mailin" ? "We'll email you the postal address for your mail-in repair." : "Pop in any time during opening hours — most repairs are done the same day."}</div>
@@ -164,7 +170,7 @@ export default function Repairs() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');`}</style>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 16px 80px" }}>
 
         <Photo banner name="microscope" height={220} eager style={{ marginBottom: 26 }} />
