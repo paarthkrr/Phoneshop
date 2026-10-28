@@ -162,6 +162,12 @@ export default function DailyDashboard() {
     const inStock = inventory.filter((i) => i.status === "in_stock" || i.status === "listed");
 
     const repairsReady = tickets.filter((t) => t.status === "ready_for_pickup");
+    // Happy customers from the last week nobody has asked for a Google review yet.
+    const asked = (x) => (x.contactLog || []).some((c) => c.template === "review");
+    const reviewAsks = [
+      ...tickets.filter((t) => t.status === "completed" && t.jobType !== "shop" && !t.warrantyOf && t.completedAt && daysSince(t.completedAt) <= 7 && !asked(t)),
+      ...orders.filter((o) => o.status === "approved_paid" && o.paidAt && daysSince(o.paidAt) <= 7 && !asked(o)),
+    ];
     const repairsOpen = tickets.filter((t) => !["completed", "not_repairable"].includes(t.status));
     const repairsStale = repairsOpen.filter((t) => daysSince(t.createdAt) > 5);
 
@@ -241,7 +247,7 @@ export default function DailyDashboard() {
     };
 
     return { month, monthRevenue, prevRevenue, pnl, pnlPrev, knownRevenue, split, topSellers, techOwed, stock, tradeinsMonth, paidMonth, paidOut, leadsMonth, conversion, repairs, waiting,
-      ordersAwaitingInspection, ordersRevisedPending, ordersToReceive, ungraded, inStock, repairsReady, repairsOpen, repairsStale, todayTill, todayRevenue, todaySalesCount: todaySales.length, last7, weekRevenue, feed };
+      ordersAwaitingInspection, ordersRevisedPending, ordersToReceive, ungraded, inStock, repairsReady, reviewAsks, repairsOpen, repairsStale, todayTill, todayRevenue, todaySalesCount: todaySales.length, last7, weekRevenue, feed };
   }, [data]);
 
   if (!summary) return <div style={{ padding: 40, color: "var(--mr-muted)", fontFamily: "'Archivo', sans-serif" }}>Loading today's view…</div>;
@@ -275,6 +281,7 @@ export default function DailyDashboard() {
     { to: "/portal/crm", label: "Quotes not followed up (price still held)", n: s.waiting.leads, tone: "" },
     { to: "/portal/pos", label: `Phones in stock over ${AGED_DAYS} days`, n: s.stock.aged.length, tone: "r" },
     { to: "/portal/repairs", label: "Repair parts at or below reorder level", n: s.waiting.lowParts, tone: "r" },
+    { to: "/portal/repairs", label: "Happy customers to ask for a Google review (last 7 days)", n: s.reviewAsks.length, tone: "g" },
     { to: "/portal/products", label: "Accessories almost sold out (2 or fewer)", n: s.waiting.lowAccessories, tone: "r" },
   ].filter((t) => t.n > 0 && can(t.to));
   const money = can("/portal/crm"); // takings, profit and quote leads
