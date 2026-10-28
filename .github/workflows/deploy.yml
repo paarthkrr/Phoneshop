@@ -1,0 +1,64 @@
+# Deploys the website and the backend to Railway after every merge to main, but only
+# once "Checks" (backend tests + website build) has passed on that commit, so a broken
+# change never goes live. Uses Railway's own CLI with a project token.
+#
+# One-time setup (nothing secret goes in this file):
+#   1. Railway > project > Settings > Tokens > create a token for "production".
+#   2. GitHub > this repo > Settings > Secrets and variables > Actions >
+#      New repository secret: name RAILWAY_TOKEN, value = that token.
+# Until the secret exists this workflow skips itself (no red crosses).
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [Checks]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: # "Run workflow" button, to deploy main by hand
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: 569d1619-02eb-43cb-bc66-7c9dda0d142b
+  ENVIRONMENT_ID: bbd7f39e-3471-4d07-8a85-61810ebf7693
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.name }}
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            service: c01e4f29-2956-44c4-9a90-81650ad82e9a
+          - name: website
+            service: 70b53baf-3c74-4e09-bcca-240f42562e00
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Check the Railway token is set
+        id: token
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "RAILWAY_TOKEN secret not set yet: skipping deploy (see the setup steps at the top of deploy.yml)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.ok == 'true'
+        with:
+          # the exact commit Checks passed on
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      # The service's Root Directory setting (/frontend or backend) picks the folder to build.
+      - name: Deploy to Railway
+        if: steps.token.outputs.ok == 'true'
+        run: railway up --ci --project "$PROJECT_ID" --environment "$ENVIRONMENT_ID" --service "${{ matrix.service }}"
