@@ -8,19 +8,26 @@ const first = (name) => String(name || "").trim().split(/\s+/)[0] || "there";
 const SHOP = "Mobile Recellr";
 const money = (n) => `$${Math.round(Number(n) || 0).toLocaleString()}`;
 
+// The customer's link to approve a repair price (see repair-approval.jsx).
+export const approvalLink = (t) => (t.approvalRequest && t.approvalRequest.key && typeof window !== "undefined"
+  ? `${window.location.origin}/approve/${encodeURIComponent(t.id)}?k=${t.approvalRequest.key}` : "");
+
 // Templates by situation. Each returns { id, label, subject, text }.
 export function repairMessages(t) {
   const n = first(t.customer?.name), dev = `${t.device?.brand || ""} ${t.device?.model || ""}`.trim() || "device";
   const price = t.finalPrice ?? t.quotedPrice;
   const list = [
     { id: "received", label: "Got it", subject: `We've got your ${dev} — ${t.id}`, text: `Hi ${n}, it's ${SHOP}. We've got your ${dev} and we're on it. Your job number is ${t.id}; we'll message you as soon as it's ready.` },
-    { id: "quote", label: "Price to approve", subject: `Repair price for your ${dev} — ${t.id}`, text: `Hi ${n}, it's ${SHOP}. We've checked your ${dev}: the repair comes to ${money(price)}. Reply YES and we'll go ahead, or call us with any questions. Job ${t.id}.` },
+    { id: "quote", label: "Price to approve", subject: `Repair price for your ${dev} — ${t.id}`, text: t.approvalRequest && approvalLink(t)
+      ? `Hi ${n}, it's ${SHOP}. We've checked your ${dev}: the repair comes to ${money(t.approvalRequest.price)}. Approve or decline here: ${approvalLink(t)} (job ${t.id}).`
+      : `Hi ${n}, it's ${SHOP}. We've checked your ${dev}: the repair comes to ${money(price)}. Reply YES and we'll go ahead, or call us with any questions. Job ${t.id}.` },
     { id: "parts", label: "Waiting on parts", subject: `Update on your ${dev} — ${t.id}`, text: `Hi ${n}, quick update from ${SHOP}: we're waiting on a part for your ${dev}. We'll let you know as soon as it arrives. Job ${t.id}.` },
     { id: "ready", label: "Ready to collect", subject: `Your ${dev} is ready to collect — ${t.id}`, text: `Good news ${n}! Your ${dev} is fixed and ready to collect from ${SHOP}${price != null ? ` (${money(price)}${Number(t.deposit) > 0 ? `, ${money(Math.max(0, price - Number(t.deposit)))} left to pay` : ""})` : ""}. Job ${t.id}.` },
     { id: "not_repairable", label: "Can't be fixed", subject: `About your ${dev} — ${t.id}`, text: `Hi ${n}, it's ${SHOP}. Sorry, we weren't able to repair your ${dev}. You can collect it any time, and we're happy to make you an offer on it or show you a replacement. Job ${t.id}.` },
     { id: "review", label: "Ask for a review", subject: `How did we go, ${n}?`, text: `Hi ${n}, thanks for choosing ${SHOP}! If we looked after you, a quick Google review helps a small local shop a lot: ${GOOGLE_REVIEW_URL}` },
   ];
-  const best = { dropped_off: "received", diagnosing: "quote", awaiting_parts: "parts", in_repair: "ready", ready_for_pickup: "ready", completed: "review", not_repairable: "not_repairable" }[t.status];
+  const waiting = t.approvalRequest && !(t.customerApproval && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest.sentAt));
+  const best = waiting && !["completed", "not_repairable"].includes(t.status) ? "quote" : { dropped_off: "received", diagnosing: "quote", awaiting_parts: "parts", in_repair: "ready", ready_for_pickup: "ready", completed: "review", not_repairable: "not_repairable" }[t.status];
   return { list, best };
 }
 

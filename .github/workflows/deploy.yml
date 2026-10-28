@@ -9,11 +9,13 @@
 # Until the secret exists this workflow skips itself (no red crosses).
 name: Deploy
 
+# Automatic runs are paused until the Railway token works (Railway rejected the current
+# one). To switch them back on, restore this under "on:":
+#   workflow_run:
+#     workflows: [Checks]
+#     types: [completed]
+#     branches: [main]
 on:
-  workflow_run:
-    workflows: [Checks]
-    types: [completed]
-    branches: [main]
   workflow_dispatch: # "Run workflow" button, to deploy main by hand
 
 permissions:

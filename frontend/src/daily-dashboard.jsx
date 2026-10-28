@@ -162,6 +162,10 @@ export default function DailyDashboard() {
     const inStock = inventory.filter((i) => i.status === "in_stock" || i.status === "listed");
 
     const repairsReady = tickets.filter((t) => t.status === "ready_for_pickup");
+    // Answers to "approve this repair price" links that nobody has acted on yet.
+    const answeredNow = (t, d) => t.approvalRequest && t.customerApproval && t.customerApproval.decision === d && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest.sentAt);
+    const approvedToStart = tickets.filter((t) => answeredNow(t, "approve") && ["dropped_off", "diagnosing"].includes(t.status));
+    const declinedToReturn = tickets.filter((t) => answeredNow(t, "decline") && !["completed", "not_repairable"].includes(t.status));
     // Happy customers from the last week nobody has asked for a Google review yet.
     const asked = (x) => (x.contactLog || []).some((c) => c.template === "review");
     const reviewAsks = [
@@ -247,7 +251,7 @@ export default function DailyDashboard() {
     };
 
     return { month, monthRevenue, prevRevenue, pnl, pnlPrev, knownRevenue, split, topSellers, techOwed, stock, tradeinsMonth, paidMonth, paidOut, leadsMonth, conversion, repairs, waiting,
-      ordersAwaitingInspection, ordersRevisedPending, ordersToReceive, ungraded, inStock, repairsReady, reviewAsks, repairsOpen, repairsStale, todayTill, todayRevenue, todaySalesCount: todaySales.length, last7, weekRevenue, feed };
+      ordersAwaitingInspection, ordersRevisedPending, ordersToReceive, ungraded, inStock, repairsReady, reviewAsks, approvedToStart, declinedToReturn, repairsOpen, repairsStale, todayTill, todayRevenue, todaySalesCount: todaySales.length, last7, weekRevenue, feed };
   }, [data]);
 
   if (!summary) return <div style={{ padding: 40, color: "var(--mr-muted)", fontFamily: "'Archivo', sans-serif" }}>Loading today's view…</div>;
@@ -269,6 +273,8 @@ export default function DailyDashboard() {
     { to: "/portal/inspect", label: "Revised offers waiting on the customer", n: s.ordersRevisedPending.length, tone: "r" },
     { to: "/portal/pos", label: "Approved trade-ins not yet in stock", n: s.ordersToReceive.length, tone: "" },
     { to: "/portal/pos", label: "Stock waiting to be graded", n: s.ungraded.length, tone: "" },
+    { to: "/portal/repairs", label: "Repair prices approved: start the work", n: s.approvedToStart.length, tone: "g" },
+    { to: "/portal/repairs", label: "Repair prices declined: close the job and hand it back", n: s.declinedToReturn.length, tone: "r" },
     { to: "/portal/repairs", label: "Repairs ready for pickup", n: s.repairsReady.length, tone: "g" },
     { to: "/portal/repairs", label: "Repair jobs open more than 5 days", n: s.repairsStale.length, tone: "r" },
     { to: "/portal/repairs", label: "New online repair bookings to call back", n: s.waiting.repairBookings, tone: "" },

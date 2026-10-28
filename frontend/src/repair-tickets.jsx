@@ -622,6 +622,43 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
 }
 
 // Badges on a job: who it belongs to and how urgent it is.
+// Send the customer a link to approve the price (repair-approval.jsx), and show their answer.
+function PriceApproval({ colors, ticket, onUpdate }) {
+  const { paper, muted, brass, line, green, red } = colors;
+  const req = ticket.approvalRequest, ans = ticket.customerApproval;
+  const answered = req && ans && Date.parse(ans.at) >= Date.parse(req.sentAt);
+  const [price, setPrice] = useState(String(ticket.finalPrice ?? ticket.quotedPrice ?? ""));
+  const [open, setOpen] = useState(false);
+  const p = Math.round(parseFloat(String(price).replace(/[$,]/g, "")));
+  const send = () => {
+    const bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+    const key = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+    onUpdate({ approvalRequest: { key, price: p, sentAt: new Date().toISOString() }, quotedPrice: p });
+    setOpen(false);
+  };
+  const box = { border: `1px solid ${answered ? (ans.decision === "approve" ? green : red) : line}`, borderRadius: 12, padding: 14, marginBottom: 16 };
+  if (req && !open) return (
+    <div style={box}>
+      {answered
+        ? <div style={{ fontSize: 14, fontWeight: 700, color: ans.decision === "approve" ? green : red }}>{ans.decision === "approve" ? "✓ Customer approved" : "✗ Customer declined"} ${req.price} · {new Date(ans.at).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
+        : <div style={{ fontSize: 14 }}>⏳ Price of <b>${req.price}</b> sent for approval {new Date(req.sentAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. Send them the link below ("Price to approve").</div>}
+      <button type="button" onClick={() => setOpen(true)} style={{ marginTop: 8, padding: "6px 10px", fontSize: 12.5, borderRadius: 8, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Send a new price</button>
+    </div>
+  );
+  return (
+    <div style={box}>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Get the price approved</div>
+      <div style={{ fontSize: 12.5, color: muted, marginBottom: 8 }}>The customer gets a link to approve or decline. You'll see the answer here, and the owner gets an email.</div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13 }}>$</span>
+        <input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" aria-label="Price to approve" style={{ width: 100, padding: "8px 10px", fontSize: 14, border: `1px solid ${line}`, borderRadius: 8, background: "var(--mr-surface)", color: paper }} />
+        <button type="button" disabled={!(p > 0)} onClick={send} style={{ padding: "9px 14px", borderRadius: 8, border: "none", background: p > 0 ? brass : line, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: p > 0 ? "pointer" : "default", fontFamily: "inherit" }}>Create approval link</button>
+        {req && <button type="button" onClick={() => setOpen(false)} style={{ padding: "8px 10px", fontSize: 12.5, borderRadius: 8, border: `1px solid ${line}`, background: "transparent", color: muted, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>}
+      </div>
+    </div>
+  );
+}
+
 function JobBadge({ colors, ticket }) {
   const { brass, red } = colors;
   const pill = (bg, fg) => ({ display: "inline-block", fontSize: 10.5, fontWeight: 700, letterSpacing: "0.04em", padding: "2px 7px", borderRadius: 999, background: bg, color: fg, marginLeft: 6, verticalAlign: "middle" });
@@ -765,7 +802,8 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         </div>
       )}
 
-      {!shop && <MessageCustomer phone={ticket.customer.phone} email={ticket.customer.email} templates={repairMessages(ticket)} contactLog={ticket.contactLog}
+      {!shop && !["completed", "not_repairable"].includes(ticket.status) && <PriceApproval colors={colors} ticket={ticket} onUpdate={onUpdate} />}
+      {!shop && <MessageCustomer key={ticket.approvalRequest?.sentAt || "m"} phone={ticket.customer.phone} email={ticket.customer.email} templates={repairMessages(ticket)} contactLog={ticket.contactLog}
         onSent={(e) => onUpdate({ contactLog: [...(ticket.contactLog || []), { ...e, by: typeof me === "string" ? me : me?.username || "" }] })} />}
       {completingPayMethod && ticket.status !== "completed" && (
         <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
@@ -1160,6 +1198,48 @@ function parseSupplierOrder(text) {
   return out;
 }
 
+// What to order: parts at or below their reorder level, grouped by supplier, with a
+// suggested quantity (back up to twice the reorder level) and one-tap copy of the order.
+function ReorderList({ colors, stock }) {
+  const { paper, muted, brass, line } = colors;
+  const low = (stock || []).filter((s) => (Number(s.qtyOnHand) || 0) <= (Number(s.lowStockThreshold) || 0));
+  const [qty, setQty] = useState({});
+  const [copied, setCopied] = useState("");
+  if (!low.length) return null;
+  const suggest = (s) => Math.max(1, (Number(s.lowStockThreshold) || 1) * 2 - (Number(s.qtyOnHand) || 0));
+  const q = (s) => (qty[s.id] != null ? qty[s.id] : suggest(s));
+  const groups = low.reduce((m, s) => { const k = (s.supplier || "").trim() || "No supplier set"; (m[k] = m[k] || []).push(s); return m; }, {});
+  const copy = async (sup, items) => {
+    const text = [`Order for ${sup === "No supplier set" ? "supplier" : sup}`, ...items.filter((s) => Number(q(s)) > 0).map((s) => `${s.sku || s.barcode || "-"}, ${s.name}, ${q(s)}`)].join("\n");
+    try { await navigator.clipboard.writeText(text); setCopied(sup); setTimeout(() => setCopied(""), 2500); } catch (e) { window.prompt("Copy this order:", text); }
+  };
+  return (
+    <div style={{ border: `1px solid ${line}`, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+      <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 4 }}>🛒 To reorder ({low.length})</div>
+      <div style={{ fontSize: 12.5, color: muted, marginBottom: 10 }}>Parts at or below their reorder level. Adjust the quantities, copy the order for each supplier, and use "Receive a supplier order" below when it arrives.</div>
+      {Object.entries(groups).map(([sup, items]) => {
+        const total = items.reduce((a, s) => a + (Number(q(s)) || 0) * (Number(s.costPerUnit) || 0), 0);
+        return (
+          <div key={sup} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+              <b style={{ fontSize: 13.5 }}>{sup}</b>
+              <span style={{ fontSize: 12.5, color: muted }}>about ${Math.round(total).toLocaleString()}</span>
+              <button type="button" onClick={() => copy(sup, items)} style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${brass}`, background: "transparent", color: brass, fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{copied === sup ? "✓ Order copied" : "Copy order"}</button>
+            </div>
+            {items.map((s) => (
+              <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, padding: "5px 0", borderTop: `1px solid ${line}` }}>
+                <span style={{ flex: 1, minWidth: 0 }}>{s.name}<span style={{ color: muted }}> · {s.qtyOnHand} left{s.sku ? ` · ${s.sku}` : ""}</span></span>
+                <input value={q(s)} inputMode="numeric" aria-label={`Order quantity for ${s.name}`} onChange={(e) => setQty((m) => ({ ...m, [s.id]: e.target.value.replace(/\D/g, "") }))}
+                  style={{ width: 52, padding: "5px 6px", fontSize: 13, border: `1px solid ${line}`, borderRadius: 6, background: "var(--mr-surface)", color: paper, textAlign: "center" }} />
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefillBarcode, onPrefillUsed }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [name, setName] = useState(""); const [sku, setSku] = useState(""); const [barcode, setBarcode] = useState(prefillBarcode || "");
@@ -1213,6 +1293,7 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefill
       </div>
       {note && <div role="status" style={{ fontSize: 12.5, color: brass, marginBottom: 12 }}>{note}</div>}
 
+      <ReorderList colors={colors} stock={stock} />
       {/* Receive a whole supplier order at once, instead of adding parts one by one. */}
       <div style={{ border: `1px solid ${brass}`, borderRadius: 6, padding: 14, marginBottom: 16, background: brassDim }}>
         <button type="button" onClick={() => setRecOpen((o) => !o)} style={{ width: "100%", textAlign: "left", background: "none", border: "none", color: paper, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
