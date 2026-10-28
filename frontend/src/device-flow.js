@@ -84,6 +84,36 @@ export function targetPrice(cost, gradeId) {
 }
 
 const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+// ---- Phones that aren't selling ----
+// After AGED_DAYS in stock, suggest a ~5% drop to the next price ending in 9, never
+// below cost. null when it's not aged, has no price, or a drop would go under cost.
+export const AGED_DAYS = 30;
+export function agedDrop(item, now = new Date()) {
+  const price = Number(item && item.listedPrice), cost = Number(item && item.costBasis) || 0;
+  const since = item && (item.listedAt || item.receivedAt);
+  if (!since || !(price > 0) || !["in_stock", "listed"].includes(item.status)) return null;
+  const age = Math.floor((now - new Date(since)) / 864e5);
+  if (!(age > AGED_DAYS)) return null;
+  const suggested = Math.max(9, Math.floor((price * 0.95 + 1) / 10) * 10 - 1);
+  if (suggested >= price || suggested <= cost) return null;
+  return { days: age, suggested };
+}
+
+// A ready-to-paste listing for Facebook Marketplace / Gumtree.
+export function marketplaceListing(item, { site = "https://mobilerecellr.com.au", suburb = "Sydney" } = {}) {
+  const g = GRADES.find((x) => x.id === item.gradeId);
+  const name = [item.brand, item.model, item.storage].filter(Boolean).join(" ");
+  const title = `${name}${g ? ` - ${g.label.split("— ")[1] || g.label}` : ""} - 12 month warranty`;
+  const lines = [
+    `${name}${item.colour ? `, ${item.colour}` : ""}. ${g ? `${g.label.replace(" — ", ": ")}.` : ""}`.trim(),
+    "Tested by our technicians, IMEI checked (not blocked, not stolen), factory reset and ready to use.",
+    "12-month warranty and 30-day returns from Mobile Recellr, a real shop, not a private seller.",
+    `Pick up in ${suburb} or we can post it. Pay by cash or bank transfer.`,
+    `See photos and buy online: ${site}/shop?item=${encodeURIComponent(item.id)}`,
+  ];
+  return { title, price: Math.round(Number(item.listedPrice) || 0), text: `${title}\n$${Math.round(Number(item.listedPrice) || 0)}\n\n${lines.join("\n")}` };
+}
 const days = (a, b) => (a && b ? Math.max(0, Math.round((new Date(b) - new Date(a)) / 864e5)) : null);
 const partsOf = (t) => (Array.isArray(t.parts) ? t.parts.reduce((s, p) => s + n(p && p.cost), 0) : 0);
 

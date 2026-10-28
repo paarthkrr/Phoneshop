@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FAQ, matchFaq } from "./chat-faq.js";
 import { REPAIRS_BY_DEVICE } from "./repair-prices.js";
+import useRepairPrices from "./use-repair-prices.js";
 import { withBusinessDefaults, waLink, mailLink } from "./business-info.js";
 import { Icon } from "./site-nav.jsx";
 
@@ -246,7 +247,8 @@ function HandoffForm({ initialMessage, onSend, onCancel }) {
 
 // Tap a repair to see its price; the exact quote is always confirmed first.
 function RepairPicker({ device, go }) {
-  const list = REPAIRS_BY_DEVICE[device] || [];
+  const prices = useRepairPrices();
+  const list = prices[device] || [];
   const [sel, setSel] = useState(-1);
   const cur = list[sel];
   return (

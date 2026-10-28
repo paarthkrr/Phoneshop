@@ -2024,6 +2024,7 @@ app.get("/barcode-lookup", requireAuth, async (req, res) => {
 require("./chat.js").register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey });
 require("./reviews.js").register(app, { makeLimiter });
 require("./address.js").register(app, { makeLimiter });
+require("./analytics.js").register(app, { pool, makeLimiter, requireAuth, hasArea, schemaReady });
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
@@ -2344,6 +2345,8 @@ if (require.main === module) {
   // Competitor prices: checked when the server wakes if the last check is a week old, then every 6 hours it looks again.
   setTimeout(() => schemaReady.then(weeklyMarketCheck), 60 * 1000).unref();
   setInterval(() => schemaReady.then(weeklyMarketCheck), 6 * 3600 * 1000).unref();
+  // End-of-day email to the owner (after 7pm Sydney, once a day).
+  schemaReady.then(() => require("./daily-summary.js").start({ pool, loadSharedList, loadSharedValue, sendEmail, ownerEmail: OWNER_EMAIL })).catch(() => {});
   const server = app.listen(PORT, () => console.log(`Shop backend listening on :${PORT} (postgres)`));
   process.on("SIGTERM", () => { pool.end(); server.close(() => process.exit(0)); });
 }

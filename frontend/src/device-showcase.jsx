@@ -19,6 +19,7 @@
 //  tap:    opens on tap, closes on the next tap.
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { REPAIRS_BY_DEVICE } from "./repair-prices.js";
+import useRepairPrices from "./use-repair-prices.js";
 
 const PRICE = Object.fromEntries((REPAIRS_BY_DEVICE.Phone || []).map((r) => [r.name, r.from]));
 // Frames: AI-upscaled (Real-ESRGAN) from the source clip, printed labels removed, cropped to
@@ -63,14 +64,14 @@ const pickMode = () => {
 // phones (phones show only the parts we price, to keep it uncluttered).
 const SPOTS = [
   { id: "lenses", x: 0.428, y: 0.107, title: "Camera lenses", side: "left" },
-  { id: "camera", x: 0.446, y: 0.230, title: "Camera", price: PRICE["Camera repair"], side: "right", m: "r" },
+  { id: "camera", x: 0.446, y: 0.230, title: "Camera", price: PRICE["Camera repair"], pk: "Camera repair", side: "right", m: "r" },
   { id: "sensor", x: 0.218, y: 0.316, title: "Image sensor", side: "left" },
-  { id: "screen", x: 0.477, y: 0.344, title: "Screen", price: PRICE["Screen replacement"], side: "right", m: "l" },
+  { id: "screen", x: 0.477, y: 0.344, title: "Screen", price: PRICE["Screen replacement"], pk: "Screen replacement", side: "right", m: "l" },
   { id: "layers", x: 0.446, y: 0.492, title: "Display layers", side: "left" },
-  { id: "board", x: 0.638, y: 0.619, title: "Logic board", price: PRICE["Water damage diagnosis"], side: "right", m: "l", note: "water damage check" },
-  { id: "battery", x: 0.508, y: 0.705, title: "Battery", price: PRICE["Battery replacement"], side: "left", m: "r" },
+  { id: "board", x: 0.638, y: 0.619, title: "Logic board", price: PRICE["Water damage diagnosis"], pk: "Water damage diagnosis", side: "right", m: "l", note: "water damage check" },
+  { id: "battery", x: 0.508, y: 0.705, title: "Battery", price: PRICE["Battery replacement"], pk: "Battery replacement", side: "left", m: "r" },
   { id: "speaker", x: 0.662, y: 0.840, title: "Speaker", side: "right" },
-  { id: "port", x: 0.312, y: 0.918, title: "Charging port", price: PRICE["Charging port"], side: "left", m: "r" },
+  { id: "port", x: 0.312, y: 0.918, title: "Charging port", price: PRICE["Charging port"], pk: "Charging port", side: "left", m: "r" },
   { id: "frame", x: 0.762, y: 0.889, title: "Frame", side: "right" },
 ];
 const PRICED = SPOTS.filter((s) => s.price);
@@ -155,6 +156,10 @@ const CSS = `
 `;
 
 export default function DeviceShowcase() {
+  // Live prices from the Pricing Console (the built-in ones until they load).
+  const live = useRepairPrices();
+  const livePhone = Object.fromEntries((live.Phone || []).map((r) => [r.name, r.from]));
+  const priceOf = (s) => (s.pk && livePhone[s.pk] != null ? livePhone[s.pk] : s.price);
   const section = useRef(null), track = useRef(null), stage = useRef(null), canvas = useRef(null);
   const [moved, setMoved] = useState(false); // scroll mode: has the phone started opening
   const [phase, setPhase] = useState(0);      // scroll mode: which line of the story to show
@@ -377,7 +382,7 @@ export default function DeviceShowcase() {
   const list = (
     <ul className="xv-list">
       {PRICED.map((s) => (
-        <li key={s.id}><a href={`/repairs?part=${s.id}`}>{s.title}{s.note ? ` (${s.note})` : ""}</a><b>{s.price ? `from $${s.price}` : "Free quote"}</b></li>
+        <li key={s.id}><a href={`/repairs?part=${s.id}`}>{s.title}{s.note ? ` (${s.note})` : ""}</a><b>{priceOf(s) ? `from $${priceOf(s)}` : "Free quote"}</b></li>
       ))}
     </ul>
   );
@@ -415,7 +420,7 @@ export default function DeviceShowcase() {
         {/* outside the masked stage so the side prices aren't clipped */}
         {SPOTS.map((s, n) => {
           const on = settled || reduced;
-          const plain = !s.price;
+          const plain = !priceOf(s);
           if (plain && !wide) return null; // phones: only the parts we price
           const dir = wide ? (s.side === "left" ? "l" : "r") : s.m;
           const x = `${s.x * 100}%`;
@@ -428,7 +433,7 @@ export default function DeviceShowcase() {
               <i className="xv-dot" style={{ left: x }} />
               {plain
                 ? <span className="xv-tag" style={tagPos}>{s.title}</span>
-                : <a className="xv-tag" style={{ ...tagPos, transitionDelay: on ? `${n * 70}ms` : "0ms" }} href={`/repairs?part=${s.id}`} tabIndex={on ? 0 : -1}>{s.title}<b>${s.price}+</b></a>}
+                : <a className="xv-tag" style={{ ...tagPos, transitionDelay: on ? `${n * 70}ms` : "0ms" }} href={`/repairs?part=${s.id}`} tabIndex={on ? 0 : -1}>{s.title}<b>${priceOf(s)}+</b></a>}
             </div>
           );
         })}

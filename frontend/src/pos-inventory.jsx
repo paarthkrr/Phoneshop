@@ -2,7 +2,7 @@ import { UnitPhotos } from "./spin-360.jsx";
 import MessageCustomer, { orderMessages } from "./customer-messages.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
-import { newShopRepairJob, addToSharedList, GRADES, targetPrice, SOURCES, sourceOf, imeiProblem, cleanImei } from "./device-flow.js";
+import { newShopRepairJob, addToSharedList, GRADES, targetPrice, SOURCES, sourceOf, imeiProblem, cleanImei, agedDrop, marketplaceListing } from "./device-flow.js";
 import PhonePassport from "./phone-passport.jsx";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import { sydneyDay, sydneyToday } from "./sydney-time.js";
@@ -1048,6 +1048,7 @@ function QuickAddTab({ colors, onAdd }) {
 }
 
 function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos = {} }) {
+  const [copiedId, setCopiedId] = useState(null);
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -1065,7 +1066,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
   const [editItem, setEditItem] = useState(null);
   const q = search.trim().toLowerCase();
   const filtered = inventory
-    .filter((i) => filter === "all" || i.status === filter)
+    .filter((i) => filter === "all" || (filter === "slow" ? !!agedDrop(i) : i.status === filter))
     .filter((i) => !q || [i.id, i.imei, i.brand, i.model, i.storage, i.sourceOrderId].some((v) => String(v || "").toLowerCase().includes(q)));
   const daysIn = (i) => (i.receivedAt ? Math.floor((Date.now() - new Date(i.receivedAt).getTime()) / 864e5) : null);
   // Our own phone onto the repair bench: a shop job in Repairs, and the phone stays
@@ -1187,10 +1188,10 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
       <input value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(30); }} placeholder="Search IMEI, model, stock no. or order"
         aria-label="Search stock" style={{ width: "100%", padding: "10px 12px", border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 10 }} />
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-        {["all", "in_stock", "in_repair", "listed", "reserved", "sold", "written_off"].map((s) => (
+        {["all", "in_stock", "in_repair", "listed", "slow", "reserved", "sold", "written_off"].map((s) => (
           <button key={s} onClick={() => { setFilter(s); setVisibleCount(30); }} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",
             border: `1px solid ${filter === s ? brass : line}`, background: filter === s ? brassDim : "transparent", color: filter === s ? brass : paper }}>
-            {s === "all" ? "All" : s.replace("_", " ")} ({s === "all" ? inventory.length : inventory.filter((i) => i.status === s).length})
+            {s === "all" ? "All" : s === "slow" ? "🐢 Slow sellers" : s.replace("_", " ")} ({s === "all" ? inventory.length : s === "slow" ? inventory.filter((i) => agedDrop(i)).length : inventory.filter((i) => i.status === s).length})
           </button>
         ))}
       </div>
@@ -1265,6 +1266,15 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
                   {listed && wasPrice(item) && <span style={{ fontSize: 12, color: brass }}>shows "Was {fmt(wasPrice(item).was, item.region, regions)}" online</span>}
                 </div>
                 {warn && <div style={{ fontSize: 12, color: "#B54708", marginBottom: 6 }}>⚠ {warn}</div>}
+                {(() => {
+                  const drop = agedDrop(item);
+                  return drop && !changed ? (
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 12.5, marginBottom: 8, padding: "7px 10px", borderRadius: 8, background: "color-mix(in srgb, #B54708 10%, transparent)" }}>
+                      <span>🐢 {drop.days} days {listed ? "on the website" : "in stock"}. Try {fmt(drop.suggested, item.region, regions)} (about 5% off, still above cost).</span>
+                      <button onClick={() => setDrafts((d) => ({ ...d, [item.id]: String(drop.suggested) }))} style={{ padding: "5px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer", border: "1px solid #B54708", background: "transparent", color: "#B54708", fontWeight: 600 }}>Use {fmt(drop.suggested, item.region, regions)}</button>
+                    </div>
+                  ) : null;
+                })()}
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                   {!listed && (
                     <button disabled={!item.gradeId || !priceOk} title={!item.gradeId ? "Grade it first" : ""}
@@ -1283,6 +1293,13 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
                     <button onClick={() => onUpdate(item.id, { status: "in_stock", unlistedAt: new Date().toISOString() })} style={btn(paper)}>Take off website</button>
                   )}
                   <button onClick={() => setPassportItem(item)} style={btn(brass)}>History & cost</button>
+                  {item.gradeId && Number(item.listedPrice) > 0 && (
+                    <button title="Copies a ready listing for Facebook Marketplace or Gumtree" onClick={async () => {
+                      const l = marketplaceListing(item);
+                      try { await navigator.clipboard.writeText(l.text); setCopiedId(item.id); setTimeout(() => setCopiedId(null), 2500); }
+                      catch (e) { window.prompt("Copy this listing:", l.text); }
+                    }} style={btn(muted)}>{copiedId === item.id ? "✓ Listing copied" : "Copy for Marketplace"}</button>
+                  )}
                   <button onClick={() => setEditItem(item)} style={btn(muted)}>Edit</button>
                   <button onClick={() => setLabelItem(item)} style={btn(muted)}>Label</button>
                   <button onClick={() => setPhotoItemId(photoItemId === item.id ? null : item.id)} style={btn(muted)}>
