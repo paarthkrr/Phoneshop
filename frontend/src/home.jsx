@@ -295,6 +295,8 @@ function Hero({ quoteModels, allModels, condCfg }) {
           </div>
           <div className="mvx-stage">
             <div className="mvx-glow" aria-hidden="true" />
+            {/* Hold the card's space while prices load, so the page doesn't jump when it appears. */}
+            {!cur && <div className="mvx-card" aria-hidden="true" style={{ minHeight: 521, visibility: "hidden" }} />}
             {cur && (
               <div className="mvx-card">
                 <div className="mvx-quote">
@@ -546,7 +548,7 @@ export default function Home() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');
 
 
         @keyframes mv-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }

@@ -1,4 +1,5 @@
 import AddressInput from "./address-input.jsx";
+import { waLink, withBusinessDefaults } from "./business-info.js";
 import { track } from "./track.js";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
@@ -269,7 +270,7 @@ export default function Storefront() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');`}</style>
 
       {view !== "confirmed" && view !== "checkout" && view !== "detail" && (
         <div style={{ background: "var(--mr-surface-2)", color: "var(--mr-text)", borderBottom: "1px solid var(--mr-line)", textAlign: "center", padding: "8px 16px", fontSize: 12.5, fontWeight: 500 }}>
@@ -328,7 +329,7 @@ export default function Storefront() {
               )}
             </div>
 
-            <div style={{ marginBottom: 34 }}>
+            <div style={{ marginBottom: 34, display: featured.length ? "block" : "none" }}>
               <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 18, marginBottom: 12 }}>Featured Deals</div>
               {featured.length === 0 ? (
                 <div style={{ border: `1px dashed ${line}`, borderRadius: 3, padding: 22, textAlign: "center", color: muted, fontSize: 13 }}>
@@ -380,8 +381,10 @@ export default function Storefront() {
             {filtered.length === 0 && (
               <div style={{ color: muted, fontSize: 13, border: `1px solid ${line}`, borderRadius: 3, padding: 20, textAlign: "center" }}>
                 {listed.length === 0
-                  ? "We don't have stock listed yet — this page updates automatically the moment devices are graded and published, so there's nothing to change here. Check back soon."
-                  : "Nothing matching that filter right now — try a different brand or search term."}
+                  ? <>New phones are being graded right now.{" "}
+                      <a href={waLink(withBusinessDefaults(businessSettings).whatsapp, "Hi Mobile Recellr, I'm looking for a phone: ")} target="_blank" rel="noopener noreferrer" style={{ color: brass, fontWeight: 600 }}>Tell us the phone you want on WhatsApp</a>{" "}
+                      and we'll message you when one's ready, or <a href="/quote" style={{ color: brass }}>trade in your old one</a> towards it.</>
+                  : "Nothing matching that filter right now. Try a different brand or search term."}
               </div>
             )}
             {filtered.map((item) => (

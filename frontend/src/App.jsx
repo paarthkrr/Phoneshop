@@ -1,4 +1,6 @@
 import { withBusinessDefaults, waLink } from "./business-info.js";
+import SeoLanding from "./seo-landing.jsx";
+import { SEO_SLUGS } from "./seo-pages.js";
 import { track } from "./track.js";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, useNavigationType } from "react-router-dom";
@@ -138,7 +140,7 @@ function Nav() {
     <>
     <nav className="cs-glass-nav" style={{ borderBottom: `1px solid ${line}`, position: "sticky", top: 0, zIndex: 50 }} aria-label="Main navigation">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');
 
         /* ---- Global interaction system — loaded once via Nav, applies site-wide ---- */
         * { box-sizing: border-box; }
@@ -531,7 +533,9 @@ function MobileCTA() {
   return (
     <div className="cs-mobile-cta" role="navigation" aria-label="Quick actions">
       {/* The main button fits the page: book on the repairs page, get a price everywhere else. */}
-      {path === "/repairs"
+      {path !== "/repairs" && /-(repair|replacement)-sydney$/.test(path)
+        ? <a href="/repairs#book" style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Book a repair</a>
+        : path === "/repairs"
         ? <a href="#book" onClick={(e) => { const el = document.getElementById("book"); if (el) { e.preventDefault(); el.scrollIntoView({ behavior: "smooth" }); } }} style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Book a repair</a>
         : <a href="/quote" style={{ ...btn, background: brass, color: "#fff", flex: phone ? 1.4 : 1 }}>Get a quote</a>}
       {phone
@@ -684,6 +688,8 @@ function AnimatedRoutes() {
     <>
     {/* Staff pages skip the slide: a transformed <main> would drag the portal's fixed sidebar and tab bar along with it. */}
     <main key={location.pathname} className={isStaff ? undefined : "cs-page-enter" + slide}>
+      {/* The page takes at least a screen, so the footer starts below the fold and can't jump down as the page loads. */}
+      <div style={isStaff ? undefined : { minHeight: "100vh" }}>
       <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "var(--mr-muted)", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />
@@ -724,9 +730,11 @@ function AnimatedRoutes() {
         <Route path="/staff/repairs" element={<StaffGate><RepairTickets /></StaffGate>} />
         <Route path="/staff/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
         <Route path="/staff/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
+        {SEO_SLUGS.map((slug) => <Route key={slug} path={`/${slug}`} element={<SeoLanding slug={slug} />} />)}
         <Route path="*" element={<NotFound />} />
       </Routes>
       </React.Suspense>
+      </div>
       {!isStaff && <SiteFooter />}
     </main>
     {/* Outside <main> so position:fixed is always relative to the screen, never the animated page. */}

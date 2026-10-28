@@ -55,7 +55,7 @@ export default function SiteFooter() {
         .sf-why { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; padding: 26px 0; border-bottom: 1px solid ${line}; }
         .sf-why div { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 600; color: var(--mr-text); }
         .sf-why svg { flex: none; color: ${brass}; }
-        .sf-main { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)); gap: 32px; padding: 34px 0 30px; }
+        .sf-main { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(5, minmax(0, 1fr)); gap: 28px; padding: 34px 0 30px; }
         .sf-col { display: flex; flex-direction: column; gap: 9px; }
         .sf-h { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: var(--mr-text); }
         .sf-link { color: ${muted}; text-decoration: none; line-height: 1.35; width: fit-content; transition: color .15s ease; }
@@ -95,6 +95,7 @@ export default function SiteFooter() {
           </div>
           {col("Shop", FOOTER_SHOP.map((l) => [l.label, l.to]))}
           {col("Sell", [["Sell iPhone", "/sell/apple"], ["Sell Samsung", "/sell/samsung"], ["Sell Google Pixel", "/sell/google"], ["All devices", "/quote"]])}
+          {col("Popular in Sydney", [["Cheap phone repair", "/phone-repair-sydney"], ["iPhone screen repair", "/iphone-screen-repair-sydney"], ["iPhone battery replacement", "/iphone-battery-replacement-sydney"], ["Samsung screen repair", "/samsung-screen-repair-sydney"], ["Used phones in Sydney", "/used-phones-sydney"]])}
           {col("Company", [["About us", "/about"], ["At your door", "/home-service"], ["Guides", "/blog"], ["Repair tutorials", "/tutorials"], ["FAQ", "/faq"], ["Review us on Google", GOOGLE_REVIEW_URL]])}
           {col("Support", [["Help / Ask a question", "/help"], ["Contact us", "/contact"], ["30-day returns", "/terms#returns"], ["Warranty", "/terms#warranty"], ["Shipping & postage", "/terms#shipping"], ["Terms", "/terms"], ["Privacy policy", "/privacy"]])}
         </div>

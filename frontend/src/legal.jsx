@@ -23,7 +23,7 @@ function useBusiness() {
 function Page({ title, children }) {
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');
         .mv-legal h2 { font-family: 'Archivo Black', sans-serif; font-size: 18px; margin: 30px 0 10px; }
         .mv-legal p, .mv-legal li { font-size: 14.5px; line-height: 1.7; }
         .mv-legal ul { padding-left: 20px; }`}</style>

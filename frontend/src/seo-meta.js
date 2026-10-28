@@ -2,6 +2,7 @@
 // time (vite.config.js) so every page's HTML already carries its own title,
 // description and canonical link — Google sees the right tags on first scan.
 import { POSTS } from "./blog-posts.js";
+import { SEO_PAGES } from "./seo-pages.js";
 
 export const SITE = "Mobile Recellr";
 export const PAGE_META = {
@@ -31,6 +32,8 @@ export function metaFor(path) {
     const [t, d] = PAGE_META[path];
     return { title: path === "/" ? t : `${t} | ${SITE}`, desc: d };
   }
+  const seo = SEO_PAGES[path.slice(1)];
+  if (seo) return { title: seo.title, desc: seo.desc };
   const post = path.startsWith("/blog/") && POSTS.find((p) => `/blog/${p.slug}` === path);
   if (post) return { title: `${post.title} | ${SITE}`, desc: post.excerpt };
   const brand = path.startsWith("/sell/") && SELL_BRAND_NAMES[path.slice(6)];

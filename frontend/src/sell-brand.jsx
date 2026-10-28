@@ -52,7 +52,7 @@ export default function SellBrand() {
 
   return (
     <div style={{ background: ink, color: paper, minHeight: "100%", fontFamily: "'Archivo', system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');`}</style>
       <div style={{ background: "linear-gradient(135deg, var(--mr-brand) 0%, #16348a 100%)", color: "#fff", padding: "44px 16px 40px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto" }}>
           <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 8 }}><a href="/" style={{ color: "#fff" }}>Home</a> › <a href="/quote" style={{ color: "#fff" }}>Sell</a> › {brand}</div>
