@@ -13,7 +13,8 @@
   --mr-text: #111827;
   --mr-muted: #5B6472;
   --mr-line: #E2E6EC;
-  --mr-brand: var(--mr-brand-base);
+  --mr-brand: var(--mr-brand-base);          /* brand as text, links, borders */
+  --mr-brand-fill: var(--mr-brand-base);     /* brand as a background under white text */
   --mr-accent: var(--mr-accent-base);
   --mr-brand-soft: color-mix(in srgb, var(--mr-brand) 10%, transparent);
   --mr-accent-soft: color-mix(in srgb, var(--mr-accent) 12%, transparent);
@@ -30,8 +31,10 @@ html[data-theme="dark"] {
   --mr-text: #E8ECF3;
   --mr-muted: #9AA4B5;
   --mr-line: #263044;
-  /* Brand colours lifted so they read on a dark background. */
-  --mr-brand: color-mix(in srgb, var(--mr-brand-base) 72%, #ffffff);
+  /* Brand text lifted so it reads on a dark background (5.5:1 on the darkest card);
+     filled buttons keep the full brand so their white text stays readable (6.9:1). */
+  --mr-brand: color-mix(in srgb, var(--mr-brand-base) 60%, #ffffff);
+  --mr-brand-fill: var(--mr-brand-base);
   --mr-accent: color-mix(in srgb, var(--mr-accent-base) 62%, #ffffff);
   --mr-brand-soft: color-mix(in srgb, var(--mr-brand) 16%, transparent);
   --mr-accent-soft: color-mix(in srgb, var(--mr-accent) 18%, transparent);

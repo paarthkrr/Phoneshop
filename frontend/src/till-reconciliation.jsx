@@ -165,7 +165,7 @@ export default function TillReconciliation() {
             <input value={openingInput} onChange={(e) => setOpeningInput(e.target.value)} placeholder="Opening float amount" type="number"
               style={{ width: "100%", padding: "11px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
             <button disabled={openingInput === ""} onClick={openDay}
-              style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: openingInput !== "" ? brass : line, color: openingInput !== "" ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: openingInput !== "" ? "pointer" : "default" }}>
+              style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: openingInput !== "" ? "var(--mr-brand-fill)" : line, color: openingInput !== "" ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: openingInput !== "" ? "pointer" : "default" }}>
               Open till
             </button>
           </div>
@@ -220,7 +220,7 @@ export default function TillReconciliation() {
               <textarea value={closingNotes} onChange={(e) => setClosingNotes(e.target.value)} placeholder="Notes on any discrepancy (optional)"
                 style={{ width: "100%", minHeight: 50, padding: 10, borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, marginBottom: 12, boxSizing: "border-box" }} />
               <button disabled={actualCount === ""} onClick={closeDay}
-                style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: actualCount !== "" ? brass : line, color: actualCount !== "" ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: actualCount !== "" ? "pointer" : "default" }}>
+                style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: actualCount !== "" ? "var(--mr-brand-fill)" : line, color: actualCount !== "" ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: actualCount !== "" ? "pointer" : "default" }}>
                 Close till for today
               </button>
             </div>

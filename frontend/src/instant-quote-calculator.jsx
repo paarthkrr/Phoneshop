@@ -1011,7 +1011,7 @@ export default function QuoteCalculator() {
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <input value={bulkTrackQuery} onChange={(e) => setBulkTrackQuery(e.target.value)} placeholder="Request number or business email" aria-label="Request number or business email to track your bulk quote"
                 style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13.5, outline: "none", boxSizing: "border-box" }} />
-              <button onClick={handleBulkTrackSearch} className="cs-btn" style={{ padding: "0 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find</button>
+              <button onClick={handleBulkTrackSearch} className="cs-btn" style={{ padding: "0 16px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find</button>
             </div>
             {bulkTrackResult === null && <div style={{ fontSize: 13, color: red }}>No request found with that number or email.</div>}
             {bulkTrackResult && (
@@ -1091,7 +1091,7 @@ export default function QuoteCalculator() {
                   style={{ width: "100%", padding: "11px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, minHeight: 60, boxSizing: "border-box" }} />
                 <button disabled={!bulkBusiness.businessName.trim() || !bulkBusiness.email.trim()} onClick={handleBulkSubmit}
                   style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none",
-                    background: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? brass : line, color: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? "#fff" : muted,
+                    background: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? "var(--mr-brand-fill)" : line, color: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? "#fff" : muted,
                     fontSize: 14, fontWeight: 600, cursor: bulkBusiness.businessName.trim() && bulkBusiness.email.trim() ? "pointer" : "default" }}>
                   Request a bulk quote →
                 </button>
@@ -1290,7 +1290,7 @@ export default function QuoteCalculator() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }} role="radiogroup" aria-label="Condition">
                     {TIERS_A.map((t) => (
                       <button key={t.id} role="radio" aria-checked={tierId === t.id} onClick={() => { setTierId(t.id); setFaults({}); setBlockers({}); setHasIssues(null); if (t.mode === "full" || t.mode === "functional-only") goNext("mvq-issues"); }} style={pill(tierId === t.id)}>
-                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: DOT[t.id] || brass, display: "inline-block" }} />{t.label}
+                        <span style={{ width: 10, height: 10, borderRadius: "50%", background: DOT[t.id] || "var(--mr-brand-fill)", display: "inline-block" }} />{t.label}
                         <span style={{ fontSize: 12.5, fontWeight: 600, color: muted }}>up to {fmt(sealed * t.factor, region, REGIONS_A)}</span>
                       </button>
                     ))}
@@ -1411,7 +1411,7 @@ export default function QuoteCalculator() {
                   ))}
                 </div>
                 </>}
-                <button className="cs-btn" onClick={() => setCheckout(true)} style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                <button className="cs-btn" onClick={() => setCheckout(true)} style={{ width: "100%", marginTop: 14, padding: "12px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                   Continue to sell →
                 </button>
                 {!leadSaved && (
@@ -1424,7 +1424,7 @@ export default function QuoteCalculator() {
                     <input value={leadEmail} onChange={(e) => setLeadEmail(e.target.value)} placeholder="Your email" type="email"
                       style={{ flex: 1, padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
                     <button disabled={!leadEmail.trim()} onClick={handleSaveLead}
-                      style={{ padding: "9px 14px", borderRadius: 3, border: "none", background: leadEmail.trim() ? brass : line, color: leadEmail.trim() ? "#fff" : muted, fontSize: 12.5, cursor: leadEmail.trim() ? "pointer" : "default" }}>
+                      style={{ padding: "9px 14px", borderRadius: 3, border: "none", background: leadEmail.trim() ? "var(--mr-brand-fill)" : line, color: leadEmail.trim() ? "#fff" : muted, fontSize: 12.5, cursor: leadEmail.trim() ? "pointer" : "default" }}>
                       Hold price
                     </button>
                   </div>
@@ -1570,7 +1570,7 @@ export default function QuoteCalculator() {
                 return (
                   <button className="cs-btn" onClick={handleSubmitOrder} disabled={!canSubmit || submitting}
                     style={{ flex: 1, padding: "12px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      background: canSubmit ? brass : line, color: canSubmit ? "#fff" : muted,
+                      background: canSubmit ? "var(--mr-brand-fill)" : line, color: canSubmit ? "#fff" : muted,
                       fontSize: 14, fontWeight: 600, cursor: canSubmit ? "pointer" : "default" }}>
                     {submitting && <span className="cs-spinner"></span>}
                     {submitting ? "Submitting…" : "Confirm & get shipping details →"}
@@ -1597,7 +1597,7 @@ export default function QuoteCalculator() {
               ];
               return (
                 <div style={{ textAlign: "center", paddingBottom: 6 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: brass, margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }} aria-hidden="true">
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--mr-brand-fill)", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }} aria-hidden="true">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
                   </div>
                   <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.25, color: paper }}>
@@ -1723,7 +1723,7 @@ export default function QuoteCalculator() {
             <div style={{ display: "flex", gap: 8 }}>
               <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email" aria-label="Order number or email to track your order"
                 style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
-              <button onClick={handleTrackSearch} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={handleTrackSearch} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                 Find
               </button>
             </div>
@@ -1791,7 +1791,7 @@ export default function QuoteCalculator() {
             <div style={{ display: "flex", gap: 8 }}>
               <input value={pmTrackQuery} onChange={(e) => setPmTrackQuery(e.target.value)} placeholder="Request number or email" aria-label="Request number or email to track your price match request"
                 style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
-              <button onClick={handlePriceMatchTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={handlePriceMatchTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
                 Find
               </button>
             </div>

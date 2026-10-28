@@ -27,13 +27,14 @@ test("daily summary: waiting list skips empty lines and counts what's due", () =
   const s = buildDailySummary({
     now,
     orders: [{ status: "received_inspecting", createdAt: today }, { status: "approved_paid", paidAt: today, quotedTotal: 500, inspection: { confirmedTotal: 450 } }],
-    tickets: [{ id: "R-2", status: "ready_for_pickup" }, { id: "R-3", status: "in_repair", createdAt: "2026-10-20T00:00:00Z" }],
+    tickets: [{ id: "R-2", status: "ready_for_pickup" }, { id: "R-3", status: "in_repair", createdAt: "2026-10-20T00:00:00Z" },
+      { id: "R-4", status: "diagnosing", approvalRequest: { sentAt: today }, customerApproval: { decision: "approve", at: today } }],
     inventory: [{ status: "listed", receivedAt: "2026-09-01T00:00:00Z", costBasis: 300 }],
     partsStock: [{ qtyOnHand: 1, lowStockThreshold: 2 }],
   });
-  assert.deepEqual(s.waiting.map(([k]) => k), ["Trade-ins to inspect", "Repairs ready, not yet collected", "Repair jobs open more than 5 days", "Phones in stock over 30 days", "Repair parts at or below reorder level"]);
+  assert.deepEqual(s.waiting.map(([k]) => k), ["Trade-ins to inspect", "Repair prices approved by customers, to start", "Repairs ready, not yet collected", "Repair jobs open more than 5 days", "Phones in stock over 30 days", "Repair parts at or below reorder level"]);
   assert.match(s.text, /1 new, 1 paid \(\$450 paid out\)/);
-  assert.match(s.subject, /5 things waiting/);
+  assert.match(s.subject, /6 things waiting/);
 });
 
 test("daily summary: a quiet day says the queue is clear", () => {

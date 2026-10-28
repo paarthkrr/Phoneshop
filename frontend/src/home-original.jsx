@@ -500,7 +500,7 @@ export default function HomeOriginal() {
             ))}
           </div>
           <div style={{ textAlign: "center", marginTop: 30 }}>
-            <a href="/quote" className="cs-btn" style={{ padding: "14px 28px", background: brass, color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none", borderRadius: 12, display: "inline-block" }}>Get your instant quote →</a>
+            <a href="/quote" className="cs-btn" style={{ padding: "14px 28px", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none", borderRadius: 12, display: "inline-block" }}>Get your instant quote →</a>
           </div>
         </div>
       </div>
@@ -590,7 +590,7 @@ export default function HomeOriginal() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(biz.address)}`} target="_blank" rel="noopener" className="cs-btn"
-                style={{ padding: "13px 20px", background: brass, color: "#fff", fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📍 Get directions</a>
+                style={{ padding: "13px 20px", background: "var(--mr-brand-fill)", color: "#fff", fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📍 Get directions</a>
               {biz.phone && <a href={`tel:${biz.phone.replace(/\s/g, "")}`} className="cs-btn"
                 style={{ padding: "13px 20px", border: "1.5px solid #E2E6EC", color: paper, fontWeight: 700, textDecoration: "none", borderRadius: 10, textAlign: "center" }}>📞 Call {biz.phone}</a>}
             </div>

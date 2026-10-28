@@ -47,13 +47,13 @@ const CSS = `
   .rc-bub a { color: var(--mr-brand); font-weight: 600; text-decoration: underline; }
   .rc-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .rc-pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 999px; border: 1.5px solid var(--mr-brand); background: var(--mr-surface); color: var(--mr-brand) !important; font: 600 13.5px/1 inherit; text-decoration: none !important; cursor: pointer; transition: background-color .15s ease, color .15s ease, transform .15s ease, box-shadow .15s ease; }
-  .rc-pill:hover { background: var(--mr-brand); color: #fff !important; } .rc-pill:active { transform: scale(.96); }
-  .rc-pill.solid { background: var(--mr-brand); color: #fff !important; box-shadow: 0 4px 12px rgba(33,80,200,.28); } .rc-pill.solid:hover { background: #1B43AA; }
+  .rc-pill:hover { background: var(--mr-brand-fill); color: #fff !important; } .rc-pill:active { transform: scale(.96); }
+  .rc-pill.solid { background: var(--mr-brand-fill); color: #fff !important; box-shadow: 0 4px 12px rgba(33,80,200,.28); } .rc-pill.solid:hover { background: #1B43AA; }
   .rc-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 2px 0 10px; }
   .rc-tile { display: flex; align-items: center; gap: 10px; padding: 11px 12px; text-align: left; border-radius: 16px; border: 1.5px solid #DCE5F8; background: var(--mr-surface); color: #0F1B3D; font: 600 13.5px/1.2 inherit; cursor: pointer; animation: rc-up .45s cubic-bezier(.16,1,.3,1) both; animation-delay: calc(var(--i, 0) * 55ms + 120ms); transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; -webkit-tap-highlight-color: transparent; }
   .rc-tile:hover { border-color: var(--mr-brand); box-shadow: 0 8px 18px rgba(33,80,200,.14); transform: translateY(-1px); } .rc-tile:active { transform: scale(.96); }
   .rc-tile .ic { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 11px; background: var(--mr-brand-soft); color: var(--mr-brand); display: flex; align-items: center; justify-content: center; transition: background-color .15s ease, color .15s ease; }
-  .rc-tile:hover .ic { background: var(--mr-brand); color: #fff; }
+  .rc-tile:hover .ic { background: var(--mr-brand-fill); color: #fff; }
   .rc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px; animation: rc-up .4s cubic-bezier(.16,1,.3,1) both .15s; }
   .rc-chip { padding: 9px 14px; border-radius: 999px; border: 1.5px solid #D5DEF5; background: var(--mr-surface); color: #0F1B3D; font: 500 13.5px/1.2 inherit; cursor: pointer; transition: border-color .15s ease, background-color .15s ease, transform .15s ease; -webkit-tap-highlight-color: transparent; }
   .rc-chip:hover { border-color: var(--mr-brand); background: var(--mr-brand-soft); } .rc-chip:active { transform: scale(.96); }
@@ -79,7 +79,7 @@ const CSS = `
   .rc-tl .st i { display: block; margin: 0 auto 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--mr-surface); border: 2px solid #C9D5F2; position: relative; z-index: 1; transition: background-color .4s ease, border-color .4s ease; }
   .rc-tl .st::before { content: ""; position: absolute; top: 7px; left: -50%; width: 100%; height: 2px; background: #C9D5F2; }
   .rc-tl .st:first-child::before { display: none; }
-  .rc-tl .st.done i { background: var(--mr-brand); border-color: var(--mr-brand); } .rc-tl .st.done::before { background: var(--mr-brand); }
+  .rc-tl .st.done i { background: var(--mr-brand-fill); border-color: var(--mr-brand); } .rc-tl .st.done::before { background: var(--mr-brand-fill); }
   .rc-tl .st.now { color: #0F1B3D; font-weight: 700; } .rc-tl .st.now i { box-shadow: 0 0 0 4px rgba(33,80,200,.2); }
   .rc-stat { font-size: 15px; font-weight: 800; color: #0F1B3D; }
   .rc-form { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
@@ -89,7 +89,7 @@ const CSS = `
   .rc-err { color: #B3261E; font-size: 12.5px; }
   .rc-fb { display: flex; gap: 6px; margin-top: 8px; align-items: center; color: #6B7689; font-size: 12px; }
   .rc-fb button { width: 30px; height: 30px; border-radius: 9px; border: 1px solid #E1E8F8; background: var(--mr-surface); color: var(--mr-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background-color .15s ease, color .15s ease, transform .15s ease; }
-  .rc-fb button:hover { background: var(--mr-brand-soft); color: var(--mr-brand); } .rc-fb button:active { transform: scale(.9); } .rc-fb button.on { background: var(--mr-brand); color: #fff; border-color: var(--mr-brand); }
+  .rc-fb button:hover { background: var(--mr-brand-soft); color: var(--mr-brand); } .rc-fb button:active { transform: scale(.9); } .rc-fb button.on { background: var(--mr-brand-fill); color: #fff; border-color: var(--mr-brand); }
   .rc-tick { width: 38px; height: 38px; }
   .rc-tick circle { fill: #2150C8; transform-origin: center; animation: rc-pop .4s cubic-bezier(.16,1,.3,1) both; }
   .rc-tick path { stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; fill: none; stroke-dasharray: 26; stroke-dashoffset: 26; animation: rc-draw .5s ease .25s forwards; }
@@ -101,7 +101,7 @@ const CSS = `
   .rc-input textarea { flex: 1; resize: none; max-height: 96px; padding: 11px 14px; border-radius: 22px; border: 1.5px solid #D5DEF5; background: var(--mr-surface-2); font: 16px/1.3 inherit; color: #0F1B3D; outline: none; transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease; }
   .rc-input textarea:focus { border-color: var(--mr-brand); background: var(--mr-surface); box-shadow: 0 0 0 4px rgba(33,80,200,.1); }
   .rc-send, .rc-mic { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .15s ease, background-color .15s ease, opacity .15s ease; -webkit-tap-highlight-color: transparent; }
-  .rc-send { background: var(--mr-brand); color: #fff; } .rc-send:disabled { opacity: .35; cursor: default; } .rc-send:not(:disabled):active { transform: scale(.9); }
+  .rc-send { background: var(--mr-brand-fill); color: #fff; } .rc-send:disabled { opacity: .35; cursor: default; } .rc-send:not(:disabled):active { transform: scale(.9); }
   .rc-mic { background: var(--mr-brand-soft); color: var(--mr-brand); } .rc-mic.on { background: #E5484D; color: #fff; animation: rc-rec 1.2s infinite; }
   .rc-note { font-size: 11px; color: #6B7689; text-align: center; margin: 7px 0 0; line-height: 1.4; }
   @keyframes rc-open { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }

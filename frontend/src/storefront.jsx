@@ -290,7 +290,7 @@ export default function Storefront() {
                 Graded, tested, and backed by a real {WARRANTY_MONTHS}-month warranty — not just a "works fine when we packed it" promise.
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-                <a href="#browse" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Shop Refurbished</a>
+                <a href="#browse" className="cs-btn" style={{ padding: "12px 22px", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Shop Refurbished</a>
                 <a href="/quote" className="cs-btn" style={{ padding: "12px 22px", border: `1px solid ${line}`, color: paper, fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Get an Instant Quote</a>
               </div>
               {stats.length > 0 && (
@@ -430,7 +430,7 @@ export default function Storefront() {
               <div style={{ border: `2px solid ${brass}`, borderRadius: 3, padding: 24, textAlign: "center" }}>
                 <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 20, marginBottom: 6 }}>Got an Old Phone?</div>
                 <div style={{ color: muted, fontSize: 13.5, marginBottom: 14 }}>Turn it into cash, or credit toward one of the devices above.</div>
-                <a href="/quote" className="cs-btn" style={{ display: "inline-block", padding: "12px 24px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote →</a>
+                <a href="/quote" className="cs-btn" style={{ display: "inline-block", padding: "12px 24px", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3 }}>Get an Instant Quote →</a>
                 <div style={{ fontSize: 12, color: muted, marginTop: 10 }}>No obligation — see your price before you commit to anything.</div>
               </div>
             </div>
@@ -520,7 +520,7 @@ export default function Storefront() {
               </div>
 
               <button className="cs-btn" onClick={() => { setView("checkout"); track("checkout"); }}
-                style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Buy this device →
               </button>
             </div>
@@ -535,7 +535,7 @@ export default function Storefront() {
                 <div style={{ fontSize: 12, color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{selectedItem.brand} {selectedItem.model}</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: paper }}>${Number(selectedItem.listedPrice).toLocaleString()}</div>
               </div>
-              <button onClick={() => { setView("checkout"); track("checkout"); }} style={{ padding: "13px 22px", borderRadius: 12, border: "none", background: brass, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Buy now →</button>
+              <button onClick={() => { setView("checkout"); track("checkout"); }} style={{ padding: "13px 22px", borderRadius: 12, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Buy now →</button>
             </div>
           </div>
         )}
@@ -582,7 +582,7 @@ export default function Storefront() {
             </div>
             <button className="cs-btn" disabled={!canOrder || submitting} onClick={handleCheckout}
               style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                background: canOrder ? brass : line, color: canOrder ? "#fff" : muted,
+                background: canOrder ? "var(--mr-brand-fill)" : line, color: canOrder ? "#fff" : muted,
                 fontSize: 14, fontWeight: 600, cursor: canOrder ? "pointer" : "default" }}>
               {submitting && <span className="cs-spinner"></span>}
               {submitting ? "Placing order…" : "Place order"}
@@ -627,7 +627,7 @@ export default function Storefront() {
                 <div style={{ display: "flex", gap: 8 }}>
                   <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Order number or email" aria-label="Order number or email to track your order"
                     style={{ flex: 1, padding: "10px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
-                  <button onClick={handleTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Find</button>
+                  <button onClick={handleTrack} style={{ padding: "10px 16px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Find</button>
                 </div>
                 {trackResult === null && <div style={{ marginTop: 10, fontSize: 13, color: red }}>No order found with that number or email.</div>}
                 {trackResult && (

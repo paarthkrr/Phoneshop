@@ -665,7 +665,7 @@ function BuyTab({ colors, catalog, tiers, faultGroupsByCategory, regions, holdin
                 await onComplete(item);
                 setBusy(false);
               }}
-                style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: ready ? brass : line, color: ready ? "#fff" : muted,
+                style={{ width: "100%", padding: "12px", borderRadius: 3, border: "none", background: ready ? "var(--mr-brand-fill)" : line, color: ready ? "#fff" : muted,
                   fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
                 Pay {paid > 0 ? fmt(paid, region, regions) : ""} → {needsRepair ? "repair bench" : "stock"}
               </button>
@@ -698,7 +698,7 @@ function ReceiveOrdersTab({ colors, orders, regions, onReceive }) {
               style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
             <ScanButton onScan={(c) => setImeiDrafts((s) => ({ ...s, [o.id]: c }))} title="Scan IMEI barcode" />
             <button disabled={!imeiDrafts[o.id]?.trim()} onClick={() => onReceive(o, imeiDrafts[o.id].trim())}
-              style={{ padding: "8px 14px", borderRadius: 3, border: "none", background: imeiDrafts[o.id]?.trim() ? brass : line, color: imeiDrafts[o.id]?.trim() ? "#fff" : muted, fontSize: 12.5, cursor: imeiDrafts[o.id]?.trim() ? "pointer" : "default" }}>
+              style={{ padding: "8px 14px", borderRadius: 3, border: "none", background: imeiDrafts[o.id]?.trim() ? "var(--mr-brand-fill)" : line, color: imeiDrafts[o.id]?.trim() ? "#fff" : muted, fontSize: 12.5, cursor: imeiDrafts[o.id]?.trim() ? "pointer" : "default" }}>
               Add to inventory
             </button>
           </div>
@@ -782,7 +782,7 @@ function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplet
           {(o.status === "pending_payment" || o.status === "pending_pickup") && (
             <div style={{ display: "flex", gap: 8 }}>
               {o.paymentMethod === "bank_transfer" && (
-                <button onClick={() => onMarkPaid(o.id)} style={{ flex: 1, padding: "8px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                <button onClick={() => onMarkPaid(o.id)} style={{ flex: 1, padding: "8px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
                   Mark payment received
                 </button>
               )}
@@ -851,7 +851,7 @@ function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
             onAdd({ name: name.trim(), category, cost: parseFloat(cost), sellPrice: parseFloat(sellPrice), qtyOnHand: parseInt(qty),
               compatibleWith: compatibleWith.trim(), imageUrl: imageUrl.trim(), showOnline });
             setName(""); setCost(""); setSellPrice(""); setQty(""); setCompatibleWith(""); setImageUrl(""); setShowOnline(true);
-          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: ready ? brass : line, color: ready ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
+          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: ready ? "var(--mr-brand-fill)" : line, color: ready ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
           Add to stock
         </button>
       </div>
@@ -1130,7 +1130,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
           <div style={{ marginTop: 6 }}><Code39Barcode value={labelItem.imei} height={40} narrow={1.4} /></div>
           <div style={{ fontSize: 10, letterSpacing: 1, marginTop: 2 }}>{labelItem.imei}</div>
         </div>
-        <button onClick={() => window.print()} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={() => window.print()} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
           Print label
         </button>
       </div>

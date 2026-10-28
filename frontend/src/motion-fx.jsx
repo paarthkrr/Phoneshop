@@ -39,7 +39,7 @@ export function NumberTicker({ value, duration = 1400 }) {
   if (!m) return <span>{str}</span>;
   const text = Number(shown).toLocaleString("en-AU", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   return (
-    <span ref={ref} style={{ fontVariantNumeric: "tabular-nums" }} aria-label={str}>
+    <span ref={ref} style={{ fontVariantNumeric: "tabular-nums" }} role="img" aria-label={str}>
       <span aria-hidden="true">{m[1]}{text}{m[3]}</span>
     </span>
   );

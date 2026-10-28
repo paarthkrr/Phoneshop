@@ -42,6 +42,7 @@ function buildDailySummary({ sales = [], tickets = [], orders = [], inventory = 
 
   const waiting = [
     ["Trade-ins to inspect", orders.filter((o) => o && o.status === "received_inspecting").length],
+    ["Repair prices approved by customers, to start", tickets.filter((t) => t && t.approvalRequest && t.customerApproval && t.customerApproval.decision === "approve" && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest.sentAt) && ["dropped_off", "diagnosing"].includes(t.status)).length],
     ["Repairs ready, not yet collected", tickets.filter((t) => t && t.status === "ready_for_pickup").length],
     ["Repair jobs open more than 5 days", tickets.filter((t) => t && !["completed", "not_repairable", "ready_for_pickup"].includes(t.status) && t.createdAt && daysSince(t.createdAt) > 5).length],
     ["New repair bookings to call back", repairRequests.filter((r) => r && r.status === "new").length],

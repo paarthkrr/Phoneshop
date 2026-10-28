@@ -535,7 +535,7 @@ function ExpensesTab({ colors, expenses, onAdd, onDelete, fmt }) {
         <button disabled={!description.trim() || !amount} onClick={() => {
             onAdd({ category, description: description.trim(), amount: parseFloat(amount), date });
             setDescription(""); setAmount("");
-          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: description.trim() && amount ? brass : line, color: description.trim() && amount ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: description.trim() && amount ? "pointer" : "default" }}>
+          }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: description.trim() && amount ? "var(--mr-brand-fill)" : line, color: description.trim() && amount ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: description.trim() && amount ? "pointer" : "default" }}>
           Add expense
         </button>
       </div>

@@ -29,7 +29,7 @@ export function Icon({ name, size = 22 }) {
 export const NAV_CSS = `
   /* Buttons and links don't inherit the page font by default; keep the whole menu in the site font. */
   .dd-trigger, .dd-panel, .dd-panel *, .mm-quote-btn, .cs-burger, .mm-drawer, .mm-drawer * { font-family: 'Archivo', system-ui, sans-serif; }
-  .mm-quote-btn { display: inline-block; padding: 9px 18px; border-radius: 999px; background: var(--mr-brand); color: #fff !important; font-size: 13.5px; font-weight: 700; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease; }
+  .mm-quote-btn { display: inline-block; padding: 9px 18px; border-radius: 999px; background: var(--mr-brand-fill); color: #fff !important; font-size: 13.5px; font-weight: 700; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease; }
   .mm-quote-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(33,80,200,.35); background: #1B43AA; }
   .mm-quote-btn:active { transform: scale(.97); }
 
@@ -95,7 +95,7 @@ export const NAV_CSS = `
     .mm-tile b { display: block; font-size: 16px; line-height: 1.2; }
     .mm-tile small { display: block; font-size: 12px; color: var(--mr-muted); margin-top: 2px; line-height: 1.35; }
     .mm-tile.sel { border-color: var(--mr-brand); background: var(--mr-surface-2); box-shadow: 0 8px 20px rgba(33,80,200,.14); }
-    .mm-tile.sel .ic { background: var(--mr-brand); color: #fff; transform: scale(1.06) rotate(-4deg); }
+    .mm-tile.sel .ic { background: var(--mr-brand-fill); color: #fff; transform: scale(1.06) rotate(-4deg); }
     /* finger-sized targets (about 44px) inside the phone menu */
     .mm-link { min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; }
     .mm-all { min-height: 44px; }

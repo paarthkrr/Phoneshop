@@ -162,7 +162,7 @@ export default function Repairs() {
         <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", textAlign: "center" }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, marginBottom: 10 }}>Got it — {submitted.id}</div>
           <div style={{ color: muted, fontSize: 14, marginBottom: 24 }}>We'll reach out at {submitted.email} to confirm details for your {submitted.deviceType.toLowerCase()}. {submitted.method === "doorstep" ? "This is a request, not a confirmed booking yet. We'll message you shortly to confirm the time slot and the technician who is coming." : submitted.method === "mailin" ? "We'll email you the postal address for your mail-in repair." : "Pop in any time during opening hours — most repairs are done the same day."}</div>
-          <a href="/" className="cs-btn" style={{ padding: "12px 22px", background: brass, color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Back to homepage</a>
+          <a href="/" className="cs-btn" style={{ padding: "12px 22px", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Back to homepage</a>
         </div>
       </div>
     );
@@ -187,7 +187,7 @@ export default function Repairs() {
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               <input value={trackQuery} onChange={(e) => setTrackQuery(e.target.value)} placeholder="Request number or email" aria-label="Request number or email to track your repair"
                 style={{ flex: 1, padding: "11px 12px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, outline: "none", boxSizing: "border-box" }} />
-              <button onClick={handleTrackSearch} className="cs-btn" style={{ padding: "0 18px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find</button>
+              <button onClick={handleTrackSearch} className="cs-btn" style={{ padding: "0 18px", borderRadius: 3, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find</button>
             </div>
             {trackResult === null && <div style={{ color: red, fontSize: 13 }}>No request found with that number or email.</div>}
             {trackResult && (
@@ -299,7 +299,7 @@ export default function Repairs() {
 
           <button className="cs-btn" onClick={handleSubmit} disabled={!name.trim() || !isEmail(email) || !model.trim() || !issue.trim() || !doorOk || submitting}
             style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              background: name.trim() && isEmail(email) && model.trim() && issue.trim() && doorOk ? brass : line, color: name.trim() && isEmail(email) && model.trim() && issue.trim() && doorOk ? "#fff" : muted,
+              background: name.trim() && isEmail(email) && model.trim() && issue.trim() && doorOk ? "var(--mr-brand-fill)" : line, color: name.trim() && isEmail(email) && model.trim() && issue.trim() && doorOk ? "#fff" : muted,
               fontSize: 14, fontWeight: 600, cursor: name.trim() && isEmail(email) && model.trim() && issue.trim() && doorOk ? "pointer" : "default" }}>
             {submitting && <span className="cs-spinner"></span>}
             {submitting ? "Sending…" : door ? "Request a doorstep repair" : "Request this repair"}

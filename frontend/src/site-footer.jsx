@@ -63,7 +63,7 @@ export default function SiteFooter() {
         .sf-contact { display: flex; flex-direction: column; gap: 7px; color: ${muted}; line-height: 1.4; }
         .sf-contact a { color: var(--mr-text); text-decoration: none; }
         .sf-contact a:hover { color: ${brass}; }
-        .sf-wa { display: inline-flex; align-items: center; gap: 8px; width: fit-content; margin-top: 6px; padding: 9px 14px; border-radius: 999px; background: #25D366; color: #fff !important; font-weight: 700; font-size: 13.5px; }
+        .sf-wa { display: inline-flex; align-items: center; gap: 8px; width: fit-content; margin-top: 6px; padding: 9px 14px; border-radius: 999px; background: #25D366; color: #06301A !important; font-weight: 700; font-size: 13.5px; }
         .sf-bar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 0 22px; border-top: 1px solid ${line}; font-size: 12.5px; color: ${muted}; }
         @media (max-width: 900px) { .sf-main { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 20px; } .sf-brand { grid-column: 1 / -1; } .sf-why { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         @media (max-width: 720px) { .sf-in { padding: 0 16px; } .sf-why { gap: 12px 14px; } .sf-why div { font-size: 12.5px; align-items: flex-start; } }
