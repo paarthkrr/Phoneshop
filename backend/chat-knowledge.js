@@ -1,6 +1,7 @@
 // Everything the website assistant is allowed to know. Every line below comes from the live site
 // (Repairs, FAQ, About, Terms & Warranty, Contact). If the site's policies change, change them here too.
-// The repair "from" prices must match frontend/src/repair-prices.js (a test checks this).
+// The default repair "from" prices must match frontend/src/repair-prices.js (a test checks this);
+// prices set in the Pricing Console replace them (repairPricesFrom).
 
 const REPAIR_PRICES = {
   Phone: [["Screen replacement", 85], ["Battery replacement", 59], ["Charging port", 55], ["Camera repair", 75], ["Water damage diagnosis", 50]],
@@ -34,7 +35,7 @@ ABOUT
 Mobile Recellr is an independent Sydney business: repairs for phones, tablets, laptops and watches (not just one brand), trade-ins (we buy your old device), refurbished phones, accessories, repair parts and DIY repair kits. Founded because other shops quoted costly part replacements for faults that were often just dust or lint (for example a charging port that only needs cleaning). We diagnose honestly first, tell you what is wrong before quoting, and offer a choice of genuine parts or premium-quality aftermarket parts: we explain the difference and the price of each, the customer chooses, and we always tell them exactly which part goes in. Every repair has a 90-day warranty.
 
 REPAIRS (page /repairs)
-- Starting prices ("from"): ${Object.entries(REPAIR_PRICES).map(([d, rs]) => `${d}: ${rs.map(([n, p]) => `${n} from $${p}`).join(", ")}`).join(". ")}.
+- Starting prices ("from"): __REPAIR_PRICES__.
 - Exact quote depends on the model and the fault. We diagnose first and quote before starting any work.
 - Most repairs (screens, batteries, charging ports) are done the same day in store, often while you wait, if the part is in stock and the fault is as diagnosed. Complex faults (liquid or board damage) can take longer; we tell you before starting.
 - Mail-in repairs: pack it securely and drop it at any Australia Post outlet or Parcel Locker; keep your tracking number. Devices travel at your own risk until received, so tracked postage is recommended. Usually returned within 3 to 5 business days of arriving, plus postage time. Mail-in repairs are accepted Australia-wide.
@@ -73,7 +74,22 @@ TRACKING
 PRIVACY
 - We do not sell customer information and do not use it for advertising. Full details at /privacy.`;
 
-function buildSystemPrompt({ business = {}, stock = [], page = "" } = {}) {
+// Prices the owner set in the Pricing Console (pricing-config.repairPrices, the same shape
+// as frontend/src/repair-prices.js) win over the defaults above, if they're well formed.
+function repairPricesFrom(custom) {
+  if (!custom || typeof custom !== "object") return REPAIR_PRICES;
+  const out = { ...REPAIR_PRICES }; // a device left out keeps its default prices
+  for (const [dev, rows] of Object.entries(custom)) {
+    if (!/^[A-Za-z ]{2,20}$/.test(dev) || !Array.isArray(rows)) continue;
+    const ok = rows.filter((r) => r && typeof r.name === "string" && r.name.trim() && r.name.length <= 60 && Number(r.from) > 0 && Number(r.from) < 100000)
+      .slice(0, 20).map((r) => [r.name.trim().replace(/\s+/g, " "), Math.round(Number(r.from))]);
+    if (ok.length) out[dev] = ok;
+  }
+  return out;
+}
+const priceText = (prices) => Object.entries(prices).map(([d, rs]) => `${d}: ${rs.map(([n, p]) => `${n} from $${p}`).join(", ")}`).join(". ");
+
+function buildSystemPrompt({ business = {}, stock = [], page = "", repairPrices = null } = {}) {
   const wa = String(business.whatsapp || business.phone || "0411 931 999").replace(/\D/g, "");
   const waNum = wa.startsWith("0") ? "61" + wa.slice(1) : wa;
   const lines = [
@@ -85,7 +101,7 @@ function buildSystemPrompt({ business = {}, stock = [], page = "" } = {}) {
     ? "CURRENT REFURBISHED STOCK (live from the shop; prices are the listed prices; stock changes, so suggest checking /shop):\n" + stock.map((s) => `- ${s}`).join("\n")
     : "CURRENT REFURBISHED STOCK: none available in your knowledge; do not say whether any model is in stock. Point to /shop.";
   const pageText = page ? `The customer is currently on the page ${String(page).slice(0, 60)}.` : "";
-  return [RULES, KNOWLEDGE, lines.join("\n"), stockText, pageText].filter(Boolean).join("\n\n");
+  return [RULES, KNOWLEDGE.replace("__REPAIR_PRICES__", priceText(repairPricesFrom(repairPrices))), lines.join("\n"), stockText, pageText].filter(Boolean).join("\n\n");
 }
 
-module.exports = { REPAIR_PRICES, ALLOWED_PATH, buildSystemPrompt };
+module.exports = { REPAIR_PRICES, ALLOWED_PATH, buildSystemPrompt, repairPricesFrom };

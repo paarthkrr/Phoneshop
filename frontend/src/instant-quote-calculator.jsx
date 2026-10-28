@@ -1,4 +1,5 @@
 import AddressInput from "./address-input.jsx";
+import { track } from "./track.js";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { DEFAULT_RETENTION_POINTS, retentionAt, DEFAULT_BRAND_FACTOR, ageMonths, CATEGORY_FACTOR, DEFAULT_REGIONS, DEFAULT_TIERS, ACCESSORY_BONUS_PCT, DEFAULT_HOLDING_COST_PCT, baseBuybackAUD } from "./pricing.js";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
@@ -732,6 +733,8 @@ export default function QuoteCalculator() {
   // Once there's a price (and through the details form), phones hide the floating chat
   // button so it can't cover the price or the buttons.
   const showsPrice = !!calc && !submittedOrder;
+  useEffect(() => { if (selected) track("quote_start", { once: true }); }, [selected]);
+  useEffect(() => { if (calc) track("quote_price", { once: true }); }, [!!calc]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     document.body.classList.toggle("qc-has-price", showsPrice);
     return () => document.body.classList.remove("qc-has-price");
@@ -816,6 +819,7 @@ export default function QuoteCalculator() {
     });
     setMyReferralCode(newCode);
     setSubmittedOrder(order);
+    track("quote_submit");
     setTimeout(() => { const el = document.getElementById("mvq-done"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60);
     setSubmitting(false);
   }

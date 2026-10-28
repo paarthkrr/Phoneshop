@@ -1,4 +1,5 @@
 import { withBusinessDefaults, waLink } from "./business-info.js";
+import { track } from "./track.js";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 
@@ -442,6 +443,13 @@ function StaffGate({ children }) {
   );
 }
 
+// Counts customer page views (not staff screens) for the website funnel.
+function PageViews() {
+  const loc = useLocation();
+  useEffect(() => { if (!isStaffPath(normPath(loc.pathname))) track("view"); }, [loc.pathname]);
+  return null;
+}
+
 export default function App() {
   useThemeSync();
   const [storageReady, setStorageReady] = useState(false);
@@ -479,6 +487,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <PageViews />
       <div style={{ background: ink, minHeight: "100vh" }}>
         <Nav />
         <LinkInterceptor />

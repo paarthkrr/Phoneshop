@@ -1,4 +1,5 @@
 import BrandColours from "./brand-colours.jsx";
+import { repairPricesFrom, REPAIRS_BY_DEVICE } from "./repair-prices.js";
 import { applyBrand, rememberBrand } from "./theme.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { PHONE_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
@@ -117,7 +118,7 @@ async function savePriceMatches(list) {
   try { await window.storage.set(PRICE_MATCH_KEY, JSON.stringify(list), true); return true; } catch (e) { return false; }
 }
 
-const TABS = ["Business", "Catalog", "Market", "Requests", "Age Curve", "Brand Factors", "Condition Tiers", "Faults", "Regions", "Price Matches", "History"];
+const TABS = ["Business", "Catalog", "Repair Prices", "Market", "Requests", "Age Curve", "Brand Factors", "Condition Tiers", "Faults", "Regions", "Price Matches", "History"];
 
 export default function AdminPricingConsole() {
   const [config, setConfig] = useState(null);
@@ -244,6 +245,13 @@ export default function AdminPricingConsole() {
       Object.keys(newC.regions).forEach((r) => {
         if (oldC.regions[r].mult !== newC.regions[r].mult) notes.push(`${r} multiplier: ${oldC.regions[r].mult} → ${newC.regions[r].mult}`);
       });
+    } else if (section === "repairPrices") {
+      const was = repairPricesFrom(oldC.repairPrices), now = repairPricesFrom(newC.repairPrices);
+      Object.keys(now).forEach((d) => {
+        const before = Object.fromEntries((was[d] || []).map((r) => [r.name, r.from]));
+        now[d].forEach((r) => { if (before[r.name] !== r.from) notes.push(before[r.name] == null ? `${d}: added ${r.name} from $${r.from}` : `${d} ${r.name}: from $${before[r.name]} → $${r.from}`); });
+        (was[d] || []).forEach((r) => { if (!now[d].some((x) => x.name === r.name)) notes.push(`${d}: removed ${r.name}`); });
+      });
     } else if (section === "holdingCostPct") {
       if (oldC.holdingCostPct !== newC.holdingCostPct) notes.push(`Holding cost: ${(oldC.holdingCostPct * 100).toFixed(1)}% → ${(newC.holdingCostPct * 100).toFixed(1)}%`);
     }
@@ -348,6 +356,10 @@ export default function AdminPricingConsole() {
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
               <input type="checkbox" checked={draft.businessSettings.gstRegistered} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, gstRegistered: e.target.checked } })} />
               Registered for GST (10%) — shows a GST breakdown on invoices when on
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", marginTop: 8 }}>
+              <input type="checkbox" checked={draft.businessSettings.dailySummary !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, dailySummary: e.target.checked } })} />
+              Email me an end-of-day summary after 7pm (takings, profit, what's waiting tomorrow)
             </label>
 
             <BrandColours brand={draft.businessSettings.brandColor} accent={draft.businessSettings.accentColor} colors={{ muted, line, paper }}
@@ -483,6 +495,32 @@ export default function AdminPricingConsole() {
             ))}
           </Section>
         )}
+
+        {tab === "Repair Prices" && (() => {
+          const prices = { ...REPAIRS_BY_DEVICE, ...(draft.repairPrices || {}) }; // raw, so a box can be empty while typing
+          const setDev = (dev, rows) => setDraft({ ...draft, repairPrices: { ...prices, [dev]: rows } });
+          const inp = { padding: "8px 10px", fontSize: 13, border: `1px solid ${line}`, borderRadius: 3, background: "var(--mr-surface)", color: paper };
+          return (
+            <Section title="Repair prices (the &quot;from&quot; price customers see)" onSave={() => handleSave("repairPrices")} onDiscard={discardSection} dirty={dirty} status={status} line={line} muted={muted}>
+              <div style={{ fontSize: 12.5, color: muted, marginBottom: 12 }}>Shown on the Repairs page, in the chat and by the AI assistant. Customers always see these as starting prices; the exact price is confirmed before any work.</div>
+              {Object.keys(prices).map((dev) => (
+                <div key={dev} style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{dev}</div>
+                  {prices[dev].map((r, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
+                      <input value={r.name} aria-label={`${dev} repair name`} onChange={(e) => setDev(dev, prices[dev].map((x, j) => j === i ? { ...x, name: e.target.value } : x))} style={{ ...inp, flex: "1 1 200px" }} />
+                      <span style={{ fontSize: 13, color: muted }}>from $</span>
+                      <input value={r.from} inputMode="numeric" aria-label={`${r.name} price`} onChange={(e) => setDev(dev, prices[dev].map((x, j) => j === i ? { ...x, from: e.target.value.replace(/[^\d]/g, "") } : x))} style={{ ...inp, width: 80 }} />
+                      <button type="button" onClick={() => setDev(dev, prices[dev].filter((_, j) => j !== i))} disabled={prices[dev].length < 2} title="Remove" style={{ ...inp, cursor: "pointer", color: red }}>✕</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setDev(dev, [...prices[dev], { name: "New repair", from: 50 }])} style={{ ...inp, cursor: "pointer", color: brass }}>+ Add a repair</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => setDraft({ ...draft, repairPrices: null })} style={{ ...inp, cursor: "pointer", color: muted }}>Reset to the built-in prices</button>
+            </Section>
+          );
+        })()}
 
         {tab === "Brand Factors" && (
           <Section title="Brand liquidity factor" onSave={() => handleSave("brandFactors")} onDiscard={discardSection} dirty={dirty} status={status} line={line} muted={muted}>

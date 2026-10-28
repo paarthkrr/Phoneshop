@@ -51,3 +51,22 @@ test("IMEI check digit and shop prices", async () => {
   assert.equal(targetPrice(0, "A"), null);
   assert.equal(targetPrice(100, "nope"), null);
 });
+
+test("aged stock: suggests ~5% off ending in 9, never under cost, only after 30 days", async () => {
+  const { agedDrop } = await import("../../frontend/src/device-flow.js");
+  const now = new Date(Date.UTC(2026, 9, 28));
+  const item = (o) => ({ status: "listed", listedPrice: 949, costBasis: 600, listedAt: d(1), ...o });
+  assert.equal(agedDrop(item({ listedAt: d(10) }), now), null); // 18 days: not aged
+  assert.deepEqual(agedDrop(item({ listedAt: new Date(Date.UTC(2026, 8, 1)).toISOString() }), now), { days: 57, suggested: 899 });
+  assert.equal(agedDrop(item({ listedAt: new Date(Date.UTC(2026, 8, 1)).toISOString(), costBasis: 900 }), now), null); // would go under cost
+  assert.equal(agedDrop(item({ status: "sold", listedAt: new Date(Date.UTC(2026, 8, 1)).toISOString() }), now), null);
+});
+
+test("marketplace listing: title, price and a link to the phone", async () => {
+  const { marketplaceListing } = await import("../../frontend/src/device-flow.js");
+  const l = marketplaceListing({ id: "INV-7", brand: "Apple", model: "iPhone 14", storage: "128GB", gradeId: "A", listedPrice: 899 });
+  assert.equal(l.title, "Apple iPhone 14 128GB - Excellent - 12 month warranty");
+  assert.equal(l.price, 899);
+  assert.match(l.text, /shop\?item=INV-7/);
+  assert.match(l.text, /^Apple iPhone 14 128GB - Excellent - 12 month warranty\n\$899\n/);
+});

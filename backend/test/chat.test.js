@@ -208,3 +208,13 @@ test("CHAT_PROVIDER chooses between providers when both keys are set", async () 
   assert.equal(groqCalls.length, 1);
   assert.equal(calls.length, 2);
 });
+
+test("the AI uses repair prices set in the Pricing Console, and ignores bad ones", () => {
+  const { buildSystemPrompt } = require("../chat-knowledge.js");
+  const set = buildSystemPrompt({ repairPrices: { Phone: [{ name: "Screen replacement", from: 99 }, { name: "", from: 5 }, { name: "Bad", from: -1 }] } });
+  assert.match(set, /Phone: Screen replacement from \$99\./);
+  assert.doesNotMatch(set, /Bad from/);
+  assert.doesNotMatch(set, /__REPAIR_PRICES__/);
+  const junk = buildSystemPrompt({ repairPrices: { "<script>": [{ name: "x", from: 1 }] } });
+  assert.match(junk, /Phone: Screen replacement from \$85/); // falls back to the defaults
+});

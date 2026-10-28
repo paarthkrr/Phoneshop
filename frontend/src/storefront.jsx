@@ -1,4 +1,5 @@
 import AddressInput from "./address-input.jsx";
+import { track } from "./track.js";
 import DeviceArt, { inferDeviceType } from "./device-art.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { wasPrice } from "./price-history.js";
@@ -166,7 +167,7 @@ export default function Storefront() {
   const openItem = (item) => {
     browseY.current = window.scrollY;
     const p = new URLSearchParams(routerLoc.search); p.set("item", item.id);
-    setSubmitError(""); setSelectedItem(item); setView("detail");
+    setSubmitError(""); setSelectedItem(item); setView("detail"); track("shop_item");
     navigate({ search: `?${p}` });
   };
   const backToBrowse = () => {
@@ -240,6 +241,7 @@ export default function Storefront() {
     if (!window.SHOP_API_BASE_URL) await saveJSON("inventory", nextInventory, true); // local preview only: no server to reserve it
     setInventory(nextInventory);
     setConfirmedOrder(order);
+    track("order");
     setView("confirmed");
     setSubmitting(false);
   }
@@ -514,7 +516,7 @@ export default function Storefront() {
                 ))}
               </div>
 
-              <button className="cs-btn" onClick={() => setView("checkout")}
+              <button className="cs-btn" onClick={() => { setView("checkout"); track("checkout"); }}
                 style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                 Buy this device →
               </button>
@@ -530,7 +532,7 @@ export default function Storefront() {
                 <div style={{ fontSize: 12, color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{selectedItem.brand} {selectedItem.model}</div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: paper }}>${Number(selectedItem.listedPrice).toLocaleString()}</div>
               </div>
-              <button onClick={() => setView("checkout")} style={{ padding: "13px 22px", borderRadius: 12, border: "none", background: brass, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Buy now →</button>
+              <button onClick={() => { setView("checkout"); track("checkout"); }} style={{ padding: "13px 22px", borderRadius: 12, border: "none", background: brass, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Buy now →</button>
             </div>
           </div>
         )}

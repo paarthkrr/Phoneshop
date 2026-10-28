@@ -95,7 +95,7 @@ function register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey
       const inv = await loadSharedList("inventory");
       const stock = inv.filter((i) => i && i.status === "listed" && i.model).slice(0, 40)
         .map((i) => `${i.brand || ""} ${i.model}${i.storage ? " " + i.storage : ""}, ${GRADE[i.gradeId] || "graded"}${Number.isFinite(Number(i.listedPrice)) ? `, $${Math.round(Number(i.listedPrice))}` : ""}`.trim());
-      ctx = { at: Date.now(), business: cfg.businessSettings || {}, stock };
+      ctx = { at: Date.now(), business: cfg.businessSettings || {}, stock, repairPrices: cfg.repairPrices || null };
     } catch (e) { ctx = { ...ctx, at: Date.now() }; }
     return ctx;
   }
@@ -137,7 +137,7 @@ function register(app, { loadSharedList, loadSharedValue, makeLimiter, clientKey
     if (process.env.CHAT_LOG === "1") console.log("chat question:", msgs[msgs.length - 1].content.replace(/\d/g, "#").slice(0, 160));
     const started = Date.now();
     try {
-      const out = await callModel(provider, buildSystemPrompt({ business: c.business, stock: c.stock, page }), msgs);
+      const out = await callModel(provider, buildSystemPrompt({ business: c.business, stock: c.stock, page, repairPrices: c.repairPrices }), msgs);
       if (out.error) { console.error("chat model error:", out.error); return res.status(502).json({ mode: "faq", reply: null, error: "unavailable" }); }
       const text = out.text;
       const { reply, handoff } = cleanReply(text, waNum);

@@ -1,4 +1,5 @@
 import AddressInput from "./address-input.jsx";
+import { track } from "./track.js";
 import DeviceArt from "./device-art.jsx";
 import Photo from "./photo.jsx";
 // Friendly validation shared by the customer forms
@@ -9,7 +10,7 @@ const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
 
 import React, { useState, useMemo } from "react";
 import { DOORSTEP, zoneForPostcode, doorstepFee, slotDays, expressAvailable } from "./doorstep.js";
-import { REPAIRS_BY_DEVICE } from "./repair-prices.js";
+import useRepairPrices from "./use-repair-prices.js";
 
 async function findPublicRecord(key, query, localList, fields = ["id", "email"]) {
   const q = query.trim().toLowerCase();
@@ -74,10 +75,11 @@ export default function Repairs() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [model, setModel] = useState("");
+  const REPAIRS_BY_DEVICE = useRepairPrices();
   const modelRef = React.useRef(null);
   const pickRepair = (r) => {
     setIssue((cur) => {
-      const prev = REPAIRS_BY_DEVICE[deviceType].find((x) => cur.startsWith(`${x.name}. `));
+      const prev = (REPAIRS_BY_DEVICE[deviceType] || []).find((x) => cur.startsWith(`${x.name}. `));
       return `${r.name}. ${prev ? cur.slice(prev.name.length + 2) : cur}`; // keep anything they'd already typed
     });
     document.getElementById("book")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -139,6 +141,7 @@ export default function Repairs() {
         relatedId: entry.id,
       });
       setSubmitted(entry);
+      track("repair_submit");
     } catch (e) {
       setError(e.message || "Something went wrong — please try again.");
     } finally {
@@ -204,7 +207,7 @@ export default function Repairs() {
         </div>
 
         <div className="mv-stagger" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10, marginBottom: 32 }}>
-          {REPAIRS_BY_DEVICE[deviceType].map((r) => (
+          {(REPAIRS_BY_DEVICE[deviceType] || []).map((r) => (
             // Tap a repair to book it: it fills in what's wrong and jumps to the form.
             <button key={r.name} type="button" className="cs-card" onClick={() => pickRepair(r)} aria-label={`Book ${r.name}, from $${r.from}`}
               style={{ border: `1px solid ${issue.startsWith(r.name) ? brass : line}`, borderRadius: 3, padding: 14, background: panel, color: paper, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
