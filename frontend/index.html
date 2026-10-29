@@ -180,7 +180,7 @@
       (function () {
         try {
           var q = new URLSearchParams(location.search).get("intro");
-          var forced = q === "5" || q === "6" || q === "8";
+          var forced = ["5", "6", "8", "9", "10", "11", "12"].indexOf(q) >= 0;
           if (q === "0" || (q && !forced)) return;
           if (!forced) {
             if (/^\/(portal|staff)/.test(location.pathname)) return;

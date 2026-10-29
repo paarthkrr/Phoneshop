@@ -10,6 +10,8 @@ import { sydneyDay, sydneyToday } from "./sydney-time.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { ScanButton } from "./barcode-scanner.jsx";
 import { generateBarcode } from "./barcode-gen.js";
+import SalesTab from "./sales-tab.jsx";
+import { hasArea } from "./roles.js";
 import { publishPatch, pricePatch, wasPrice, MIN_DAYS_AT_OLD_PRICE } from "./price-history.js";
 
 /* =================================================================
@@ -206,7 +208,7 @@ function Code39Barcode({ value, height = 50, narrow = 2 }) {
   return <svg width={x} height={height} viewBox={`0 0 ${x} ${height}`}>{bars}</svg>;
 }
 
-const TABS = ["Buy", "Quick Add", "Receive Orders", "Inventory", "Accessories", "Web Orders", "Sell"];
+const TABS = ["Buy", "Quick Add", "Receive Orders", "Inventory", "Accessories", "Web Orders", "Sell", "Sales"];
 const ACCESSORIES_KEY = "accessories";
 const ACCESSORY_CATEGORIES = ["Cases & covers", "Screen protectors", "Chargers & cables", "DIY repair kits", "Audio", "Power banks", "Other"];
 
@@ -458,6 +460,29 @@ export default function POSInventory() {
             onCancel={async (order) => {
               await persistPurchaseOrders(purchaseOrders.map((o) => o.id === order.id ? { ...o, status: "cancelled" } : o));
               await persistInventory(inventory.map((i) => i.id === order.itemId ? { ...i, status: "listed", reservedByOrderId: null } : i));
+            }} />
+        )}
+
+        {tab === "Sales" && (
+          <SalesTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }} sales={sales} canUndo={hasArea("reports")}
+            onRefund={async (orig, r) => {
+              const at = new Date().toISOString();
+              const back = r.restock && orig.costBasis != null ? -Number(orig.costBasis) : 0;
+              const refund = { id: genId("RFD"), refundOf: orig.id, channel: "refund", refundChannel: orig.channel || "", itemId: orig.itemId,
+                brand: orig.brand, model: orig.model, storage: orig.storage, region: orig.region || "AU",
+                customerName: orig.customerName || "", customerEmail: orig.customerEmail || "", customerPhone: orig.customerPhone || "",
+                salePrice: -Math.abs(r.amount), costBasis: back, payMethod: r.method, refundReason: r.reason, restocked: !!r.restock,
+                soldAt: at, staffHandled: staffName || "unattributed" };
+              const updated = sales.map((x) => (x.id === orig.id ? { ...x, refundedAmount: (Number(x.refundedAmount) || 0) + Math.abs(r.amount), ...(r.undo ? { voided: true } : {}) } : x));
+              await persistSales([refund, ...updated]);
+              if (r.restock) {
+                if (orig.brand === "Accessory") {
+                  const a = accessories.find((x) => x.id === orig.itemId);
+                  if (a) await persistAccessories(accessories.map((x) => (x.id === a.id ? { ...x, qtyOnHand: (Number(x.qtyOnHand) || 0) + 1 } : x)));
+                } else if (inventory.some((i) => i.id === orig.itemId)) {
+                  await persistInventory(inventory.map((i) => (i.id === orig.itemId ? { ...i, status: "in_stock", soldAt: null, returnedAt: at, returnReason: r.reason } : i)));
+                }
+              }
             }} />
         )}
 

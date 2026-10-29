@@ -7,6 +7,7 @@ import { DOORSTEP, zoneForPostcode, doorstepFee } from "./doorstep.js";
 import DoorstepCalendar from "./doorstep-calendar.jsx";
 import TimePick, { whenText, untilText } from "./tech-time.jsx";
 import TechDay from "./tech-day.jsx";
+import { buildCustomers } from "./customers.js";
 import { SYMPTOMS, PARTS, diagnose, stockFor, LIKELIHOOD_LABEL } from "./diagnosis-guide.js";
 
 /* =================================================================
@@ -340,6 +341,7 @@ export default function RepairTickets() {
       symptoms: data.symptoms || [], partsNeeded: [], priority: data.priority || "normal", dueAt: data.dueAt || null,
       assignedTo: data.assignedTo || null, assignedAt: data.assignedTo ? now : null,
       issue: data.issue, repairTypeId: data.repairTypeId, estimateMins: Number(data.estimateMins) || 0,
+      ...(data.passcode ? { passcode: data.passcode } : {}),
       quotedPrice: shop ? 0 : data.quotedPrice, deposit: shop ? 0 : data.deposit || 0,
       // When and how the deposit was paid, so the till counts it on the day it was taken.
       depositPayMethod: !shop && data.deposit > 0 ? data.depositPayMethod || "cash" : null, depositAt: !shop && data.deposit > 0 ? now : null,
@@ -359,6 +361,8 @@ export default function RepairTickets() {
     const next = (tickets || []).map((t) => {
       if (t.id !== id) return t;
       const updated = { ...t, ...patch };
+      // The customer's passcode is only kept while we have the phone.
+      if (["completed", "not_repairable", "cancelled"].includes(updated.status) && updated.passcode) updated.passcode = "";
       if (logStatus) updated.statusLog = [...(t.statusLog || []), { status: patch.status, at: new Date().toISOString(), by: staffName || "unattributed" }];
       return updated;
     });
@@ -431,7 +435,8 @@ export default function RepairTickets() {
           ))}
         </div>
 
-        {view === "intake" && <IntakeForm key={intakeFrom ? intakeFrom.id : "new"} colors={colors} repairTypes={REPAIR_TYPES} team={team} me={staffName} inventory={inventory} onCreate={createTicket} prefill={intakeFrom} />}
+        {view === "intake" && <IntakeForm key={intakeFrom ? intakeFrom.id : "new"} colors={colors} repairTypes={REPAIR_TYPES} team={team} me={staffName} inventory={inventory} onCreate={createTicket} prefill={intakeFrom}
+          pastCustomers={buildCustomers({ tickets: tickets || [], requests: repairRequests })} />}
 
         {view === "myday" && <TechDay tickets={tickets || []} me={staffName} labels={STATUS_LABELS} nextStatus={NEXT_STATUS} partState={partState} stock={liveStock}
           repairName={(t) => (REPAIR_TYPES.find((r) => r.id === t.repairTypeId) || {}).label || "Repair"} onOpen={(id) => { setOpenId(id); setView("queue"); }} onUpdate={updateTicket} />}
@@ -564,7 +569,7 @@ export default function RepairTickets() {
   );
 }
 
-function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefill }) {
+function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefill, pastCustomers = [] }) {
   const { panel2, paper, muted, brass, brassDim, red, line } = colors;
   const p = prefill || {}; // a website repair request being booked in
   const [jobType, setJobType] = useState("customer");
@@ -578,6 +583,14 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
   const [quotedPrice, setQuotedPrice] = useState(""); const [deposit, setDeposit] = useState(""); const [depositPayMethod, setDepositPayMethod] = useState("cash");
   const [assignedTo, setAssignedTo] = useState(p.assignedTo || ""); const [priority, setPriority] = useState("normal"); const [dueAt, setDueAt] = useState("");
   const [scanNote, setScanNote] = useState("");
+  const [picked, setPicked] = useState(!!p.name);
+  const [passcode, setPasscode] = useState("");
+  // Past customers matching what's typed: two letters of a name or three digits of a phone.
+  const matches = (() => {
+    const n = name.trim().toLowerCase(), d = phone.replace(/\D/g, "");
+    if (n.length < 2 && d.length < 3) return [];
+    return pastCustomers.filter((c) => (n.length >= 2 && c.name.toLowerCase().includes(n)) || (d.length >= 3 && String(c.phone || "").replace(/\D/g, "").includes(d))).slice(0, 5);
+  })();
 
   const shop = jobType === "shop";
   const stockPhones = (inventory || []).filter((i) => i && !i.soldAt && i.status !== "sold");
@@ -612,8 +625,23 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
 
       {!shop && <>
         <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Customer</div>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" style={inputStyle} />
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" style={inputStyle} />
+        <input value={name} onChange={(e) => { setName(e.target.value); setPicked(false); }} placeholder="Full name (or start typing a past customer)" aria-label="Customer name" style={inputStyle} />
+        <input value={phone} onChange={(e) => { setPhone(e.target.value); setPicked(false); }} placeholder="Phone number" aria-label="Customer phone" type="tel" style={inputStyle} />
+        {!picked && matches.length > 0 && (
+          <div style={{ border: `1px solid ${brass}`, borderRadius: 3, marginTop: -4, marginBottom: 10 }}>
+            <div style={{ fontSize: 11.5, color: muted, padding: "6px 10px" }}>Been here before?</div>
+            {matches.map((c) => (
+              <button key={c.key} type="button" onClick={() => {
+                  setName(c.name); setPhone(c.phone || ""); setEmail(c.email || ""); setPicked(true);
+                  const last = c.timeline.find((x) => x.kind === "repair" && x.device);
+                  if (last && !model.trim()) { const parts = last.device.split(" "); setBrand(parts[0] || ""); setModel(parts.slice(1).join(" ")); }
+                }}
+                style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", border: "none", borderTop: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+                <b>{c.name}</b> <span style={{ color: muted }}>· {[c.phone, c.email].filter(Boolean).join(" · ")} · {c.repairs} repair{c.repairs === 1 ? "" : "s"}{c.devices[0] ? ` · last: ${c.devices[0]}` : ""}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" style={inputStyle} />
       </>}
 
@@ -629,6 +657,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
         <ScanButton onScan={onScanImei} title="Scan IMEI / serial" />
       </div>
       {scanNote && <div style={{ fontSize: 12.5, color: brass, marginBottom: 10 }}>{scanNote}</div>}
+      {!shop && <input value={passcode} onChange={(e) => setPasscode(e.target.value)} placeholder="Passcode or pattern (optional, deleted when the job closes)" aria-label="Device passcode" autoComplete="off" style={inputStyle} />}
       <div style={{ display: "flex", gap: 10 }}>
         <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Brand, e.g. Apple" style={inputStyle} />
         <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Model, e.g. iPhone 13" style={inputStyle} />
@@ -685,7 +714,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
       {!ready && <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Needs: {[!shop && !name.trim() && "name", !shop && !phone.trim() && "phone", !brand.trim() && "brand", !model.trim() && "model", !repairTypeId && "repair type", !shop && !quotedPrice && "quote"].filter(Boolean).join(", ")}</div>}
 
       <button disabled={!ready} onClick={() => onCreate({ jobType, name, phone, email, brand: brand.trim(), model: model.trim(), imei: imei.trim(), storage: storage.trim(), colour: colour.trim(), condition: condition.trim(),
-          inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, estimateMins, dueAt: dueAt || null,
+          inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, estimateMins, dueAt: dueAt || null, passcode: shop ? "" : passcode.trim(),
           quotedPrice: parseFloat(quotedPrice) || 0, deposit: parseFloat(deposit) || 0, depositPayMethod })}
         style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 6,
           background: ready ? "var(--mr-brand-fill)" : line, color: ready ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
@@ -929,6 +958,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         <div style={{ fontSize: 15, marginBottom: 4 }}>{ticket.id}<JobBadge colors={colors} ticket={ticket} />{ticket.warrantyOf && <span style={{ color: brass, fontSize: 12 }}> · warranty claim on {ticket.warrantyOf}</span>}</div>
         <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>{ticket.device.brand} {ticket.device.model}{ticket.device.storage ? ` ${ticket.device.storage}` : ""}{ticket.device.colour ? ` · ${ticket.device.colour}` : ""} · {repairTypes.find((r) => r.id === ticket.repairTypeId)?.label}</div>
         {ticket.device.imei && <div style={{ fontSize: 12.5, marginBottom: 4 }}>IMEI / serial: <span style={{ fontFamily: "ui-monospace, monospace" }}>{ticket.device.imei}</span></div>}
+        {!shop && !["completed", "not_repairable", "cancelled"].includes(ticket.status) && <Passcode value={ticket.passcode || ""} onSave={(v) => onUpdate({ passcode: v })} colors={colors} />}
         {ticket.device.condition && <div style={{ fontSize: 12.5, color: muted, marginBottom: 4 }}>Condition on arrival: {ticket.device.condition}</div>}
         <div style={{ fontSize: 13 }}>{shop ? "Shop phone (fixing to sell)" : `${ticket.customer.name} · ${ticket.customer.phone}`}</div>
         {ticket.dueAt && <div style={{ fontSize: 12.5, color: new Date(ticket.dueAt) < new Date() && !["completed", "not_repairable", "cancelled"].includes(ticket.status) ? red : muted, marginTop: 4 }}>Promised {whenText(ticket.dueAt)}{!["completed", "not_repairable", "cancelled"].includes(ticket.status) ? ` (${untilText(ticket.dueAt)})` : ""}</div>}
@@ -1017,6 +1047,12 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
       </div>
 
       <CloseJob colors={colors} ticket={ticket} onUpdate={onUpdate} onBack={onBack} />
+      {!shop && ticket.customer && ticket.customer.email && (
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12.5, color: muted, marginBottom: 14 }}>
+          <input type="checkbox" checked={!!ticket.noFollowUp} onChange={(e) => onUpdate({ noFollowUp: e.target.checked })} />
+          Don't send this customer the follow-up email a week after collection
+        </label>
+      )}
 
       {shopDoneNote && <div role="status" style={{ fontSize: 13, color: green, border: `1px solid ${green}`, borderRadius: 3, padding: "10px 12px", marginBottom: 16 }}>{shopDoneNote}</div>}
 
@@ -1281,6 +1317,28 @@ function PartsToOrder({ colors, tickets, stock, me, onApply, onOpen }) {
         <div style={{ fontSize: 12.5, fontWeight: 700, color: green, margin: "12px 0 6px" }}>Arrived: tell the technician</div>
         {arrived.map((r) => <div key={r.key} style={{ fontSize: 13, padding: "5px 0", borderTop: `1px solid ${line}` }}>{line1(r)}</div>)}
       </>}
+    </div>
+  );
+}
+
+// The phone's passcode: hidden until tapped, editable, wiped when the job closes.
+function Passcode({ value, onSave, colors }) {
+  const { muted, line, paper, brass } = colors;
+  const [show, setShow] = useState(false);
+  const [edit, setEdit] = useState(null);
+  const b = { all: "unset", cursor: "pointer", color: brass, fontWeight: 600, marginLeft: 8 };
+  if (edit != null) return (
+    <div style={{ fontSize: 12.5, marginBottom: 4, display: "flex", gap: 6, alignItems: "center" }}>Passcode:
+      <input value={edit} onChange={(e) => setEdit(e.target.value)} autoComplete="off" aria-label="Passcode" style={{ padding: "4px 8px", border: `1px solid ${line}`, borderRadius: 3, background: "transparent", color: paper, fontFamily: "ui-monospace, monospace" }} />
+      <button type="button" style={b} onClick={() => { onSave(edit.trim()); setEdit(null); }}>Save</button>
+      <button type="button" style={{ ...b, color: muted }} onClick={() => setEdit(null)}>Cancel</button>
+    </div>
+  );
+  return (
+    <div style={{ fontSize: 12.5, marginBottom: 4 }}>Passcode: {value ? <span style={{ fontFamily: "ui-monospace, monospace" }}>{show ? value : "••••"}</span> : <span style={{ color: muted }}>not given</span>}
+      {value && <button type="button" style={b} onClick={() => setShow(!show)}>{show ? "Hide" : "Show"}</button>}
+      <button type="button" style={b} onClick={() => setEdit(value)}>{value ? "Change" : "Add"}</button>
+      <span style={{ color: muted, marginLeft: 8 }}>(deleted when the job closes)</span>
     </div>
   );
 }

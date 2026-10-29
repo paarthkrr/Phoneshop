@@ -41,3 +41,13 @@ test("marked ready again later starts over", () => {
   const again = job({ statusLog: [{ status: "ready_for_pickup", at: new Date(T0).toISOString() }, { status: "in_repair", at: new Date(T0 + D).toISOString() }, { status: "ready_for_pickup", at: new Date(T0 + 2 * D).toISOString() }] });
   p = planPickupEmails([again], p.state, T0 + 2 * D + H); assert.equal(p.sends.length, 1); assert.match(p.sends[0].subject, /ready to collect/);
 });
+
+test("one follow-up a week after collection, never for old jobs, never twice", () => {
+  const { planFollowUps } = require("../pickup-reminders.js");
+  const done = job({ status: "completed", completedAt: new Date(T0).toISOString() });
+  let p = planFollowUps([done], {}, T0 + 6 * D); assert.equal(p.sends.length, 0);
+  p = planFollowUps([done], {}, T0 + 7 * D + H); assert.equal(p.sends.length, 1); assert.match(p.sends[0].text, /90-day warranty/);
+  p = planFollowUps([done], p.state, T0 + 8 * D); assert.equal(p.sends.length, 0, "only once");
+  assert.equal(planFollowUps([done], {}, T0 + 15 * D).sends.length, 0, "an old job isn't emailed when this is switched on");
+  assert.equal(planFollowUps([{ ...done, noFollowUp: true }], {}, T0 + 7 * D + H).sends.length, 0, "customer opted out");
+});

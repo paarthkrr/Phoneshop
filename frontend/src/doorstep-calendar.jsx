@@ -22,6 +22,7 @@ export default function DoorstepCalendar({ requests, team, onUpdate, onStartTick
   const visits = requests.filter(isOpen);
   const overdue = visits.filter((r) => visitSlot(r).day < today);
   const [day, setDay] = useState(today);
+  const [editing, setEditing] = useState(null);
   const techs = [...new Set([...(team || []).filter((u) => u.role === "technician").map((u) => u.username), ...visits.map((r) => r.assignedTo).filter(Boolean)])];
   const everyone = [...new Set([...techs, ...(team || []).map((u) => u.username)])];
   const cols = [UNASSIGNED, ...techs];
@@ -52,6 +53,9 @@ export default function DoorstepCalendar({ requests, team, onUpdate, onStartTick
         <div style={{ color: "var(--mr-muted)" }}>{r.issue}</div>
         <div style={{ marginTop: 4 }}>{r.address || "No address"} {r.postcode || ""}{map && <> · <a href={map} target="_blank" rel="noopener noreferrer" style={{ color: "var(--mr-brand)" }}>Map</a></>}</div>
         <div style={{ color: zone === "A" || zone === "B" ? "var(--mr-muted)" : "var(--mr-bad)" }}>{zone === "A" || zone === "B" ? `${DOORSTEP.zones[zone].label}, $${fee} travel fee` : "Outside our usual area: check before booking"}</div>
+        {r.visitNote && <div style={{ marginTop: 4, padding: "4px 8px", borderRadius: 6, background: "var(--mr-surface-2)" }}>📝 {r.visitNote}</div>}
+        {editing === r.id ? <VisitEdit r={r} onCancel={() => setEditing(null)} onSave={(patch) => { onUpdate(r.id, patch); setEditing(null); }} />
+          : <button type="button" onClick={() => setEditing(r.id)} style={{ all: "unset", cursor: "pointer", color: "var(--mr-brand)", fontWeight: 700, fontSize: 12, marginTop: 4 }}>Edit address / note</button>}
         {clash(r) && <div style={{ color: "var(--mr-bad)", fontWeight: 700, marginTop: 4 }}>{r.assignedTo} has another visit in this window</div>}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 8 }}>
           <select aria-label="Technician" value={r.assignedTo || ""} onChange={(e) => onUpdate(r.id, { assignedTo: e.target.value || null })} style={sel}>
@@ -118,6 +122,27 @@ export default function DoorstepCalendar({ requests, team, onUpdate, onStartTick
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Fix what the customer typed (address, postcode, phone) and leave a note for the technician.
+function VisitEdit({ r, onCancel, onSave }) {
+  const [f, setF] = useState({ address: r.address || "", postcode: r.postcode || "", phone: r.phone || "", visitNote: r.visitNote || "" });
+  const inp = { width: "100%", boxSizing: "border-box", padding: "6px 8px", borderRadius: 8, border: "1px solid var(--mr-line)", background: "var(--mr-surface-2)", color: "var(--mr-text)", fontSize: 12.5, fontFamily: "inherit", marginTop: 4 };
+  const set = (k) => (e) => setF({ ...f, [k]: k === "postcode" ? e.target.value.replace(/\D/g, "").slice(0, 4) : e.target.value });
+  return (
+    <div style={{ marginTop: 6 }}>
+      <input value={f.address} onChange={set("address")} placeholder="Street address" aria-label="Address" style={inp} />
+      <div style={{ display: "flex", gap: 6 }}>
+        <input value={f.postcode} onChange={set("postcode")} placeholder="Postcode" aria-label="Postcode" inputMode="numeric" style={{ ...inp, width: 90 }} />
+        <input value={f.phone} onChange={set("phone")} placeholder="Phone" aria-label="Phone" type="tel" style={inp} />
+      </div>
+      <input value={f.visitNote} onChange={set("visitNote")} placeholder="Note for the technician (gate code, parking, unit no.)" aria-label="Note for the technician" style={inp} />
+      <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+        <button type="button" onClick={() => onSave({ address: f.address.trim(), postcode: f.postcode, phone: f.phone.trim(), visitNote: f.visitNote.trim() })} style={{ padding: "6px 10px", borderRadius: 8, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Save</button>
+        <button type="button" onClick={onCancel} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--mr-line)", background: "transparent", color: "var(--mr-text)", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+      </div>
     </div>
   );
 }

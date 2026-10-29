@@ -78,7 +78,8 @@ export default function TillReconciliation() {
   const cashSalesToday = useMemo(() => (sales || [])
     .filter((s) => sydneyDay(s.soldAt) === today && s.payMethod === "cash")
     // Whatever the deposit was paid with, only the balance is handed over in cash at completion.
-    .reduce((sum, s) => sum + Math.max(0, (Number(s.salePrice) || 0) - (Number(s.depositPaid) || 0)), 0), [sales, today]);
+    // A cash refund is cash out of the drawer.
+    .reduce((sum, s) => sum + (s.refundOf ? Number(s.salePrice) || 0 : Math.max(0, (Number(s.salePrice) || 0) - (Number(s.depositPaid) || 0))), 0), [sales, today]);
   const cashDepositsToday = useMemo(() => (tickets || [])
     .filter((t) => t && t.depositPayMethod === "cash" && sydneyDay(t.depositAt) === today)
     .reduce((sum, t) => sum + (Number(t.deposit) || 0), 0), [tickets, today]);

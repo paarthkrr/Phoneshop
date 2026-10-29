@@ -61,6 +61,30 @@ function planPickupEmails(tickets, state = {}, now = Date.now()) {
   return { sends, state: next };
 }
 
+// A week after a repair is collected: one check-in email (still working? covered by warranty),
+// with an optional Google review line and a way to opt out. Only jobs collected 7-10 days
+// ago, so turning this on never emails old customers out of the blue.
+const REVIEW_URL = "https://g.page/r/CZCxExc--m79ECE/review";
+function planFollowUps(tickets, sent = {}, now = Date.now()) {
+  const sends = [], next = {};
+  for (const t of tickets || []) {
+    if (!t || t.deleted || t.status !== "completed" || t.jobType === "shop" || t.noFollowUp) continue;
+    const to = String((t.customer && t.customer.email) || "").trim();
+    const done = Date.parse(t.completedAt || "");
+    if (!EMAIL.test(to) || !Number.isFinite(done)) continue;
+    const age = now - done;
+    if (sent[t.id]) { if (age < 30 * DAY) next[t.id] = sent[t.id]; continue; }
+    if (age < 7 * DAY || age > 10 * DAY) continue;
+    const dev = clip(`${(t.device && t.device.brand) || ""} ${(t.device && t.device.model) || ""}`.trim()) || "device";
+    const days = Number(t.warrantyDays) || 90;
+    sends.push({ id: t.id, to, name: first(t.customer && t.customer.name), kind: "repair follow-up",
+      subject: `How's your ${dev} going?`,
+      text: `It's been a week since we repaired your ${dev} (job ${clip(t.id)}). We hope it's working perfectly. If anything isn't right, just reply to this email: the repair is covered by our ${days}-day warranty.\n\nIf we looked after you, a quick Google review helps a small local shop a lot: ${REVIEW_URL}\n\n(This is the only follow-up we send for this repair. Don't want emails like this? Reply "no more emails".)` });
+    next[t.id] = now;
+  }
+  return { sends, state: next };
+}
+
 function start({ pool, loadSharedList, loadSharedValue, sendEmail, everyMs = 20 * 60 * 1000 }) {
   let running = false;
   const run = async () => {
@@ -85,6 +109,14 @@ function start({ pool, loadSharedList, loadSharedValue, sendEmail, everyMs = 20 
         sends = plan.sends;
         await client.query(`INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ('system', 'pickup_reminders', $1, NOW(), 'system')
           ON CONFLICT (scope, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`, [JSON.stringify(plan.state)]);
+        if (bs.autoFollowUp !== false) {
+          const f = await client.query("SELECT value FROM storage WHERE scope = 'system' AND key = 'repair_followups'");
+          let sent = {}; try { sent = f.rows[0] ? JSON.parse(f.rows[0].value) || {} : {}; } catch (e) { sent = {}; }
+          const fu = planFollowUps(tickets, sent, Date.now());
+          sends = [...sends, ...fu.sends];
+          await client.query(`INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ('system', 'repair_followups', $1, NOW(), 'system')
+            ON CONFLICT (scope, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`, [JSON.stringify(fu.state)]);
+        }
         await client.query("COMMIT");
       } catch (e) { await client.query("ROLLBACK").catch(() => {}); throw e; } finally { client.release(); }
       for (const m of sends) await sendEmail({ to: m.to, subject: m.subject, text: m.text, customer: true, kind: m.kind, name: m.name });
@@ -95,4 +127,4 @@ function start({ pool, loadSharedList, loadSharedValue, sendEmail, everyMs = 20 
   return run;
 }
 
-module.exports = { planPickupEmails, start };
+module.exports = { planPickupEmails, planFollowUps, start };
