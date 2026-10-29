@@ -7,7 +7,9 @@ import { DOORSTEP, zoneForPostcode, doorstepFee } from "./doorstep.js";
 import DoorstepCalendar from "./doorstep-calendar.jsx";
 import TimePick, { whenText, untilText } from "./tech-time.jsx";
 import TechDay from "./tech-day.jsx";
+import { JobPhotos, IntakeSignature, JobNotes, QualityCheck, BinField } from "./job-extras.jsx";
 import { buildCustomers } from "./customers.js";
+import { useBench, suggestTech, TemplateBar, TeamSkills, targetOf } from "./bench-settings.jsx";
 import { SYMPTOMS, PARTS, diagnose, stockFor, LIKELIHOOD_LABEL } from "./diagnosis-guide.js";
 
 /* =================================================================
@@ -124,6 +126,7 @@ export default function RepairTickets() {
   const [stockPrefill, setStockPrefill] = useState("");
   const [intakeFrom, setIntakeFrom] = useState(null);
   const [reqView, setReqView] = useState("new");
+  const [bench, saveBench] = useBench();
   const reqState = (r) => (r.closedAt || r.ticketId || r.visitStatus === "cancelled" || r.visitStatus === "done" ? "closed" : r.status === "new" ? "new" : "contacted");
   const liveStock = (partsStock || []).filter((p) => p && !p.deleted);
   const doorCount = repairRequests.filter((r) => r.method === "doorstep" && !["done", "cancelled"].includes(r.visitStatus)).length;
@@ -338,7 +341,7 @@ export default function RepairTickets() {
       customer: shop ? { name: "Shop stock", phone: "", email: "" } : { name: data.name, phone: data.phone, email: data.email },
       device: { brand: data.brand, model: data.model, imei: data.imei || "", storage: data.storage || "", colour: data.colour || "", condition: data.condition || "" },
       inventoryItemId: shop ? data.inventoryItemId || null : null,
-      symptoms: data.symptoms || [], partsNeeded: [], priority: data.priority || "normal", dueAt: data.dueAt || null,
+      symptoms: data.symptoms || [], partsNeeded: data.partLabel ? [{ partId: `custom-${Date.now().toString(36)}`, label: data.partLabel, done: false, at: now, by: staffName || "" }] : [], ...(data.bin ? { bin: data.bin } : {}), priority: data.priority || "normal", dueAt: data.dueAt || null,
       assignedTo: data.assignedTo || null, assignedAt: data.assignedTo ? now : null,
       issue: data.issue, repairTypeId: data.repairTypeId, estimateMins: Number(data.estimateMins) || 0,
       ...(data.passcode ? { passcode: data.passcode } : {}),
@@ -436,10 +439,11 @@ export default function RepairTickets() {
         </div>
 
         {view === "intake" && <IntakeForm key={intakeFrom ? intakeFrom.id : "new"} colors={colors} repairTypes={REPAIR_TYPES} team={team} me={staffName} inventory={inventory} onCreate={createTicket} prefill={intakeFrom}
-          pastCustomers={buildCustomers({ tickets: tickets || [], requests: repairRequests })} />}
+          pastCustomers={buildCustomers({ tickets: tickets || [], requests: repairRequests })} bench={bench} onSaveBench={saveBench} tickets={tickets || []} />}
 
         {view === "myday" && <TechDay tickets={tickets || []} me={staffName} labels={STATUS_LABELS} nextStatus={NEXT_STATUS} partState={partState} stock={liveStock}
-          repairName={(t) => (REPAIR_TYPES.find((r) => r.id === t.repairTypeId) || {}).label || "Repair"} onOpen={(id) => { setOpenId(id); setView("queue"); }} onUpdate={updateTicket} />}
+          repairName={(t) => (REPAIR_TYPES.find((r) => r.id === t.repairTypeId) || {}).label || "Repair"} onOpen={(id) => { setOpenId(id); setView("queue"); }} onUpdate={updateTicket} target={targetOf(bench, staffName)} />}
+        {view === "myday" && <TeamSkills bench={bench} onSave={saveBench} team={team} repairTypes={REPAIR_TYPES} canEdit={hasArea("reports")} />}
 
         {view === "visits" && <DoorstepCalendar requests={repairRequests} team={team} onUpdate={updateRequest} onStartTicket={(r) => { setIntakeFrom(r); setView("intake"); }} />}
 
@@ -569,7 +573,7 @@ export default function RepairTickets() {
   );
 }
 
-function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefill, pastCustomers = [] }) {
+function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefill, pastCustomers = [], bench = [], onSaveBench, tickets = [] }) {
   const { panel2, paper, muted, brass, brassDim, red, line } = colors;
   const p = prefill || {}; // a website repair request being booked in
   const [jobType, setJobType] = useState("customer");
@@ -585,6 +589,18 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
   const [scanNote, setScanNote] = useState("");
   const [picked, setPicked] = useState(!!p.name);
   const [passcode, setPasscode] = useState("");
+  const [partLabel, setPartLabel] = useState("");
+  const [bin, setBin] = useState("");
+  const best = suggestTech({ bench, team, tickets, repairTypeId });
+  function applyTemplate(t) {
+    if (t.brand && !brand.trim()) setBrand(t.brand);
+    if (t.model && !model.trim()) setModel(t.model);
+    if (t.repairTypeId) setRepairTypeId(t.repairTypeId);
+    if (t.issue) setIssue(t.issue);
+    if (t.quotedPrice != null && t.quotedPrice !== "") setQuotedPrice(String(t.quotedPrice));
+    if (t.estimateMins) setEstimateMins(String(t.estimateMins));
+    setPartLabel(t.partLabel || "");
+  }
   // Past customers matching what's typed: two letters of a name or three digits of a phone.
   const matches = (() => {
     const n = name.trim().toLowerCase(), d = phone.replace(/\D/g, "");
@@ -612,6 +628,9 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
   const toggleSymptom = (id) => setSymptoms((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
 
   return (
+    <>
+    {onSaveBench && <TemplateBar bench={bench} onSave={onSaveBench} onApply={applyTemplate} canDelete={hasArea("reports")}
+      current={repairTypeId ? { brand, model, repairTypeId, repairLabel: (repairTypes.find((r) => r.id === repairTypeId) || {}).label, issue, quotedPrice, estimateMins, partLabel } : null} />}
     <div>
       <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Job type</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, marginBottom: 16 }}>
@@ -691,6 +710,9 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
           <option value="">Assign later</option>
           {names.map((u) => <option key={u.username} value={u.username}>{u.username}{u.role === "technician" ? " (technician)" : ""}</option>)}
         </select>
+        {best && best.user !== assignedTo && <button type="button" onClick={() => setAssignedTo(best.user)} style={{ ...chip(false), flex: "1 1 100%", textAlign: "left" }}>Suggested: <b>{best.user}</b> (does this repair, {best.open} open job{best.open === 1 ? "" : "s"}) · tap to assign</button>}
+        <input value={partLabel} onChange={(e) => setPartLabel(e.target.value)} placeholder="Part needed (optional, e.g. iPhone 13 screen)" aria-label="Part needed" style={{ ...inputStyle, flex: "2 1 220px" }} />
+        <input value={bin} onChange={(e) => setBin(e.target.value.toUpperCase().slice(0, 12))} placeholder="Shelf / bin (e.g. A3)" aria-label="Shelf or bin" style={{ ...inputStyle, flex: "1 1 120px" }} />
         <select value={priority} onChange={(e) => setPriority(e.target.value)} aria-label="Priority" style={{ ...inputStyle, flex: "1 1 120px" }}>
           <option value="normal">Normal</option><option value="urgent">Urgent</option>
         </select>
@@ -714,13 +736,14 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
       {!ready && <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Needs: {[!shop && !name.trim() && "name", !shop && !phone.trim() && "phone", !brand.trim() && "brand", !model.trim() && "model", !repairTypeId && "repair type", !shop && !quotedPrice && "quote"].filter(Boolean).join(", ")}</div>}
 
       <button disabled={!ready} onClick={() => onCreate({ jobType, name, phone, email, brand: brand.trim(), model: model.trim(), imei: imei.trim(), storage: storage.trim(), colour: colour.trim(), condition: condition.trim(),
-          inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, estimateMins, dueAt: dueAt || null, passcode: shop ? "" : passcode.trim(),
+          inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, estimateMins, dueAt: dueAt || null, passcode: shop ? "" : passcode.trim(), partLabel: partLabel.trim(), bin: bin.trim(),
           quotedPrice: parseFloat(quotedPrice) || 0, deposit: parseFloat(deposit) || 0, depositPayMethod })}
         style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 6,
           background: ready ? "var(--mr-brand-fill)" : line, color: ready ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
         {shop ? "Create shop job" : "Create job ticket"}
       </button>
     </div>
+    </>
   );
 }
 
@@ -831,6 +854,8 @@ function RepairBoard({ colors, tickets, repairTypes, onOpen, onMove }) {
                     {appr === "waiting" && chip("Price sent", brass)}
                     {appr === "approve" && chip("✓ Approved", green)}
                     {appr === "decline" && chip("Declined", red)}
+                    {t.bin && chip(`📦 ${t.bin}`, muted)}
+                    {t.qc && t.qc.passedAt && chip("✓ QC", green)}
                   </div>
                 </button>
                 <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
@@ -959,6 +984,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>{ticket.device.brand} {ticket.device.model}{ticket.device.storage ? ` ${ticket.device.storage}` : ""}{ticket.device.colour ? ` · ${ticket.device.colour}` : ""} · {repairTypes.find((r) => r.id === ticket.repairTypeId)?.label}</div>
         {ticket.device.imei && <div style={{ fontSize: 12.5, marginBottom: 4 }}>IMEI / serial: <span style={{ fontFamily: "ui-monospace, monospace" }}>{ticket.device.imei}</span></div>}
         {!shop && !["completed", "not_repairable", "cancelled"].includes(ticket.status) && <Passcode value={ticket.passcode || ""} onSave={(v) => onUpdate({ passcode: v })} colors={colors} />}
+        <BinField value={ticket.bin} onSave={(v) => onUpdate({ bin: v })} />
         {ticket.device.condition && <div style={{ fontSize: 12.5, color: muted, marginBottom: 4 }}>Condition on arrival: {ticket.device.condition}</div>}
         <div style={{ fontSize: 13 }}>{shop ? "Shop phone (fixing to sell)" : `${ticket.customer.name} · ${ticket.customer.phone}`}</div>
         {ticket.dueAt && <div style={{ fontSize: 12.5, color: new Date(ticket.dueAt) < new Date() && !["completed", "not_repairable", "cancelled"].includes(ticket.status) ? red : muted, marginTop: 4 }}>Promised {whenText(ticket.dueAt)}{!["completed", "not_repairable", "cancelled"].includes(ticket.status) ? ` (${untilText(ticket.dueAt)})` : ""}</div>}
@@ -1037,6 +1063,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
           <button key={s} onClick={() => {
               if (s === "completed" && shop) { onCompleteShop().then((m) => setShopDoneNote(m || "")); return; }
               if (s === "completed") { setCompletingPayMethod("cash"); return; } // needs a payment method first — see below
+              if (s === "ready_for_pickup" && !(ticket.qc && ticket.qc.passedAt) && !window.confirm("The quality check isn't done yet. Mark it ready anyway?")) return;
               onUpdate({ status: s, completedAt: ticket.completedAt }, true);
             }}
             style={{ padding: "7px 12px", borderRadius: 3, fontSize: 12, cursor: "pointer",
@@ -1057,6 +1084,11 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
       {shopDoneNote && <div role="status" style={{ fontSize: 13, color: green, border: `1px solid ${green}`, borderRadius: 3, padding: "10px 12px", marginBottom: 16 }}>{shopDoneNote}</div>}
 
       <TechJob colors={colors} ticket={ticket} team={team} me={me} onUpdate={onUpdate} />
+
+      <JobPhotos ticket={ticket} />
+      {!shop && <IntakeSignature ticket={ticket} onSigned={() => onUpdate({ signedAt: new Date().toISOString() })} />}
+      <JobNotes ticket={ticket} me={me} onUpdate={onUpdate} />
+      {["in_repair", "ready_for_pickup", "awaiting_parts"].includes(ticket.status) && <QualityCheck ticket={ticket} me={me} onUpdate={onUpdate} />}
 
       <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Problems</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>

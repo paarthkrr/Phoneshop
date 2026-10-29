@@ -894,6 +894,7 @@ const ACCESS = {
   sales: { read: "all", write: "all" },               // the repair bench records repair payments as sales
   repair_requests: { read: "all", write: "all" },
   repair_tickets: { read: "all", write: "all" },
+  bench_settings: { read: "all", write: "all" },     // technician skills, daily targets, job templates (bench-settings.jsx)
   parts_stock: { read: "all", write: "all" },
   notification_queue: { read: "all", write: "all" },
   staff_on_shift: { read: "all", write: "all" },
@@ -2097,6 +2098,7 @@ require("./chat.js").register(app, { loadSharedList, loadSharedValue, makeLimite
 require("./reviews.js").register(app, { makeLimiter });
 require("./address.js").register(app, { makeLimiter });
 require("./analytics.js").register(app, { pool, makeLimiter, requireAuth, hasArea, schemaReady });
+require("./job-photos.js").register(app, { pool, makeLimiter, requireAuth, tryAuth, loadSharedList, schemaReady });
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
