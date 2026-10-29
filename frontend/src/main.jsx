@@ -36,6 +36,9 @@ class ErrorBoundary extends React.Component {
 }
 
 const rootEl = document.getElementById("root");
+// The page's own pre-built content (index.html / the build): React shows a copy of it
+// until the real page has drawn, instead of a blank screen while the code loads.
+window.__BOOT = { path: window.location.pathname, html: (rootEl.innerHTML || "").replace(/\sid="boot-msg"/, "") };
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
     <ErrorBoundary>

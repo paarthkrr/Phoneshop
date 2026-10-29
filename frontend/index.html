@@ -8,12 +8,34 @@
          shop's brand colours from the last visit, so dark mode never flashes white. -->
     <script>try{var c=localStorage.getItem("mr-theme")||"system",d=c==="dark"||(c==="system"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light");var b=JSON.parse(localStorage.getItem("mr-brand")||"{}"),h=/^#[0-9a-f]{6}$/i;if(h.test(b.brand||""))document.documentElement.style.setProperty("--mr-brand-base",b.brand);if(h.test(b.accent||""))document.documentElement.style.setProperty("--mr-accent-base",b.accent);if(d)document.querySelector('meta[name="theme-color"]').setAttribute("content","#0B0F17")}catch(e){}</script>
     <style>
-      /* Critical: hide boot message by default, show only if app fails */
+      /* First paint, before the app's code arrives: the site's own header and colours
+         (light or dark), so the page never flashes white. React keeps showing this
+         until the real page has drawn (src/main.jsx, App.jsx). */
+      html, body { background: #FAFAFA; margin: 0; }
+      html[data-theme="dark"], html[data-theme="dark"] body { background: #0B0F17; }
+      html.mr-intro, html.mr-intro body { background: #0F1B3D; }
       #boot-msg { display: none; }
       html:not(.app-mounted) #boot-msg { display: block; }
-      /* Prevent white flash: set background immediately */
-      html, body { background: #FAFAFA; margin: 0; }
-      html.mr-intro, html.mr-intro body { background: #0F1B3D; }
+      .bm { min-height: 100vh; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #374151; line-height: 1.6; }
+      .bm-strip { background: #7A1F2B; color: #fff; font-size: 12px; padding: 6px 16px; text-align: center; }
+      .bm-bar { position: relative; display: flex; align-items: center; gap: 10px; height: 58px; padding: 0 16px; background: #fff; border-bottom: 1px solid #E5E7EB; overflow: hidden; }
+      .bm-name { font-size: 18px; color: #0F1B3D; } .bm-name b { color: #2150C8; }
+      .bm-prog { position: absolute; left: 0; bottom: 0; height: 2px; width: 35%; background: #2150C8; animation: bmProg 1.1s ease-in-out infinite; }
+      @keyframes bmProg { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+      .bm-body { max-width: 760px; margin: 0 auto; padding: 32px 20px 48px; }
+      .bm h1 { font-size: clamp(26px, 6vw, 34px); line-height: 1.15; color: #111827; margin: 0 0 12px; }
+      .bm h2 { font-size: 20px; color: #111827; margin: 26px 0 10px; } .bm h3 { font-size: 16px; color: #111827; margin: 14px 0 4px; }
+      .bm a { color: #2150C8; text-decoration: none; margin: 0 12px 6px 0; display: inline-block; }
+      .bm-home .bm-body { max-width: none; min-height: 70vh; background: radial-gradient(90% 70% at 50% 30%, #3A1520 0%, #1A0B11 60%, #0D0609 100%); color: #E8D9DD; }
+      .bm-home .bm-body > * { max-width: 720px; margin-left: auto; margin-right: auto; }
+      .bm-home h1 { color: #fff; } .bm-home a { color: #F0B9C4; }
+      html[data-theme="dark"] .bm { color: #CBD2DC; }
+      html[data-theme="dark"] .bm-bar { background: #111722; border-color: #1F2633; }
+      html[data-theme="dark"] .bm-name { color: #F3F4F6; } html[data-theme="dark"] .bm-name b, html[data-theme="dark"] .bm a { color: #8FB0FF; }
+      html[data-theme="dark"] .bm h1, html[data-theme="dark"] .bm h2, html[data-theme="dark"] .bm h3 { color: #F3F4F6; }
+      html[data-theme="dark"] .bm-home a { color: #F0B9C4; }
+      html.mr-intro .bm { visibility: hidden; }
+      .bm-inapp .bm-strip, .bm-inapp .bm-bar { display: none; } .bm-inapp .bm { min-height: 60vh; }
     </style>
 
     <!-- Never usable inside another site's frame (clickjacking the staff portal). The host
@@ -21,7 +43,6 @@
     <script>if (window.self !== window.top) { document.documentElement.style.display = "none"; try { window.top.location = window.self.location.href; } catch (e) {} }</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="modulepreload" href="/assets/app.js" crossorigin>
-    <link rel="preload" href="/assets/main.css" as="style">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&family=Outfit:wght@300;400;600;700;800&display=optional" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -176,29 +197,7 @@
   </head>
   <body>
     <div id="root">
-      <div id="boot-msg" style="position:fixed;inset:0;display:flex;flex-direction:column;background:#FAFAFA;font-family:system-ui,sans-serif;">
-        <div style="background:#7A1F2B;padding:8px 16px;display:flex;align-items:center;gap:8px;">
-          <span style="font-size:14px;">🏠</span>
-          <span style="color:#fff;font-size:13px;">Home collection across Sydney · Conditions apply</span>
-        </div>
-        <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eee;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:36px;height:36px;background:#2150C8;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">→</div>
-            <span style="font-size:18px;font-weight:700;color:#111;">Mobile <span style="color:#2150C8;">Recellr</span></span>
-          </div>
-          <div style="width:40px;height:40px;border:1px solid #ddd;border-radius:8px;display:flex;align-items:center;justify-content:center;">☰</div>
-        </div>
-        <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;">
-          <div style="width:40px;height:40px;border:3px solid #E5E7EB;border-top-color:#7A1F2B;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-          <p style="margin-top:12px;font-size:13px;color:#6B7280;">Loading...</p>
-        </div>
-        <div style="padding:16px;display:flex;gap:10px;border-top:1px solid #eee;">
-          <div style="flex:1;background:#2150C8;color:#fff;padding:14px;border-radius:8px;text-align:center;font-weight:600;">Get a quote</div>
-          <div style="flex:1;border:1px solid #ddd;padding:14px;border-radius:8px;text-align:center;">📞 Call us</div>
-          <div style="width:50px;background:#22C55E;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">💬</div>
-        </div>
-        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      </div>
+      <div id="boot-msg" class="bm bm-page"><div class="bm-strip">Home collection across Sydney · Conditions apply</div><div class="bm-bar"><img src="/logo-mark.svg" width="28" height="28" alt=""><span class="bm-name">Mobile <b>Recellr</b></span><span class="bm-prog"></span></div><div class="bm-body"></div></div>
     </div>
     <script type="module" src="/src/boot.js"></script>
   </body>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import CustomersTab from "./customers-tab.jsx";
 import WebsiteFunnel from "./website-funnel.jsx";
 import { buildPnl, monthsIn, toCsv, KIND_LABELS } from "./pnl.js";
 import { sydneyMonth, sydneyToday } from "./sydney-time.js";
@@ -211,7 +212,7 @@ export default function CRMDashboard() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');`}</style>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 60px" }}>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, letterSpacing: '-0.01em', marginBottom: 4 }}>Customers & Reports</div>
-        <div style={{ color: muted, fontSize: 13, marginBottom: 18 }}>{customers.length} customer{customers.length === 1 ? "" : "s"} on record, built from every trade-in and sale.</div>
+        <div style={{ color: muted, fontSize: 13, marginBottom: 18 }}>Customers, money in and out, technician pay, reports and expenses.</div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20, borderBottom: `1px solid ${line}`, paddingBottom: 14 }}>
           {TABS.map((t) => (
@@ -223,51 +224,7 @@ export default function CRMDashboard() {
           ))}
         </div>
 
-        {tab === "Customers" && !openCustomer && (
-          <>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or email"
-              style={{ width: "100%", padding: "12px 14px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 14, marginBottom: 14, outline: "none", boxSizing: "border-box" }} />
-            {filteredCustomers.length === 0 && <div style={{ color: muted, fontSize: 13 }}>No customers yet — they'll show up here once orders or sales exist.</div>}
-            {filteredCustomers.map((c) => (
-              <button key={c.key} onClick={() => setOpenCustomer(c)}
-                style={{ display: "block", width: "100%", textAlign: "left", padding: "12px 14px", marginBottom: 8, borderRadius: 3, border: `1px solid ${line}`, background: panel, color: paper, cursor: "pointer" }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 14 }}>{c.name} {c.repeat && <span style={{ color: brass, fontSize: 11 }}>· repeat</span>}</span>
-                  <span style={{ fontSize: 12, color: muted }}>{c.transactionCount} transaction{c.transactionCount === 1 ? "" : "s"}</span>
-                </div>
-                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{c.email || "no email on file"}</div>
-                <div style={{ fontSize: 12, marginTop: 4 }}>
-                  {c.paidToThem > 0 && <span style={{ color: red, marginRight: 12 }}>paid them {fmt(c.paidToThem, c.timeline[0]?.region)}</span>}
-                  {c.paidByThem > 0 && <span style={{ color: green }}>paid us {fmt(c.paidByThem, c.timeline[0]?.region)}</span>}
-                </div>
-              </button>
-            ))}
-          </>
-        )}
-
-        {openCustomer && (
-          <div>
-            <button onClick={() => setOpenCustomer(null)} style={{ background: "none", border: "none", color: brass, fontSize: 13, marginBottom: 14, cursor: "pointer" }}>← Back to customers</button>
-            <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 16 }}>
-              <div style={{ fontSize: 16 }}>{openCustomer.name}</div>
-              <div style={{ fontSize: 13, color: muted }}>{openCustomer.email || "no email"} {openCustomer.phone && `· ${openCustomer.phone}`}</div>
-              <div style={{ display: "flex", gap: 20, marginTop: 10 }}>
-                <div><div style={{ fontSize: 11, color: muted }}>We've paid them</div><div style={{ color: red, fontSize: 16 }}>{fmt(openCustomer.paidToThem)}</div></div>
-                <div><div style={{ fontSize: 11, color: muted }}>They've paid us</div><div style={{ color: green, fontSize: 16 }}>{fmt(openCustomer.paidByThem)}</div></div>
-              </div>
-            </div>
-            <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Full history</div>
-            {openCustomer.timeline.map((t, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: i === 0 ? "none" : `1px solid ${line}` }}>
-                <div>
-                  <div style={{ fontSize: 13 }}>{t.type === "sold_to_us" ? "Sold us" : "Bought"} — {t.device}</div>
-                  <div style={{ fontSize: 11, color: muted }}>{new Date(t.date).toLocaleDateString()} · {t.ref} · {t.status.replace(/_/g, " ")}</div>
-                </div>
-                <div style={{ fontSize: 13, color: t.type === "sold_to_us" ? red : green }}>{fmt(t.amount, t.region)}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        {tab === "Customers" && <CustomersTab me={(() => { try { return (window.shopAuth && window.shopAuth.currentUser && window.shopAuth.currentUser()?.username) || ""; } catch (e) { return ""; } })()} />}
 
         {tab === "Reports" && report && (
           <div>

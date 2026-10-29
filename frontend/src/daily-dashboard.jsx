@@ -135,10 +135,10 @@ export default function DailyDashboard() {
       // A record this person's access doesn't cover just loads as empty; its numbers
       // then simply don't show (the sections below check access before rendering).
       const keys = ["orders", "inventory", "sales", "repair_tickets", "till_records", "expenses", "repair_requests", "purchase_orders",
-        "accessory_orders", "price_match_requests", "support_queries", "bulk_quote_requests", "quote_leads", "parts_stock", "accessories"];
+        "accessory_orders", "price_match_requests", "support_queries", "bulk_quote_requests", "quote_leads", "parts_stock", "accessories", "customers"];
       const v = await Promise.all(keys.map((k) => loadJSON(k, true)));
-      const [orders, inventory, sales, tickets, till, expenses, repairRequests, webOrders, accessoryOrders, priceMatches, support, bulk, leads, partsStock, accessories] = v;
-      setData({ orders, inventory, sales, tickets, till, expenses, repairRequests, webOrders, accessoryOrders, priceMatches, support, bulk, leads, partsStock, accessories });
+      const [orders, inventory, sales, tickets, till, expenses, repairRequests, webOrders, accessoryOrders, priceMatches, support, bulk, leads, partsStock, accessories, customers] = v;
+      setData({ orders, inventory, sales, tickets, till, expenses, repairRequests, webOrders, accessoryOrders, priceMatches, support, bulk, leads, partsStock, accessories, customers });
     })();
   }, []);
 
@@ -282,6 +282,7 @@ export default function DailyDashboard() {
     { to: "/portal/pos", label: "Online phone orders to fulfil", n: s.waiting.webOrders, tone: "" },
     { to: "/portal/pos", label: "Accessory orders to pack or hand over", n: s.waiting.accessoryOrders, tone: "" },
     { to: "/portal/pricing", label: "Price match requests to answer", n: s.waiting.priceMatches, tone: "" },
+    { to: "/portal/crm", label: "Customer reminders due (call back, follow up)", n: (data.customers || []).filter((c) => c && !c.deleted).reduce((a, c) => a + (c.reminders || []).filter((r) => !r.done && Date.parse(r.dueAt) <= Date.now() + 2 * 3600e3).length, 0), tone: "r" },
     { to: "/portal/crm", label: "Customer questions still open", n: s.waiting.support, tone: "r" },
     { to: "/portal/crm", label: "Business quote requests to reply to", n: s.waiting.bulk, tone: "" },
     { to: "/portal/crm", label: "Quotes not followed up (price still held)", n: s.waiting.leads, tone: "" },
