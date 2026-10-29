@@ -11,7 +11,7 @@ const CLOSED = ["completed", "not_repairable", "cancelled"];
 const ago = (iso) => { const m = Math.max(0, (Date.now() - Date.parse(iso || "")) / 60000); return isNaN(m) ? "" : m < 60 ? `${Math.round(m)} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} days`; };
 const sameDay = (iso) => iso && new Date(iso).toDateString() === new Date().toDateString();
 
-export default function TechDay({ tickets, me, labels, nextStatus, partState, stock, repairName, onOpen, onUpdate }) {
+export default function TechDay({ tickets, me, labels, nextStatus, partState, stock, repairName, onOpen, onUpdate, target = 0 }) {
   const open = tickets.filter((t) => !CLOSED.includes(t.status));
   const mine = open.filter((t) => t.assignedTo === me && t.status !== "ready_for_pickup");
   const free = open.filter((t) => !t.assignedTo && t.status !== "ready_for_pickup");
@@ -78,7 +78,7 @@ export default function TechDay({ tickets, me, labels, nextStatus, partState, st
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginBottom: 6 }}>
-        {[["My jobs", mine.length, ""], ["Late", late.length, late.length ? "var(--mr-bad)" : ""], ["Due today", dueToday.length, ""], ["Finished today", doneToday.length, "var(--mr-ok)"], ["Ready, not collected", ready.length, ""]].map(([k, v, c]) => (
+        {[["My jobs", mine.length, ""], ["Late", late.length, late.length ? "var(--mr-bad)" : ""], ["Due today", dueToday.length, ""], [target ? `Finished today (target ${target})` : "Finished today", target ? `${doneToday.length}/${target}` : doneToday.length, target && doneToday.length >= target ? "var(--mr-ok)" : target ? "var(--mr-text)" : "var(--mr-ok)"], ["Ready, not collected", ready.length, ""]].map(([k, v, c]) => (
           <div key={k} style={{ border: "1px solid var(--mr-line)", borderRadius: 12, padding: "10px 12px", background: "var(--mr-surface)" }}>
             <div style={{ fontSize: 12, color: "var(--mr-muted)" }}>{k}</div><div style={{ fontSize: 22, fontWeight: 800, color: c || "var(--mr-text)" }}>{v}</div>
           </div>

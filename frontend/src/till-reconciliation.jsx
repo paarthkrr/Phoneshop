@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { sydneyDay, sydneyToday } from "./sydney-time.js";
+import { hasArea } from "./roles.js";
 
 /* =================================================================
    TILL RECONCILIATION
@@ -44,6 +45,22 @@ function getAuthedUser() {
 const todayStr = sydneyToday;
 const fmt = (n) => `$${(Math.round((n || 0) * 100) / 100).toLocaleString()}`;
 
+// Fix a closed day's count (miscounted, found a note later), always with a reason that stays on the record.
+function TillCorrect({ r, colors, onSave }) {
+  const { line, muted, paper, brass } = colors;
+  const [open, setOpen] = useState(false); const [v, setV] = useState(String(r.actualClosing ?? "")); const [why, setWhy] = useState("");
+  if (!open) return <button type="button" onClick={() => setOpen(true)} style={{ marginTop: 6, background: "none", border: "none", color: brass, fontSize: 12, cursor: "pointer", padding: 0 }}>Correct the count</button>;
+  return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+      <span style={{ fontSize: 12, color: muted }}>Counted $</span>
+      <input value={v} onChange={(e) => setV(e.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal" aria-label="Corrected count" style={{ width: 90, padding: "5px 8px", border: `1px solid ${line}`, borderRadius: 3, background: "transparent", color: paper }} />
+      <input value={why} onChange={(e) => setWhy(e.target.value)} placeholder="Why? (e.g. $50 note found in the drawer)" aria-label="Reason" style={{ flex: "1 1 200px", padding: "5px 8px", border: `1px solid ${line}`, borderRadius: 3, background: "transparent", color: paper }} />
+      <button type="button" disabled={!why.trim() || v === ""} onClick={async () => { await onSave(parseFloat(v) || 0, why.trim()); setOpen(false); setWhy(""); }} style={{ padding: "5px 12px", border: "none", borderRadius: 3, background: brass, color: "#fff", cursor: "pointer" }}>Save</button>
+      <button type="button" onClick={() => setOpen(false)} style={{ padding: "5px 12px", border: `1px solid ${line}`, borderRadius: 3, background: "transparent", color: paper, cursor: "pointer" }}>Cancel</button>
+    </div>
+  );
+}
+
 export default function TillReconciliation() {
   const [sales, setSales] = useState(null);
   const [inventory, setInventory] = useState(null);
@@ -57,6 +74,7 @@ export default function TillReconciliation() {
   const [actualCount, setActualCount] = useState("");
   const [closingNotes, setClosingNotes] = useState("");
   const [view, setView] = useState("today"); // today | history
+  const canCorrect = hasArea("reports"); // owner and managers fix a closed day
   const [staffName, setStaffName] = useState("");
   const [authedUser, setAuthedUser] = useState(null);
 
@@ -252,6 +270,11 @@ export default function TillReconciliation() {
                   </span>
                 </div>
                 <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>Expected {fmt(r.expectedClosing)} · Counted {fmt(r.actualClosing)}</div>
+                {(r.corrections || []).map((c, i) => <div key={i} style={{ fontSize: 11.5, color: muted, marginTop: 2 }}>Corrected {fmt(c.from)} → {fmt(c.to)} by {c.by} on {new Date(c.at).toLocaleDateString("en-AU")}: {c.reason}</div>)}
+                {canCorrect && <TillCorrect r={r} colors={{ line, muted, paper, brass }} onSave={async (to, reason) => {
+                  await persist(records.map((x) => (x.date === r.date ? { ...x, actualClosing: to, discrepancy: Math.round((to - x.expectedClosing) * 100) / 100,
+                    corrections: [...(x.corrections || []), { from: x.actualClosing, to, reason, by: staffName || "unattributed", at: new Date().toISOString() }] } : x)));
+                }} />}
               </div>
             ))}
           </div>

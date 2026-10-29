@@ -9,6 +9,7 @@ const isBsb = (v) => /^\d{6}$/.test(digits(v));
 const isAccount = (v) => /^\d{6,10}$/.test(digits(v));
 
 import React, { useState, useMemo } from "react";
+import { DamagePhotos } from "./job-extras.jsx";
 import { DOORSTEP, zoneForPostcode, doorstepFee, slotDays, expressAvailable } from "./doorstep.js";
 import useRepairPrices from "./use-repair-prices.js";
 
@@ -162,6 +163,7 @@ export default function Repairs() {
         <div style={{ maxWidth: 480, margin: "60px auto", padding: "0 16px", textAlign: "center" }}>
           <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 26, marginBottom: 10 }}>Got it — {submitted.id}</div>
           <div style={{ color: muted, fontSize: 14, marginBottom: 24 }}>We'll reach out at {submitted.email} to confirm details for your {submitted.deviceType.toLowerCase()}. {submitted.method === "doorstep" ? "This is a request, not a confirmed booking yet. We'll message you shortly to confirm the time slot and the technician who is coming." : submitted.method === "mailin" ? "We'll email you the postal address for your mail-in repair." : "Pop in any time during opening hours — most repairs are done the same day."}</div>
+          <DamagePhotos requestId={submitted.id} />
           <a href="/" className="cs-btn" style={{ padding: "12px 22px", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 14, fontWeight: 700, textDecoration: "none", borderRadius: 3, display: "inline-block" }}>Back to homepage</a>
         </div>
       </div>

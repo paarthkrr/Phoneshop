@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import CustomersTab from "./customers-tab.jsx";
+import RepairReports from "./repair-reports.jsx";
 import WebsiteFunnel from "./website-funnel.jsx";
 import { buildPnl, monthsIn, toCsv, KIND_LABELS } from "./pnl.js";
 import { sydneyMonth, sydneyToday } from "./sydney-time.js";
@@ -234,6 +235,7 @@ export default function CRMDashboard() {
 
         {tab === "Reports" && report && (
           <div>
+            <RepairReports colors={{ line, muted, paper }} />
             <WebsiteFunnel colors={{ line, muted, brass, paper }} />
             <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 13, color: muted, marginBottom: 10 }}>Revenue vs. payouts by month</div>

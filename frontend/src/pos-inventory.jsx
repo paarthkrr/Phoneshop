@@ -11,6 +11,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { ScanButton } from "./barcode-scanner.jsx";
 import { generateBarcode } from "./barcode-gen.js";
 import SalesTab from "./sales-tab.jsx";
+import { checkDiscount, DiscountReason, emailReceipt, topAccessories } from "./pos-extras.jsx";
 import { hasArea } from "./roles.js";
 import { publishPatch, pricePatch, wasPrice, MIN_DAYS_AT_OLD_PRICE } from "./price-history.js";
 
@@ -419,17 +420,21 @@ export default function POSInventory() {
                   subject: `Low stock: ${item.name}`, message: `${item.name} is down to ${newQty} unit(s). Consider reordering.`, relatedId: item.id });
               }
             }}
-            onSellOne={async (item, customerName, payMethod) => {
+            sales={sales} businessSettings={config?.businessSettings}
+            onSellOne={async (item, customerName, payMethod, discount, customerEmail) => {
               const newQty = Math.max(0, item.qtyOnHand - 1);
               await persistAccessories(accessories.map((a) => (a.id === item.id ? { ...a, qtyOnHand: newQty } : a)));
               if (newQty <= ACCESSORY_LOW_STOCK_THRESHOLD && item.qtyOnHand > ACCESSORY_LOW_STOCK_THRESHOLD) {
                 await queueNotification({ type: "low_stock_accessory", channel: "email", recipientEmail: "",
                   subject: `Low stock: ${item.name}`, message: `${item.name} is down to ${newQty} unit(s). Consider reordering.`, relatedId: item.id });
               }
-              const sale = { customerName: customerName || "Walk-in", brand: "Accessory", model: item.name, storage: item.category,
-                region: "AU", salePrice: item.sellPrice, costBasis: item.cost, payMethod,
+              const sale = { customerName: customerName || "Walk-in", customerEmail: customerEmail || "", brand: "Accessory", model: item.name, storage: item.category,
+                region: "AU", salePrice: Math.round(((Number(item.sellPrice) || 0) - (discount ? discount.amount : 0)) * 100) / 100, costBasis: item.cost, payMethod,
+                ...(discount ? { discount: { ...discount, by: staffName || "" } } : {}),
                 soldAt: new Date().toISOString(), staffHandled: staffName || "unattributed" };
-              await persistSales([{ ...sale, id: genId("SALE"), itemId: item.id }, ...sales]);
+              const rec = { ...sale, id: genId("SALE"), itemId: item.id };
+              await persistSales([rec, ...sales]);
+              return rec;
             }} />
         )}
 
@@ -867,14 +872,29 @@ function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplet
   );
 }
 
-function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
+function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne, sales = [], businessSettings }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [name, setName] = useState(""); const [category, setCategory] = useState(ACCESSORY_CATEGORIES[0]);
   const [compatibleWith, setCompatibleWith] = useState(""); const [imageUrl, setImageUrl] = useState(""); const [showOnline, setShowOnline] = useState(true);
   const [cost, setCost] = useState(""); const [sellPrice, setSellPrice] = useState(""); const [qty, setQty] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
   const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [notice, setNotice] = useState("");
+  const [off, setOff] = useState(""); const [offReason, setOffReason] = useState("");
+  // Sell one: an optional discount (needs a reason; counter staff up to the owner's limit) and an emailed receipt.
+  async function sell(a) {
+    const discount = Math.max(0, Math.min(Number(a.sellPrice) || 0, parseFloat(off) || 0));
+    const chk = checkDiscount(a.sellPrice, (Number(a.sellPrice) || 0) - discount, businessSettings);
+    if (!chk.ok) { setNotice(chk.message); return; }
+    if (discount > 0 && !offReason) { setNotice("Pick a reason for the discount first."); return; }
+    const sale = await onSellOne(a, customerName.trim(), payMethod, discount > 0 ? { amount: discount, pct: chk.pct, reason: offReason } : null, customerEmail.trim());
+    const mailed = sale && customerEmail.trim() ? await emailReceipt(sale, businessSettings) : false;
+    setNotice(`Sold ${a.name} to ${customerName.trim() || "Walk-in"} for ${fmt((Number(a.sellPrice) || 0) - discount, "AU")}${mailed ? `, receipt emailed` : ""}.`);
+    setOff(""); setOffReason("");
+    setTimeout(() => setNotice(""), 3500);
+  }
+  const quick = topAccessories(accessories, sales);
 
   const ready = name.trim() && cost !== "" && sellPrice !== "" && qty !== "";
 
@@ -926,7 +946,21 @@ function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
           </button>
         ))}
       </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        <input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="Customer email for the receipt (optional)" aria-label="Customer email" type="email"
+          style={{ flex: "2 1 220px", padding: "8px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13 }} />
+        <input value={off} onChange={(e) => setOff(e.target.value.replace(/[^\d.]/g, ""))} placeholder="Discount $ (optional)" aria-label="Discount" inputMode="decimal"
+          style={{ flex: "1 1 120px", padding: "8px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13 }} />
+      </div>
+      {parseFloat(off) > 0 && <DiscountReason value={offReason} onChange={setOffReason} pct={0} colors={colors} />}
       {notice && <div style={{ fontSize: 12, color: green, marginBottom: 10 }}>{notice}</div>}
+      {quick.length > 0 && <>
+        <div style={{ fontSize: 13, color: muted, marginBottom: 8 }}>Quick sell (best sellers)</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 16 }}>
+          {quick.map((a) => <button key={a.id} type="button" onClick={() => sell(a)} style={{ padding: "12px 10px", borderRadius: 3, border: `1px solid ${green}`, background: "transparent", color: paper, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{a.name}</div><div style={{ fontSize: 12, color: green }}>{fmt(a.sellPrice, "AU")} · {a.qtyOnHand} left</div></button>)}
+        </div>
+      </>}
 
       <div style={{ fontSize: 13, color: muted, marginBottom: 10 }}>Stock ({accessories.length} item{accessories.length === 1 ? "" : "s"})</div>
       {accessories.length === 0 && <div style={{ color: muted, fontSize: 13 }}>No accessories added yet.</div>}
@@ -944,11 +978,7 @@ function AccessoriesTab({ colors, accessories, onAdd, onAdjust, onSellOne }) {
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => onAdjust(a.id, -1)} disabled={a.qtyOnHand <= 0} style={{ width: 28, height: 28, borderRadius: 2, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>−</button>
               <button onClick={() => onAdjust(a.id, 1)} style={{ width: 28, height: 28, borderRadius: 2, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>+</button>
-              <button disabled={a.qtyOnHand <= 0} onClick={() => {
-                  onSellOne(a, customerName.trim(), payMethod);
-                  setNotice(`Sold ${a.name} to ${customerName.trim() || "Walk-in"} for ${fmt(a.sellPrice, "AU")}.`);
-                  setTimeout(() => setNotice(""), 2500);
-                }} style={{ marginLeft: "auto", padding: "6px 14px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: "transparent", color: a.qtyOnHand > 0 ? green : muted, cursor: a.qtyOnHand > 0 ? "pointer" : "default" }}>
+              <button disabled={a.qtyOnHand <= 0} onClick={() => sell(a)} style={{ marginLeft: "auto", padding: "6px 14px", borderRadius: 2, fontSize: 12, border: `1px solid ${green}`, background: "transparent", color: a.qtyOnHand > 0 ? green : muted, cursor: a.qtyOnHand > 0 ? "pointer" : "default" }}>
                 Sell one
               </button>
             </div>
@@ -1437,6 +1467,10 @@ function SellTab({ colors, inventory, regions, onSell, staffName, businessSettin
   const [customerEmail, setCustomerEmail] = useState("");
   const [receipt, setReceipt] = useState(null);
   const [payMethod, setPayMethod] = useState("cash");
+  const [discountReason, setDiscountReason] = useState("");
+  const [mailed, setMailed] = useState("");
+  const disc = chosen ? checkDiscount(chosen.listedPrice, salePrice, businessSettings) : { ok: true, pct: 0 };
+  const canSell = customerName.trim() && salePrice && disc.ok && (!disc.pct || discountReason);
 
   return (
     <div>
@@ -1470,6 +1504,8 @@ function SellTab({ colors, inventory, regions, onSell, staffName, businessSettin
           {Number(salePrice) > 0 && Number(chosen.costBasis) > 0 && Number(salePrice) < Number(chosen.costBasis) && (
             <div role="alert" style={{ fontSize: 12.5, color: "#B42318", marginBottom: 10 }}>⚠ That's below what this phone cost us ({fmt(chosen.costBasis, chosen.region, regions)}).</div>
           )}
+          {disc.pct > 0 && (disc.ok ? <DiscountReason value={discountReason} onChange={setDiscountReason} pct={disc.pct} colors={colors} />
+            : <div role="alert" style={{ fontSize: 12.5, color: "#B42318", marginBottom: 10 }}>{disc.message}</div>)}
           <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
             {[{ id: "cash", label: "Cash" }, { id: "card", label: "Card" }, { id: "bank", label: "Bank transfer" }].map((m) => (
               <button key={m.id} onClick={() => setPayMethod(m.id)} style={{ flex: 1, padding: "8px", borderRadius: 3, fontSize: 12, cursor: "pointer",
@@ -1480,16 +1516,18 @@ function SellTab({ colors, inventory, regions, onSell, staffName, businessSettin
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setChosen(null)} style={{ padding: "10px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 13, cursor: "pointer" }}>Back</button>
-            <button disabled={!customerName.trim() || !salePrice}
+            <button disabled={!canSell}
               onClick={() => {
-                const sale = { customerName, customerEmail, salePrice: parseFloat(salePrice), brand: chosen.brand, model: chosen.model, storage: chosen.storage, region: chosen.region, costBasis: chosen.costBasis, payMethod };
+                const off = Math.max(0, (Number(chosen.listedPrice) || 0) - parseFloat(salePrice));
+                const sale = { customerName, customerEmail, salePrice: parseFloat(salePrice), brand: chosen.brand, model: chosen.model, storage: chosen.storage, region: chosen.region, costBasis: chosen.costBasis, payMethod,
+                  ...(off > 0 ? { discount: { amount: Math.round(off * 100) / 100, pct: disc.pct, reason: discountReason, by: staffName || "" } } : {}) };
                 // One sale number for both the receipt and the records.
                 const id = genId("SALE");
                 onSell(chosen, { ...sale, id });
-                setReceipt({ ...sale, id, staffHandled: staffName || "unattributed" });
-                setChosen(null);
+                setReceipt({ ...sale, id, soldAt: new Date().toISOString(), staffHandled: staffName || "unattributed" });
+                setChosen(null); setDiscountReason(""); setMailed("");
               }}
-              style={{ flex: 1, padding: "10px", borderRadius: 3, border: "none", background: customerName.trim() && salePrice ? green : line, color: customerName.trim() && salePrice ? "#0c1a12" : muted, fontSize: 13, fontWeight: 600, cursor: customerName.trim() && salePrice ? "pointer" : "default" }}>
+              style={{ flex: 1, padding: "10px", borderRadius: 3, border: "none", background: canSell ? green : line, color: canSell ? "#0c1a12" : muted, fontSize: 13, fontWeight: 600, cursor: canSell ? "pointer" : "default" }}>
               Complete sale
             </button>
           </div>
@@ -1536,6 +1574,10 @@ function SellTab({ colors, inventory, regions, onSell, staffName, businessSettin
             <button onClick={() => window.print()} style={{ flex: 1, padding: "10px", borderRadius: 3, border: `1px solid ${brass}`, background: "transparent", color: brass, fontSize: 13, cursor: "pointer" }}>
               Print {gstOn ? "tax invoice" : "receipt"}
             </button>
+            {receipt.customerEmail && <button onClick={async () => setMailed((await emailReceipt(receipt, businessSettings)) ? "sent" : "failed")} disabled={mailed === "sent"}
+              style={{ flex: 1, padding: "10px", borderRadius: 3, border: `1px solid ${brass}`, background: "transparent", color: brass, fontSize: 13, cursor: "pointer" }}>
+              {mailed === "sent" ? "✓ Emailed" : mailed === "failed" ? "Couldn't send, try again" : `Email to ${receipt.customerEmail}`}
+            </button>}
             <button onClick={() => setReceipt(null)} style={{ flex: 1, padding: "10px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 13, cursor: "pointer" }}>
               New sale
             </button>

@@ -342,6 +342,7 @@ export default function AdminPricingConsole() {
               { key: "tradeInPostalAddress", label: "Postal address for trade-ins (shown to customers who choose to post)" },
               { key: "pickupArea", label: "Doorstep pickup area, e.g. Chatswood & North Shore (leave blank to switch pickup off)" },
               { key: "payLaterInStore", label: "Pay-later accepted in store, e.g. Afterpay, Zip (leave blank if none)" },
+              { key: "staffDiscountLimitPct", label: "Most a counter staff member can take off a price, in % (owner and managers have no limit; default 10)" },
             ].map((f) => (
               <div key={f.key} style={{ marginBottom: 10 }}>
                 <label style={{ display: "block", fontSize: 12, color: muted, marginBottom: 4 }}>{f.label}</label>
