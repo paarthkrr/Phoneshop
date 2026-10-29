@@ -18,6 +18,10 @@ const RELATED = {
   "how-much-is-my-old-phone-worth": ["/quote", "Get an instant quote for your phone"],
   "sell-phone-or-trade-in-with-apple-samsung": ["/quote", "Get an instant quote for your phone"],
   "how-to-prepare-your-phone-before-selling": ["/quote", "Ready? Get an instant quote"],
+  "iphone-battery-health-when-to-replace": ["/iphone-battery-replacement-sydney", "iPhone battery replacement in Sydney, from $59"],
+  "genuine-vs-premium-screen": ["/iphone-screen-repair-sydney", "iPhone screen repair in Sydney: genuine or premium, your choice"],
+  "phone-dropped-in-water-what-to-do": ["/water-damage-phone-repair-sydney", "Water damaged phone repair in Sydney"],
+  "repair-or-replace-your-phone": ["/phone-repair-sydney", "Phone repair in Sydney, diagnosed before we quote"],
 };
 
 export default function Blog() {

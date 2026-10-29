@@ -1,6 +1,58 @@
 // Guide articles, shared by the Blog page and the build (per-page SEO tags + sitemap).
 export const POSTS = [
   {
+    slug: "iphone-battery-health-when-to-replace",
+    title: "iPhone battery health: when is it time to replace the battery?",
+    excerpt: "What the Battery Health percentage actually means, the signs that matter more than the number, and when a new battery is worth it.",
+    date: "2026-10-30",
+    body: [
+      "Open Settings, then Battery, then Battery Health and you'll see a percentage. It's the battery's capacity now compared with when it was new. Batteries wear with every charge cycle, so the number only goes one way.",
+      "Apple designs iPhone batteries to keep about 80% of their capacity after a set number of charge cycles. Once yours is below roughly 80%, or the screen says \"Service\", you'll usually notice the phone needs charging more often, and it may slow itself down to avoid sudden shutdowns.",
+      "The signs matter more than the number: the phone dies with charge left, turns off in the cold, only works plugged in, or gets noticeably slower. Any of those with a low Battery Health figure points to the battery.",
+      "One sign is urgent: if the screen or back of the phone is lifting, the battery may be swelling. Stop charging it and get it looked at. Don't press the screen back down.",
+      "A new battery is usually the cheapest way to get a full day back from a phone that's otherwise fine. At Mobile Recellr, iPhone battery replacements start from $59, most are done the same day in store when the part is in stock, and every repair has a 90-day warranty.",
+    ],
+  },
+  {
+    slug: "genuine-vs-premium-screen",
+    title: "Genuine vs aftermarket phone screens: what's the actual difference?",
+    excerpt: "Why two quotes for the same screen repair can be so different, and how to choose the part that suits your phone and budget.",
+    date: "2026-10-30",
+    body: [
+      "Two shops can quote very different prices for the same screen repair, and the part is usually why. Replacement screens come in different grades, and they don't all look or behave the same.",
+      "A genuine screen is made by, or to the specification of, the phone's manufacturer. It matches the original brightness, colour and touch response, and costs the most.",
+      "Aftermarket screens vary a lot. Good ones are close to the original and cost less. Cheap ones can be dimmer, show colours differently, use more battery or feel less responsive to touch. Some iPhone screens are OLED and the cheapest replacements are LCD, which looks noticeably different side by side.",
+      "There's no single right answer. A genuine part makes sense for a newer phone you'll keep for years; a quality aftermarket part can be the sensible choice for an older phone. What matters is that you're told which one you're getting before you pay.",
+      "At Mobile Recellr you choose: we explain the options and the price of each for your model, and we always tell you exactly which part goes in. Every screen repair has a 90-day warranty.",
+    ],
+  },
+  {
+    slug: "phone-dropped-in-water-what-to-do",
+    title: "Dropped your phone in water? What to do in the first hour",
+    excerpt: "The steps that give a wet phone the best chance, the myths that make it worse, and when to get it checked.",
+    date: "2026-10-30",
+    body: [
+      "What you do in the first hour matters most. Water itself isn't what kills a phone; it's the current running through wet parts and the corrosion that follows.",
+      "Turn it off straight away and leave it off. Don't charge it, don't plug it in to see if it works, and don't keep pressing buttons. If you can, take the case off and remove the SIM tray.",
+      "Skip the rice. It doesn't pull water out from inside the phone, and the dust can end up in the ports. A hair dryer is no better: the heat can damage the screen and seals.",
+      "Water resistance ratings are for fresh water under test conditions, and they weaken with age and drops. Salt water, pool water and drinks are worse than tap water, so tell the technician what it was.",
+      "Even if it seems to work after drying out, corrosion can keep spreading under the shields. A water damage check opens the phone, cleans the board and tells you what has been affected. At Mobile Recellr that diagnosis starts from $50, and we give you an honest quote before doing any repair.",
+    ],
+  },
+  {
+    slug: "repair-or-replace-your-phone",
+    title: "Repair or replace your phone? A simple way to decide",
+    excerpt: "When a repair is the smart money, when it isn't, and the questions to ask before you spend anything.",
+    date: "2026-10-30",
+    body: [
+      "Most phones that end up in a drawer had one fixable problem: a cracked screen, a tired battery or a port that stopped charging. Before buying a new one, it's worth a quick check of whether a repair makes more sense.",
+      "Repair usually wins when the rest of the phone is fine, it still gets software updates, and the repair costs well under what a replacement would. A screen or battery on a phone that's a couple of years old is often a fraction of the price of a new one.",
+      "Replacing can make more sense when there are several faults at once, the phone no longer gets security updates, or the repair would cost close to the price of a newer phone.",
+      "Ask for a diagnosis first. Sometimes what looks like a dead phone is a battery or a port, and sometimes a cracked screen has also damaged the frame. Knowing exactly what's wrong is what lets you compare honestly.",
+      "At Mobile Recellr we diagnose first and tell you what's wrong before quoting, so you can make that call with real numbers. Every repair has a 90-day warranty and a price match guarantee.",
+    ],
+  },
+  {
     slug: "iphone-screen-repair-cost-sydney",
     title: "iPhone screen repair cost in Sydney: what you should actually pay",
     excerpt: "Screen repair prices vary a lot. Here's what drives the price, and how to avoid paying for more than you need.",
