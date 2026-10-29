@@ -4,6 +4,7 @@ import { hasArea } from "./roles.js";
 import { partsCostOf } from "./pnl.js";
 import { ScanButton } from "./barcode-scanner.jsx";
 import { DOORSTEP, zoneForPostcode, doorstepFee } from "./doorstep.js";
+import DoorstepCalendar from "./doorstep-calendar.jsx";
 import { SYMPTOMS, PARTS, diagnose, stockFor, LIKELIHOOD_LABEL } from "./diagnosis-guide.js";
 
 /* =================================================================
@@ -117,6 +118,8 @@ export default function RepairTickets() {
   const [team, setTeam] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [stockPrefill, setStockPrefill] = useState("");
+  const [intakeFrom, setIntakeFrom] = useState(null);
+  const doorCount = repairRequests.filter((r) => r.method === "doorstep" && !["done", "cancelled"].includes(r.visitStatus)).length;
 
   useEffect(() => {
     (async () => {
@@ -140,6 +143,11 @@ export default function RepairTickets() {
   async function persist(next) { await saveJSON(TICKETS_KEY, next, true); setTickets(next); }
   async function persistStaffName(name) { setStaffName(name); await saveJSON(STAFF_KEY, name, false); }
   async function persistStock(next) { await saveJSON(PARTS_STOCK_KEY, next, true); setPartsStock(next); }
+  async function updateRequest(id, patch) {
+    const next = repairRequests.map((r) => r.id === id ? { ...r, ...patch, updatedAt: new Date().toISOString() } : r);
+    setRepairRequests(next);
+    await saveJSON("repair_requests", next, true);
+  }
   async function markRequestContacted(id) {
     const next = repairRequests.map((r) => r.id === id ? { ...r, status: "contacted" } : r);
     await saveJSON("repair_requests", next, true);
@@ -318,8 +326,10 @@ export default function RepairTickets() {
       parts: [], finalPrice: null, warrantyDays: 90, warrantyOf: null,
       staffHandled: staffName || "unattributed", notifiedAt: null, completedAt: null,
       statusLog: [{ status: "dropped_off", at: now, by: staffName || "unattributed" }],
+      ...(intakeFrom ? { requestId: intakeFrom.id, source: intakeFrom.method === "doorstep" ? "doorstep" : "website" } : {}),
     };
     await persist([ticket, ...(tickets || [])]);
+    if (intakeFrom) { await updateRequest(intakeFrom.id, { status: "contacted", ticketId: ticket.id, ...(intakeFrom.method === "doorstep" ? { visitStatus: "done" } : {}) }); setIntakeFrom(null); }
     setOpenId(ticket.id);
     setView("detail");
   }
@@ -384,8 +394,8 @@ export default function RepairTickets() {
         )}
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20, borderBottom: `1px solid ${line}`, paddingBottom: 14 }}>
-          {[{ id: "queue", label: "Queue" }, { id: "intake", label: "New job" }, { id: "stock", label: "Parts Stock" }, { id: "usage", label: "Parts usage" }, { id: "track", label: "Track a job" }].map((v) => (
-            <button key={v.id} onClick={() => { setView(v.id); setOpenId(null); }}
+          {[{ id: "queue", label: "Queue" }, { id: "intake", label: "New job" }, { id: "visits", label: `At their door${doorCount ? ` (${doorCount})` : ""}` }, { id: "stock", label: "Parts Stock" }, { id: "usage", label: "Parts usage" }, { id: "track", label: "Track a job" }].map((v) => (
+            <button key={v.id} onClick={() => { setView(v.id); setOpenId(null); setIntakeFrom(null); }}
               style={{ padding: "7px 14px", borderRadius: 2, fontSize: 13, cursor: "pointer",
                 border: `1px solid ${view === v.id ? brass : line}`, background: view === v.id ? brassDim : "transparent", color: view === v.id ? brass : paper }}>
               {v.label}
@@ -393,7 +403,9 @@ export default function RepairTickets() {
           ))}
         </div>
 
-        {view === "intake" && <IntakeForm colors={colors} repairTypes={REPAIR_TYPES} team={team} me={staffName} inventory={inventory} onCreate={createTicket} />}
+        {view === "intake" && <IntakeForm key={intakeFrom ? intakeFrom.id : "new"} colors={colors} repairTypes={REPAIR_TYPES} team={team} me={staffName} inventory={inventory} onCreate={createTicket} prefill={intakeFrom} />}
+
+        {view === "visits" && <DoorstepCalendar requests={repairRequests} team={team} onUpdate={updateRequest} onStartTicket={(r) => { setIntakeFrom(r); setView("intake"); }} />}
 
         {view === "usage" && <PartsUsage colors={colors} tickets={tickets || []} onOpen={(id) => { setOpenId(id); setView("queue"); }} />}
 
@@ -416,7 +428,7 @@ export default function RepairTickets() {
                     {r.method === "doorstep" && <DoorstepDetails r={r} colors={{ red, green, muted, brassDim }} />}
                     <div style={{ fontSize: 13, marginBottom: 8 }}>{r.issue}</div>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => setView("intake")} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
+                      <button onClick={() => { setIntakeFrom(r); setView("intake"); }} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
                         Start ticket
                       </button>
                       <button onClick={() => markRequestContacted(r.id)} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
@@ -505,17 +517,19 @@ export default function RepairTickets() {
   );
 }
 
-function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate }) {
+function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefill }) {
   const { panel2, paper, muted, brass, brassDim, red, line } = colors;
+  const p = prefill || {}; // a website repair request being booked in
   const [jobType, setJobType] = useState("customer");
-  const [name, setName] = useState(""); const [phone, setPhone] = useState(""); const [email, setEmail] = useState("");
-  const [brand, setBrand] = useState(""); const [model, setModel] = useState("");
+  const [name, setName] = useState(p.name || ""); const [phone, setPhone] = useState(p.phone || ""); const [email, setEmail] = useState(p.email || "");
+  const [brand, setBrand] = useState(/^(iphone|ipad|apple|macbook)/i.test(p.model || "") ? "Apple" : /^(galaxy|samsung)/i.test(p.model || "") ? "Samsung" : /^pixel/i.test(p.model || "") ? "Google" : "");
+  const [model, setModel] = useState((p.model || "").replace(/^(apple|samsung|google)\s+/i, ""));
   const [imei, setImei] = useState(""); const [storage, setStorage] = useState(""); const [colour, setColour] = useState(""); const [condition, setCondition] = useState("");
   const [inventoryItemId, setInventoryItemId] = useState("");
   const [symptoms, setSymptoms] = useState([]);
-  const [repairTypeId, setRepairTypeId] = useState(null); const [issue, setIssue] = useState(""); const [estimateMins, setEstimateMins] = useState("");
+  const [repairTypeId, setRepairTypeId] = useState(null); const [issue, setIssue] = useState(p.issue || ""); const [estimateMins, setEstimateMins] = useState("");
   const [quotedPrice, setQuotedPrice] = useState(""); const [deposit, setDeposit] = useState(""); const [depositPayMethod, setDepositPayMethod] = useState("cash");
-  const [assignedTo, setAssignedTo] = useState(""); const [priority, setPriority] = useState("normal"); const [dueAt, setDueAt] = useState("");
+  const [assignedTo, setAssignedTo] = useState(p.assignedTo || ""); const [priority, setPriority] = useState("normal"); const [dueAt, setDueAt] = useState("");
   const [scanNote, setScanNote] = useState("");
 
   const shop = jobType === "shop";
