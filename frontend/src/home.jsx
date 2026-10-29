@@ -10,6 +10,9 @@ import { PHONE_FAULT_GROUPS, FAULT_GROUPS_BY_CATEGORY, BLOCKERS, baseBuybackAUD,
 import { mergeCatalog } from "./device-catalog.js";
 import { DEFAULT_TIERS } from "./pricing.js";
 import InspectionSignature from "./inspection-signature.jsx";
+import { TRADING_OPEN } from "./trading.js";
+import useRepairPrices from "./use-repair-prices.js";
+import { withBusinessDefaults } from "./business-info.js";
 
 const REVEAL_CSS = `
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
@@ -390,6 +393,19 @@ const TRUST = [
   { area: "bat", ic: "battery", title: "Battery 80%+ guaranteed", desc: "Every refurbished phone we sell. Conditions apply." },
 ];
 
+// While buying and selling is paused (no dealer licence yet, see trading.js): repair promises only.
+const REPAIR_TRUST = [
+  { area: "big", ic: "chip", title: "Same-day repairs", desc: "Most screens, batteries and charging ports are fixed the same day in store, often while you wait, when the part is in stock." },
+  { area: "war", ic: "shield", title: "90-day repair warranty", desc: "On the part we fit and our workmanship." },
+  { area: "pm", ic: "tag", title: "Price match guarantee", desc: "Found the same repair cheaper? We'll match it." },
+  { area: "par", ic: "chip", title: "Genuine or premium parts", desc: "You choose. We always tell you which part goes in." },
+  { area: "gad", ic: "devices", title: "Every gadget", desc: "Phones, tablets, laptops and watches." },
+  { area: "dat", ic: "home", title: "At your door", desc: "A technician can come to you in Sydney." },
+  { area: "ret", ic: "crack", title: "Diagnosed first", desc: "We tell you what's wrong before quoting." },
+  { area: "bat", ic: "return", title: "Mail-in", desc: "Australia-wide, usually back in 3 to 5 business days." },
+  { area: "any", ic: "lock", title: "Your data stays yours", desc: "Back up first; we only test what we repaired." },
+];
+
 const BENTO_ICONS = {
   home: "<path d=\"M3 11l9-7 9 7\"/><path d=\"M5 10v10h14V10\"/><path d=\"M10 20v-6h4v6\"/>",
   chip: "<rect x=\"6\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4\"/>",
@@ -407,7 +423,7 @@ function BentoIcon({ k, size = 22 }) {
 
 // "Why us" as a bento grid: the promise that wins the sale gets the big tile,
 // the rest are scannable at a glance.
-function BentoTrust() {
+function BentoTrust({ items = TRUST, cta = ["/quote", "Get my quote"] }) {
   const gridRef = useRef(null);
   useSpotlight(gridRef, ".bt-card");
   return (
@@ -456,7 +472,7 @@ function BentoTrust() {
       `}</style>
       <h2 className="bt-head">Why people choose us</h2>
       <div className="bt-grid" ref={gridRef}>
-        {TRUST.map((t, i) => {
+        {items.map((t, i) => {
           const big = t.area === "big", wide = ["war", "pm", "par", "any"].includes(t.area);
           return (
             <div key={t.title} className={`bt-card mv-rise fx-scroll-in fx-spot${big ? " bt-big fx-spot-dark" : ""}${wide ? " bt-wide bt-span2" : ""}${t.area === "war" ? " bt-war" : ""}`}
@@ -466,7 +482,7 @@ function BentoTrust() {
                 <div className="bt-t">{t.title}</div>
                 <div className="bt-d">{t.desc}</div>
               </div>
-              {big && <a href="/quote" className="bt-cta fx-shimmer fx-on-light">Get my quote <span aria-hidden="true">→</span></a>}
+              {big && <a href={cta[0]} className="bt-cta fx-shimmer fx-on-light">{cta[1]} <span aria-hidden="true">→</span></a>}
             </div>
           );
         })}
@@ -489,7 +505,69 @@ const GUIDES = [
   { href: "/blog/how-much-is-my-old-phone-worth", title: "How much is your old phone worth?" },
 ];
 
+// Repairs-only homepage (while buying and selling is paused, see trading.js).
+function RepairsHome() {
+  const prices = useRepairPrices();
+  const [biz, setBiz] = useState(withBusinessDefaults(null));
+  useEffect(() => { (async () => { const cfg = await loadJSON("pricing-config", true); setBiz(withBusinessDefaults(cfg && cfg.businessSettings)); })(); }, []);
+  const phone = (prices.Phone || []).slice(0, 4);
+  const tel = String(biz.phone || "").replace(/\s/g, "");
+  return (
+    <div style={{ background: "var(--mr-bg)", color: "var(--mr-text)", fontFamily: "'Archivo', system-ui, sans-serif" }}>
+      <style>{`
+        .rh { background: radial-gradient(80% 120% at 85% 0%, #24305A 0%, rgba(36,48,90,0) 60%), linear-gradient(160deg, #0B0D14 0%, #131826 70%, #1A2033 100%); color: #fff; }
+        .rh-in { max-width: 1140px; margin: 0 auto; padding: clamp(40px, 7vw, 84px) 20px clamp(34px, 6vw, 64px); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 34px; align-items: center; }
+        .rh h1 { font-family: 'Outfit', 'Archivo', sans-serif; font-weight: 800; font-size: clamp(36px, 5.6vw, 66px); line-height: .98; letter-spacing: -.035em; margin: 0 0 16px; text-wrap: balance; }
+        .rh p { font-size: clamp(16px, 1.6vw, 18.5px); line-height: 1.55; color: rgba(255,255,255,.82); margin: 0 0 22px; max-width: 34em; }
+        .rh-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+        .rh-cta { display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 24px; border-radius: 14px; font-weight: 800; font-size: 16px; text-decoration: none; }
+        .rh-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; }
+        .rh-pills span { font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+        .rh-card { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); border-radius: 22px; padding: 8px 18px; backdrop-filter: blur(8px); }
+        .rh-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid rgba(255,255,255,.12); color: #fff; text-decoration: none; }
+        .rh-row:first-of-type { border-top: 0; }
+        .rh-row b { font-size: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .rh-row:hover span { text-decoration: underline; }
+        .rh-note { font-size: 12.5px; color: rgba(255,255,255,.6); padding: 4px 0 10px; }
+        @media (max-width: 860px) { .rh-in { grid-template-columns: minmax(0, 1fr); } }
+      `}</style>
+      <section className="rh" aria-label="Phone repairs in Sydney">
+        <div className="rh-in">
+          <div>
+            <h1>Phone repairs in Sydney, done properly.</h1>
+            <p>Screens, batteries, charging ports and more, usually fixed the same day. Genuine or premium parts, your choice, with a 90-day warranty and a price match guarantee.</p>
+            <div className="rh-ctas">
+              <a href="/repairs#book" className="rh-cta" style={{ background: "var(--mr-brand-fill)", color: "#fff" }}>Book a repair <span aria-hidden="true">→</span></a>
+              {tel && <a href={`tel:${tel}`} className="rh-cta" style={{ border: "1.5px solid rgba(255,255,255,.3)", color: "#fff" }}>Call {biz.phone}</a>}
+            </div>
+            <div className="rh-pills"><span>Same day in store</span><span>At your door in Sydney</span><span>Mail-in Australia-wide</span></div>
+          </div>
+          <div className="rh-card">
+            {phone.map((r) => (
+              <a key={r.name} href="/repairs#book" className="rh-row"><span>{r.name}</span><b>from ${r.from}</b></a>
+            ))}
+            <div className="rh-note">Starting prices for phones. The exact price for your model is confirmed before any work.</div>
+          </div>
+        </div>
+      </section>
+      <DeviceShowcase />
+      <GoogleReviews />
+      <BentoTrust items={REPAIR_TRUST} cta={["/repairs#book", "Book a repair"]} />
+      <div style={{ maxWidth: 1140, margin: "0 auto 40px", padding: "0 20px", display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+        {[["/iphone-screen-repair-sydney", "iPhone screen repair"], ["/iphone-battery-replacement-sydney", "iPhone battery replacement"], ["/samsung-screen-repair-sydney", "Samsung screen repair"], ["/phone-repair-sydney", "All phone repairs"], ["/accessories", "Accessories"]].map(([h, t]) => (
+          <a key={h} href={h} className="mv-chip" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "0 16px", borderRadius: 999, background: "var(--mr-surface)", border: "1px solid var(--mr-line)", color: "var(--mr-text)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>{t}</a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
+  if (!TRADING_OPEN) return <RepairsHome />;
+  return <TradingHome />;
+}
+
+function TradingHome() {
   const [stats, setStats] = useState([]);
   const [biz, setBiz] = useState({});
   const [featured, setFeatured] = useState(null);
