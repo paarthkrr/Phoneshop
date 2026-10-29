@@ -125,6 +125,157 @@ export const SEO_PAGES = {
     cta: ["/repairs#book", "Book a Samsung screen repair"],
   },
 
+  "ipad-screen-repair-sydney": {
+    title: "iPad Screen Repair Sydney — From $170, Genuine or Premium Glass",
+    desc: "Cracked iPad screen or touch not working? iPad and tablet screen repairs in Sydney from $170, battery from $90, with a 90-day warranty and price match.",
+    h1: "iPad and tablet screen repair in Sydney",
+    intro: [
+      "We repair cracked iPad and tablet screens, touch that has stopped responding, and batteries that no longer last. Many iPads have the glass and the display as separate parts, so if only the glass is cracked the repair often costs less than a full display.",
+      "We check which part has failed, give you the price for your model with genuine or premium options, and only start once you've agreed.",
+    ],
+    prices: [["Tablet", "Screen replacement"], ["Tablet", "Battery replacement"], ["Tablet", "Charging port"]],
+    sections: [
+      { h: "Before you bring it in", list: [
+        "Back up your iPad to iCloud or a computer.",
+        "Bring your passcode so we can test touch and cameras afterwards.",
+        "If it has also been bent or dropped in water, tell us so we can check it at the same time.",
+      ] },
+    ],
+    faq: [
+      ["How much is an iPad screen repair in Sydney?", "From $170. The price depends on your iPad model and whether the glass or the whole display needs replacing; we confirm it before any work starts."],
+      ["Can you fix just the cracked glass?", "On many iPad models the glass (digitiser) is a separate part from the display, which usually costs less. We'll check yours and tell you."],
+      ["Do you repair Samsung and other tablets?", "Yes, as well as iPads. The price depends on the model, and we confirm it first."],
+      ["Is there a warranty?", "Yes, 90 days on the part and our workmanship."],
+    ],
+    links: [["/iphone-screen-repair-sydney", "iPhone screen repair"], ["/phone-repair-sydney", "Phone repair Sydney"], ["/repairs", "All repairs and booking"]],
+    cta: ["/repairs#book", "Book an iPad repair"],
+  },
+
+  "charging-port-repair-sydney": {
+    title: "Charging Port Repair Sydney — Phone Not Charging? From $55",
+    desc: "Phone not charging or only charging at an angle? We clean or replace charging ports in Sydney from $55, and often it only needs cleaning. Same day in store.",
+    h1: "Charging port repair in Sydney",
+    intro: [
+      "When a phone stops charging, the port is often just packed with pocket lint. We check and clean it first, and if that fixes it, that's all you pay for. If the port really has failed, we replace it, usually the same day.",
+    ],
+    prices: [["Phone", "Charging port"], ["Tablet", "Charging port"]],
+    sections: [
+      { h: "Signs it's the port", list: [
+        "The cable only works at an angle, or falls out easily.",
+        "Charging starts and stops when you move the phone.",
+        "It charges wirelessly but not with a cable.",
+      ] },
+      { h: "Could it be something else?", list: [
+        "A worn cable or charger: try another one first.",
+        "A tired battery: if it charges but drains fast, it may be the battery instead.",
+      ] },
+    ],
+    faq: [
+      ["How much is a charging port repair?", "Phone charging ports start from $55 and tablet ports from $90. If cleaning fixes it, we'll tell you, and you won't pay for a part."],
+      ["How long does it take?", "Usually the same day in store when the part is in stock."],
+      ["Is there a warranty?", "Yes, 90 days on the part and our workmanship."],
+    ],
+    links: [["/blog/charging-port-dust-or-real-fault", "Guide: is your port really broken?"], ["/iphone-battery-replacement-sydney", "iPhone battery replacement"], ["/phone-repair-sydney", "Phone repair Sydney"]],
+    cta: ["/repairs#book", "Book a charging port repair"],
+  },
+
+  "water-damage-phone-repair-sydney": {
+    title: "Water Damaged Phone Repair Sydney — Diagnosis From $50",
+    desc: "Dropped your phone in water? Turn it off and don't charge it. Water damage diagnosis in Sydney from $50; we tell you what can be saved before any repair.",
+    h1: "Water damaged phone repair in Sydney",
+    intro: [
+      "If your phone has been in water: turn it off, don't charge it, and bring it in as soon as you can. Water keeps corroding the board while the phone has power, so time matters.",
+      "We open it, clean and dry the board, and tell you what has been damaged and what it would cost to fix, before doing any repair. Liquid damage can take longer than other repairs, and we'll be honest if it can't be saved.",
+    ],
+    prices: [["Phone", "Water damage diagnosis"]],
+    sections: [
+      { h: "Do this now", list: [
+        "Turn the phone off and leave it off.",
+        "Don't charge it or plug it in to check.",
+        "Rice doesn't remove water from inside the phone; bring it in instead.",
+      ] },
+    ],
+    faq: [
+      ["Can a water damaged phone be fixed?", "Often, especially if it was turned off quickly and not charged. We diagnose it first and tell you honestly what can be saved."],
+      ["How much does it cost?", "Diagnosis starts from $50. Any repair after that is quoted separately, and we only go ahead if you agree."],
+      ["Can you save my photos?", "Sometimes, even when the phone can't be fully repaired. Tell us if your data matters most."],
+    ],
+    links: [["/phone-repair-sydney", "Phone repair Sydney"], ["/repairs", "All repairs and booking"]],
+    cta: ["/repairs#book", "Book a water damage check"],
+  },
+
+  "samsung-battery-replacement-sydney": {
+    title: "Samsung Battery Replacement Sydney — From $59, Same Day",
+    desc: "Samsung Galaxy battery draining fast or swelling? Battery replacement in Sydney from $59 with a 90-day warranty and price match. Same day in store.",
+    h1: "Samsung battery replacement in Sydney",
+    intro: [
+      "If your Galaxy drains by lunchtime, gets hot, or the back is lifting, the battery is usually the cause. We replace Samsung batteries, most of them the same day in store when the part is in stock.",
+      "A swollen battery can be a safety risk: stop charging the phone and bring it in.",
+    ],
+    prices: [["Phone", "Battery replacement"]],
+    sections: [
+      { h: "Signs it's the battery", list: [
+        "The phone dies with charge showing, or only works plugged in.",
+        "It gets hot while charging.",
+        "The back cover or screen is lifting.",
+      ] },
+    ],
+    faq: [
+      ["How much is a Samsung battery replacement?", "From $59. The price depends on the model; we confirm it before any work starts."],
+      ["How long does it take?", "Usually the same day in store when the part is in stock."],
+      ["Is there a warranty?", "Yes, 90 days on the battery and our workmanship."],
+    ],
+    links: [["/samsung-screen-repair-sydney", "Samsung screen repair"], ["/iphone-battery-replacement-sydney", "iPhone battery replacement"], ["/phone-repair-sydney", "Phone repair Sydney"]],
+    cta: ["/repairs#book", "Book a battery replacement"],
+  },
+
+  "laptop-repair-sydney": {
+    title: "Laptop Repair Sydney — Screens From $180, Batteries From $110",
+    desc: "Laptop screen, keyboard, battery and charging port repairs in Sydney. Screens from $180, keyboards from $120, batteries from $110, with a 90-day warranty.",
+    h1: "Laptop repair in Sydney",
+    intro: [
+      "We repair laptop screens, keyboards, batteries and charging ports. Bring it in, we find what has failed, and you get the price for your model before we start.",
+    ],
+    prices: [["Laptop", "Screen replacement"], ["Laptop", "Keyboard replacement"], ["Laptop", "Battery replacement"], ["Laptop", "Charging port"]],
+    sections: [
+      { h: "Before you bring it in", list: [
+        "Back up anything important.",
+        "Bring the charger, so we can tell a charger fault from a laptop fault.",
+        "Tell us your password if you'd like us to test it fully afterwards.",
+      ] },
+    ],
+    faq: [
+      ["How much is a laptop screen repair?", "From $180. The price depends on the model and screen type, and we confirm it before any work."],
+      ["Do you fix MacBooks?", "Tell us the model and the fault and we'll let you know if it's a repair we can do and what it costs."],
+      ["Is there a warranty?", "Yes, 90 days on the part and our workmanship."],
+    ],
+    links: [["/repairs", "All repairs and booking"], ["/phone-repair-sydney", "Phone repair Sydney"]],
+    cta: ["/repairs#book", "Book a laptop repair"],
+  },
+
+  "apple-watch-repair-sydney": {
+    title: "Apple Watch Repair Sydney — Screens From $90, Batteries From $70",
+    desc: "Cracked Apple Watch or smartwatch screen, or a battery that won't last the day? Watch repairs in Sydney: screens from $90, batteries from $70.",
+    h1: "Apple Watch and smartwatch repair in Sydney",
+    intro: [
+      "We replace cracked smartwatch screens and tired batteries, including Apple Watch. We check your model and confirm the price before we start.",
+    ],
+    prices: [["Watch", "Screen replacement"], ["Watch", "Battery replacement"]],
+    sections: [
+      { h: "Good to know", list: [
+        "Unpair the watch from your phone before bringing it in, or tell us if you can't.",
+        "After a screen or battery repair, water resistance can't be guaranteed to be the same as new.",
+      ] },
+    ],
+    faq: [
+      ["How much is an Apple Watch screen repair?", "From $90. The price depends on the model and size; we confirm it before any work."],
+      ["Is it water resistant after a repair?", "We reseal it, but water resistance can't be guaranteed to match a new watch."],
+      ["Is there a warranty?", "Yes, 90 days on the part and our workmanship."],
+    ],
+    links: [["/repairs", "All repairs and booking"], ["/phone-repair-sydney", "Phone repair Sydney"]],
+    cta: ["/repairs#book", "Book a watch repair"],
+  },
+
   "used-phones-sydney": {
     title: "Used Phones Sydney — Refurbished iPhones & Androids, 1-Year Warranty",
     desc: "Buy a used phone in Sydney without the Marketplace risk: graded, tested and IMEI-checked refurbished phones with a 1-year warranty, 30-day returns and 80%+ battery health.",

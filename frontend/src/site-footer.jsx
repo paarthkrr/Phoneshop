@@ -95,7 +95,7 @@ export default function SiteFooter() {
           </div>
           {col("Shop", FOOTER_SHOP.map((l) => [l.label, l.to]))}
           {col("Sell", [["Sell iPhone", "/sell/apple"], ["Sell Samsung", "/sell/samsung"], ["Sell Google Pixel", "/sell/google"], ["All devices", "/quote"]])}
-          {col("Popular in Sydney", [["Cheap phone repair", "/phone-repair-sydney"], ["iPhone screen repair", "/iphone-screen-repair-sydney"], ["iPhone battery replacement", "/iphone-battery-replacement-sydney"], ["Samsung screen repair", "/samsung-screen-repair-sydney"], ["Used phones in Sydney", "/used-phones-sydney"]])}
+          {col("Popular in Sydney", [["Cheap phone repair", "/phone-repair-sydney"], ["iPhone screen repair", "/iphone-screen-repair-sydney"], ["iPhone battery replacement", "/iphone-battery-replacement-sydney"], ["Samsung screen repair", "/samsung-screen-repair-sydney"], ["iPad screen repair", "/ipad-screen-repair-sydney"], ["Charging port repair", "/charging-port-repair-sydney"], ["Water damage", "/water-damage-phone-repair-sydney"], ["Areas we serve", "/areas-we-serve"]])}
           {col("Company", [["About us", "/about"], ["At your door", "/home-service"], ["Guides", "/blog"], ["Repair tutorials", "/tutorials"], ["FAQ", "/faq"], ["Review us on Google", GOOGLE_REVIEW_URL]])}
           {col("Support", [["Help / Ask a question", "/help"], ["Contact us", "/contact"], ["30-day returns", "/terms#returns"], ["Warranty", "/terms#warranty"], ["Shipping & postage", "/terms#shipping"], ["Terms", "/terms"], ["Privacy policy", "/privacy"]])}
         </div>

@@ -11,6 +11,7 @@ const EVENTS = {
   checkout: "Started checkout",
   order: "Placed an order",
   repair_submit: "Booked a repair",
+  from_google_profile: "Came from the Google Business Profile",
 };
 const FUNNELS = {
   sell: ["quote_start", "quote_price", "quote_submit"],
