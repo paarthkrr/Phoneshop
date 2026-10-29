@@ -28,7 +28,7 @@ export function repairMessages(t) {
     { id: "review", label: "Ask for a review", subject: `How did we go, ${n}?`, text: `Hi ${n}, thanks for choosing ${SHOP}! If we looked after you, a quick Google review helps a small local shop a lot: ${GOOGLE_REVIEW_URL}` },
   ];
   const waiting = t.approvalRequest && !(t.customerApproval && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest.sentAt));
-  const best = waiting && !["completed", "not_repairable"].includes(t.status) ? "quote" : { dropped_off: "received", diagnosing: "quote", awaiting_parts: "parts", in_repair: "ready", ready_for_pickup: "ready", completed: "review", not_repairable: "not_repairable" }[t.status];
+  const best = waiting && !["completed", "not_repairable", "cancelled"].includes(t.status) ? "quote" : { dropped_off: "received", diagnosing: "quote", awaiting_parts: "parts", in_repair: "ready", ready_for_pickup: "ready", completed: "review", not_repairable: "not_repairable" }[t.status];
   return { list, best };
 }
 

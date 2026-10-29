@@ -15,7 +15,7 @@ const GENERIC = /^(walk[- ]?in|unknown|shop stock|customer|n\/?a|-|guest)?$/i;
 const ids = (phone, email) => [normPhone(phone) && `p:${normPhone(phone)}`, normEmail(email) && `e:${normEmail(email)}`].filter(Boolean);
 
 const money = (n) => Number(n) || 0;
-const DONE = ["completed", "not_repairable"];
+const DONE = ["completed", "not_repairable", "cancelled"];
 
 // sources: { tickets, requests, orders, sales, webOrders, accessoryOrders, queries }, profiles: the "customers" list.
 export function buildCustomers(src, profiles = []) {
@@ -33,7 +33,7 @@ export function buildCustomers(src, profiles = []) {
   };
 
   for (const t of src.tickets || []) {
-    if (!t || t.jobType === "shop" || !t.customer) continue;
+    if (!t || t.deleted || t.jobType === "shop" || !t.customer) continue;
     const dev = `${(t.device && t.device.brand) || ""} ${(t.device && t.device.model) || ""}`.trim();
     push(t.customer.name, t.customer.phone, t.customer.email, { kind: "repair", date: t.createdAt, title: `Repair: ${dev}`, sub: `${t.issue || ""}`.slice(0, 80), status: t.status,
       amount: t.finalPrice ?? t.quotedPrice, ref: t.id, device: dev, open: !DONE.includes(t.status), ready: t.status === "ready_for_pickup", link: `/portal/repairs?job=${encodeURIComponent(t.id)}` });

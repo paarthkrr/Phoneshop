@@ -63,7 +63,7 @@ export default function CRMDashboard() {
   useEffect(() => {
     (async () => {
       const [o, s, l, n, e, inv, bulk, ref, till, sq] = await Promise.all([loadJSON("orders", true), loadJSON("sales", true), loadJSON("quote_leads", true), loadJSON("notification_queue", true), loadJSON("expenses", true), loadJSON("inventory", true), loadJSON("bulk_quote_requests", true), loadJSON("referrals", true), loadJSON("till_records", true), loadJSON("support_queries", true)]);
-      setTickets((await loadJSON("repair_tickets", true)) || []);
+      setTickets(((await loadJSON("repair_tickets", true)) || []).filter((t) => t && !t.deleted));
       setPayRuns((await loadJSON("tech_pay_runs", true)) || []);
       setOrders(o); setSales(s); setLeads(l); setNotifications(n); setExpenses(e); setInventory(inv); setBulkRequests(bulk); setReferrals(ref); setTillRecords(till); setSupportQueries(sq || []);
     })();
@@ -97,6 +97,12 @@ export default function CRMDashboard() {
     let latest;
     try { latest = await latestExpenses(); } catch (e) { window.alert("Couldn't reach the server, so the expense wasn't saved. Check the connection and try again."); return; }
     const next = [{ id: "EXP-" + Math.floor(100000 + Math.random() * 900000), createdAt: new Date().toISOString(), ...exp }, ...latest];
+    await saveJSON("expenses", next, true); setExpenses(next);
+  }
+  async function editExpense(id, patch) {
+    let latest;
+    try { latest = await latestExpenses(); } catch (e) { window.alert("Couldn't reach the server, so nothing was changed. Try again."); return; }
+    const next = latest.map((e) => (e.id === id ? { ...e, ...patch, editedAt: new Date().toISOString() } : e));
     await saveJSON("expenses", next, true); setExpenses(next);
   }
   async function deleteExpense(id) {
@@ -321,7 +327,7 @@ export default function CRMDashboard() {
 
         {tab === "Expenses" && (
           <ExpensesTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
-            expenses={expenses} onAdd={addExpense} onDelete={deleteExpense} fmt={fmt} />
+            expenses={expenses} onAdd={addExpense} onEdit={editExpense} onDelete={deleteExpense} fmt={fmt} />
         )}
 
         {tab === "Leads & Notifications" && (
@@ -457,12 +463,15 @@ export default function CRMDashboard() {
   );
 }
 
-function ExpensesTab({ colors, expenses, onAdd, onDelete, fmt }) {
+function ExpensesTab({ colors, expenses, onAdd, onEdit, onDelete, fmt }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, line } = colors;
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(sydneyToday());
+  const [editId, setEditId] = useState(null);
+  const startEdit = (e) => { setEditId(e.id); setCategory(e.category); setDescription(e.description); setAmount(String(e.amount)); setDate(e.date); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const clear = () => { setEditId(null); setDescription(""); setAmount(""); };
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
   const byCategory = EXPENSE_CATEGORIES.map((c) => ({ category: c, total: expenses.filter((e) => e.category === c).reduce((s, e) => s + e.amount, 0) })).filter((c) => c.total > 0);
@@ -474,7 +483,7 @@ function ExpensesTab({ colors, expenses, onAdd, onDelete, fmt }) {
       </div>
 
       <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 14, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, marginBottom: 10 }}>Log an expense</div>
+        <div style={{ fontSize: 13, marginBottom: 10 }}>{editId ? "Change this expense" : "Log an expense"}</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
           <select value={category} onChange={(e) => setCategory(e.target.value)}
             style={{ flex: 1, padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13 }}>
@@ -490,11 +499,13 @@ function ExpensesTab({ colors, expenses, onAdd, onDelete, fmt }) {
             style={{ flex: 1, padding: "9px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, outline: "none" }} />
         </div>
         <button disabled={!description.trim() || !amount} onClick={() => {
-            onAdd({ category, description: description.trim(), amount: parseFloat(amount), date });
-            setDescription(""); setAmount("");
+            const rec = { category, description: description.trim(), amount: parseFloat(amount), date };
+            if (editId) onEdit(editId, rec); else onAdd(rec);
+            clear();
           }} style={{ width: "100%", padding: "10px", borderRadius: 3, border: "none", background: description.trim() && amount ? "var(--mr-brand-fill)" : line, color: description.trim() && amount ? "#fff" : muted, fontSize: 13, fontWeight: 600, cursor: description.trim() && amount ? "pointer" : "default" }}>
-          Add expense
+          {editId ? "Save changes" : "Add expense"}
         </button>
+        {editId && <button type="button" onClick={clear} style={{ width: "100%", marginTop: 6, padding: "9px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 13, cursor: "pointer" }}>Cancel</button>}
       </div>
 
       <div style={{ fontSize: 13, marginBottom: 8 }}>Total recorded: <span style={{ color: red }}>{fmt(total)}</span></div>
@@ -519,7 +530,8 @@ function ExpensesTab({ colors, expenses, onAdd, onDelete, fmt }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ color: red }}>{fmt(e.amount)}</span>
-            <button onClick={() => onDelete(e.id)} style={{ background: "none", border: "none", color: muted, fontSize: 12, cursor: "pointer" }}>✕</button>
+            <button type="button" onClick={() => startEdit(e)} style={{ background: "none", border: "none", color: brass, fontSize: 12, cursor: "pointer" }}>Edit</button>
+            <button type="button" aria-label={`Delete ${e.description}`} onClick={() => { if (window.confirm(`Delete "${e.description}" (${fmt(e.amount)})?`)) onDelete(e.id); }} style={{ background: "none", border: "none", color: muted, fontSize: 12, cursor: "pointer" }}>✕</button>
           </div>
         </div>
       ))}

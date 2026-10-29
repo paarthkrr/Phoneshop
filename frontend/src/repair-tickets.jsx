@@ -6,6 +6,7 @@ import { ScanButton } from "./barcode-scanner.jsx";
 import { DOORSTEP, zoneForPostcode, doorstepFee } from "./doorstep.js";
 import DoorstepCalendar from "./doorstep-calendar.jsx";
 import TimePick, { whenText, untilText } from "./tech-time.jsx";
+import TechDay from "./tech-day.jsx";
 import { SYMPTOMS, PARTS, diagnose, stockFor, LIKELIHOOD_LABEL } from "./diagnosis-guide.js";
 
 /* =================================================================
@@ -95,7 +96,7 @@ const STATUSES = ["dropped_off", "diagnosing", "awaiting_parts", "in_repair", "r
 const STATUS_LABELS = {
   dropped_off: "Dropped off", diagnosing: "Diagnosing", awaiting_parts: "Awaiting parts",
   in_repair: "In repair", ready_for_pickup: "Ready for pickup", completed: "Completed & picked up",
-  not_repairable: "Not repairable",
+  not_repairable: "Not repairable", cancelled: "Cancelled",
 };
 const NEXT_STATUS = {
   dropped_off: "diagnosing", diagnosing: "in_repair", awaiting_parts: "in_repair",
@@ -108,7 +109,8 @@ export default function RepairTickets() {
   const [tickets, setTickets] = useState(null);
   const [staffName, setStaffName] = useState("");
   const [authedUser, setAuthedUser] = useState(null);
-  const [view, setView] = useState("queue"); // queue | intake | detail | track
+  // Technicians start on their own day; everyone else on the queue.
+  const [view, setView] = useState(() => { try { return (window.shopAuth && window.shopAuth.currentUser() || {}).role === "technician" ? "myday" : "queue"; } catch (e) { return "queue"; } }); // myday | queue | intake | visits | stock | usage | track
   const [openId, setOpenId] = useState(null);
   const [filter, setFilter] = useState("open"); // open | all | completed
   const [layout, setLayout] = useState(() => { try { return localStorage.getItem("mr-bench-layout") || "board"; } catch (e) { return "board"; } });
@@ -120,13 +122,16 @@ export default function RepairTickets() {
   const [inventory, setInventory] = useState([]);
   const [stockPrefill, setStockPrefill] = useState("");
   const [intakeFrom, setIntakeFrom] = useState(null);
+  const [reqView, setReqView] = useState("new");
+  const reqState = (r) => (r.closedAt || r.ticketId || r.visitStatus === "cancelled" || r.visitStatus === "done" ? "closed" : r.status === "new" ? "new" : "contacted");
+  const liveStock = (partsStock || []).filter((p) => p && !p.deleted);
   const doorCount = repairRequests.filter((r) => r.method === "doorstep" && !["done", "cancelled"].includes(r.visitStatus)).length;
 
   useEffect(() => {
     (async () => {
       const [t, s, ps, rr, inv] = await Promise.all([loadJSON(TICKETS_KEY, true), loadJSON(STAFF_KEY, false), loadJSON(PARTS_STOCK_KEY, true), loadJSON("repair_requests", true), loadJSON("inventory", true)]);
       setInventory(Array.isArray(inv) ? inv : []);
-      setTickets(t || []);
+      setTickets((t || []).filter((x) => x && !x.deleted));
       const authed = getAuthedUser();
       if (authed) { setAuthedUser(authed); setStaffName(authed.username); }
       else if (s) setStaffName(s);
@@ -148,7 +153,7 @@ export default function RepairTickets() {
     })();
   }, []);
 
-  async function persist(next) { await saveJSON(TICKETS_KEY, next, true); setTickets(next); }
+  async function persist(next) { await saveJSON(TICKETS_KEY, next, true); setTickets(next.filter((x) => x && !x.deleted)); }
   async function persistStaffName(name) { setStaffName(name); await saveJSON(STAFF_KEY, name, false); }
   async function persistStock(next) { await saveJSON(PARTS_STOCK_KEY, next, true); setPartsStock(next); }
   async function updateRequest(id, patch) {
@@ -197,7 +202,7 @@ export default function RepairTickets() {
         (sku && ((p.sku && String(p.sku).toLowerCase() === low) || (p.barcode && String(p.barcode).toLowerCase() === low))) ||
         (!sku && lowName && squash(p.name) === lowName));
       if (idx >= 0) {
-        next[idx] = { ...next[idx], qtyOnHand: (Number(next[idx].qtyOnHand) || 0) + qty,
+        next[idx] = { ...next[idx], deleted: false, qtyOnHand: (Number(next[idx].qtyOnHand) || 0) + qty,
           ...(cost != null ? { costPerUnit: cost } : {}),
           ...(meta.supplier ? { supplier: meta.supplier } : {}), ...(meta.orderRef ? { lastOrderRef: meta.orderRef } : {}) };
         topped += 1;
@@ -210,6 +215,13 @@ export default function RepairTickets() {
     }
     await persistStock(next);
     return { added, topped };
+  }
+  // Deleted parts are marked, not dropped: the server keeps records a save leaves out.
+  async function editStockItem(id, patch) {
+    await persistStock((partsStock || []).map((p) => (p.id === id ? { ...p, ...patch, editedAt: new Date().toISOString(), editedBy: staffName || "" } : p)));
+  }
+  async function deleteStockItem(id) {
+    await editStockItem(id, { deleted: true, deletedAt: new Date().toISOString(), deletedBy: staffName || "" });
   }
   async function adjustStock(id, delta) {
     const item = (partsStock || []).find((p) => p.id === id);
@@ -309,10 +321,10 @@ export default function RepairTickets() {
   const open = tickets?.find((t) => t.id === openId);
 
   const filtered = (tickets || []).filter((t) => {
-    if (filter === "mine") return t.assignedTo === staffName && !["completed", "not_repairable"].includes(t.status);
-    if (filter === "open") return !["completed", "not_repairable"].includes(t.status);
-    if (filter === "completed") return ["completed", "not_repairable"].includes(t.status);
-    if (filter === "shop") return t.jobType === "shop" && !["completed", "not_repairable"].includes(t.status);
+    if (filter === "mine") return t.assignedTo === staffName && !["completed", "not_repairable", "cancelled"].includes(t.status);
+    if (filter === "open") return !["completed", "not_repairable", "cancelled"].includes(t.status);
+    if (filter === "completed") return ["completed", "not_repairable", "cancelled"].includes(t.status);
+    if (filter === "shop") return t.jobType === "shop" && !["completed", "not_repairable", "cancelled"].includes(t.status);
     return true;
   });
 
@@ -347,7 +359,7 @@ export default function RepairTickets() {
     const next = (tickets || []).map((t) => {
       if (t.id !== id) return t;
       const updated = { ...t, ...patch };
-      if (logStatus) updated.statusLog = [...t.statusLog, { status: patch.status, at: new Date().toISOString(), by: staffName || "unattributed" }];
+      if (logStatus) updated.statusLog = [...(t.statusLog || []), { status: patch.status, at: new Date().toISOString(), by: staffName || "unattributed" }];
       return updated;
     });
     await persist(next);
@@ -362,6 +374,13 @@ export default function RepairTickets() {
           ? { ...s, salePrice: t.finalPrice ?? s.salePrice, costBasis: partsCost + labourCost, partsCost, labourCost, technician: t.assignedTo || "" } : s), true);
       }
     }
+  }
+
+  // Several jobs' parts changed at once (ordered together, a delivery arrived), in one save.
+  async function updatePartsAcross(changes) {
+    const by = new Map();
+    for (const c of changes) { if (!by.has(c.ticketId)) by.set(c.ticketId, []); by.get(c.ticketId).push(c); }
+    await persist((tickets || []).map((t) => (!by.has(t.id) ? t : { ...t, partsNeeded: (t.partsNeeded || []).map((n, i) => { const c = by.get(t.id).find((x) => x.index === i); return c ? { ...n, ...c.patch } : n; }) })));
   }
 
   async function reopenForWarranty(ticket) {
@@ -391,7 +410,7 @@ export default function RepairTickets() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;700&display=optional');`}</style>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 60px" }}>
         <div style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 28, letterSpacing: '-0.01em', marginBottom: 4 }}>Repair Bench</div>
-        <div style={{ color: muted, fontSize: 13, marginBottom: 14 }}>{(tickets || []).filter((t) => !["completed", "not_repairable"].includes(t.status)).length} jobs currently open.</div>
+        <div style={{ color: muted, fontSize: 13, marginBottom: 14 }}>{(tickets || []).filter((t) => !["completed", "not_repairable", "cancelled"].includes(t.status)).length} jobs currently open.</div>
 
         {authedUser ? (
           <div style={{ fontSize: 12.5, color: green, marginBottom: 18, border: `1px solid ${line}`, borderRadius: 3, padding: "8px 12px" }}>
@@ -403,7 +422,7 @@ export default function RepairTickets() {
         )}
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20, borderBottom: `1px solid ${line}`, paddingBottom: 14 }}>
-          {[{ id: "queue", label: "Queue" }, { id: "intake", label: "New job" }, { id: "visits", label: `At their door${doorCount ? ` (${doorCount})` : ""}` }, { id: "stock", label: "Parts Stock" }, { id: "usage", label: "Parts usage" }, { id: "track", label: "Track a job" }].map((v) => (
+          {[{ id: "myday", label: "My day" }, { id: "queue", label: "Queue" }, { id: "intake", label: "New job" }, { id: "visits", label: `At their door${doorCount ? ` (${doorCount})` : ""}` }, { id: "stock", label: "Parts Stock" }, { id: "usage", label: "Parts usage" }, { id: "track", label: "Track a job" }].map((v) => (
             <button key={v.id} onClick={() => { setView(v.id); setOpenId(null); setIntakeFrom(null); }}
               style={{ padding: "7px 14px", borderRadius: 2, fontSize: 13, cursor: "pointer",
                 border: `1px solid ${view === v.id ? brass : line}`, background: view === v.id ? brassDim : "transparent", color: view === v.id ? brass : paper }}>
@@ -414,20 +433,33 @@ export default function RepairTickets() {
 
         {view === "intake" && <IntakeForm key={intakeFrom ? intakeFrom.id : "new"} colors={colors} repairTypes={REPAIR_TYPES} team={team} me={staffName} inventory={inventory} onCreate={createTicket} prefill={intakeFrom} />}
 
+        {view === "myday" && <TechDay tickets={tickets || []} me={staffName} labels={STATUS_LABELS} nextStatus={NEXT_STATUS} partState={partState} stock={liveStock}
+          repairName={(t) => (REPAIR_TYPES.find((r) => r.id === t.repairTypeId) || {}).label || "Repair"} onOpen={(id) => { setOpenId(id); setView("queue"); }} onUpdate={updateTicket} />}
+
         {view === "visits" && <DoorstepCalendar requests={repairRequests} team={team} onUpdate={updateRequest} onStartTicket={(r) => { setIntakeFrom(r); setView("intake"); }} />}
 
         {view === "usage" && <PartsUsage colors={colors} tickets={tickets || []} onOpen={(id) => { setOpenId(id); setView("queue"); }} />}
 
         {view === "stock" && (
-          <PartsStockTab colors={colors} stock={partsStock || []} onAdd={addStockItem} onAdjust={adjustStock} onReceiveOrder={receivePartsOrder} prefillBarcode={stockPrefill} onPrefillUsed={() => setStockPrefill("")} />
+          <><PartsToOrder colors={colors} tickets={tickets || []} stock={liveStock} me={staffName} onApply={updatePartsAcross} onOpen={(id) => { setOpenId(id); setView("queue"); }} />
+          <PartsStockTab colors={colors} stock={liveStock} onAdd={addStockItem} onAdjust={adjustStock} onEdit={editStockItem} onDelete={deleteStockItem} onReceiveOrder={receivePartsOrder} prefillBarcode={stockPrefill} onPrefillUsed={() => setStockPrefill("")} /></>
         )}
 
         {view === "queue" && !open && (
           <>
-            {repairRequests.filter((r) => r.status === "new").length > 0 && (
+            {repairRequests.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Incoming repair requests ({repairRequests.filter((r) => r.status === "new").length} new)</div>
-                {repairRequests.filter((r) => r.status === "new").sort((a, b) => (b.express === true) - (a.express === true)).map((r) => (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>Website repair requests ({repairRequests.filter((r) => r.status === "new").length} new)</span>
+                  <span style={{ display: "flex", gap: 6 }}>
+                    {[["new", "New"], ["contacted", "Contacted"], ["closed", "Closed"]].map(([k, l]) => (
+                      <button key={k} type="button" onClick={() => setReqView(k)} aria-pressed={reqView === k} style={{ padding: "4px 10px", borderRadius: 999, fontSize: 12, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${reqView === k ? brass : line}`, background: reqView === k ? brassDim : "transparent", color: reqView === k ? brass : paper }}>
+                        {l} ({repairRequests.filter((r) => reqState(r) === k).length})</button>
+                    ))}
+                  </span>
+                </div>
+                {repairRequests.filter((r) => reqState(r) === reqView).length === 0 && <div style={{ fontSize: 12.5, color: muted, marginBottom: 8 }}>Nothing here.</div>}
+                {repairRequests.filter((r) => reqState(r) === reqView).sort((a, b) => (b.express === true) - (a.express === true) || String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 30).map((r) => (
                   <div key={r.id} style={{ border: `${r.express === true ? 2 : 1}px solid ${r.express === true ? red : brass}`, borderRadius: 3, padding: 12, marginBottom: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{r.name} — {r.deviceType}: {r.model}</span>
@@ -436,13 +468,19 @@ export default function RepairTickets() {
                     <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>{r.email}{r.phone && ` · ${r.phone}`}{` · ${r.method === "mailin" ? "📮 Mail-in" : r.method === "doorstep" ? "🚗 At their door" : "🏪 In store"}`}</div>
                     {r.method === "doorstep" && <DoorstepDetails r={r} colors={{ red, green, muted, brassDim }} />}
                     <div style={{ fontSize: 13, marginBottom: 8 }}>{r.issue}</div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    {r.ticketId && <div style={{ fontSize: 12, color: green, marginBottom: 6 }}>Booked in as <button type="button" onClick={() => { setOpenId(r.ticketId); setView("queue"); }} style={{ all: "unset", cursor: "pointer", color: brass, fontWeight: 600 }}>{r.ticketId}</button></div>}
+                    {r.closedReason && <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Closed: {r.closedReason}</div>}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button onClick={() => { setIntakeFrom(r); setView("intake"); }} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${brass}`, background: "transparent", color: brass, cursor: "pointer" }}>
                         Start ticket
                       </button>
-                      <button onClick={() => markRequestContacted(r.id)} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
+                      {r.status === "new" && <button onClick={() => markRequestContacted(r.id)} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>
                         Mark contacted
-                      </button>
+                      </button>}
+                      {r.phone && <a href={`tel:${String(r.phone).replace(/[^\d+]/g, "")}`} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${line}`, color: paper, textDecoration: "none" }}>Call</a>}
+                      {reqState(r) !== "closed" ? <button onClick={() => { const why = window.prompt("Not going ahead: why? (e.g. too expensive, fixed elsewhere, no answer)", "No answer"); if (why != null) updateRequest(r.id, { closedAt: new Date().toISOString(), closedReason: why.trim() || "Not going ahead", closedBy: staffName || "" }); }}
+                        style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${line}`, background: "transparent", color: muted, cursor: "pointer" }}>Not going ahead</button>
+                        : <button onClick={() => updateRequest(r.id, { closedAt: null, closedReason: null, status: "contacted" })} style={{ padding: "6px 12px", borderRadius: 3, fontSize: 11.5, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>Reopen</button>}
                     </div>
                   </div>
                 ))}
@@ -465,7 +503,7 @@ export default function RepairTickets() {
               {["mine", "open", "shop", "completed", "all"].map((f) => (
                 <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",
                   border: `1px solid ${filter === f ? brass : line}`, background: filter === f ? brassDim : "transparent", color: filter === f ? brass : paper }}>
-                  {f === "mine" ? `my jobs (${(tickets || []).filter((t) => t.assignedTo === staffName && !["completed", "not_repairable"].includes(t.status)).length})` : f === "shop" ? "shop phones" : f}
+                  {f === "mine" ? `my jobs (${(tickets || []).filter((t) => t.assignedTo === staffName && !["completed", "not_repairable", "cancelled"].includes(t.status)).length})` : f === "shop" ? "shop phones" : f}
                 </button>
               ))}
             </div>
@@ -488,7 +526,7 @@ export default function RepairTickets() {
         )}
 
         {open && (
-          <TicketDetail colors={colors} ticket={open} repairTypes={REPAIR_TYPES} stock={partsStock || []} team={team} me={staffName}
+          <TicketDetail colors={colors} ticket={open} repairTypes={REPAIR_TYPES} stock={liveStock} team={team} me={staffName}
             onUpdate={(patch, logStatus) => updateTicket(open.id, patch, logStatus)}
             onUseStock={(stockItem, meta) => usePartFromStock(open.id, stockItem, meta)}
             onCompleteShop={() => completeShopJob(open.id)}
@@ -710,7 +748,7 @@ const approvalOf = (t) => !t.approvalRequest ? null
 
 function BenchStats({ colors, tickets }) {
   const { muted, line, panel } = colors;
-  const open = tickets.filter((t) => !["completed", "not_repairable"].includes(t.status));
+  const open = tickets.filter((t) => !["completed", "not_repairable", "cancelled"].includes(t.status));
   const today = new Date().toDateString();
   const month = tickets.filter((t) => t.status === "completed" && t.completedAt && t.createdAt && Date.now() - Date.parse(t.completedAt) < 30 * 864e5);
   const hrs = month.map((t) => (Date.parse(t.completedAt) - Date.parse(t.createdAt)) / 36e5).filter((h) => h >= 0).sort((a, b) => a - b);
@@ -738,7 +776,7 @@ function RepairBoard({ colors, tickets, repairTypes, onOpen, onMove }) {
   const { paper, muted, line, panel, panel2, brass, green, red } = colors;
   const [busy, setBusy] = useState("");
   // An open job with a status the board doesn't know (older records) shows under "In repair".
-  const col = (t) => (BOARD.includes(t.status) ? t.status : ["completed", "not_repairable"].includes(t.status) ? null : "in_repair");
+  const col = (t) => (BOARD.includes(t.status) ? t.status : ["completed", "not_repairable", "cancelled"].includes(t.status) ? null : "in_repair");
   const cols = BOARD.map((st) => ({ st, jobs: tickets.filter((t) => col(t) === st).sort((a, b) => sinceStep(a) - sinceStep(b)) }));
   const chip = (txt, c) => <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 999, border: `1px solid ${c}`, color: c }}>{txt}</span>;
   return (
@@ -893,7 +931,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         {ticket.device.imei && <div style={{ fontSize: 12.5, marginBottom: 4 }}>IMEI / serial: <span style={{ fontFamily: "ui-monospace, monospace" }}>{ticket.device.imei}</span></div>}
         {ticket.device.condition && <div style={{ fontSize: 12.5, color: muted, marginBottom: 4 }}>Condition on arrival: {ticket.device.condition}</div>}
         <div style={{ fontSize: 13 }}>{shop ? "Shop phone (fixing to sell)" : `${ticket.customer.name} · ${ticket.customer.phone}`}</div>
-        {ticket.dueAt && <div style={{ fontSize: 12.5, color: new Date(ticket.dueAt) < new Date() && !["completed", "not_repairable"].includes(ticket.status) ? red : muted, marginTop: 4 }}>Promised {whenText(ticket.dueAt)}{!["completed", "not_repairable"].includes(ticket.status) ? ` (${untilText(ticket.dueAt)})` : ""}</div>}
+        {ticket.dueAt && <div style={{ fontSize: 12.5, color: new Date(ticket.dueAt) < new Date() && !["completed", "not_repairable", "cancelled"].includes(ticket.status) ? red : muted, marginTop: 4 }}>Promised {whenText(ticket.dueAt)}{!["completed", "not_repairable", "cancelled"].includes(ticket.status) ? ` (${untilText(ticket.dueAt)})` : ""}</div>}
         <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>{shop ? "Notes" : "Issue"}: {ticket.issue || "—"}</div>
         <div style={{ fontSize: 12.5, marginTop: 6 }}>🔧 {ticket.assignedTo ? `Assigned to ${ticket.assignedTo}` : <span style={{ color: red }}>Not assigned yet</span>}{ticket.priority === "urgent" ? <span style={{ color: red }}> · urgent</span> : ""}</div>
         <div style={{ fontSize: 12.5, marginTop: 2 }}>⏱ {estimateVsActual(ticket)}</div>
@@ -904,7 +942,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
       {editing && <EditJob colors={colors} ticket={ticket} repairTypes={repairTypes} team={team} me={me} onCancel={() => setEditing(false)} onSave={(patch) => { onUpdate(patch); setEditing(false); }} />}
 
       {/* Primary action: the one button staff reach for most, right at the top. */}
-      {ticket.status !== "completed" && ticket.status !== "not_repairable" && !completingPayMethod && (
+      {!["completed", "not_repairable", "cancelled"].includes(ticket.status) && !completingPayMethod && (
         <div style={{ marginBottom: 16 }}>
           <button onClick={() => { if (shop) { onCompleteShop().then((m) => setShopDoneNote(m || "")); } else { setCompletingPayMethod("cash"); } }}
             style={{ width: "100%", padding: "14px", borderRadius: 8, border: "none", background: green, color: "#0c1a12", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -922,11 +960,15 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
               {ticket.notifiedAt ? "✉️ Remind the customer it's still ready to collect" : "✉️ Tell the customer it's ready to collect"}
             </button>
           )}
+          {!shop && ticket.status === "ready_for_pickup" && (
+            <div style={{ marginTop: 10 }}><TimePick label="When is the customer collecting?" value={ticket.pickupAt || null} onChange={(v) => onUpdate({ pickupAt: v })}
+              inputStyle={{ width: "100%", padding: "9px 11px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 13.5, boxSizing: "border-box", marginBottom: 10, fontFamily: "inherit" }} /></div>
+          )}
           {!shop && ticket.notifiedAt && <div style={{ fontSize: 12.5, color: green, marginTop: 8 }}>✓ Customer told it's ready on {new Date(ticket.notifiedAt).toLocaleDateString("en-AU")}</div>}
         </div>
       )}
 
-      {!shop && !["completed", "not_repairable"].includes(ticket.status) && <PriceApproval colors={colors} ticket={ticket} onUpdate={onUpdate} />}
+      {!shop && !["completed", "not_repairable", "cancelled"].includes(ticket.status) && <PriceApproval colors={colors} ticket={ticket} onUpdate={onUpdate} />}
       {!shop && <MessageCustomer key={ticket.approvalRequest?.sentAt || "m"} phone={ticket.customer.phone} email={ticket.customer.email} templates={repairMessages(ticket)} contactLog={ticket.contactLog}
         onSent={(e) => onUpdate({ contactLog: [...(ticket.contactLog || []), { ...e, by: typeof me === "string" ? me : me?.username || "" }] })} />}
       {completingPayMethod && ticket.status !== "completed" && (
@@ -974,6 +1016,8 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         ))}
       </div>
 
+      <CloseJob colors={colors} ticket={ticket} onUpdate={onUpdate} onBack={onBack} />
+
       {shopDoneNote && <div role="status" style={{ fontSize: 13, color: green, border: `1px solid ${green}`, borderRadius: 3, padding: "10px 12px", marginBottom: 16 }}>{shopDoneNote}</div>}
 
       <TechJob colors={colors} ticket={ticket} team={team} me={me} onUpdate={onUpdate} />
@@ -989,26 +1033,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
       {symptoms.length > 0 && <DiagnosisSummary colors={colors} symptoms={symptoms} brand={ticket.device.brand} model={ticket.device.model} stock={stock}
         neededIds={needed.map((n) => n.partId)} onNeed={(partId) => onUpdate({ partsNeeded: [...needed, { partId, label: PARTS[partId].label, done: false, at: new Date().toISOString() }] })} />}
 
-      {needed.length > 0 && (
-        <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 12, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Parts needed for this job</div>
-          {needed.map((n, i) => {
-            const have = stockFor(n.partId, stock, ticket.device.model).reduce((a, x) => a + (Number(x.qtyOnHand) || 0), 0);
-            return (
-              <div key={n.partId + i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "6px 0", borderTop: i ? `1px solid ${line}` : "none", fontSize: 13 }}>
-                <span style={{ textDecoration: n.done ? "line-through" : "none", color: n.done ? muted : paper }}>{n.label}</span>
-                <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  {n.done ? <span style={{ color: green, fontSize: 12 }}>✓ fitted</span> : <span style={{ fontSize: 12, color: have ? green : red }}>{have ? `${have} in stock` : "need to order"}</span>}
-                  <button type="button" onClick={() => onUpdate({ partsNeeded: needed.filter((_, j) => j !== i) })} aria-label={`Remove ${n.label}`} style={{ border: "none", background: "none", color: muted, cursor: "pointer", fontSize: 16 }}>×</button>
-                </span>
-              </div>
-            );
-          })}
-          {needed.some((n) => !n.done && !stockFor(n.partId, stock, ticket.device.model).some((x) => x.qtyOnHand > 0)) && ticket.status !== "awaiting_parts" && (
-            <button type="button" onClick={() => onUpdate({ status: "awaiting_parts" }, true)} style={{ marginTop: 8, padding: "7px 12px", borderRadius: 3, fontSize: 12, border: `1px solid ${red}`, background: "transparent", color: red, cursor: "pointer", fontFamily: "inherit" }}>Mark job as awaiting parts</button>
-          )}
-        </div>
-      )}
+      <PartsNeeded colors={colors} ticket={ticket} stock={stock} onUpdate={onUpdate} me={me} />
 
       <Checklist colors={colors} ticket={ticket} onUpdate={onUpdate} />
 
@@ -1119,6 +1144,184 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
       {warrantyResult !== null && (
         <div style={{ marginTop: 10, fontSize: 12.5, color: warrantyResult ? green : red }}>
           {warrantyResult ? "Within warranty window — new job created at no charge." : "Warranty period has expired — new job created at the standard quoted price."}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Parts this job needs, from "need it" to fitted: in stock, or ordered (who from, when
+// it's due, the order number), then arrived. Parts can be added by hand too.
+export const partState = (n, stock, model) => (n.done ? "fitted" : n.arrivedAt ? "arrived" : n.orderedAt ? "ordered"
+  : (n.partId && !String(n.partId).startsWith("custom-") && stockFor(n.partId, stock, model).some((x) => Number(x.qtyOnHand) > 0)) ? "in_stock" : "need");
+function PartsNeeded({ colors, ticket, stock, onUpdate, me }) {
+  const { paper, muted, line, red, green, brass, panel2 } = colors;
+  const needed = ticket.partsNeeded || [];
+  const [adding, setAdding] = useState("");
+  const [ordering, setOrdering] = useState(null);
+  const [of, setOf] = useState({ supplier: "", eta: "", ref: "" });
+  const model = ticket.device && ticket.device.model;
+  const set = (i, patch) => onUpdate({ partsNeeded: needed.map((n, j) => (j === i ? { ...n, ...patch } : n)) });
+  const now = Date.now();
+  const inp = { padding: "7px 9px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 12.5, fontFamily: "inherit", boxSizing: "border-box" };
+  const sb = (c = paper) => ({ padding: "5px 10px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${c === paper ? line : c}`, background: "transparent", color: c });
+  const waiting = needed.some((n) => ["need", "ordered"].includes(partState(n, stock, model)));
+  return (
+    <div style={{ border: `1px solid ${line}`, borderRadius: 3, padding: 12, marginBottom: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Parts for this job</div>
+      {needed.length === 0 && <div style={{ fontSize: 12.5, color: muted, marginBottom: 8 }}>None listed. Tick the problems above for suggestions, or add a part below.</div>}
+      {needed.map((n, i) => {
+        const st = partState(n, stock, model);
+        const have = n.partId && !String(n.partId).startsWith("custom-") ? stockFor(n.partId, stock, model).reduce((a, x) => a + (Number(x.qtyOnHand) || 0), 0) : 0;
+        const late = st === "ordered" && n.eta && Date.parse(n.eta + "T23:59:59") < now;
+        return (
+          <div key={(n.partId || "") + i} style={{ padding: "8px 0", borderTop: i ? `1px solid ${line}` : "none", fontSize: 13 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ textDecoration: st === "fitted" ? "line-through" : "none", color: st === "fitted" ? muted : paper }}>{n.label}</span>
+              <span style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                {st === "fitted" && <span style={{ color: green, fontSize: 12 }}>✓ fitted</span>}
+                {st === "arrived" && <span style={{ color: green, fontSize: 12, fontWeight: 700 }}>✓ arrived {new Date(n.arrivedAt).toLocaleDateString("en-AU")}</span>}
+                {st === "ordered" && <span style={{ color: late ? red : brass, fontSize: 12, fontWeight: 600 }}>ordered{n.supplier ? ` from ${n.supplier}` : ""}{n.eta ? `, due ${new Date(n.eta + "T12:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })}${late ? " (late)" : ""}` : ""}{n.orderRef ? ` · #${n.orderRef}` : ""}</span>}
+                {st === "in_stock" && <span style={{ color: green, fontSize: 12 }}>{have} in stock</span>}
+                {st === "need" && <span style={{ color: red, fontSize: 12, fontWeight: 600 }}>need to order</span>}
+                {st === "need" && <button type="button" style={sb(brass)} onClick={() => { setOrdering(i); setOf({ supplier: n.supplier || (stock.find((x) => x.supplier) || {}).supplier || "", eta: "", ref: "" }); }}>Ordered…</button>}
+                {st === "ordered" && <button type="button" style={sb(green)} onClick={() => set(i, { arrivedAt: new Date().toISOString(), arrivedBy: me || "" })}>Arrived</button>}
+                {["arrived", "in_stock"].includes(st) && <button type="button" style={sb(green)} onClick={() => set(i, { done: true, fittedAt: new Date().toISOString(), fittedBy: me || "" })}>Fitted</button>}
+                {st === "fitted" && <button type="button" style={sb()} onClick={() => set(i, { done: false })}>Undo</button>}
+                <button type="button" onClick={() => onUpdate({ partsNeeded: needed.filter((_, j) => j !== i) })} aria-label={`Remove ${n.label}`} style={{ border: "none", background: "none", color: muted, cursor: "pointer", fontSize: 16 }}>×</button>
+              </span>
+            </div>
+            {ordering === i && (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                <input value={of.supplier} onChange={(e) => setOf({ ...of, supplier: e.target.value })} placeholder="Supplier" aria-label="Supplier" style={{ ...inp, flex: "1 1 120px" }} />
+                <label style={{ fontSize: 12, color: muted, display: "flex", gap: 4, alignItems: "center" }}>due <input type="date" value={of.eta} onChange={(e) => setOf({ ...of, eta: e.target.value })} aria-label="Expected" style={inp} /></label>
+                <input value={of.ref} onChange={(e) => setOf({ ...of, ref: e.target.value })} placeholder="Order no. (optional)" aria-label="Order number" style={{ ...inp, flex: "1 1 110px" }} />
+                <button type="button" style={{ ...sb(brass), fontWeight: 700 }} onClick={() => { set(i, { orderedAt: new Date().toISOString(), orderedBy: me || "", supplier: of.supplier.trim(), eta: of.eta || null, orderRef: of.ref.trim() }); setOrdering(null); }}>Save</button>
+                <button type="button" style={sb()} onClick={() => setOrdering(null)}>Cancel</button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+        <input value={adding} onChange={(e) => setAdding(e.target.value)} placeholder="Add a part by hand, e.g. Back glass iPhone 13" aria-label="Add a part"
+          onKeyDown={(e) => { if (e.key === "Enter" && adding.trim()) { onUpdate({ partsNeeded: [...needed, { partId: `custom-${Date.now().toString(36)}`, label: adding.trim(), done: false, at: new Date().toISOString(), by: me || "" }] }); setAdding(""); } }}
+          style={{ ...inp, flex: 1 }} />
+        <button type="button" disabled={!adding.trim()} style={sb(brass)} onClick={() => { onUpdate({ partsNeeded: [...needed, { partId: `custom-${Date.now().toString(36)}`, label: adding.trim(), done: false, at: new Date().toISOString(), by: me || "" }] }); setAdding(""); }}>Add</button>
+      </div>
+      {waiting && ticket.status !== "awaiting_parts" && !["completed", "not_repairable", "cancelled"].includes(ticket.status) && (
+        <button type="button" onClick={() => onUpdate({ status: "awaiting_parts" }, true)} style={{ ...sb(red), marginTop: 8 }}>Mark job as waiting on parts</button>
+      )}
+      {!waiting && needed.length > 0 && ticket.status === "awaiting_parts" && (
+        <button type="button" onClick={() => onUpdate({ status: "in_repair" }, true)} style={{ ...sb(green), marginTop: 8, fontWeight: 700 }}>All parts here: start the repair →</button>
+      )}
+    </div>
+  );
+}
+
+// Every part open jobs are waiting on, in one list for whoever does the ordering:
+// to order (tick several, mark them ordered together, copy the list for the supplier),
+// on order (due date, late ones red), and arrived but not fitted yet.
+function PartsToOrder({ colors, tickets, stock, me, onApply, onOpen }) {
+  const { paper, muted, line, red, green, brass, panel2 } = colors;
+  const [pick, setPick] = useState({});
+  const [of, setOf] = useState({ supplier: "", eta: "", ref: "" });
+  const [copied, setCopied] = useState(false);
+  const rows = [];
+  for (const t of tickets) {
+    if (["completed", "not_repairable", "cancelled"].includes(t.status)) continue;
+    (t.partsNeeded || []).forEach((n, index) => { const st = partState(n, stock, t.device && t.device.model); if (["need", "ordered", "arrived"].includes(st)) rows.push({ t, n, index, st, key: `${t.id}#${index}` }); });
+  }
+  if (!rows.length) return null;
+  const now = Date.now();
+  const toOrder = rows.filter((r) => r.st === "need"), onOrder = rows.filter((r) => r.st === "ordered"), arrived = rows.filter((r) => r.st === "arrived");
+  const picked = toOrder.filter((r) => pick[r.key]);
+  const inp = { padding: "7px 9px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 12.5, fontFamily: "inherit" };
+  const sb = (c) => ({ padding: "5px 10px", borderRadius: 3, fontSize: 12, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${c || line}`, background: "transparent", color: c || paper });
+  const job = (r) => <button type="button" onClick={() => onOpen(r.t.id)} style={{ all: "unset", cursor: "pointer", color: brass }}>{r.t.id}</button>;
+  const line1 = (r) => <span>{r.n.label} <span style={{ color: muted, fontSize: 12 }}>· {(r.t.device && `${r.t.device.brand} ${r.t.device.model}`) || ""} · {job(r)}{r.t.assignedTo ? ` · 🔧 ${r.t.assignedTo}` : ""}</span></span>;
+  return (
+    <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 12, marginBottom: 18 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Parts jobs are waiting on</div>
+      <div style={{ fontSize: 12.5, color: muted, marginBottom: 10 }}>{toOrder.length} to order · {onOrder.length} on order{onOrder.some((r) => r.n.eta && Date.parse(r.n.eta + "T23:59:59") < now) ? " (some late)" : ""} · {arrived.length} arrived, not fitted</div>
+      {toOrder.length > 0 && <>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: red, margin: "6px 0" }}>To order</div>
+        {toOrder.map((r) => (
+          <label key={r.key} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, padding: "5px 0", borderTop: `1px solid ${line}` }}>
+            <input type="checkbox" checked={!!pick[r.key]} onChange={(e) => setPick({ ...pick, [r.key]: e.target.checked })} />{line1(r)}
+          </label>
+        ))}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+          <button type="button" style={sb()} onClick={() => setPick(Object.fromEntries(toOrder.map((r) => [r.key, true])))}>Tick all</button>
+          <button type="button" style={sb()} disabled={!picked.length} onClick={async () => {
+            const text = ["Order:", ...picked.map((r) => `${r.n.label} (${(r.t.device && r.t.device.model) || ""}) x1`)].join("\n");
+            try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2500); } catch (e) { window.prompt("Copy this order:", text); }
+          }}>{copied ? "✓ Copied" : `Copy list (${picked.length})`}</button>
+          <input value={of.supplier} onChange={(e) => setOf({ ...of, supplier: e.target.value })} placeholder="Supplier" aria-label="Supplier for ticked parts" style={{ ...inp, width: 130 }} />
+          <label style={{ fontSize: 12, color: muted, display: "flex", gap: 4, alignItems: "center" }}>due <input type="date" value={of.eta} onChange={(e) => setOf({ ...of, eta: e.target.value })} aria-label="Expected date" style={inp} /></label>
+          <input value={of.ref} onChange={(e) => setOf({ ...of, ref: e.target.value })} placeholder="Order no." aria-label="Order number" style={{ ...inp, width: 100 }} />
+          <button type="button" disabled={!picked.length} style={{ ...sb(brass), fontWeight: 700 }} onClick={async () => {
+            await onApply(picked.map((r) => ({ ticketId: r.t.id, index: r.index, patch: { orderedAt: new Date().toISOString(), orderedBy: me || "", supplier: of.supplier.trim(), eta: of.eta || null, orderRef: of.ref.trim() } })));
+            setPick({});
+          }}>Mark {picked.length || ""} ordered</button>
+        </div>
+      </>}
+      {onOrder.length > 0 && <>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: brass, margin: "12px 0 6px" }}>On order</div>
+        {onOrder.sort((a, b) => String(a.n.eta || "9").localeCompare(String(b.n.eta || "9"))).map((r) => { const late = r.n.eta && Date.parse(r.n.eta + "T23:59:59") < now; return (
+          <div key={r.key} style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", fontSize: 13, padding: "5px 0", borderTop: `1px solid ${line}`, flexWrap: "wrap" }}>
+            {line1(r)}
+            <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <span style={{ fontSize: 12, color: late ? red : muted, fontWeight: late ? 700 : 400 }}>{r.n.supplier || "supplier?"}{r.n.eta ? `, due ${new Date(r.n.eta + "T12:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" })}` : ""}{late ? " · late, chase it" : ""}</span>
+              <button type="button" style={sb(green)} onClick={() => onApply([{ ticketId: r.t.id, index: r.index, patch: { arrivedAt: new Date().toISOString(), arrivedBy: me || "" } }])}>Arrived</button>
+            </span>
+          </div>); })}
+      </>}
+      {arrived.length > 0 && <>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: green, margin: "12px 0 6px" }}>Arrived: tell the technician</div>
+        {arrived.map((r) => <div key={r.key} style={{ fontSize: 13, padding: "5px 0", borderTop: `1px solid ${line}` }}>{line1(r)}</div>)}
+      </>}
+    </div>
+  );
+}
+
+// The customer called it off, or the job was booked in by mistake.
+const CANCEL_REASONS = ["Customer changed their mind", "Price too high", "Fixed elsewhere", "Never brought it in / no-show", "Duplicate job", "Other"];
+function CloseJob({ colors, ticket, onUpdate, onBack }) {
+  const { paper, muted, line, red } = colors;
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState(CANCEL_REASONS[0]);
+  const [note, setNote] = useState("");
+  const paid = Number(ticket.deposit) > 0 || ticket.status === "completed";
+  const canDelete = hasArea("reports") && !paid;
+  if (ticket.status === "cancelled") return (
+    <div style={{ border: `1px solid ${red}`, borderRadius: 3, padding: "10px 12px", marginBottom: 16, fontSize: 13 }}>
+      <b style={{ color: red }}>Cancelled</b>{ticket.cancelReason ? `: ${ticket.cancelReason}` : ""}{ticket.cancelledBy ? ` · by ${ticket.cancelledBy}` : ""}{ticket.cancelledAt ? ` · ${new Date(ticket.cancelledAt).toLocaleDateString("en-AU")}` : ""}
+      {Number(ticket.deposit) > 0 && <div style={{ color: red, marginTop: 4 }}>A deposit of ${ticket.deposit} was taken: refund it or keep it as agreed, and note what you did.</div>}
+      <div style={{ color: muted, marginTop: 4 }}>To reopen it, pick a status above.</div>
+    </div>
+  );
+  if (ticket.status === "completed") return null;
+  const btn = { padding: "7px 12px", borderRadius: 3, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${line}`, background: "transparent", color: paper };
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {!open ? <button type="button" onClick={() => setOpen(true)} style={{ ...btn, color: red, borderColor: red }}>Cancel this job…</button> : (
+        <div style={{ border: `1px solid ${red}`, borderRadius: 3, padding: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Why is it cancelled?</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            {CANCEL_REASONS.map((r) => <button key={r} type="button" aria-pressed={reason === r} onClick={() => setReason(r)} style={{ ...btn, borderColor: reason === r ? red : line, color: reason === r ? red : paper }}>{r}</button>)}
+          </div>
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional): what was agreed, deposit refunded, etc." aria-label="Cancel note"
+            style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 13, marginBottom: 8, fontFamily: "inherit" }} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => { onUpdate({ status: "cancelled", cancelReason: note.trim() ? `${reason}: ${note.trim()}` : reason, cancelledAt: new Date().toISOString(), cancelledBy: getAuthedUser()?.username || "" }, true); setOpen(false); }}
+              style={{ ...btn, background: red, color: "#fff", border: "none", fontWeight: 700 }}>Cancel the job</button>
+            <button type="button" onClick={() => setOpen(false)} style={btn}>Keep it open</button>
+            {canDelete && <button type="button" style={{ ...btn, marginLeft: "auto", color: muted }} onClick={() => {
+              if (!window.confirm(`Delete job ${ticket.id}? Use this only for a job booked in by mistake. It disappears from the bench and reports (the activity log keeps a record).`)) return;
+              onUpdate({ deleted: true, deletedAt: new Date().toISOString(), deletedBy: getAuthedUser()?.username || "" }); onBack();
+            }}>Delete (booked by mistake)</button>}
+          </div>
         </div>
       )}
     </div>
@@ -1364,11 +1567,12 @@ function ReorderList({ colors, stock }) {
   );
 }
 
-function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefillBarcode, onPrefillUsed }) {
+function PartsStockTab({ colors, stock, onAdd, onAdjust, onEdit, onDelete, onReceiveOrder, prefillBarcode, onPrefillUsed }) {
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [name, setName] = useState(""); const [sku, setSku] = useState(""); const [barcode, setBarcode] = useState(prefillBarcode || "");
   const [qty, setQty] = useState(""); const [cost, setCost] = useState(""); const [threshold, setThreshold] = useState("2");
   const [find, setFind] = useState(""); const [note, setNote] = useState("");
+  const [editing, setEditing] = useState(null);
   // "Receive a supplier order" bulk flow
   const [recOpen, setRecOpen] = useState(false);
   const [supplier, setSupplier] = useState("Crazy Parts"); const [orderRef, setOrderRef] = useState("");
@@ -1497,7 +1701,8 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefill
       {list.map((s) => {
         const low = s.qtyOnHand <= s.lowStockThreshold;
         return (
-          <div key={s.id} style={{ border: `1px solid ${low ? red : line}`, borderRadius: 3, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <React.Fragment key={s.id}>
+          <div style={{ border: `1px solid ${low ? red : line}`, borderRadius: 3, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13 }}>{s.name}{s.sku && <span style={{ color: muted, fontSize: 11 }}> · {s.sku}</span>}</div>
               <div style={{ fontSize: 12, color: low ? red : muted, marginTop: 2 }}>
@@ -1505,14 +1710,41 @@ function PartsStockTab({ colors, stock, onAdd, onAdjust, onReceiveOrder, prefill
               </div>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
+              <button type="button" onClick={() => setEditing(editing === s.id ? null : s.id)} aria-label={`Edit ${s.name}`}
+                style={{ height: 36, padding: "0 10px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5 }}>Edit</button>
               <button onClick={() => onAdjust(s.id, -1)} disabled={s.qtyOnHand <= 0} aria-label={`One less ${s.name}`}
                 style={{ width: 36, height: 36, borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>−</button>
               <button onClick={() => onAdjust(s.id, 1)} aria-label={`One more ${s.name}`}
                 style={{ width: 36, height: 36, borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer" }}>+</button>
             </div>
           </div>
+          {editing === s.id && <PartEdit key={s.id} part={s} colors={colors} onCancel={() => setEditing(null)}
+            onSave={async (patch) => { await onEdit(s.id, patch); setEditing(null); }}
+            onDelete={async () => { if (window.confirm(`Delete ${s.name} from Parts Stock? Jobs that used it keep their record.`)) { await onDelete(s.id); setEditing(null); } }} />}
+          </React.Fragment>
         );
       })}
+    </div>
+  );
+}
+
+// Change everything about a part: name, codes, cost, count, reorder level, supplier.
+function PartEdit({ part, colors, onCancel, onSave, onDelete }) {
+  const { paper, muted, line, red, brass, panel2 } = colors;
+  const [f, setF] = useState({ name: part.name || "", sku: part.sku || "", barcode: part.barcode || "", costPerUnit: String(part.costPerUnit ?? ""), qtyOnHand: String(part.qtyOnHand ?? 0), lowStockThreshold: String(part.lowStockThreshold ?? 2), supplier: part.supplier || "" });
+  const inp = { width: "100%", padding: "8px 10px", borderRadius: 3, border: `1px solid ${line}`, background: panel2, color: paper, fontSize: 13, boxSizing: "border-box", fontFamily: "inherit" };
+  const field = (k, label, extra = {}) => <label style={{ fontSize: 11.5, color: muted }}>{label}<input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} style={inp} {...extra} /></label>;
+  return (
+    <div style={{ border: `1px solid ${brass}`, borderTop: "none", borderRadius: "0 0 3px 3px", padding: 12, marginTop: -8, marginBottom: 8, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+      {field("name", "Name")}{field("sku", "SKU / supplier code")}{field("barcode", "Barcode")}
+      {field("costPerUnit", "Cost each ($)", { inputMode: "decimal" })}{field("qtyOnHand", "On hand (counted)", { inputMode: "numeric" })}{field("lowStockThreshold", "Reorder at", { inputMode: "numeric" })}
+      {field("supplier", "Supplier")}
+      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button type="button" disabled={!f.name.trim()} onClick={() => onSave({ name: f.name.trim(), sku: f.sku.trim(), barcode: f.barcode.trim(), costPerUnit: Math.max(0, parseFloat(f.costPerUnit) || 0), qtyOnHand: Math.max(0, parseInt(f.qtyOnHand, 10) || 0), lowStockThreshold: Math.max(0, parseInt(f.lowStockThreshold, 10) || 0), supplier: f.supplier.trim() })}
+          style={{ padding: "8px 14px", borderRadius: 3, border: "none", background: brass, color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Save</button>
+        <button type="button" onClick={onCancel} style={{ padding: "8px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+        <button type="button" onClick={onDelete} style={{ marginLeft: "auto", padding: "8px 14px", borderRadius: 3, border: `1px solid ${red}`, background: "transparent", color: red, cursor: "pointer", fontFamily: "inherit" }}>Delete part</button>
+      </div>
     </div>
   );
 }

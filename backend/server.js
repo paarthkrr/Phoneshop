@@ -1933,7 +1933,7 @@ function approvalView(t) {
     issue: String(t.approvalRequest?.note || t.issue || "").slice(0, 300), price: t.approvalRequest?.price,
     deposit: Number(t.deposit) > 0 ? Number(t.deposit) : 0, sentAt: t.approvalRequest?.sentAt,
     decision: t.customerApproval && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest?.sentAt || 0) ? t.customerApproval.decision : null,
-    closed: ["completed", "not_repairable"].includes(t.status),
+    closed: ["completed", "not_repairable", "cancelled"].includes(t.status),
   };
 }
 app.get("/public/repair-approval/:id", async (req, res) => {
@@ -1954,7 +1954,7 @@ app.post("/public/repair-approval/:id", async (req, res) => {
       const i = list.findIndex((x) => x && x.id === req.params.id);
       const t = list[i];
       if (i === -1 || !t.approvalRequest || !keyMatches(String(k || ""), t.approvalRequest.key)) return { status: 404, body: { error: "not_found" } };
-      if (["completed", "not_repairable"].includes(t.status)) return { status: 409, body: { error: "this job is already closed" } };
+      if (["completed", "not_repairable", "cancelled"].includes(t.status)) return { status: 409, body: { error: "this job is already closed" } };
       const at = new Date().toISOString();
       list[i] = { ...t, customerApproval: { decision, at, price: t.approvalRequest.price } };
       await write(JSON.stringify(list), "public");
@@ -2419,6 +2419,7 @@ if (require.main === module) {
   setInterval(() => schemaReady.then(weeklyMarketCheck), 6 * 3600 * 1000).unref();
   // End-of-day email to the owner (after 7pm Sydney, once a day).
   schemaReady.then(() => require("./daily-summary.js").start({ pool, loadSharedList, loadSharedValue, sendEmail, ownerEmail: OWNER_EMAIL })).catch(() => {});
+  schemaReady.then(() => require("./pickup-reminders.js").start({ pool, loadSharedList, loadSharedValue, sendEmail })).catch(() => {});
   const server = app.listen(PORT, () => console.log(`Shop backend listening on :${PORT} (postgres)`));
   process.on("SIGTERM", () => { pool.end(); server.close(() => process.exit(0)); });
 }

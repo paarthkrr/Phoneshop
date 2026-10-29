@@ -170,7 +170,7 @@ export default function AdminPricingConsole() {
       // Pick up any newly added built-in models (e.g. a new phone launch)
       // without changing prices staff have already edited.
       if (!isNew) {
-        const merged = mergeCatalog(c.catalog);
+        const merged = mergeCatalog(c.catalog, { all: true });
         if (merged.length !== (c.catalog || []).length) { c = { ...c, catalog: merged }; migrated = true; }
       }
       const ok = (isNew || migrated) ? await saveConfig(c) : true;
@@ -362,6 +362,10 @@ export default function AdminPricingConsole() {
               <input type="checkbox" checked={draft.businessSettings.dailySummary !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, dailySummary: e.target.checked } })} />
               Email me an end-of-day summary after 7pm (takings, profit, what's waiting tomorrow)
             </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", marginTop: 8 }}>
+              <input type="checkbox" checked={draft.businessSettings.autoPickupEmails !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, autoPickupEmails: e.target.checked } })} />
+              Email repair customers automatically: "ready to collect" if nobody told them within 15 minutes, then a reminder after 3 and 7 days if it's not collected (9am–7pm only)
+            </label>
 
             <div style={{ marginTop: 20, fontSize: 13 }}>Google reviews</div>
             <div style={{ fontSize: 12, color: muted, margin: "4px 0 8px" }}>Reviews decide who shows in Google Maps. Put this card on the counter; every printed job ticket has the same QR code.</div>
@@ -395,7 +399,7 @@ export default function AdminPricingConsole() {
               const latest = (await loadConfig()) || config;
               const today = sydneyToday();
               const byKey = new Map(changes.map((c) => [`${c.brand}|${c.model}`, c]));
-              const catalog = mergeCatalog(latest.catalog).map((d) => { const c = byKey.get(`${d.brand}|${d.model}`); return c ? { ...d, marketAdjPct: c.to, marketCheckedAt: today } : d; });
+              const catalog = mergeCatalog(latest.catalog, { all: true }).map((d) => { const c = byKey.get(`${d.brand}|${d.model}`); return c ? { ...d, marketAdjPct: c.to, marketCheckedAt: today } : d; });
               const next = { ...latest, catalog };
               if (!(await saveConfig(next))) return false;
               const h = await pushHistory(changes.map((c) => ({ ts: Date.now(), field: "catalog", note: `${c.brand} ${c.model} market adjustment: ${c.from}% → ${c.to}% (${c.note})` })));
@@ -439,46 +443,7 @@ export default function AdminPricingConsole() {
                 </div>
               );
             })()}
-            {draft.catalog.map((d, di) => (
-              <div key={d.brand + d.model} style={{ padding: "10px 0", borderTop: di === 0 ? "none" : `1px solid ${line}` }}>
-                <div style={{ fontSize: 13, marginBottom: 6 }}>{d.brand} {d.model} <span style={{ color: muted }}>· released {d.release}</span></div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {Object.keys(d.retail).map((s) => (
-                    <label key={s} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: muted }}>
-                      {s}
-                      {numInput(d.retail[s], (v) => {
-                        const next = { ...draft };
-                        next.catalog = [...next.catalog];
-                        next.catalog[di] = { ...d, retail: { ...d.retail, [s]: v } };
-                        setDraft(next);
-                      }, { step: "1", width: 70 })}
-                    </label>
-                  ))}
-                </div>
-                {(() => {
-                  const days = d.marketCheckedAt ? Math.floor((Date.now() - new Date(d.marketCheckedAt)) / 86400000) : null;
-                  const upd = (patch) => { const next = { ...draft }; next.catalog = [...next.catalog]; next.catalog[di] = { ...d, ...patch }; setDraft(next); };
-                  return (
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 8, fontSize: 12, color: muted }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        market adj %
-                        {numInput(d.marketAdjPct ?? 0, (v) => upd({ marketAdjPct: Math.max(-60, Math.min(30, Number(v) || 0)) }), { step: "1", width: 60 })}
-                      </label>
-                      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        photo link
-                        <input value={d.imageUrl || ""} onChange={(e) => upd({ imageUrl: e.target.value.trim() })} placeholder="https://… (optional)"
-                          style={{ width: 170, padding: "4px 6px", fontSize: 12, border: `1px solid ${line}`, borderRadius: 3 }} />
-                      </label>
-                      <button onClick={() => upd({ marketCheckedAt: new Date().toISOString().slice(0, 10) })}
-                        style={{ padding: "4px 9px", fontSize: 11.5, border: `1px solid ${line}`, borderRadius: 3, background: "transparent", cursor: "pointer" }}>✓ Checked today</button>
-                      <span style={{ color: days === null || days > 30 ? red : green }}>
-                        {days === null ? "never market-checked" : days === 0 ? "checked today" : `checked ${days} day${days === 1 ? "" : "s"} ago`}
-                      </span>
-                    </div>
-                  );
-                })()}
-              </div>
-            ))}
+            <CatalogEditor draft={draft} setDraft={setDraft} numInput={numInput} line={line} muted={muted} red={red} green={green} brass={brass} />
           </Section>
         )}
 
@@ -709,6 +674,92 @@ function PriceMatchesTab({ colors, requests, regions, onApprove, onDeny }) {
           <span style={{ color: r.status === "approved" ? green : muted }}>{r.status === "approved" ? `matched at ${fmt(r.approvedPrice, r.region)}` : "denied"}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Phone models: search, add, edit (release date, storage sizes and prices, photo,
+// market adj %), hide from the website and quotes, or delete a model you added.
+// Built-in models are hidden rather than deleted, so they don't come back on the next load.
+const BUILT_IN = new Set(DEFAULT_CATALOG.map((d) => `${d.brand}|${d.model}`));
+function CatalogEditor({ draft, setDraft, numInput, line, muted, red, green, brass }) {
+  const [q, setQ] = useState("");
+  const [showHidden, setShowHidden] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [nf, setNf] = useState({ brand: "Apple", model: "", category: "phone", release: new Date().toISOString().slice(0, 10), sizes: "128GB 999, 256GB 1199" });
+  const [newSize, setNewSize] = useState({});
+  const inp = { padding: "6px 8px", fontSize: 12.5, border: `1px solid ${line}`, borderRadius: 3, background: "var(--mr-surface)", color: "var(--mr-text)", fontFamily: "inherit" };
+  const btn = { ...inp, cursor: "pointer" };
+  const upd = (di, patch) => { const next = { ...draft, catalog: [...draft.catalog] }; next.catalog[di] = { ...draft.catalog[di], ...patch }; setDraft(next); };
+  const parseSizes = (t) => Object.fromEntries(t.split(/[,\n]/).map((x) => x.trim().match(/^(\S+)\s*[:=]?\s*\$?(\d+)$/)).filter(Boolean).map((m) => [m[1].toUpperCase().replace(/^(\d+)(G|T)$/, "$1$2B"), Number(m[2])]));
+  const brands = [...new Set(draft.catalog.map((d) => d.brand))];
+  const dupe = draft.catalog.some((d) => d.brand.toLowerCase() === nf.brand.trim().toLowerCase() && d.model.toLowerCase() === nf.model.trim().toLowerCase());
+  const sizes = parseSizes(nf.sizes);
+  const needle = q.trim().toLowerCase();
+  const rows = draft.catalog.map((d, di) => [d, di]).filter(([d]) => (showHidden || !d.hidden) && (!needle || `${d.brand} ${d.model}`.toLowerCase().includes(needle)));
+  const hiddenCount = draft.catalog.filter((d) => d.hidden).length;
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${draft.catalog.length} models`} aria-label="Search models" style={{ ...inp, flex: "1 1 200px", fontSize: 13.5, padding: "8px 10px" }} />
+        <button type="button" onClick={() => setAdding(!adding)} style={{ ...btn, color: brass, fontWeight: 700 }}>{adding ? "Close" : "+ Add a model"}</button>
+        {hiddenCount > 0 && <button type="button" onClick={() => setShowHidden(!showHidden)} style={btn}>{showHidden ? "Hide hidden models" : `Show ${hiddenCount} hidden`}</button>}
+      </div>
+      {adding && (
+        <div style={{ border: `1px solid ${brass}`, borderRadius: 4, padding: 12, marginBottom: 14, display: "grid", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input list="mr-brands" value={nf.brand} onChange={(e) => setNf({ ...nf, brand: e.target.value })} placeholder="Brand" aria-label="Brand" style={{ ...inp, flex: "1 1 120px" }} />
+            <datalist id="mr-brands">{brands.map((b) => <option key={b} value={b} />)}</datalist>
+            <input value={nf.model} onChange={(e) => setNf({ ...nf, model: e.target.value })} placeholder="Model, e.g. Galaxy S26 Ultra" aria-label="Model" style={{ ...inp, flex: "2 1 200px" }} />
+            <select value={nf.category} onChange={(e) => setNf({ ...nf, category: e.target.value })} aria-label="Type" style={inp}>{["phone", "tablet", "laptop", "watch"].map((c) => <option key={c}>{c}</option>)}</select>
+            <label style={{ fontSize: 12, color: muted, display: "flex", gap: 6, alignItems: "center" }}>released <input type="date" value={nf.release} onChange={(e) => setNf({ ...nf, release: e.target.value })} style={inp} /></label>
+          </div>
+          <input value={nf.sizes} onChange={(e) => setNf({ ...nf, sizes: e.target.value })} placeholder="Storage and new retail price: 128GB 999, 256GB 1199" aria-label="Storage sizes and prices" style={inp} />
+          <div style={{ fontSize: 12, color: dupe ? red : muted }}>{dupe ? "That model is already in the catalog." : `Sizes read as: ${Object.entries(sizes).map(([k, v]) => `${k} $${v}`).join(", ") || "none yet"}`}</div>
+          <div><button type="button" disabled={!nf.brand.trim() || !nf.model.trim() || dupe || !Object.keys(sizes).length}
+            onClick={() => { setDraft({ ...draft, catalog: [{ brand: nf.brand.trim(), model: nf.model.trim(), category: nf.category, release: nf.release, retail: sizes, marketAdjPct: 0, addedAt: new Date().toISOString() }, ...draft.catalog] }); setAdding(false); setNf({ ...nf, model: "" }); }}
+            style={{ ...btn, background: brass, color: "#fff", border: "none", fontWeight: 700 }}>Add model</button> <span style={{ fontSize: 12, color: muted }}>Then press Save below.</span></div>
+        </div>
+      )}
+      {rows.length === 0 && <div style={{ fontSize: 13, color: muted }}>No models match.</div>}
+      {rows.map(([d, di], i) => {
+        const days = d.marketCheckedAt ? Math.max(0, Math.floor((Date.now() - new Date(String(d.marketCheckedAt).slice(0, 10) + "T00:00:00")) / 86400000)) : null; // a date, read as local midnight
+        const builtIn = BUILT_IN.has(`${d.brand}|${d.model}`);
+        const ns = newSize[di] || { k: "", v: "" };
+        return (
+          <div key={d.brand + d.model} style={{ padding: "10px 0", borderTop: i === 0 ? "none" : `1px solid ${line}`, opacity: d.hidden ? 0.55 : 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontSize: 13 }}><strong>{d.brand} {d.model}</strong> {d.hidden && <span style={{ color: red }}>· hidden from the website and quotes</span>}</span>
+              <span style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12, color: muted }}>
+                released <input type="date" value={(d.release || "").slice(0, 10)} onChange={(e) => upd(di, { release: e.target.value })} aria-label={`${d.model} release date`} style={inp} />
+                <button type="button" onClick={() => upd(di, { hidden: !d.hidden })} style={btn}>{d.hidden ? "Show again" : "Hide"}</button>
+                {!builtIn && <button type="button" style={{ ...btn, color: red }} onClick={() => { if (window.confirm(`Delete ${d.brand} ${d.model} from the catalog? (Then press Save.)`)) setDraft({ ...draft, catalog: draft.catalog.filter((_, j) => j !== di) }); }}>Delete</button>}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              {Object.keys(d.retail).map((s) => (
+                <label key={s} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: muted }}>
+                  {s}
+                  {numInput(d.retail[s], (v) => upd(di, { retail: { ...d.retail, [s]: v } }), { step: "1", width: 70 })}
+                  {Object.keys(d.retail).length > 1 && <button type="button" aria-label={`Remove ${s}`} title={`Remove ${s}`} onClick={() => { const { [s]: _, ...rest } = d.retail; upd(di, { retail: rest }); }} style={{ ...btn, padding: "2px 6px", color: red }}>×</button>}
+                </label>
+              ))}
+              <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                <input value={ns.k} onChange={(e) => setNewSize({ ...newSize, [di]: { ...ns, k: e.target.value } })} placeholder="512GB" aria-label={`New size for ${d.model}`} style={{ ...inp, width: 64 }} />
+                <input value={ns.v} onChange={(e) => setNewSize({ ...newSize, [di]: { ...ns, v: e.target.value.replace(/\D/g, "") } })} placeholder="$" aria-label={`Price for new size of ${d.model}`} inputMode="numeric" style={{ ...inp, width: 64 }} />
+                <button type="button" disabled={!ns.k.trim() || !ns.v} onClick={() => { upd(di, { retail: { ...d.retail, [ns.k.trim().toUpperCase()]: Number(ns.v) } }); setNewSize({ ...newSize, [di]: { k: "", v: "" } }); }} style={{ ...btn, color: brass }}>+ size</button>
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 8, fontSize: 12, color: muted }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>market adj %{numInput(d.marketAdjPct ?? 0, (v) => upd(di, { marketAdjPct: Math.max(-60, Math.min(30, Number(v) || 0)) }), { step: "1", width: 60 })}</label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6 }}>photo link
+                <input value={d.imageUrl || ""} onChange={(e) => upd(di, { imageUrl: e.target.value.trim() })} placeholder="https://… (optional)" style={{ ...inp, width: 170 }} /></label>
+              <button type="button" onClick={() => upd(di, { marketCheckedAt: new Date().toISOString().slice(0, 10) })} style={btn}>✓ Checked today</button>
+              <span style={{ color: days === null || days > 30 ? red : green }}>{days === null ? "never market-checked" : days === 0 ? "checked today" : `checked ${days} day${days === 1 ? "" : "s"} ago`}</span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
