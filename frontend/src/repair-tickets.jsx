@@ -5,6 +5,7 @@ import { partsCostOf } from "./pnl.js";
 import { ScanButton } from "./barcode-scanner.jsx";
 import { DOORSTEP, zoneForPostcode, doorstepFee } from "./doorstep.js";
 import DoorstepCalendar from "./doorstep-calendar.jsx";
+import TimePick, { whenText, untilText } from "./tech-time.jsx";
 import { SYMPTOMS, PARTS, diagnose, stockFor, LIKELIHOOD_LABEL } from "./diagnosis-guide.js";
 
 /* =================================================================
@@ -131,6 +132,13 @@ export default function RepairTickets() {
       else if (s) setStaffName(s);
       setPartsStock(ps || []);
       setRepairRequests(rr || []);
+      // Arrived from a customer's profile: a job to open, or a new repair to book in for them.
+      try {
+        const job = new URLSearchParams(window.location.search).get("job");
+        if (job && (t || []).some((x) => x.id === job)) { setOpenId(job); setView("queue"); }
+        const pre = sessionStorage.getItem("mr-intake-prefill");
+        if (pre) { sessionStorage.removeItem("mr-intake-prefill"); setIntakeFrom(JSON.parse(pre)); setView("intake"); }
+      } catch (e) { /* normal start */ }
       if (authed && window.SHOP_API_BASE_URL) {
         try {
           const r = await fetch(`${window.SHOP_API_BASE_URL}/auth/team`, { headers: { Authorization: `Bearer ${window.shopAuth.authToken()}` } });
@@ -256,7 +264,7 @@ export default function RepairTickets() {
     const partsCost = partsCostOf(t), labourCost = Number(t.techPay) || 0;
     await saveJSON("sales", [{
       id: "SALE-" + Math.floor(100000 + Math.random() * 900000), itemId: ticketId,
-      customerName: t.customer.name, customerEmail: t.customer.email || "",
+      customerName: t.customer.name, customerEmail: t.customer.email || "", customerPhone: t.customer.phone || "",
       salePrice: finalPrice, costBasis: partsCost + labourCost, partsCost, labourCost, technician: t.assignedTo || "",
       brand: t.device.brand, model: t.device.model, storage: "repair",
       region: "AU", payMethod, soldAt: completedAt,
@@ -326,10 +334,11 @@ export default function RepairTickets() {
       parts: [], finalPrice: null, warrantyDays: 90, warrantyOf: null,
       staffHandled: staffName || "unattributed", notifiedAt: null, completedAt: null,
       statusLog: [{ status: "dropped_off", at: now, by: staffName || "unattributed" }],
-      ...(intakeFrom ? { requestId: intakeFrom.id, source: intakeFrom.method === "doorstep" ? "doorstep" : "website" } : {}),
+      ...(intakeFrom && !intakeFrom.fromCustomer ? { requestId: intakeFrom.id, source: intakeFrom.method === "doorstep" ? "doorstep" : "website" } : {}),
     };
     await persist([ticket, ...(tickets || [])]);
-    if (intakeFrom) { await updateRequest(intakeFrom.id, { status: "contacted", ticketId: ticket.id, ...(intakeFrom.method === "doorstep" ? { visitStatus: "done" } : {}) }); setIntakeFrom(null); }
+    if (intakeFrom && !intakeFrom.fromCustomer) await updateRequest(intakeFrom.id, { status: "contacted", ticketId: ticket.id, ...(intakeFrom.method === "doorstep" ? { visitStatus: "done" } : {}) });
+    setIntakeFrom(null);
     setOpenId(ticket.id);
     setView("detail");
   }
@@ -471,7 +480,7 @@ export default function RepairTickets() {
                 </div>
                 <div style={{ fontSize: 13, marginTop: 2 }}>{t.device.brand} {t.device.model} — {REPAIR_TYPES.find((r) => r.id === t.repairTypeId)?.label}</div>
                 {(t.symptoms || []).length > 0 && <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.symptoms.map((id) => SYMPTOMS.find((x) => x.id === id)?.label).filter(Boolean).join(" · ")}</div>}
-                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.jobType === "shop" ? "Shop phone" : t.customer.name}{t.jobType === "shop" ? "" : ` · ${fmt(t.finalPrice ?? t.quotedPrice)}`}{t.dueAt ? ` · due ${new Date(t.dueAt).toLocaleDateString("en-AU")}` : ""}{t.warrantyOf && " · warranty job"}{t.assignedTo ? ` · 🔧 ${t.assignedTo}` : " · not assigned"}{Number(t.estimateMins) > 0 || Number(t.timeSpentMins) > 0 ? ` · ⏱ ${estimateVsActual(t)}` : ""}</div>
+                <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.jobType === "shop" ? "Shop phone" : t.customer.name}{t.jobType === "shop" ? "" : ` · ${fmt(t.finalPrice ?? t.quotedPrice)}`}{t.dueAt ? ` · due ${whenText(t.dueAt)}` : ""}{t.warrantyOf && " · warranty job"}{t.assignedTo ? ` · 🔧 ${t.assignedTo}` : " · not assigned"}{Number(t.estimateMins) > 0 || Number(t.timeSpentMins) > 0 ? ` · ⏱ ${estimateVsActual(t)}` : ""}</div>
               </button>
             ))}
             </>}
@@ -618,9 +627,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
         <select value={priority} onChange={(e) => setPriority(e.target.value)} aria-label="Priority" style={{ ...inputStyle, flex: "1 1 120px" }}>
           <option value="normal">Normal</option><option value="urgent">Urgent</option>
         </select>
-        <label style={{ flex: "1 1 150px", fontSize: 12, color: muted }}>Due by
-          <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} style={inputStyle} />
-        </label>
+        <div style={{ flex: "1 1 220px" }}><TimePick label="Promised to the customer by" value={dueAt || null} onChange={(v) => setDueAt(v || "")} inputStyle={inputStyle} /></div>
         <label style={{ flex: "1 1 150px", fontSize: 12, color: muted }}>Estimated time (minutes)
           <input type="number" min="0" value={estimateMins} onChange={(e) => setEstimateMins(e.target.value)} placeholder="e.g. 60" style={inputStyle} />
         </label>
@@ -640,7 +647,7 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
       {!ready && <div style={{ fontSize: 12, color: muted, marginBottom: 6 }}>Needs: {[!shop && !name.trim() && "name", !shop && !phone.trim() && "phone", !brand.trim() && "brand", !model.trim() && "model", !repairTypeId && "repair type", !shop && !quotedPrice && "quote"].filter(Boolean).join(", ")}</div>}
 
       <button disabled={!ready} onClick={() => onCreate({ jobType, name, phone, email, brand: brand.trim(), model: model.trim(), imei: imei.trim(), storage: storage.trim(), colour: colour.trim(), condition: condition.trim(),
-          inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, estimateMins, dueAt: dueAt ? new Date(dueAt + "T17:00:00").toISOString() : null,
+          inventoryItemId: shop ? inventoryItemId : "", symptoms, repairTypeId, issue, assignedTo, priority, estimateMins, dueAt: dueAt || null,
           quotedPrice: parseFloat(quotedPrice) || 0, deposit: parseFloat(deposit) || 0, depositPayMethod })}
         style={{ width: "100%", padding: "13px", borderRadius: 3, border: "none", marginTop: 6,
           background: ready ? "var(--mr-brand-fill)" : line, color: ready ? "#fff" : muted, fontSize: 14, fontWeight: 600, cursor: ready ? "pointer" : "default" }}>
@@ -886,7 +893,7 @@ function TicketDetail({ colors, ticket, repairTypes, stock, team, me, onUpdate, 
         {ticket.device.imei && <div style={{ fontSize: 12.5, marginBottom: 4 }}>IMEI / serial: <span style={{ fontFamily: "ui-monospace, monospace" }}>{ticket.device.imei}</span></div>}
         {ticket.device.condition && <div style={{ fontSize: 12.5, color: muted, marginBottom: 4 }}>Condition on arrival: {ticket.device.condition}</div>}
         <div style={{ fontSize: 13 }}>{shop ? "Shop phone (fixing to sell)" : `${ticket.customer.name} · ${ticket.customer.phone}`}</div>
-        {ticket.dueAt && <div style={{ fontSize: 12.5, color: new Date(ticket.dueAt) < new Date() && !["completed", "not_repairable"].includes(ticket.status) ? red : muted, marginTop: 4 }}>Due {new Date(ticket.dueAt).toLocaleDateString("en-AU")}</div>}
+        {ticket.dueAt && <div style={{ fontSize: 12.5, color: new Date(ticket.dueAt) < new Date() && !["completed", "not_repairable"].includes(ticket.status) ? red : muted, marginTop: 4 }}>Promised {whenText(ticket.dueAt)}{!["completed", "not_repairable"].includes(ticket.status) ? ` (${untilText(ticket.dueAt)})` : ""}</div>}
         <div style={{ fontSize: 12, color: muted, marginTop: 6 }}>{shop ? "Notes" : "Issue"}: {ticket.issue || "—"}</div>
         <div style={{ fontSize: 12.5, marginTop: 6 }}>🔧 {ticket.assignedTo ? `Assigned to ${ticket.assignedTo}` : <span style={{ color: red }}>Not assigned yet</span>}{ticket.priority === "urgent" ? <span style={{ color: red }}> · urgent</span> : ""}</div>
         <div style={{ fontSize: 12.5, marginTop: 2 }}>⏱ {estimateVsActual(ticket)}</div>
@@ -1537,12 +1544,11 @@ function EditJob({ colors, ticket, repairTypes, team, me, onCancel, onSave }) {
   const { panel2, paper, muted, brass, brassDim, line } = colors;
   const shop = ticket.jobType === "shop";
   const c = ticket.customer || {}, d = ticket.device || {};
-  const dueDay = ticket.dueAt ? new Date(ticket.dueAt).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) : "";
   const [f, setF] = useState({
     name: c.name || "", phone: c.phone || "", email: c.email || "",
     brand: d.brand || "", model: d.model || "", storage: d.storage || "", colour: d.colour || "", imei: d.imei || "", condition: d.condition || "",
     repairTypeId: ticket.repairTypeId || "", issue: ticket.issue || "", quotedPrice: String(ticket.quotedPrice ?? ""),
-    dueAt: dueDay, priority: ticket.priority || "normal", assignedTo: ticket.assignedTo || "", estimateMins: String(ticket.estimateMins || ""),
+    dueAt: ticket.dueAt || null, priority: ticket.priority || "normal", assignedTo: ticket.assignedTo || "", estimateMins: String(ticket.estimateMins || ""),
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const names = (team || []).length ? [...team].sort((x, y) => (x.role === "technician" ? -1 : 0) - (y.role === "technician" ? -1 : 0)) : (me ? [{ username: me, role: "" }] : []);
@@ -1555,7 +1561,7 @@ function EditJob({ colors, ticket, repairTypes, team, me, onCancel, onSave }) {
     const patch = {
       device: { ...d, brand: f.brand.trim(), model: f.model.trim(), storage: f.storage.trim(), colour: f.colour.trim(), imei: f.imei.trim(), condition: f.condition.trim() },
       repairTypeId: f.repairTypeId || ticket.repairTypeId, issue: f.issue, priority: f.priority,
-      dueAt: f.dueAt ? new Date(f.dueAt + "T17:00:00").toISOString() : null,
+      dueAt: f.dueAt || null,
       estimateMins: Math.max(0, Math.round(Number(f.estimateMins) || 0)),
     };
     if (!shop) {
@@ -1598,7 +1604,7 @@ function EditJob({ colors, ticket, repairTypes, team, me, onCancel, onSave }) {
           {f.assignedTo && !names.some((u) => u.username === f.assignedTo) && <option value={f.assignedTo}>{f.assignedTo}</option>}
         </select>)}
         {field("Priority", <select value={f.priority} onChange={set("priority")} style={input}><option value="normal">Normal</option><option value="urgent">Urgent</option></select>)}
-        {field("Due by", <input type="date" value={f.dueAt} onChange={set("dueAt")} style={input} />)}
+        <TimePick label="Promised by" value={f.dueAt} onChange={(v) => setF({ ...f, dueAt: v })} inputStyle={input} />
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
         <button type="button" onClick={onCancel} style={{ padding: "9px 14px", borderRadius: 3, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>

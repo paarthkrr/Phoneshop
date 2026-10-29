@@ -7,30 +7,19 @@ import { track } from "./track.js";
 import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 
-import QuoteCalculator from "./instant-quote-calculator.jsx";
-import Storefront from "./storefront.jsx";
 import AboutUs from "./about.jsx";
 import ContactUs from "./contact.jsx";
-import FAQ from "./faq.jsx";
-import HomeService from "./home-service.jsx";
-import Help from "./help.jsx";
 import ChatWidget from "./chat-widget.jsx";
 import SplashIntro from "./splash-intro.jsx";
 import Repairs from "./repairs.jsx";
-import Parts from "./parts.jsx";
-import Blog from "./blog.jsx";
 import Home from "./home.jsx";
 import { metaFor } from "./seo-meta.js";
-import Tutorials from "./tutorials.jsx";
-import SellBrand from "./sell-brand.jsx";
-import { PrivacyPolicy, Terms } from "./legal.jsx";
 import SiteFooter from "./site-footer.jsx";
 import { NAV_CSS, DesktopMenu, MobileDrawer, MobileBackdrop } from "./site-nav.jsx";
 import { ROLE_LABELS, currentRole, canSeeScreen } from "./roles.js";
 import ThemeToggle, { useThemeSync, loadBrand } from "./theme.jsx";
 import "./burgundy-theme.css";
 import "./luxury-home.css";
-import CustomerDisplay from "./customer-display.jsx";
 import PortalShell from "./portal-shell.jsx";
 
 /* =================================================================
@@ -67,6 +56,51 @@ export function normPath(p) {
 // Staff screens load on demand, so customers never download them. If a screen's
 // file has gone because a new version was deployed while the page was open,
 // reload once to pick up the new version.
+// Pages most visitors don't land on load when opened, and in the background once the
+// first page is up, so the first screen arrives sooner and later taps are still instant.
+const PUBLIC_LAZY = {
+  QuoteCalculator: () => import("./instant-quote-calculator.jsx"),
+  Storefront: () => import("./storefront.jsx"),
+  FAQ: () => import("./faq.jsx"),
+  Help: () => import("./help.jsx"),
+  Parts: () => import("./parts.jsx"),
+  Blog: () => import("./blog.jsx"),
+  Tutorials: () => import("./tutorials.jsx"),
+  SellBrand: () => import("./sell-brand.jsx"),
+  CustomerDisplay: () => import("./customer-display.jsx"),
+  HomeService: () => import("./home-service.jsx"),
+  legal: () => import("./legal.jsx"),
+};
+const QuoteCalculator = React.lazy(PUBLIC_LAZY.QuoteCalculator);
+const Storefront = React.lazy(PUBLIC_LAZY.Storefront);
+const FAQ = React.lazy(PUBLIC_LAZY.FAQ);
+const Help = React.lazy(PUBLIC_LAZY.Help);
+const Parts = React.lazy(PUBLIC_LAZY.Parts);
+const Blog = React.lazy(PUBLIC_LAZY.Blog);
+const Tutorials = React.lazy(PUBLIC_LAZY.Tutorials);
+const SellBrand = React.lazy(PUBLIC_LAZY.SellBrand);
+const CustomerDisplay = React.lazy(PUBLIC_LAZY.CustomerDisplay);
+const HomeService = React.lazy(PUBLIC_LAZY.HomeService);
+const PrivacyPolicy = React.lazy(() => PUBLIC_LAZY.legal().then((m) => ({ default: m.PrivacyPolicy })));
+const Terms = React.lazy(() => PUBLIC_LAZY.legal().then((m) => ({ default: m.Terms })));
+function prefetchPublicPages() {
+  const go = () => Object.values(PUBLIC_LAZY).forEach((f) => f().catch(() => {}));
+  if (typeof window === "undefined") return;
+  if (window.requestIdleCallback) window.requestIdleCallback(go, { timeout: 4000 }); else setTimeout(go, 2500);
+}
+
+// A copy of the page's pre-built content (see main.jsx), shown until React's own page is ready.
+function BootCopy() {
+  const b = typeof window !== "undefined" && window.__BOOT;
+  return b && b.html ? <div dangerouslySetInnerHTML={{ __html: b.html }} /> : null;
+}
+// While a page's code loads: the pre-built copy on the first page, a quiet placeholder after.
+function PageLoading() {
+  const b = typeof window !== "undefined" && window.__BOOT;
+  if (b && b.html && !b.used && b.path === window.location.pathname) return <div className="bm-inapp"><BootCopy /></div>; // the real header is already up
+  return <div aria-busy="true" style={{ minHeight: "60vh" }} />;
+}
+
 function staffScreen(load) {
   return React.lazy(() => load().then((m) => {
     try { sessionStorage.removeItem("mv_chunk_reload"); } catch (e) {}
@@ -487,9 +521,10 @@ export default function App() {
     }
     loadBrand(); // brand colours from the Pricing Console
     setStorageReady(true);
+    prefetchPublicPages();
   }, []);
 
-  if (!storageReady) return null;
+  if (!storageReady) return <BootCopy />;
 
   return (
     <BrowserRouter>
@@ -688,13 +723,14 @@ function AnimatedRoutes() {
   // New page (any link, incl. the menu) starts at the top; Back keeps the browser's spot.
   useEffect(() => { if (navType !== "POP") window.scrollTo({ top: 0, left: 0, behavior: "instant" }); }, [location.pathname]);
   const isStaff = isStaffPath(normPath(location.pathname));
+  useEffect(() => { if (window.__BOOT && location.pathname !== window.__BOOT.path) window.__BOOT.used = true; }, [location.pathname]);
   return (
     <>
     {/* Staff pages skip the slide: a transformed <main> would drag the portal's fixed sidebar and tab bar along with it. */}
     <main key={location.pathname} className={isStaff ? undefined : "cs-page-enter" + slide}>
       {/* The page takes at least a screen, so the footer starts below the fold and can't jump down as the page loads. */}
       <div style={isStaff ? undefined : { minHeight: "100vh" }}>
-      <React.Suspense fallback={<div style={{ padding: "60px 16px", textAlign: "center", color: "var(--mr-muted)", fontFamily: "'Archivo', system-ui, sans-serif" }}>Loading…</div>}>
+      <React.Suspense fallback={<PageLoading />}>
       <Routes location={{ ...location, pathname: normPath(location.pathname) }}>
         <Route path="/" element={<Home />} />
         <Route path="/quote" element={<QuoteCalculator />} />

@@ -102,20 +102,26 @@ function seoH1(route) {
 // description, and links to the main pages. React replaces this on mount, so
 // visitors see real text instead of "Loading\u2026" and crawlers (and social
 // scrapers that don't run JS) get genuine content and internal links.
+// What shows before the app's code arrives: the site's header with this page's real
+// content (for search engines and slow phones). Styled by .bm in index.html.
+function bootShell(kind, inner) {
+  return `<div id="boot-msg" class="bm bm-${kind}"><div class="bm-strip">Home collection across Sydney · Conditions apply</div><div class="bm-bar"><img src="/logo-mark.svg" width="28" height="28" alt=""><span class="bm-name">Mobile <b>Recellr</b></span><span class="bm-prog"></span></div><div class="bm-body">${inner}
+      </div></div>`;
+}
+
 // Search landing pages: the whole page in the HTML (intro, prices, how it works, FAQ, links).
 function seoLandingBody(route) {
   const p = SEO_PAGES[route];
-  const h2 = (t) => `<h2 style="font-size:20px;color:#111827;margin:26px 0 10px">${esc(t)}</h2>`;
+  const h2 = (t) => `<h2>${esc(t)}</h2>`;
   const prices = pagePrices(p, REPAIRS_BY_DEVICE).map((r) => `<li>${esc(r.device)} ${esc(r.name.toLowerCase())}: from $${r.from}</li>`).join("");
-  return `<div id="boot-msg" style="max-width:760px;margin:40px auto;padding:20px;font-family:system-ui,sans-serif;color:#374151;line-height:1.6">
-        <h1 style="font-size:30px;line-height:1.15;color:#111827;margin:0 0 12px">${esc(p.h1)}</h1>
+  return bootShell("page", `
+        <h1>${esc(p.h1)}</h1>
         ${p.intro.map((t) => `<p>${esc(t)}</p>`).join("")}
         ${prices ? `<ul>${prices}</ul><p style="font-size:13px">Starting prices. The exact price for your model and part is confirmed before any work.</p>` : ""}
-        <p><a href="${esc(p.cta[0])}" style="color:#2150C8">${esc(p.cta[1])}</a></p>
+        <p><a href="${esc(p.cta[0])}">${esc(p.cta[1])}</a></p>
         ${p.sections.map((x) => h2(x.h) + `<ul>${x.list.map((li) => `<li>${esc(li)}</li>`).join("")}</ul>`).join("")}
-        ${h2("Questions people ask")}${p.faq.map(([q, a]) => `<h3 style="font-size:16px;color:#111827;margin:14px 0 4px">${esc(q)}</h3><p style="margin:0">${esc(a)}</p>`).join("")}
-        ${h2("Related")}<nav>${p.links.map(([h, t]) => `<a href="${esc(h)}" style="color:#2150C8;margin:0 12px 6px 0;display:inline-block">${esc(t)}</a>`).join("")}</nav>
-      </div>`;
+        ${h2("Questions people ask")}${p.faq.map(([q, a]) => `<h3>${esc(q)}</h3><p style="margin:0">${esc(a)}</p>`).join("")}
+        ${h2("Related")}<nav>${p.links.map(([h, t]) => `<a href="${esc(h)}">${esc(t)}</a>`).join("")}</nav>`);
 }
 function seoBody(route) {
   if (SEO_PAGES[route]) return seoLandingBody(route);
@@ -123,13 +129,11 @@ function seoBody(route) {
   const h1 = esc(seoH1(route));
   const intro = meta ? esc(meta.desc) : "";
   const links = [["/quote","Sell your phone"],["/repairs","Phone repairs"],["/shop","Refurbished phones"],["/accessories","Accessories"],["/home-service","At your door"],["/about","About us"],["/contact","Contact"]]
-    .map(([h,t]) => `<a href="${h}" style="color:#2150C8;text-decoration:none;margin:0 10px 6px 0;display:inline-block">${t}</a>`).join("");
-  return `<div id="boot-msg" style="max-width:720px;margin:48px auto;padding:20px;font-family:system-ui,sans-serif;color:#5B6472;">
-        <h1 style="font-size:28px;line-height:1.15;color:#111827;margin:0 0 12px">${h1}</h1>
+    .map(([h,t]) => `<a href="${h}">${t}</a>`).join("");
+  return bootShell(route ? "page" : "home", `
+        <h1>${h1}</h1>
         ${intro ? `<p style="font-size:16px;line-height:1.55;margin:0 0 16px">${intro}</p>` : ""}
-        <nav aria-label="Main pages" style="margin:0 0 16px">${links}</nav>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:20px"><div style="width:24px;height:24px;border:2px solid #E5E7EB;border-top-color:#7A1F2B;border-radius:50%;animation:spin 1s linear infinite"></div><span style="font-size:13px;color:#8A93A0">Loading…</span></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      </div>`;
+        <nav aria-label="Main pages" style="margin:0 0 16px">${links}</nav>`);
 }
 
 // Structured data written into the page file itself, so Google reads it without running
@@ -251,13 +255,22 @@ export default defineConfig({
       name: "cache-bust-assets",
       transformIndexHtml: {
         order: "post",
-        handler(html) {
+        handler(html, ctx) {
           const v = Date.now().toString(36);
           // Search engine ownership codes (public by design): set them on the host, or add to SITE_VERIFICATION below.
           const codes = { "google-site-verification": process.env.GOOGLE_SITE_VERIFICATION || SITE_VERIFICATION.google, "msvalidate.01": process.env.BING_SITE_VERIFICATION || SITE_VERIFICATION.bing };
           const metas = Object.entries(codes).filter(([, c]) => /^[A-Za-z0-9_-]{10,100}$/.test(c || "")).map(([n, c]) => `<meta name="${n}" content="${c}" />`).join("\n    ");
           if (metas) html = html.replace("</head>", `    ${metas}\n  </head>`);
-          return html.replace(/(src|href)="(\/assets\/[^"?]+\.(?:js|css))"/g, `$1="$2?v=${v}"`);
+          // Only the fixed-name entry needs a version; every other file is named by its content.
+          html = html.replace(/(src|href)="(\/assets\/app\.js)"/g, `$1="$2?v=${v}"`);
+          // Fetch the main code and styles straight away, instead of after app.js arrives.
+          const main = ctx && ctx.bundle && Object.values(ctx.bundle).find((c) => c.type === "chunk" && /^assets\/main-/.test(c.fileName));
+          if (main) {
+            const css = [...((main.viteMetadata && main.viteMetadata.importedCss) || [])];
+            const tags = [`<link rel="modulepreload" href="/${main.fileName}" crossorigin>`, ...css.map((f) => `<link rel="stylesheet" href="/${f}">`)].join("\n    ");
+            html = html.replace("</head>", `    ${tags}\n  </head>`);
+          }
+          return html;
         },
       },
     },react(), legacyEntryForwarders(), pagePerRoute(), siteUrl()],
@@ -271,7 +284,8 @@ export default defineConfig({
         // Vite's dynamic-import helper would otherwise sit inside app.js, and every other
         // file would import "./app.js" without its ?v= version (possibly an old cached copy).
         manualChunks(id) { if (id.includes("vite/preload-helper") || id.includes("modulepreload-polyfill")) return "loader"; },
-        assetFileNames: "assets/[name][extname]",
+        // Styles are named by content too, so the page and the app always ask for the same file.
+        assetFileNames: (info) => (/\.css$/.test(info.name || (info.names && info.names[0]) || "") ? "assets/[name]-[hash][extname]" : "assets/[name][extname]"),
       },
     },
   },

@@ -32,6 +32,19 @@ export function repairMessages(t) {
   return { list, best };
 }
 
+// From the customer's profile: not tied to one job.
+export function customerMessages(c) {
+  const n = first(c.name), dev = c.devices[0] || "phone";
+  const list = [
+    { id: "hello", label: "Message", subject: `From ${SHOP}`, text: `Hi ${n}, it's ${SHOP}. ` },
+    ...(c.ready ? [{ id: "pickup", label: "Pickup reminder", subject: `Your device is ready to collect`, text: `Hi ${n}, a reminder from ${SHOP}: your repair is ready and waiting for you. Pop in any time during opening hours. Reply here if you'd like us to hold it for a particular day.` }] : []),
+    { id: "followup", label: "How's it going?", subject: `How's your ${dev}?`, text: `Hi ${n}, it's ${SHOP}. Just checking your ${dev} is still working well after the repair. Any problem at all, reply here: it's covered by our warranty.` },
+    { id: "review", label: "Ask for a review", subject: `How did we go, ${n}?`, text: `Hi ${n}, thanks for choosing ${SHOP}! If we looked after you, a quick Google review helps a small local shop a lot: ${GOOGLE_REVIEW_URL}` },
+    { id: "winback", label: "Haven't seen you", subject: `Need anything fixed?`, text: `Hi ${n}, it's ${SHOP}. It's been a while! If your ${dev} needs a new battery or screen, reply here for a price. Happy to help.` },
+  ];
+  return { list, best: c.ready ? "pickup" : "hello" };
+}
+
 export function tradeInMessages(o, amount) {
   const n = first(o.customerName || o.customer?.name), dev = `${o.device?.brand || o.brand || ""} ${o.device?.model || o.model || ""}`.trim() || "phone";
   const id = o.orderId || o.id;
