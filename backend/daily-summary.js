@@ -44,11 +44,11 @@ function buildDailySummary({ sales = [], tickets = [], orders = [], inventory = 
     ["Trade-ins to inspect", orders.filter((o) => o && o.status === "received_inspecting").length],
     ["Repair prices approved by customers, to start", tickets.filter((t) => t && t.approvalRequest && t.customerApproval && t.customerApproval.decision === "approve" && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest.sentAt) && ["dropped_off", "diagnosing"].includes(t.status)).length],
     ["Repairs ready, not yet collected", tickets.filter((t) => t && t.status === "ready_for_pickup").length],
-    ["Repair jobs open more than 5 days", tickets.filter((t) => t && !["completed", "not_repairable", "ready_for_pickup"].includes(t.status) && t.createdAt && daysSince(t.createdAt) > 5).length],
+    ["Repair jobs open more than 5 days", tickets.filter((t) => t && !["completed", "not_repairable", "cancelled", "ready_for_pickup"].includes(t.status) && t.createdAt && daysSince(t.createdAt) > 5).length],
     ["New repair bookings to call back", repairRequests.filter((r) => r && r.status === "new").length],
     ["Online phone orders to fulfil", webOrders.filter((o) => o && ["pending_payment", "pending_pickup", "paid"].includes(o.status)).length],
     [`Phones in stock over ${AGED_DAYS} days`, inStock.filter((i) => i.receivedAt && daysSince(i.receivedAt) > AGED_DAYS).length],
-    ["Repair parts at or below reorder level", partsStock.filter((p) => p && num(p.qtyOnHand) <= num(p.lowStockThreshold)).length],
+    ["Repair parts at or below reorder level", partsStock.filter((p) => p && !p.deleted && num(p.qtyOnHand) <= num(p.lowStockThreshold)).length],
     ["Customers to ask for a Google review", tickets.filter((t) => t && t.status === "completed" && t.jobType !== "shop" && t.completedAt && daysSince(t.completedAt) <= 7 && !(t.contactLog || []).some((c) => c.template === "review")).length],
   ].filter(([, n]) => n > 0);
 
@@ -82,7 +82,7 @@ function start({ pool, loadSharedList, loadSharedValue, sendEmail, ownerEmail, e
       if (!claim.rowCount) return;
       const keys = ["sales", "repair_tickets", "orders", "inventory", "parts_stock", "purchase_orders", "repair_requests"];
       const [sales, tickets, orders, inventory, partsStock, webOrders, repairRequests] = await Promise.all(keys.map((k) => loadSharedList(k)));
-      const s = buildDailySummary({ sales, tickets, orders, inventory, partsStock, webOrders, repairRequests, now });
+      const s = buildDailySummary({ sales, tickets: tickets.filter((t) => t && !t.deleted), orders, inventory, partsStock, webOrders, repairRequests, now });
       await sendEmail({ to: ownerEmail(), subject: s.subject, text: s.text, kind: "daily summary" });
     } catch (e) { console.error("daily summary:", e.message); }
   };

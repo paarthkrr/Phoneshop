@@ -65,7 +65,8 @@ export default function CustomersTab({ me = "" }) {
   async function merge(a, b) { // b's records join a's profile
     const latest = await load(KEY);
     const keys = [...new Set([...a.keys, ...b.keys])];
-    let next = latest.filter((p) => p.id !== b.profileId);
+    // The duplicate's profile is marked, not left out: the server keeps records a save leaves out.
+    let next = latest.map((p) => (p.id === b.profileId ? { ...p, deleted: true, mergedInto: a.profileId || a.anchor, deletedAt: new Date().toISOString(), deletedBy: me } : p));
     const bp = latest.find((p) => p.id === b.profileId) || {};
     if (a.profileId && next.some((p) => p.id === a.profileId)) next = next.map((p) => (p.id === a.profileId ? { ...p, alsoKnownAs: keys, notes: [...(p.notes || []), ...(bp.notes || [])], reminders: [...(p.reminders || []), ...(bp.reminders || [])], updatedAt: new Date().toISOString() } : p));
     else next = [{ id: newId(), createdAt: new Date().toISOString(), createdBy: me, anchor: a.anchor, alsoKnownAs: keys, name: a.name, phone: a.phone, email: a.email, notes: bp.notes || [], reminders: bp.reminders || [] }, ...next];

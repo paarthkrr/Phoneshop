@@ -138,7 +138,7 @@ export default function DailyDashboard() {
         "accessory_orders", "price_match_requests", "support_queries", "bulk_quote_requests", "quote_leads", "parts_stock", "accessories", "customers"];
       const v = await Promise.all(keys.map((k) => loadJSON(k, true)));
       const [orders, inventory, sales, tickets, till, expenses, repairRequests, webOrders, accessoryOrders, priceMatches, support, bulk, leads, partsStock, accessories, customers] = v;
-      setData({ orders, inventory, sales, tickets, till, expenses, repairRequests, webOrders, accessoryOrders, priceMatches, support, bulk, leads, partsStock, accessories, customers });
+      setData({ orders, inventory, sales, tickets: (tickets || []).filter((t) => t && !t.deleted), till, expenses, repairRequests, webOrders, accessoryOrders, priceMatches, support, bulk, leads, partsStock, accessories, customers });
     })();
   }, []);
 
@@ -165,14 +165,14 @@ export default function DailyDashboard() {
     // Answers to "approve this repair price" links that nobody has acted on yet.
     const answeredNow = (t, d) => t.approvalRequest && t.customerApproval && t.customerApproval.decision === d && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest.sentAt);
     const approvedToStart = tickets.filter((t) => answeredNow(t, "approve") && ["dropped_off", "diagnosing"].includes(t.status));
-    const declinedToReturn = tickets.filter((t) => answeredNow(t, "decline") && !["completed", "not_repairable"].includes(t.status));
+    const declinedToReturn = tickets.filter((t) => answeredNow(t, "decline") && !["completed", "not_repairable", "cancelled"].includes(t.status));
     // Happy customers from the last week nobody has asked for a Google review yet.
     const asked = (x) => (x.contactLog || []).some((c) => c.template === "review");
     const reviewAsks = [
       ...tickets.filter((t) => t.status === "completed" && t.jobType !== "shop" && !t.warrantyOf && t.completedAt && daysSince(t.completedAt) <= 7 && !asked(t)),
       ...orders.filter((o) => o.status === "approved_paid" && o.paidAt && daysSince(o.paidAt) <= 7 && !asked(o)),
     ];
-    const repairsOpen = tickets.filter((t) => !["completed", "not_repairable"].includes(t.status));
+    const repairsOpen = tickets.filter((t) => !["completed", "not_repairable", "cancelled"].includes(t.status));
     const repairsStale = repairsOpen.filter((t) => daysSince(t.createdAt) > 5);
 
     const todayTill = till.find((r) => r.date === today);
@@ -246,7 +246,7 @@ export default function DailyDashboard() {
       support: support.filter((q) => q.status === "open").length,
       bulk: bulk.filter((b) => b.status === "new").length,
       leads: leads.filter((l) => !l.contacted && (!l.priceHeldUntil || new Date(l.priceHeldUntil) > new Date())).length,
-      lowParts: partsStock.filter((x) => (Number(x.qtyOnHand) || 0) <= (Number(x.lowStockThreshold) || 0)).length,
+      lowParts: partsStock.filter((x) => !x.deleted && (Number(x.qtyOnHand) || 0) <= (Number(x.lowStockThreshold) || 0)).length,
       lowAccessories: accessories.filter((a) => a.showOnline !== false && (Number(a.qtyOnHand) || 0) <= 2).length,
     };
 

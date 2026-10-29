@@ -149,7 +149,13 @@ const RETAIL_CORRECTIONS = {
 function key(d) { return `${d.brand}|${d.model}`; }
 function sameRetail(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 
-export function mergeCatalog(saved) {
+// Models staff hid (Pricing Console > Catalog) stay in the saved list, so a built-in
+// model isn't added back, but they're left out everywhere unless { all: true }.
+export function mergeCatalog(saved, { all = false } = {}) {
+  const out = mergeCatalogAll(saved);
+  return all ? out : out.filter((d) => !d.hidden);
+}
+function mergeCatalogAll(saved) {
   if (!saved || !saved.length) return DEFAULT_CATALOG;
   const have = new Set(saved.map(key));
   const defaults = Object.fromEntries(DEFAULT_CATALOG.map((d) => [key(d), d]));
