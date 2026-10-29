@@ -209,3 +209,15 @@ test("visitors can't approve their own price match or trade-in, send broken orde
   assert.equal((await put("orders", [{ id: "ORD-777778", createdAt: "x" }])).status, 400, "an order without a device or email is refused");
   assert.equal((await put("support_queries", [{ id: "HLP-777777", message: "x".repeat(60_000) }])).status, 400, "oversized record refused");
 });
+
+test("a customer can't book their own technician or visit time; staff can", async () => {
+  await put("repair_requests", [{ id: "REP-444444", status: "new", name: "Kim", email: "kim@example.com", deviceType: "Phone", model: "iPhone 15", issue: "Screen",
+    method: "doorstep", slotDate: "2026-11-02", assignedTo: "owner", visitStatus: "booked", visitDate: "2026-11-01", ticketId: "T-1" }]);
+  let r = (await getShared("repair_requests")).find((x) => x.id === "REP-444444");
+  assert.ok(r && r.slotDate === "2026-11-02");
+  assert.equal(r.assignedTo, undefined); assert.equal(r.visitStatus, undefined); assert.equal(r.visitDate, undefined); assert.equal(r.ticketId, undefined);
+  const all = await getShared("repair_requests");
+  await put("repair_requests", all.map((x) => x.id === "REP-444444" ? { ...x, assignedTo: "staff", visitStatus: "booked" } : x), staffToken);
+  r = (await getShared("repair_requests")).find((x) => x.id === "REP-444444");
+  assert.equal(r.assignedTo, "staff"); assert.equal(r.visitStatus, "booked");
+});

@@ -650,6 +650,8 @@ function sanitizePublic(key, records, existing) {
       r.status = "new";
     } else if (key === "repair_requests" || key === "bulk_quote_requests") {
       r.status = "new";
+      // Who's coming and the booked time are set by staff (the visits calendar), never by the customer.
+      if (key === "repair_requests") for (const k of Object.keys(r)) if (/^(assigned|visit|ticket|staff)/i.test(k)) delete r[k];
       if (key === "bulk_quote_requests") r.staffNote = "";
     } else if (key === "support_queries" || key === "device_requests") {
       r.status = "open";

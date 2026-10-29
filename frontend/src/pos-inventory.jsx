@@ -1,4 +1,5 @@
 import { UnitPhotos } from "./spin-360.jsx";
+import FlowBoard, { StatTiles, LayoutSwitch, useLayout, lastTime } from "./flow-board.jsx";
 import MessageCustomer, { orderMessages } from "./customer-messages.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
 import { FAULT_GROUPS_BY_CATEGORY as SHARED_FAULT_GROUPS } from "./instant-quote-calculator.jsx";
@@ -742,6 +743,8 @@ function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplet
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [filter, setFilter] = useState("open");
   const STATUS_LABELS = { pending_payment: "Awaiting payment", pending_pickup: "Awaiting pickup", paid: "Paid — ready to ship/hand over", completed: "Completed", cancelled: "Cancelled" };
+  const [layout, setLayout] = useLayout("mr-weborders-layout");
+  const recent = (o, days) => o.completedAt ? Date.now() - Date.parse(o.completedAt) < days * 864e5 : Date.now() - Date.parse(o.createdAt || 0) < days * 864e5;
 
   const filtered = purchaseOrders.filter((o) => {
     if (filter === "open") return !["completed", "cancelled"].includes(o.status);
@@ -752,6 +755,37 @@ function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplet
   return (
     <div>
       <div style={{ fontSize: 13, color: muted, marginBottom: 14 }}>Orders placed through the online storefront.</div>
+      <StatTiles tiles={[
+        ["Waiting for payment", purchaseOrders.filter((o) => o.status === "pending_payment").length, "bank transfer not in yet"],
+        ["Waiting for pickup", purchaseOrders.filter((o) => o.status === "pending_pickup").length, "cash on pickup"],
+        ["Paid: send or hand over", purchaseOrders.filter((o) => o.status === "paid").length, ""],
+        ["Sold online, last 30 days", purchaseOrders.filter((o) => o.status === "completed" && recent(o, 30)).length,
+          `$${Math.round(purchaseOrders.filter((o) => o.status === "completed" && recent(o, 30)).reduce((a, o) => a + (Number(o.price) || 0), 0)).toLocaleString()}`],
+      ]} />
+      <LayoutSwitch value={layout} onChange={setLayout} />
+      {layout === "board" && (
+        <FlowBoard
+          columns={[
+            { id: "pending_payment", label: "Waiting for payment", lateDays: 2 },
+            { id: "pending_pickup", label: "Waiting for pickup", lateDays: 3 },
+            { id: "paid", label: "Paid: send / hand over", lateDays: 1 },
+            { id: "completed", label: "Done (last 14 days)" },
+          ]}
+          items={purchaseOrders}
+          colOf={(o) => (o.status === "completed" ? (recent(o, 14) ? "completed" : null) : o.status === "cancelled" ? null : o.status)}
+          since={(o) => lastTime(o.status === "paid" ? o.paidAt : o.status === "completed" ? o.completedAt : null, o.createdAt)}
+          onOpen={() => setLayout("list")}
+          card={(o) => ({
+            right: o.id,
+            title: `${o.brand} ${o.model}`,
+            sub: `${o.customer?.name || ""} · ${o.currency || "$"}${Math.round(o.price || 0).toLocaleString()}`,
+            chips: [[o.paymentMethod === "bank_transfer" ? "Bank transfer" : "Cash on pickup", "muted"]],
+            actions: o.status === "pending_payment" || o.status === "pending_pickup"
+              ? [{ label: o.status === "pending_pickup" ? "Paid & collected →" : "Money's in →", onClick: () => (o.status === "pending_pickup" ? onComplete(o) : onMarkPaid(o.id)) }]
+              : o.status === "paid" ? [{ label: "Handed over →", tone: "ok", onClick: () => onComplete(o) }] : [],
+          })} />
+      )}
+      {layout === "list" && <>
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
         {["open", "closed", "all"].map((f) => (
           <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",
@@ -803,6 +837,7 @@ function WebOrdersTab({ colors, purchaseOrders, inventory, onMarkPaid, onComplet
           )}
         </div>
       ))}
+      </>}
     </div>
   );
 }
@@ -1051,6 +1086,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
   const [copiedId, setCopiedId] = useState(null);
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [filter, setFilter] = useState("all");
+  const [layout, setLayout] = useLayout("mr-stock-layout");
   const [search, setSearch] = useState("");
   const [repairFor, setRepairFor] = useState(null); // item being sent to the repair bench
   const [repairIssue, setRepairIssue] = useState("");
@@ -1187,6 +1223,42 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
     <div>
       <input value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(30); }} placeholder="Search IMEI, model, stock no. or order"
         aria-label="Search stock" style={{ width: "100%", padding: "10px 12px", border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 10 }} />
+      {(() => {
+        const inStock = inventory.filter((i) => ["in_stock", "listed", "in_repair", "reserved"].includes(i.status));
+        const sold30 = inventory.filter((i) => i.status === "sold" && i.soldAt && Date.now() - Date.parse(i.soldAt) < 30 * 864e5);
+        return <StatTiles tiles={[
+          ["Phones we own (incl. in repair)", inStock.length, `${fmt(inStock.reduce((a, i) => a + (Number(i.costBasis) || 0), 0), "AU", regions)} at cost`],
+          ["To grade and price", inventory.filter((i) => i.status === "in_stock" && (!i.gradeId || !(Number(i.listedPrice) > 0))).length, "not ready to sell yet"],
+          ["On the website", inventory.filter((i) => i.status === "listed").length, `${inventory.filter((i) => agedDrop(i)).length} slow sellers`],
+          ["Sold, last 30 days", sold30.length, ""],
+        ]} />;
+      })()}
+      <LayoutSwitch value={layout} onChange={setLayout} />
+      {layout === "board" && (
+        <FlowBoard
+          columns={[
+            { id: "in_repair", label: "Being repaired", lateDays: 5 },
+            { id: "grade", label: "To grade & price", lateDays: 2 },
+            { id: "store", label: "In store only", lateDays: 7 },
+            { id: "listed", label: "On the website", lateDays: 30 },
+            { id: "reserved", label: "Reserved (web order)", lateDays: 2 },
+            { id: "sold", label: "Sold (last 14 days)" },
+          ]}
+          items={inventory.filter((i) => !search.trim() || `${i.id} ${i.brand} ${i.model} ${i.imei || ""}`.toLowerCase().includes(search.trim().toLowerCase()))}
+          colOf={(i) => i.status === "in_stock" ? (!i.gradeId || !(Number(i.listedPrice) > 0) ? "grade" : "store")
+            : i.status === "sold" ? (i.soldAt && Date.now() - Date.parse(i.soldAt) < 14 * 864e5 ? "sold" : null)
+            : ["in_repair", "listed", "reserved"].includes(i.status) ? i.status : null}
+          since={(i) => lastTime(i.status === "listed" ? i.listedAt : i.status === "sold" ? i.soldAt : i.status === "in_stock" ? (i.gradedAt || i.unlistedAt) : null, i.receivedAt, i.createdAt)}
+          onOpen={(i) => { setSearch(i.id); setFilter("all"); setLayout("list"); }}
+          card={(i) => ({
+            right: i.id,
+            title: `${i.brand} ${i.model}`,
+            sub: [i.storage, i.gradeId ? `Grade ${i.gradeId}` : null, Number(i.listedPrice) > 0 ? fmt(i.listedPrice, i.region, regions) : null].filter(Boolean).join(" · "),
+            chips: [...(agedDrop(i) ? [["🐢 Slow", "bad"]] : []), ...(i.faults && i.faults.length ? [[`${i.faults.length} fault${i.faults.length > 1 ? "s" : ""}`, "muted"]] : [])],
+            actions: i.status === "in_stock" ? [{ label: !i.gradeId || !(Number(i.listedPrice) > 0) ? "Grade & price →" : "List it →", onClick: () => { setSearch(i.id); setFilter("all"); setLayout("list"); } }] : [],
+          })} />
+      )}
+      {layout === "list" && <>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
         {["all", "in_stock", "in_repair", "listed", "slow", "reserved", "sold", "written_off"].map((s) => (
           <button key={s} onClick={() => { setFilter(s); setVisibleCount(30); }} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",
@@ -1322,6 +1394,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
           Load {Math.min(30, filtered.length - visibleCount)} more ({filtered.length - visibleCount} remaining)
         </button>
       )}
+      </>}
     </div>
   );
 }

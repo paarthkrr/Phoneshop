@@ -1,4 +1,5 @@
 import { PHONE_FAULT_GROUPS, FAULT_GROUPS_BY_CATEGORY } from "./instant-quote-calculator.jsx";
+import FlowBoard, { StatTiles, LayoutSwitch, useLayout, lastTime } from "./flow-board.jsx";
 import MessageCustomer, { tradeInMessages } from "./customer-messages.jsx";
 import { DEFAULT_TIERS, ACCESSORY_BONUS_PCT } from "./pricing.js";
 import React, { useState, useEffect, useMemo } from "react";
@@ -139,6 +140,7 @@ export default function StaffInspectionConsole() {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [layout, setLayout] = useLayout("mr-tradein-layout");
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState(""); // "" | "reject"
   const [imei, setImei] = useState("");
@@ -346,6 +348,43 @@ export default function StaffInspectionConsole() {
                 style={{ flex: "1 1 260px", maxWidth: 380, padding: "11px 14px", border: `1px solid ${C.line}`, background: "var(--mr-surface)", fontSize: 14 }} />
             </div>
             {done && <div role="status" style={{ ...card, background: C.greenDim, borderColor: "color-mix(in srgb, var(--mr-ok) 35%, transparent)", color: C.green, fontWeight: 600, fontSize: 14 }}>✓ {done}</div>}
+            {(() => {
+              const live = visibleOrders.filter((o) => !o.archived);
+              const week = live.filter((o) => o.status === "approved_paid" && o.paidAt && Date.now() - Date.parse(o.paidAt) < 7 * 864e5);
+              return <StatTiles tiles={[
+                ["Phones on the way", count("awaiting_shipment"), "waiting to arrive"],
+                ["To inspect", count("received_inspecting"), "phone is here"],
+                ["Waiting on the customer", count("revised_pending_customer"), "offer changed"],
+                ["Paid this week", week.length, fmt(week.reduce((a, o) => a + (Number(o.inspection?.confirmedTotal ?? o.quotedTotal) || 0), 0), "AU", regions) + " paid out"],
+              ]} />;
+            })()}
+            <LayoutSwitch value={layout} onChange={setLayout} />
+            {layout === "board" && (
+              <FlowBoard
+                columns={[
+                  { id: "awaiting_shipment", label: "On the way", lateDays: 5 },
+                  { id: "received_inspecting", label: "Inspect", lateDays: 1 },
+                  { id: "revised_pending_customer", label: "Waiting on customer", lateDays: 2 },
+                  { id: "rejected", label: "Rejected: hand back", lateDays: 2 },
+                  { id: "approved_paid", label: "Paid (last 14 days)" },
+                ]}
+                items={visibleOrders.filter((o) => !q || [o.id, o.customer?.name, o.customer?.phone, o.device?.model].some((v) => String(v || "").toLowerCase().includes(q)))}
+                colOf={(o) => (o.status === "approved_paid" ? (o.paidAt && Date.now() - Date.parse(o.paidAt) < 14 * 864e5 ? "approved_paid" : null) : o.status)}
+                since={(o) => (o.status === "awaiting_shipment" ? lastTime(o.createdAt) : o.status === "received_inspecting" ? lastTime(o.receivedAt, o.createdAt)
+                  : o.status === "approved_paid" ? lastTime(o.paidAt) : o.status === "rejected" ? lastTime(o.rejection?.at, o.createdAt) : lastTime(o.inspection?.inspectedAt, o.receivedAt, o.createdAt))}
+                onOpen={openOrder}
+                card={(o) => ({
+                  right: o.id,
+                  title: `${o.device.brand} ${o.device.model}`,
+                  sub: `${o.customer?.name || ""} · ${fmt(o.inspection?.confirmedTotal ?? o.quotedTotal, o.region, regions)}`,
+                  chips: [o.fulfillment === "post" ? ["Posting it", "muted"] : ["In person", "muted"], ...(o.priceCheck && o.priceCheck.verified === false ? [["Check price", "bad"]] : [])],
+                  actions: viewOnly ? [] : o.status === "awaiting_shipment" ? [{ label: "It's here →", onClick: () => updateOrder(o.id, { status: "received_inspecting", receivedAt: new Date().toISOString() }) }]
+                    : o.status === "received_inspecting" ? [{ label: "Inspect & pay →", onClick: () => openOrder(o) }]
+                    : o.status === "revised_pending_customer" ? [{ label: "Open", tone: "plain", onClick: () => openOrder(o) }]
+                    : o.status === "rejected" ? [{ label: "Hand back →", tone: "plain", onClick: () => openOrder(o) }] : [],
+                })} />
+            )}
+            {layout === "list" && <>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
               {["all", ...FLOW, "archived"].map((s) => (
                 <button key={s} onClick={() => setFilter(s)} style={chip(filter === s)}>
@@ -375,6 +414,7 @@ export default function StaffInspectionConsole() {
                 </button>
               ))}
             </div>
+            </>}
           </>
         )}
 
