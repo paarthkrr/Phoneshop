@@ -366,6 +366,10 @@ export default function AdminPricingConsole() {
               <input type="checkbox" checked={draft.businessSettings.autoPickupEmails !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, autoPickupEmails: e.target.checked } })} />
               Email repair customers automatically: "ready to collect" if nobody told them within 15 minutes, then a reminder after 3 and 7 days if it's not collected (9am–7pm only)
             </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", marginTop: 8 }}>
+              <input type="checkbox" checked={draft.businessSettings.autoFollowUp !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, autoFollowUp: e.target.checked } })} />
+              One follow-up email a week after a repair is collected ("still working? it's under warranty", plus a Google review link and a way to opt out)
+            </label>
 
             <div style={{ marginTop: 20, fontSize: 13 }}>Google reviews</div>
             <div style={{ fontSize: 12, color: muted, margin: "4px 0 8px" }}>Reviews decide who shows in Google Maps. Put this card on the counter; every printed job ticket has the same QR code.</div>

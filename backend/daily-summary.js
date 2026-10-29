@@ -23,10 +23,11 @@ function buildDailySummary({ sales = [], tickets = [], orders = [], inventory = 
   let takings = 0, profit = 0, unknownCost = 0;
   const kinds = { phone: 0, repair: 0, accessory: 0 };
   for (const s of todays) {
-    const sold = num(s.salePrice), kind = s.channel === "repair" ? "repair" : s.brand === "Accessory" ? "accessory" : "phone";
+    const ch = s.channel === "refund" ? s.refundChannel : s.channel; // a refund counts against what it refunds
+    const sold = num(s.salePrice), kind = ch === "repair" ? "repair" : s.brand === "Accessory" ? "accessory" : "phone";
     takings += sold; kinds[kind] += sold;
     let cost = s.costBasis == null || s.costBasis === "" ? null : num(s.costBasis);
-    if (kind === "repair") {
+    if (kind === "repair" && !s.refundOf) {
       const t = ticketById.get(s.itemId);
       cost = t ? (t.parts || []).reduce((a, p) => a + num(p && p.cost), 0) + num(t.techPay) : cost;
     }

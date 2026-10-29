@@ -185,7 +185,7 @@ function shouldShow() {
   try {
     const q = new URLSearchParams(window.location.search).get("intro");
     if (q === "0") return 0;
-    if (/^([1-9]|1[01])$/.test(q || "")) return Number(q);
+    if (/^([1-9]|1[0-2])$/.test(q || "")) return Number(q);
     if (/^\/(portal|staff)/.test(window.location.pathname)) return 0;
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return 0;
     if (/bot|crawl|spider|slurp|lighthouse|pagespeed|headless/i.test(navigator.userAgent) || navigator.webdriver) return 0;

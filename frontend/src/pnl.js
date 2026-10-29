@@ -10,7 +10,8 @@
 
 import { sydneyDay, sydneyMonth } from "./sydney-time.js";
 
-export const saleKind = (s) => (s.channel === "repair" ? "repair" : s.brand === "Accessory" ? "accessory" : "phone");
+// A refund (channel "refund") counts against the kind of sale it refunds.
+export const saleKind = (s) => ((s.channel === "refund" ? s.refundChannel : s.channel) === "repair" ? "repair" : s.brand === "Accessory" ? "accessory" : "phone");
 export const KIND_LABELS = { phone: "Phones", repair: "Repairs", accessory: "Accessories" };
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
 const monthOf = (iso) => (typeof iso === "string" ? sydneyMonth(iso) : ""); // Sydney calendar month
@@ -34,7 +35,7 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
     const kind = saleKind(s);
     const sold = num(s.salePrice) || 0;
     let cost = num(s.costBasis), labour = 0, technician = "";
-    if (kind === "repair") {
+    if (kind === "repair" && !s.refundOf) {
       const t = ticketById.get(s.itemId);
       cost = t ? partsCostOf(t) : num(s.partsCost) ?? cost;
       labour = t ? num(t.techPay) || 0 : num(s.labourCost) || 0;
@@ -42,7 +43,7 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
     }
     return {
       id: s.id, date: s.soldAt, kind, item: [s.brand !== "Accessory" ? s.brand : "", s.model, kind === "phone" ? s.storage : ""].filter(Boolean).join(" "),
-      customer: s.customerName || "", sold, cost, labour, technician,
+      customer: s.customerName || "", sold, cost, labour, technician, refund: !!s.refundOf,
       profit: cost == null ? null : sold - cost - labour,
     };
   }).sort((a, b) => String(b.date).localeCompare(String(a.date)));
@@ -51,7 +52,7 @@ export function buildPnl({ sales = [], tickets = [], expenses = [], inventory = 
   for (const k of Object.keys(KIND_LABELS)) byKind[k] = { count: 0, revenue: 0, cost: 0, labour: 0, profit: 0, unknownCost: 0, unknownRevenue: 0 };
   for (const r of rows) {
     const k = byKind[r.kind];
-    k.count += 1;
+    if (!r.refund) k.count += 1; // a refund changes the money, not how many were sold
     if (r.profit == null) { k.unknownCost += 1; k.unknownRevenue += r.sold; continue; }
     k.revenue += r.sold; k.cost += r.cost; k.labour += r.labour; k.profit += r.profit;
   }

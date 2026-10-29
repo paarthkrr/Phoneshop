@@ -188,7 +188,7 @@ export default function DailyDashboard() {
 
     const feed = [
       ...orders.map((o) => ({ icon: "inspect", at: o.createdAt, text: `Trade-in submitted: ${o.device?.brand || ""} ${o.device?.model || ""}`, ref: o.id })),
-      ...sales.map((s) => ({ icon: "pos", at: s.soldAt, text: `Sold ${saleKind(s) === "accessory" ? "" : s.brand || ""} ${s.model || ""} for ${fmt(s.salePrice)}`.replace(/\s+/g, " ") })),
+      ...sales.map((s) => ({ icon: "pos", at: s.soldAt, text: (s.refundOf ? `Refunded ${fmt(-s.salePrice)} on ${s.model || ""}` : `Sold ${saleKind(s) === "accessory" ? "" : s.brand || ""} ${s.model || ""} for ${fmt(s.salePrice)}`).replace(/\s+/g, " ") })),
       ...tickets.map((t) => ({ icon: "repairs", at: t.createdAt, text: `Repair job opened: ${t.device?.brand || ""} ${t.device?.model || ""}`, ref: t.id })),
     ].filter((f) => f.at).sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 6);
 
@@ -202,7 +202,7 @@ export default function DailyDashboard() {
     const knownRevenue = Object.values(pnl.byKind).reduce((a, k) => a + k.revenue, 0);
     const split = Object.keys(KIND_LABELS).map((k) => ({ k, label: KIND_LABELS[k], v: pnl.byKind[k].revenue + pnl.byKind[k].unknownRevenue, n: pnl.byKind[k].count }));
     const top = new Map();
-    sales.filter((x) => inMonth(x.soldAt) && saleKind(x) === "phone").forEach((x) => {
+    sales.filter((x) => inMonth(x.soldAt) && saleKind(x) === "phone" && !x.refundOf).forEach((x) => {
       const key = `${x.brand || ""} ${x.model || ""}`.trim() || "Unknown model";
       const t = top.get(key) || { name: key, n: 0, v: 0 }; t.n += 1; t.v += Number(x.salePrice) || 0; top.set(key, t);
     });
