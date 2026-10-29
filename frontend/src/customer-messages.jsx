@@ -2,6 +2,7 @@
 // from staff's own phone/computer (no SMS provider needed). Every send is noted on the
 // record (contactLog) so the next person can see who was told what, and when.
 import React, { useState } from "react";
+import QRCode from "qrcode";
 import { waLink, GOOGLE_REVIEW_URL, DEFAULT_BUSINESS } from "./business-info.js";
 
 const first = (name) => String(name || "").trim().split(/\s+/)[0] || "there";
@@ -94,8 +95,12 @@ export default function MessageCustomer({ phone, email, templates, contactLog = 
 const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 export function printRepairTicket(t, { repairLabel = "", business = {} } = {}) {
   business = { ...DEFAULT_BUSINESS, ...business };
-  const w = window.open("", "_blank", "width=720,height=900");
+  const w = window.open("", "_blank", "width=720,height=900"); // opened straight away, inside the click, so it isn't blocked
   if (!w) return false;
+  QRCode.toDataURL(GOOGLE_REVIEW_URL, { margin: 1, width: 220 }).catch(() => "").then((qr) => writeTicket(w, t, repairLabel, business, qr));
+  return true;
+}
+function writeTicket(w, t, repairLabel, business, qr) {
   const price = t.finalPrice ?? t.quotedPrice;
   const row = (k, v) => (v || v === 0 ? `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>` : "");
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(t.id)}</title><style>
@@ -113,9 +118,28 @@ export function printRepairTicket(t, { repairLabel = "", business = {} } = {}) {
     ${row("Ready by", t.dueAt ? new Date(t.dueAt).toLocaleDateString("en-AU") : "")}${row("Warranty", t.warrantyDays ? `${t.warrantyDays} days on the repair` : "")}</table>
     <div class="box">Please back up your data before a repair. We'll contact you before doing anything that costs more than the price above. Bring this ticket (or your job number) to collect.</div>
     <div class="sig"><div>Customer signature</div><div>Staff</div></div>
+    ${qr ? `<div style="display:flex;gap:14px;align-items:center;margin-top:18px;border:1px solid #ddd;border-radius:10px;padding:10px 12px"><img src="${qr}" width="92" height="92" alt="QR code for our Google review page"><div style="font-size:12.5px;color:#333"><b>Happy with the repair?</b><br>Scan to leave us a Google review. It takes 30 seconds and really helps a small local shop.</div></div>` : ""}
     <div class="tag"><div><div class="id">${esc(t.id)}</div><div>${esc(t.customer?.name || "")} · ${esc(t.customer?.phone || "")}</div></div><div style="text-align:right">${esc(`${t.device?.brand || ""} ${t.device?.model || ""}`)}<br><small>${esc(repairLabel)}</small></div></div>
     <button onclick="print()" style="margin-top:20px;padding:10px 16px">Print</button>
     <script>setTimeout(function(){print()},300)</script></body></html>`);
   w.document.close();
+}
+
+// A card for the counter (A6-ish, two per page): scan to review us on Google.
+export function printReviewCard(business = {}) {
+  business = { ...DEFAULT_BUSINESS, ...business };
+  const w = window.open("", "_blank", "width=720,height=900");
+  if (!w) return false;
+  QRCode.toDataURL(GOOGLE_REVIEW_URL, { margin: 1, width: 520 }).catch(() => "").then((qr) => {
+    const card = `<div class="c"><div class="t">Happy with your repair?</div><div class="s">Scan to leave us a Google review</div>
+      ${qr ? `<img src="${qr}" alt="QR code for our Google review page">` : ""}<div class="u">${esc(GOOGLE_REVIEW_URL)}</div>
+      <div class="b">${esc(business.name || "Mobile Recellr")} · thank you!</div></div>`;
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Review card</title><style>
+      body{margin:0;font-family:system-ui,sans-serif;color:#111}.c{width:105mm;height:140mm;box-sizing:border-box;margin:8mm auto;border:1.5px dashed #999;border-radius:6mm;padding:10mm;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4mm;page-break-inside:avoid}
+      .t{font-size:24px;font-weight:800}.s{font-size:15px;color:#444}img{width:62mm;height:62mm}.u{font-size:10px;color:#666;word-break:break-all}.b{font-size:13px;font-weight:600}
+      @media print{button{display:none}}</style></head><body>${card}${card}<button onclick="print()" style="display:block;margin:10px auto;padding:10px 16px">Print</button>
+      <script>setTimeout(function(){print()},400)</script></body></html>`);
+    w.document.close();
+  });
   return true;
 }

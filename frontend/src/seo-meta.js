@@ -19,6 +19,7 @@ export const PAGE_META = {
   "/about": ["About Us", "Why we started an honest phone repair and trade-in shop."],
   "/faq": ["FAQ", "Answers about our price match guarantee, part choices, warranty, and how selling works."],
   "/help": ["Help — Ask Us Anything", "Send us a question about a repair, order or trade-in."],
+  "/areas-we-serve": ["Phone Repairs Across Sydney — In Store, At Your Door, Mail-in", "Phone repairs anywhere in Sydney: same day in store, a technician at your door (inner zone $15, outer zone $30, taken off the repair), or mail-in from anywhere in Australia. Check your postcode."],
   "/contact": ["Contact Us", "Phone, email, address and opening hours."],
   "/privacy": ["Privacy Policy", "How we collect, use and protect your personal information."],
   "/terms": ["Terms & Warranty", "Trade-in terms, price match guarantee, warranty and your Australian Consumer Law rights."],

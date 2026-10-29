@@ -1,4 +1,5 @@
 import BrandColours from "./brand-colours.jsx";
+import { printReviewCard } from "./customer-messages.jsx";
 import { repairPricesFrom, REPAIRS_BY_DEVICE } from "./repair-prices.js";
 import { applyBrand, rememberBrand } from "./theme.jsx";
 import { DEFAULT_CATALOG, mergeCatalog } from "./device-catalog.js";
@@ -361,6 +362,10 @@ export default function AdminPricingConsole() {
               <input type="checkbox" checked={draft.businessSettings.dailySummary !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, dailySummary: e.target.checked } })} />
               Email me an end-of-day summary after 7pm (takings, profit, what's waiting tomorrow)
             </label>
+
+            <div style={{ marginTop: 20, fontSize: 13 }}>Google reviews</div>
+            <div style={{ fontSize: 12, color: muted, margin: "4px 0 8px" }}>Reviews decide who shows in Google Maps. Put this card on the counter; every printed job ticket has the same QR code.</div>
+            <button type="button" onClick={() => printReviewCard(draft.businessSettings.shopName && draft.businessSettings.shopName !== "Your Phone Shop" ? { name: draft.businessSettings.shopName } : {})} style={{ padding: "8px 12px", border: `1px solid ${line}`, borderRadius: 8, fontSize: 13, background: "transparent", color: paper, cursor: "pointer" }}>🖨 Print review QR cards</button>
 
             <BrandColours brand={draft.businessSettings.brandColor} accent={draft.businessSettings.accentColor} colors={{ muted, line, paper }}
               onChange={(c) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, ...c } })} />

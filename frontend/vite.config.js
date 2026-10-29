@@ -60,7 +60,7 @@ function legacyEntryForwarders() {
 // depending on the dashboard rewrite rule at all — that rule was returning
 // an empty page for every address except the homepage.
 const STATIC_ROUTES = [
-  "quote", "sell", "shop", "repairs", "home-service", "parts", "accessories", "about", "faq", "help", "contact", "blog", "tutorials", "privacy", "terms",
+  "quote", "sell", "shop", "repairs", "areas-we-serve", "home-service", "parts", "accessories", "about", "faq", "help", "contact", "blog", "tutorials", "privacy", "terms",
   "portal", "portal/pricing", "portal/inspect", "portal/pos", "portal/repairs", "portal/till", "portal/crm", "portal/team", "portal/products",
   "portal/activity", "portal/unlock",
   "staff", "staff/admin", "staff/inspect", "staff/pos", "staff/repairs", "staff/till", "staff/crm",
@@ -80,6 +80,7 @@ const SEO_H1 = {
   "sell": "Sell your phone \u2014 instant quote",
   "shop": "Refurbished phones, graded and tested",
   "repairs": "Phone repairs in Sydney from $55",
+  "areas-we-serve": "Phone repairs across Sydney",
   "accessories": "Phone accessories, parts and DIY kits",
   "parts": "Phone accessories, parts and DIY kits",
   "home-service": "Mobile Recellr, at your door in Sydney",
@@ -224,6 +225,9 @@ function pagePerRoute() {
 // https://www.mobilevault.com.au) and the sitemap and robots file are
 // rewritten to it at build time. Unset = keep the current address.
 const CURRENT_URL = "https://mobilerecellr.com.au";
+// Google Search Console / Bing Webmaster ownership codes (the content="..." part of their
+// HTML tag). Not secret: they're shown in the page for anyone to read.
+const SITE_VERIFICATION = { google: "", bing: "" };
 function siteUrl() {
   return {
     name: "site-url",
@@ -249,6 +253,10 @@ export default defineConfig({
         order: "post",
         handler(html) {
           const v = Date.now().toString(36);
+          // Search engine ownership codes (public by design): set them on the host, or add to SITE_VERIFICATION below.
+          const codes = { "google-site-verification": process.env.GOOGLE_SITE_VERIFICATION || SITE_VERIFICATION.google, "msvalidate.01": process.env.BING_SITE_VERIFICATION || SITE_VERIFICATION.bing };
+          const metas = Object.entries(codes).filter(([, c]) => /^[A-Za-z0-9_-]{10,100}$/.test(c || "")).map(([n, c]) => `<meta name="${n}" content="${c}" />`).join("\n    ");
+          if (metas) html = html.replace("</head>", `    ${metas}\n  </head>`);
           return html.replace(/(src|href)="(\/assets\/[^"?]+\.(?:js|css))"/g, `$1="$2?v=${v}"`);
         },
       },

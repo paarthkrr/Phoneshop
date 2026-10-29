@@ -1,4 +1,5 @@
 import { withBusinessDefaults, waLink } from "./business-info.js";
+import Areas from "./areas.jsx";
 import RepairApproval from "./repair-approval.jsx";
 import SeoLanding from "./seo-landing.jsx";
 import { SEO_SLUGS } from "./seo-pages.js";
@@ -450,6 +451,8 @@ function StaffGate({ children }) {
 function PageViews() {
   const loc = useLocation();
   useEffect(() => { if (!isStaffPath(normPath(loc.pathname))) track("view"); }, [loc.pathname]);
+  // The Google Business Profile's website link carries ?utm_campaign=gbp: count those visits once.
+  useEffect(() => { if (/(^|[?&])utm_campaign=gbp(&|$)/.test(loc.search)) track("from_google_profile", { once: true }); }, [loc.search]);
   return null;
 }
 
@@ -732,6 +735,7 @@ function AnimatedRoutes() {
         <Route path="/staff/till" element={<StaffGate><TillReconciliation /></StaffGate>} />
         <Route path="/staff/crm" element={<StaffGate><CRMDashboard /></StaffGate>} />
         <Route path="/approve/:id" element={<RepairApproval />} />
+        <Route path="/areas-we-serve" element={<Areas />} />
         {SEO_SLUGS.map((slug) => <Route key={slug} path={`/${slug}`} element={<SeoLanding slug={slug} />} />)}
         <Route path="*" element={<NotFound />} />
       </Routes>

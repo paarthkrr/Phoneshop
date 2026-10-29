@@ -58,7 +58,7 @@ export default function WebsiteFunnel({ colors }) {
       {!err && !data && <div style={{ fontSize: 13, color: muted }}>Loading…</div>}
       {data && (
         <>
-          <div style={{ fontSize: 13, marginBottom: 12 }}><b>{data.totals.view.toLocaleString()}</b> page views · <b>{data.totals.repair_submit.toLocaleString()}</b> repair bookings</div>
+          <div style={{ fontSize: 13, marginBottom: 12 }}><b>{data.totals.view.toLocaleString()}</b> page views · <b>{data.totals.repair_submit.toLocaleString()}</b> repair bookings · <b>{(data.totals.from_google_profile || 0).toLocaleString()}</b> from your Google profile</div>
           <Funnel title="Selling to us" steps={data.funnels.sell} />
           <Funnel title="Buying a phone" steps={data.funnels.buy} />
           {data.pages.length > 0 && (
