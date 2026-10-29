@@ -109,6 +109,7 @@ export default function RepairTickets() {
   const [view, setView] = useState("queue"); // queue | intake | detail | track
   const [openId, setOpenId] = useState(null);
   const [filter, setFilter] = useState("open"); // open | all | completed
+  const [layout, setLayout] = useState(() => { try { return localStorage.getItem("mr-bench-layout") || "board"; } catch (e) { return "board"; } });
   const [trackQuery, setTrackQuery] = useState("");
   const [trackResult, setTrackResult] = useState(undefined);
   const [partsStock, setPartsStock] = useState(null);
@@ -426,6 +427,19 @@ export default function RepairTickets() {
                 ))}
               </div>
             )}
+            <BenchStats colors={colors} tickets={tickets || []} />
+            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+              {[["board", "▦ Board"], ["list", "☰ List"]].map(([k, lbl]) => (
+                <button key={k} type="button" onClick={() => { setLayout(k); try { localStorage.setItem("mr-bench-layout", k); } catch (e) {} }} aria-pressed={layout === k}
+                  style={{ padding: "6px 12px", borderRadius: 999, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", border: `1px solid ${layout === k ? brass : line}`, background: layout === k ? brassDim : "transparent", color: layout === k ? brass : paper }}>{lbl}</button>
+              ))}
+            </div>
+            {layout === "board" && (
+              <RepairBoard colors={colors} repairTypes={REPAIR_TYPES} onOpen={(id) => { setOpenId(id); setView("queue"); }}
+                tickets={(tickets || []).filter((t) => filter !== "mine" || t.assignedTo === staffName).filter((t) => filter !== "shop" || t.jobType === "shop")}
+                onMove={(id, status) => updateTicket(id, { status }, true)} />
+            )}
+            {layout === "list" && <>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
               {["mine", "open", "shop", "completed", "all"].map((f) => (
                 <button key={f} onClick={() => setFilter(f)} style={{ padding: "6px 12px", borderRadius: 2, fontSize: 12.5, cursor: "pointer",
@@ -448,6 +462,7 @@ export default function RepairTickets() {
                 <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{t.jobType === "shop" ? "Shop phone" : t.customer.name}{t.jobType === "shop" ? "" : ` · ${fmt(t.finalPrice ?? t.quotedPrice)}`}{t.dueAt ? ` · due ${new Date(t.dueAt).toLocaleDateString("en-AU")}` : ""}{t.warrantyOf && " · warranty job"}{t.assignedTo ? ` · 🔧 ${t.assignedTo}` : " · not assigned"}{Number(t.estimateMins) > 0 || Number(t.timeSpentMins) > 0 ? ` · ⏱ ${estimateVsActual(t)}` : ""}</div>
               </button>
             ))}
+            </>}
           </>
         )}
 
@@ -655,6 +670,94 @@ function PriceApproval({ colors, ticket, onUpdate }) {
         <button type="button" disabled={!(p > 0)} onClick={send} style={{ padding: "9px 14px", borderRadius: 8, border: "none", background: p > 0 ? "var(--mr-brand-fill)" : line, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: p > 0 ? "pointer" : "default", fontFamily: "inherit" }}>Create approval link</button>
         {req && <button type="button" onClick={() => setOpen(false)} style={{ padding: "8px 10px", fontSize: 12.5, borderRadius: 8, border: `1px solid ${line}`, background: "transparent", color: muted, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>}
       </div>
+    </div>
+  );
+}
+
+// The bench as a board: one column per step, the time each job has sat at its step,
+// and one tap to move it on. Ready jobs open the job to take payment.
+const BOARD = ["dropped_off", "diagnosing", "awaiting_parts", "in_repair", "ready_for_pickup"];
+const BOARD_LABEL = { dropped_off: "Booked in", diagnosing: "Diagnosing", awaiting_parts: "Waiting on parts", in_repair: "In repair", ready_for_pickup: "Ready to collect" };
+const ADVANCE = { dropped_off: ["diagnosing", "Start diagnosis"], diagnosing: ["in_repair", "Start repair"], awaiting_parts: ["in_repair", "Parts in: start"], in_repair: ["ready_for_pickup", "Mark ready"] };
+const sinceStep = (t) => {
+  const log = (t.statusLog || []).filter((l) => l.status === t.status);
+  return Date.parse((log[log.length - 1] || {}).at || t.createdAt || 0) || Date.now();
+};
+const ago = (ms) => { const m = Math.max(0, Math.round((Date.now() - ms) / 60000)); return m < 60 ? `${m} min` : m < 48 * 60 ? `${Math.round(m / 60)} h` : `${Math.round(m / 1440)} days`; };
+const approvalOf = (t) => !t.approvalRequest ? null
+  : t.customerApproval && Date.parse(t.customerApproval.at) >= Date.parse(t.approvalRequest.sentAt) ? t.customerApproval.decision : "waiting";
+
+function BenchStats({ colors, tickets }) {
+  const { muted, line, panel } = colors;
+  const open = tickets.filter((t) => !["completed", "not_repairable"].includes(t.status));
+  const today = new Date().toDateString();
+  const month = tickets.filter((t) => t.status === "completed" && t.completedAt && t.createdAt && Date.now() - Date.parse(t.completedAt) < 30 * 864e5);
+  const hrs = month.map((t) => (Date.parse(t.completedAt) - Date.parse(t.createdAt)) / 36e5).filter((h) => h >= 0).sort((a, b) => a - b);
+  const median = hrs.length ? hrs[Math.floor(hrs.length / 2)] : null;
+  const tiles = [
+    ["Booked in today", tickets.filter((t) => t.createdAt && new Date(t.createdAt).toDateString() === today).length, `${open.length} open in all`],
+    ["Ready to collect", open.filter((t) => t.status === "ready_for_pickup").length, "tell the customer"],
+    ["Waiting on a price answer", open.filter((t) => approvalOf(t) === "waiting").length, "sent for approval"],
+    ["Typical turnaround", median == null ? "—" : median < 24 ? `${Math.round(median)} h` : `${Math.round(median / 24)} days`, `last 30 days · ${month.length} jobs`],
+  ];
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 14 }}>
+      {tiles.map(([k, v, sub]) => (
+        <div key={k} style={{ border: `1px solid ${line}`, borderRadius: 12, padding: "12px 14px", background: panel }}>
+          <div style={{ fontSize: 12, color: muted }}>{k}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, fontVariantNumeric: "tabular-nums", margin: "2px 0" }}>{v}</div>
+          <div style={{ fontSize: 11.5, color: muted }}>{sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RepairBoard({ colors, tickets, repairTypes, onOpen, onMove }) {
+  const { paper, muted, line, panel, panel2, brass, green, red } = colors;
+  const [busy, setBusy] = useState("");
+  // An open job with a status the board doesn't know (older records) shows under "In repair".
+  const col = (t) => (BOARD.includes(t.status) ? t.status : ["completed", "not_repairable"].includes(t.status) ? null : "in_repair");
+  const cols = BOARD.map((st) => ({ st, jobs: tickets.filter((t) => col(t) === st).sort((a, b) => sinceStep(a) - sinceStep(b)) }));
+  const chip = (txt, c) => <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 999, border: `1px solid ${c}`, color: c }}>{txt}</span>;
+  return (
+    <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: "minmax(190px, 1fr)", gap: 10, overflowX: "auto", paddingBottom: 6, scrollSnapType: "x mandatory", marginBottom: 14 }}>
+      {cols.map(({ st, jobs }) => (
+        <div key={st} style={{ background: panel2, borderRadius: 14, padding: 10, scrollSnapAlign: "start", minWidth: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, margin: "2px 4px 8px" }}><span>{BOARD_LABEL[st]}</span><span style={{ color: muted }}>{jobs.length}</span></div>
+          {jobs.length === 0 && <div style={{ fontSize: 12, color: muted, padding: "6px 4px" }}>Nothing here</div>}
+          {jobs.map((t) => {
+            const waited = Date.now() - sinceStep(t), late = waited > (st === "ready_for_pickup" ? 3 : 2) * 864e5;
+            const appr = approvalOf(t), adv = ADVANCE[st];
+            return (
+              <div key={t.id} style={{ background: panel, border: `1px solid ${line}`, borderRadius: 12, padding: 10, marginBottom: 8 }}>
+                <button type="button" onClick={() => onOpen(t.id)} style={{ all: "unset", cursor: "pointer", display: "block", width: "100%" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 6, fontSize: 12, color: muted }}>
+                    <span>{t.id}{t.priority === "urgent" ? " · urgent" : ""}</span>
+                    <span style={{ color: late ? red : muted, fontWeight: late ? 700 : 400 }} title="Time at this step">⏱ {ago(sinceStep(t))}</span>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: paper, margin: "3px 0 1px" }}>{t.device.brand} {t.device.model}</div>
+                  <div style={{ fontSize: 12.5, color: muted }}>{repairTypes.find((r) => r.id === t.repairTypeId)?.label || "Repair"} · {t.jobType === "shop" ? "Shop phone" : t.customer.name}</div>
+                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
+                    {t.assignedTo ? chip(`🔧 ${t.assignedTo}`, muted) : chip("Not assigned", red)}
+                    {appr === "waiting" && chip("Price sent", brass)}
+                    {appr === "approve" && chip("✓ Approved", green)}
+                    {appr === "decline" && chip("Declined", red)}
+                  </div>
+                </button>
+                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                  {adv && <button type="button" disabled={busy === t.id} onClick={async () => { setBusy(t.id); await onMove(t.id, adv[0]); setBusy(""); }}
+                    style={{ flex: 1, padding: "7px 8px", borderRadius: 8, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{adv[1]} →</button>}
+                  {st === "diagnosing" && <button type="button" disabled={busy === t.id} onClick={async () => { setBusy(t.id); await onMove(t.id, "awaiting_parts"); setBusy(""); }}
+                    style={{ padding: "7px 8px", borderRadius: 8, border: `1px solid ${line}`, background: "transparent", color: paper, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Needs parts</button>}
+                  {st === "ready_for_pickup" && <button type="button" onClick={() => onOpen(t.id)}
+                    style={{ flex: 1, padding: "7px 8px", borderRadius: 8, border: "none", background: green, color: "#fff", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Take payment →</button>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
