@@ -403,7 +403,8 @@ export default function POSInventory() {
           <InventoryTab colors={{ panel, panel2, paper, muted, brass, brassDim, red, green, line }}
             inventory={inventory} regions={regions} staffName={staffName}
             photos={Object.fromEntries(catalog.filter((d) => d.imageUrl).map((d) => [`${d.brand}|${d.model}`, d.imageUrl]))}
-            onUpdate={async (id, patch) => { await persistInventory(inventory.map((i) => (i.id === id ? { ...i, ...patch } : i))); }} />
+            onUpdate={async (id, patch) => { await persistInventory(inventory.map((i) => (i.id === id ? { ...i, ...patch } : i))); }}
+            onBulk={async (patches) => { await persistInventory(inventory.map((i) => (patches[i.id] ? { ...i, ...patches[i.id] } : i))); }} />
         )}
 
         {tab === "Accessories" && (
@@ -1137,7 +1138,48 @@ function QuickAddTab({ colors, onAdd }) {
   );
 }
 
-function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos = {} }) {
+// Change many prices at once: which phones (on sale, older than N days, a brand), by how
+// much (% or $), see the new prices, then apply. "Was" prices follow the same law-safe rules.
+function BulkPrice({ colors, inventory, regions, onApply }) {
+  const { panel2, paper, muted, brass, red, line } = colors;
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ days: "60", brand: "", mode: "pct", by: "-5" });
+  const age = (i) => (Date.now() - Date.parse(i.listedAt || i.receivedAt || i.createdAt || "")) / 864e5;
+  const pick = inventory.filter((i) => ["listed", "in_stock"].includes(i.status) && Number(i.listedPrice) > 0 && (!f.days || age(i) >= Number(f.days)) && (!f.brand || i.brand === f.brand));
+  const newPrice = (i) => { const p = Number(i.listedPrice), b = Number(f.by) || 0; return Math.max(1, Math.round(f.mode === "pct" ? p * (1 + b / 100) : p + b)); };
+  const brands = [...new Set(inventory.map((i) => i.brand).filter(Boolean))];
+  const inp = { padding: "6px 8px", border: `1px solid ${line}`, borderRadius: 3, background: panel2, color: paper, fontSize: 13, fontFamily: "inherit" };
+  if (!open) return <button type="button" onClick={() => setOpen(true)} style={{ marginBottom: 10, padding: "6px 12px", border: `1px solid ${line}`, borderRadius: 3, background: "transparent", color: paper, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>Change many prices…</button>;
+  return (
+    <div style={{ border: `1px solid ${brass}`, borderRadius: 3, padding: 12, marginBottom: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Change many prices</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 12.5, color: muted }}>
+        Phones on sale for at least <input value={f.days} onChange={(e) => setF({ ...f, days: e.target.value.replace(/\D/g, "") })} inputMode="numeric" aria-label="Days" style={{ ...inp, width: 56 }} /> days
+        <select value={f.brand} onChange={(e) => setF({ ...f, brand: e.target.value })} aria-label="Brand" style={inp}><option value="">all brands</option>{brands.map((b) => <option key={b}>{b}</option>)}</select>
+        change by <input value={f.by} onChange={(e) => setF({ ...f, by: e.target.value.replace(/[^\d.-]/g, "") })} aria-label="Change by" style={{ ...inp, width: 64 }} />
+        <select value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })} aria-label="Percent or dollars" style={inp}><option value="pct">%</option><option value="abs">$</option></select>
+      </div>
+      <div style={{ maxHeight: 220, overflowY: "auto", margin: "10px 0", fontSize: 12.5 }}>
+        {pick.length === 0 ? <div style={{ color: muted }}>No phones match.</div> : pick.map((i) => (
+          <div key={i.id} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderTop: `1px solid ${line}` }}>
+            <span>{i.brand} {i.model} {i.storage || ""} <span style={{ color: muted }}>· {Math.round(age(i))} days</span></span>
+            <span>{fmt(i.listedPrice, i.region, regions)} → <b style={{ color: newPrice(i) < Number(i.costBasis) ? red : paper }}>{fmt(newPrice(i), i.region, regions)}</b></span>
+          </div>))}
+      </div>
+      {pick.some((i) => newPrice(i) < Number(i.costBasis)) && <div style={{ fontSize: 12, color: red, marginBottom: 8 }}>Prices in red are below what the phone cost us.</div>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="button" disabled={!pick.length || !Number(f.by)} onClick={async () => {
+          if (!window.confirm(`Change the price of ${pick.length} phone${pick.length === 1 ? "" : "s"}?`)) return;
+          const patches = {}; for (const i of pick) { const p = pricePatch(i, newPrice(i)); if (p) patches[i.id] = p; }
+          await onApply(patches); setOpen(false);
+        }} style={{ padding: "7px 14px", border: "none", borderRadius: 3, background: brass, color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Apply to {pick.length}</button>
+        <button type="button" onClick={() => setOpen(false)} style={{ padding: "7px 14px", border: `1px solid ${line}`, borderRadius: 3, background: "transparent", color: paper, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+function InventoryTab({ colors, inventory, regions, onUpdate, onBulk, staffName, photos = {} }) {
   const [copiedId, setCopiedId] = useState(null);
   const { panel, panel2, paper, muted, brass, brassDim, red, green, line } = colors;
   const [filter, setFilter] = useState("all");
@@ -1278,6 +1320,7 @@ function InventoryTab({ colors, inventory, regions, onUpdate, staffName, photos 
     <div>
       <input value={search} onChange={(e) => { setSearch(e.target.value); setVisibleCount(30); }} placeholder="Search IMEI, model, stock no. or order"
         aria-label="Search stock" style={{ width: "100%", padding: "10px 12px", border: `1px solid ${line}`, background: panel, color: paper, fontSize: 14, marginBottom: 10 }} />
+      {hasArea("pricing") && onBulk && <BulkPrice colors={colors} inventory={inventory} regions={regions} onApply={onBulk} />}
       {(() => {
         const inStock = inventory.filter((i) => ["in_stock", "listed", "in_repair", "reserved"].includes(i.status));
         const sold30 = inventory.filter((i) => i.status === "sold" && i.soldAt && Date.now() - Date.parse(i.soldAt) < 30 * 864e5);

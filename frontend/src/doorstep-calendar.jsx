@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import { DOORSTEP, zoneForPostcode, doorstepFee, ymd } from "./doorstep.js";
 import { waLink } from "./business-info.js";
+import { useBench } from "./bench-settings.jsx";
 
 const ROWS = [{ id: "express", label: "Express (within about 2 h)" }, ...DOORSTEP.windows.map((w) => ({ id: w.id, label: `${w.label}, ${w.range}` }))];
 const UNASSIGNED = "";
@@ -28,6 +29,13 @@ export default function DoorstepCalendar({ requests, team, onUpdate, onStartTick
   const cols = [UNASSIGNED, ...techs];
   const onDay = (d) => visits.filter((r) => visitSlot(r).day === d);
   const shown = day === "overdue" ? overdue : onDay(day);
+  const [bench, saveBench] = useBench();
+  const isOff = (u, d) => !!u && bench.some((x) => x.id === `off:${u}:${d}`);
+  // A technician's stops for the day in visit order (time window, then postcode), as one Google Maps route.
+  const routeFor = (u) => {
+    const stops = shown.filter((r) => r.assignedTo === u && r.address).sort((a, b) => ROWS.findIndex((w) => w.id === visitSlot(a).win) - ROWS.findIndex((w) => w.id === visitSlot(b).win) || String(a.postcode).localeCompare(String(b.postcode)));
+    return stops.length ? `https://www.google.com/maps/dir/${stops.map((r) => encodeURIComponent(`${r.address} ${r.postcode || ""} NSW`)).join("/")}` : "";
+  };
   const clash = (r) => r.assignedTo && shown.filter((x) => x.assignedTo === r.assignedTo && visitSlot(x).win === visitSlot(r).win && visitSlot(x).day === visitSlot(r).day).length > 1;
 
   const chip = (on, bad) => ({ padding: "7px 11px", borderRadius: 999, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
@@ -57,6 +65,8 @@ export default function DoorstepCalendar({ requests, team, onUpdate, onStartTick
         {editing === r.id ? <VisitEdit r={r} onCancel={() => setEditing(null)} onSave={(patch) => { onUpdate(r.id, patch); setEditing(null); }} />
           : <button type="button" onClick={() => setEditing(r.id)} style={{ all: "unset", cursor: "pointer", color: "var(--mr-brand)", fontWeight: 700, fontSize: 12, marginTop: 4 }}>Edit address / note</button>}
         {clash(r) && <div style={{ color: "var(--mr-bad)", fontWeight: 700, marginTop: 4 }}>{r.assignedTo} has another visit in this window</div>}
+        {isOff(r.assignedTo, d) && <div style={{ color: "var(--mr-bad)", fontWeight: 700, marginTop: 4 }}>{r.assignedTo} is off that day: pick someone else</div>}
+        {r.onMyWayAt && <div style={{ color: "var(--mr-ok)", marginTop: 4 }}>🚗 On the way since {new Date(r.onMyWayAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginTop: 8 }}>
           <select aria-label="Technician" value={r.assignedTo || ""} onChange={(e) => onUpdate(r.id, { assignedTo: e.target.value || null })} style={sel}>
             <option value="">No one yet</option>
@@ -73,6 +83,10 @@ export default function DoorstepCalendar({ requests, team, onUpdate, onStartTick
           {r.phone && <a href={waLink(r.phone, confirm)} target="_blank" rel="noopener noreferrer" style={btn(false)}
             onClick={() => onUpdate(r.id, { visitStatus: "booked", status: r.status === "new" ? "contacted" : r.status })}>Confirm on WhatsApp</a>}
           {r.phone && <a href={`tel:${r.phone.replace(/[^\d+]/g, "")}`} style={btn(false)}>Call</a>}
+          {r.phone && d === ymd(new Date()) && [20, 40].map((m) => (
+            <a key={m} href={waLink(r.phone, `Hi ${(r.name || "").split(" ")[0]}, it's ${r.assignedTo || "your technician"} from Mobile Recellr. I'm on my way and should be with you in about ${m} minutes.`)} target="_blank" rel="noopener noreferrer"
+              style={btn(false)} onClick={() => onUpdate(r.id, { onMyWayAt: new Date().toISOString(), onMyWayEta: m })}>On my way · {m} min</a>
+          ))}
           <button type="button" style={btn(true)} onClick={() => onStartTicket(r)}>Book in the job →</button>
           <button type="button" style={btn(false)} onClick={() => onUpdate(r.id, { visitStatus: "done", status: "contacted" })}>Done, no job</button>
           <button type="button" style={btn(false)} onClick={() => { if (window.confirm(`Cancel the visit for ${r.name}?`)) onUpdate(r.id, { visitStatus: "cancelled" }); }}>Cancel</button>
@@ -108,7 +122,15 @@ export default function DoorstepCalendar({ requests, team, onUpdate, onStartTick
         <div style={{ overflowX: "auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: `110px repeat(${cols.length}, minmax(230px, 1fr))`, gap: 8, minWidth: 0 }}>
             <div />
-            {cols.map((t) => <div key={t || "none"} style={{ fontSize: 13, fontWeight: 700, padding: "2px 4px", color: t ? "var(--mr-text)" : "var(--mr-bad)" }}>{t ? `🔧 ${t}` : "Not assigned"} <span style={{ color: "var(--mr-muted)", fontWeight: 400 }}>{shown.filter((r) => (r.assignedTo || "") === t).length}</span></div>)}
+            {cols.map((t) => (
+              <div key={t || "none"} style={{ fontSize: 13, fontWeight: 700, padding: "2px 4px", color: t ? "var(--mr-text)" : "var(--mr-bad)", opacity: isOff(t, day) ? 0.55 : 1 }}>
+                {t ? `🔧 ${t}` : "Not assigned"} <span style={{ color: "var(--mr-muted)", fontWeight: 400 }}>{shown.filter((r) => (r.assignedTo || "") === t).length}</span>
+                {t && day !== "overdue" && <div style={{ display: "flex", gap: 8, fontWeight: 400, fontSize: 11.5, marginTop: 2 }}>
+                  {routeFor(t) && <a href={routeFor(t)} target="_blank" rel="noopener noreferrer" style={{ color: "var(--mr-brand)", fontWeight: 700 }}>🗺 Route</a>}
+                  <button type="button" onClick={() => saveBench({ id: `off:${t}:${day}`, type: "off", user: t, date: day, deleted: isOff(t, day) })} style={{ all: "unset", cursor: "pointer", color: isOff(t, day) ? "var(--mr-bad)" : "var(--mr-muted)" }}>{isOff(t, day) ? "Day off (undo)" : "Mark day off"}</button>
+                </div>}
+              </div>
+            ))}
             {ROWS.filter((w) => w.id !== "express" || shown.some((r) => visitSlot(r).win === "express")).map((w) => (
               <React.Fragment key={w.id}>
                 <div style={{ fontSize: 12, color: "var(--mr-muted)", paddingTop: 8 }}>{w.label}</div>

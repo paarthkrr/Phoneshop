@@ -34,7 +34,11 @@ export function repairPricesFrom(custom) {
   for (const [dev, rows] of Object.entries(custom)) {
     if (!/^[A-Za-z ]{2,20}$/.test(dev) || !Array.isArray(rows)) continue;
     const ok = rows.filter((r) => r && typeof r.name === "string" && r.name.trim() && r.name.length <= 60 && Number(r.from) > 0 && Number(r.from) < 100000)
-      .slice(0, 20).map((r) => ({ name: r.name.trim().replace(/\s+/g, " "), from: Math.round(Number(r.from)) }));
+      .slice(0, 20).map((r) => {
+        const models = r.models && typeof r.models === "object" ? Object.fromEntries(Object.entries(r.models)
+          .filter(([m, p]) => typeof m === "string" && m.trim() && m.length <= 40 && Number(p) > 0 && Number(p) < 100000).slice(0, 80).map(([m, p]) => [m.trim(), Math.round(Number(p))])) : null;
+        return { name: r.name.trim().replace(/\s+/g, " "), from: Math.round(Number(r.from)), ...(models && Object.keys(models).length ? { models } : {}) };
+      });
     if (ok.length) out[dev] = ok;
   }
   return { ...REPAIRS_BY_DEVICE, ...out }; // a device left out keeps its default prices
@@ -53,4 +57,13 @@ export function loadRepairPrices() {
     })();
   }
   return loading;
+}
+
+// The exact price for a typed model, when the shop set one ("iPhone 13" matches "iphone 13 pro"
+// only if no longer name matches first). null = only the "from" price is known.
+export function exactPrice(row, model) {
+  const m = String(model || "").toLowerCase().replace(/\s+/g, " ").trim();
+  if (!row || !row.models || m.length < 3) return null;
+  const hit = Object.keys(row.models).sort((a, b) => b.length - a.length).find((k) => m.includes(k.toLowerCase()));
+  return hit ? { model: hit, price: row.models[hit] } : null;
 }

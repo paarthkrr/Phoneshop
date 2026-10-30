@@ -85,6 +85,41 @@ function planFollowUps(tickets, sent = {}, now = Date.now()) {
   return { sends, state: next };
 }
 
+// Two more one-off notices per repair:
+//  - part arrived: a part the job was waiting on has come in (once per job),
+//  - warranty ending: 7 days before the repair warranty runs out (once per job).
+function planNotices(tickets, sent = {}, now = Date.now(), opts = {}) {
+  const sends = [], next = {};
+  for (const t of tickets || []) {
+    if (!t || t.deleted || t.jobType === "shop" || t.noFollowUp) continue;
+    const to = String((t.customer && t.customer.email) || "").trim();
+    if (!EMAIL.test(to)) continue;
+    const s = { ...(sent[t.id] || {}) };
+    const dev = clip(`${(t.device && t.device.brand) || ""} ${(t.device && t.device.model) || ""}`.trim()) || "device";
+    const name = first(t.customer && t.customer.name);
+    const arrived = (t.partsNeeded || []).map((n) => Date.parse(n && n.arrivedAt)).filter((x) => Number.isFinite(x)).sort((a, b) => b - a)[0];
+    if (opts.partArrived !== false && !s.partArrived && arrived && now - arrived < 2 * DAY && ["awaiting_parts", "in_repair", "diagnosing", "dropped_off"].includes(t.status)) {
+      sends.push({ id: t.id, to, name, kind: "part arrived", subject: `The part for your ${dev} has arrived (${clip(t.id)})`,
+        text: `Good news: the part we ordered for your ${dev} has arrived, and your repair is next in line. We'll let you know as soon as it's ready to collect. Job number ${clip(t.id)}.` });
+      s.partArrived = now;
+    }
+    const done = Date.parse(t.completedAt || "");
+    if (opts.warranty !== false && !s.warrantyEnd && t.status === "completed" && Number.isFinite(done)) {
+      const ends = done + (Number(t.warrantyDays) || 90) * DAY;
+      if (now >= ends - 7 * DAY && now < ends - 4 * DAY) {
+        sends.push({ id: t.id, to, name, kind: "warranty ending", subject: `Your ${dev} repair warranty ends soon`,
+          text: `A quick heads-up: the warranty on your ${dev} repair (job ${clip(t.id)}) ends on ${new Date(ends).toLocaleDateString("en-AU", { day: "numeric", month: "long" })}. If anything about the repair isn't right, bring it in before then and we'll sort it out at no charge.\n\n(Don't want emails like this? Reply "no more emails".)` });
+        s.warrantyEnd = now;
+      }
+    }
+    if (s.partArrived || s.warrantyEnd) {
+      const keep = Number.isFinite(done) ? now - done < 200 * DAY : true;
+      if (keep) next[t.id] = s;
+    }
+  }
+  return { sends, state: next };
+}
+
 function start({ pool, loadSharedList, loadSharedValue, sendEmail, everyMs = 20 * 60 * 1000 }) {
   let running = false;
   const run = async () => {
@@ -109,6 +144,14 @@ function start({ pool, loadSharedList, loadSharedValue, sendEmail, everyMs = 20 
         sends = plan.sends;
         await client.query(`INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ('system', 'pickup_reminders', $1, NOW(), 'system')
           ON CONFLICT (scope, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`, [JSON.stringify(plan.state)]);
+        {
+          const n = await client.query("SELECT value FROM storage WHERE scope = 'system' AND key = 'repair_notices'");
+          let sent = {}; try { sent = n.rows[0] ? JSON.parse(n.rows[0].value) || {} : {}; } catch (e) { sent = {}; }
+          const pl = planNotices(tickets, sent, Date.now(), { partArrived: bs.autoPartArrived !== false, warranty: bs.autoWarrantyReminder !== false });
+          sends = [...sends, ...pl.sends];
+          await client.query(`INSERT INTO storage (scope, key, value, updated_at, updated_by) VALUES ('system', 'repair_notices', $1, NOW(), 'system')
+            ON CONFLICT (scope, key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`, [JSON.stringify(pl.state)]);
+        }
         if (bs.autoFollowUp !== false) {
           const f = await client.query("SELECT value FROM storage WHERE scope = 'system' AND key = 'repair_followups'");
           let sent = {}; try { sent = f.rows[0] ? JSON.parse(f.rows[0].value) || {} : {}; } catch (e) { sent = {}; }
@@ -127,4 +170,4 @@ function start({ pool, loadSharedList, loadSharedValue, sendEmail, everyMs = 20 
   return run;
 }
 
-module.exports = { planPickupEmails, planFollowUps, start };
+module.exports = { planPickupEmails, planFollowUps, planNotices, start };
