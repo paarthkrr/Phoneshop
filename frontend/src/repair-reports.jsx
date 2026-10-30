@@ -71,6 +71,7 @@ export default function RepairReports({ colors }) {
   const bar = (n, max) => <div style={{ height: 6, borderRadius: 3, background: "var(--mr-brand-fill)", width: `${Math.max(4, (n / max) * 100)}%` }} />;
   return (
     <div>
+      <AskData colors={colors} />
       <div style={{ display: "flex", gap: 6, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
         <b style={{ fontSize: 14, marginRight: 6 }}>Repairs</b>
         {[[30, "30 days"], [90, "90 days"], [365, "12 months"]].map(([k, l]) => <button key={k} type="button" aria-pressed={days === k} onClick={() => setDays(k)}
@@ -105,6 +106,38 @@ export default function RepairReports({ colors }) {
           {[["Seen in this period", cust.active], ["New", cust.fresh], ["Came back (repeat)", cust.repeat], ["Not seen 6+ months", cust.lapsed], ["On record", cust.total]].map(([k, v]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "3px 0" }}><span>{k}</span><b>{v}</b></div>)}
         </div>}
       </div>
+    </div>
+  );
+}
+
+// "Ask your data": a question in plain words (English or Hinglish), answered by the assistant
+// from the shop's totals (backend/ai.js /ai/ask). No customer details leave the server.
+const ASK_EXAMPLES = ["How did this month compare with last month?", "Which repairs make us the most money?", "Is the shop profitable after expenses this month?", "Kaunsa model sabse zyada repair hota hai?"];
+function AskData({ colors }) {
+  const { line, muted } = colors;
+  const [q, setQ] = useState(""); const [a, setA] = useState(""); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const ask = async (question) => {
+    const text = (question || q).trim(); if (!text) return;
+    setQ(text); setBusy(true); setErr(""); setA("");
+    try {
+      const t = window.shopAuth && window.shopAuth.authToken();
+      const r = await fetch(`${window.SHOP_API_BASE_URL || ""}/ai/ask`, { method: "POST", headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }, body: JSON.stringify({ question: text }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "The assistant isn't available right now.");
+      setA(j.answer);
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+  return (
+    <div style={{ border: `1px solid ${line}`, borderRadius: 12, padding: 14, marginBottom: 16, background: "linear-gradient(135deg, var(--mr-brand-soft), transparent)" }}>
+      <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>✨ Ask your data</div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask()} placeholder="Ask anything about sales, repairs, stock or costs" aria-label="Ask your data"
+          style={{ flex: 1, padding: "9px 12px", borderRadius: 10, border: `1px solid ${line}`, background: "var(--mr-surface)", color: "var(--mr-text)", fontSize: 14, fontFamily: "inherit" }} />
+        <button type="button" onClick={() => ask()} disabled={busy} style={{ padding: "9px 14px", borderRadius: 10, border: "none", background: "var(--mr-brand-fill)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{busy ? "…" : "Ask"}</button>
+      </div>
+      {!a && !busy && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>{ASK_EXAMPLES.map((x) => <button key={x} type="button" onClick={() => ask(x)} style={{ padding: "4px 10px", borderRadius: 999, border: `1px solid ${line}`, background: "transparent", color: muted, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{x}</button>)}</div>}
+      {err && <div style={{ color: "var(--mr-bad)", fontSize: 13, marginTop: 8 }}>{err}</div>}
+      {a && <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{a}</div>}
     </div>
   );
 }

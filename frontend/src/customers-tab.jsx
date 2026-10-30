@@ -24,7 +24,7 @@ export default function CustomersTab({ me = "" }) {
   const navigate = useNavigate();
   const [src, setSrc] = useState(null);
   const [profiles, setProfiles] = useState([]);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(() => { try { const v = sessionStorage.getItem("mr-customer-search"); if (v) sessionStorage.removeItem("mr-customer-search"); return v || ""; } catch (e) { return ""; } });
   const [seg, setSeg] = useState("all");
   const [openKey, setOpenKey] = useState(null);
   const [adding, setAdding] = useState(false);

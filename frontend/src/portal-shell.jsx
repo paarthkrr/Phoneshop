@@ -5,6 +5,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PORTAL_ITEMS, PORTAL_GROUPS, TAB_ITEMS, PIcon } from "./portal-nav.jsx";
 import { canSeeScreen, currentRole, ROLE_LABELS } from "./roles.js";
+import AiAssistant from "./ai-assistant.jsx";
 import ThemeToggle from "./theme.jsx";
 
 const CSS = `
@@ -98,6 +99,7 @@ export default function PortalShell({ children, bare = false, path }) {
   return (
     <div className="ps">
       <style>{CSS}</style>
+      <AiAssistant />
       <aside className="ps-side" aria-label="Staff menu">
         <Brand />
         {PORTAL_GROUPS.map((g) => {
