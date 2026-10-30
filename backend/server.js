@@ -2099,6 +2099,7 @@ require("./reviews.js").register(app, { makeLimiter });
 require("./address.js").register(app, { makeLimiter });
 require("./analytics.js").register(app, { pool, makeLimiter, requireAuth, hasArea, schemaReady });
 require("./job-photos.js").register(app, { pool, makeLimiter, requireAuth, tryAuth, loadSharedList, schemaReady });
+require("./ai.js").register(app, { requireAuth, hasArea, makeLimiter, loadSharedList });
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 

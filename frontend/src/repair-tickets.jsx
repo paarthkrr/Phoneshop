@@ -578,18 +578,18 @@ function IntakeForm({ colors, repairTypes, team, me, inventory, onCreate, prefil
   const p = prefill || {}; // a website repair request being booked in
   const [jobType, setJobType] = useState("customer");
   const [name, setName] = useState(p.name || ""); const [phone, setPhone] = useState(p.phone || ""); const [email, setEmail] = useState(p.email || "");
-  const [brand, setBrand] = useState(/^(iphone|ipad|apple|macbook)/i.test(p.model || "") ? "Apple" : /^(galaxy|samsung)/i.test(p.model || "") ? "Samsung" : /^pixel/i.test(p.model || "") ? "Google" : "");
+  const [brand, setBrand] = useState(p.brand ? p.brand : /^(iphone|ipad|apple|macbook)/i.test(p.model || "") ? "Apple" : /^(galaxy|samsung)/i.test(p.model || "") ? "Samsung" : /^pixel/i.test(p.model || "") ? "Google" : "");
   const [model, setModel] = useState((p.model || "").replace(/^(apple|samsung|google)\s+/i, ""));
   const [imei, setImei] = useState(""); const [storage, setStorage] = useState(""); const [colour, setColour] = useState(""); const [condition, setCondition] = useState("");
   const [inventoryItemId, setInventoryItemId] = useState("");
   const [symptoms, setSymptoms] = useState([]);
-  const [repairTypeId, setRepairTypeId] = useState(null); const [issue, setIssue] = useState(p.issue || ""); const [estimateMins, setEstimateMins] = useState("");
-  const [quotedPrice, setQuotedPrice] = useState(""); const [deposit, setDeposit] = useState(""); const [depositPayMethod, setDepositPayMethod] = useState("cash");
-  const [assignedTo, setAssignedTo] = useState(p.assignedTo || ""); const [priority, setPriority] = useState("normal"); const [dueAt, setDueAt] = useState("");
+  const [repairTypeId, setRepairTypeId] = useState(p.repairTypeId || null); const [issue, setIssue] = useState(p.issue || ""); const [estimateMins, setEstimateMins] = useState(p.repairTypeId ? String((repairTypes.find((r) => r.id === p.repairTypeId) || {}).typicalMins || "") : "");
+  const [quotedPrice, setQuotedPrice] = useState(p.quotedPrice != null ? String(p.quotedPrice) : ""); const [deposit, setDeposit] = useState(""); const [depositPayMethod, setDepositPayMethod] = useState("cash");
+  const [assignedTo, setAssignedTo] = useState(p.assignedTo || ""); const [priority, setPriority] = useState("normal"); const [dueAt, setDueAt] = useState(p.dueAt || "");
   const [scanNote, setScanNote] = useState("");
   const [picked, setPicked] = useState(!!p.name);
-  const [passcode, setPasscode] = useState("");
-  const [partLabel, setPartLabel] = useState("");
+  const [passcode, setPasscode] = useState(p.passcode || "");
+  const [partLabel, setPartLabel] = useState(p.partLabel || "");
   const [bin, setBin] = useState("");
   const best = suggestTech({ bench, team, tickets, repairTypeId });
   function applyTemplate(t) {
