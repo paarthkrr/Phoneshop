@@ -371,6 +371,14 @@ export default function AdminPricingConsole() {
               <input type="checkbox" checked={draft.businessSettings.autoFollowUp !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, autoFollowUp: e.target.checked } })} />
               One follow-up email a week after a repair is collected ("still working? it's under warranty", plus a Google review link and a way to opt out)
             </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", marginTop: 8 }}>
+              <input type="checkbox" checked={draft.businessSettings.autoPartArrived !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, autoPartArrived: e.target.checked } })} />
+              Email the customer when a part their repair was waiting on arrives
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", marginTop: 8 }}>
+              <input type="checkbox" checked={draft.businessSettings.autoWarrantyReminder !== false} onChange={(e) => setDraft({ ...draft, businessSettings: { ...draft.businessSettings, autoWarrantyReminder: e.target.checked } })} />
+              Remind the customer a week before their repair warranty ends
+            </label>
 
             <div style={{ marginTop: 20, fontSize: 13 }}>Google reviews</div>
             <div style={{ fontSize: 12, color: muted, margin: "4px 0 8px" }}>Reviews decide who shows in Google Maps. Put this card on the counter; every printed job ticket has the same QR code.</div>
@@ -487,11 +495,24 @@ export default function AdminPricingConsole() {
                       <span style={{ fontSize: 13, color: muted }}>from $</span>
                       <input value={r.from} inputMode="numeric" aria-label={`${r.name} price`} onChange={(e) => setDev(dev, prices[dev].map((x, j) => j === i ? { ...x, from: e.target.value.replace(/[^\d]/g, "") } : x))} style={{ ...inp, width: 80 }} />
                       <button type="button" onClick={() => setDev(dev, prices[dev].filter((_, j) => j !== i))} disabled={prices[dev].length < 2} title="Remove" style={{ ...inp, cursor: "pointer", color: red }}>✕</button>
+                      <ModelPrices row={r} inp={inp} muted={muted} onChange={(models) => setDev(dev, prices[dev].map((x, j) => (j === i ? { ...x, models } : x)))} />
                     </div>
                   ))}
                   <button type="button" onClick={() => setDev(dev, [...prices[dev], { name: "New repair", from: 50 }])} style={{ ...inp, cursor: "pointer", color: brass }}>+ Add a repair</button>
                 </div>
               ))}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "4px 0 14px" }}>
+                <button type="button" style={{ ...inp, cursor: "pointer", color: brass }} onClick={() => {
+                  const name = (window.prompt("New device type, e.g. Game console, Drone, AirPods (letters and spaces only)") || "").trim().replace(/\s+/g, " ");
+                  if (!name) return;
+                  if (!/^[A-Za-z ]{2,20}$/.test(name)) { window.alert("Use 2 to 20 letters and spaces."); return; }
+                  if (prices[name]) { window.alert("That device type is already there."); return; }
+                  setDev(name, [{ name: "Screen repair", from: 99 }]);
+                }}>+ Add a device type</button>
+                {Object.keys(prices).filter((d) => !REPAIRS_BY_DEVICE[d]).map((d) => (
+                  <button key={d} type="button" style={{ ...inp, cursor: "pointer", color: red }} onClick={() => { if (window.confirm(`Remove ${d} and its prices? (Then press Save.)`)) { const { [d]: _, ...rest } = draft.repairPrices || {}; setDraft({ ...draft, repairPrices: rest }); } }}>Remove {d}</button>
+                ))}
+              </div>
               <button type="button" onClick={() => setDraft({ ...draft, repairPrices: null })} style={{ ...inp, cursor: "pointer", color: muted }}>Reset to the built-in prices</button>
             </Section>
           );
@@ -709,6 +730,32 @@ function CatalogEditor({ draft, setDraft, numInput, line, muted, red, green, bra
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${draft.catalog.length} models`} aria-label="Search models" style={{ ...inp, flex: "1 1 200px", fontSize: 13.5, padding: "8px 10px" }} />
         <button type="button" onClick={() => setAdding(!adding)} style={{ ...btn, color: brass, fontWeight: 700 }}>{adding ? "Close" : "+ Add a model"}</button>
         {hiddenCount > 0 && <button type="button" onClick={() => setShowHidden(!showHidden)} style={btn}>{showHidden ? "Hide hidden models" : `Show ${hiddenCount} hidden`}</button>}
+        <button type="button" style={btn} onClick={() => {
+          const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+          const rows = [["Brand", "Model", "Type", "Released", "Prices (size price; size price)", "Market adj %", "Hidden"],
+            ...draft.catalog.map((d) => [d.brand, d.model, d.category || "phone", (d.release || "").slice(0, 10), Object.entries(d.retail || {}).map(([k, v]) => `${k} ${v}`).join("; "), d.marketAdjPct ?? 0, d.hidden ? "yes" : ""])];
+          const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([rows.map((r) => r.map(esc).join(",")).join("\n")], { type: "text/csv" })); a.download = `phone-models-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+        }}>Export CSV</button>
+        <label style={{ ...btn, display: "inline-flex", alignItems: "center" }}>Import CSV
+          <input type="file" accept=".csv,text/csv" hidden onChange={async (e) => {
+            const file = e.target.files && e.target.files[0]; e.target.value = ""; if (!file) return;
+            const text = await file.text();
+            const parseLine = (l) => { const out = []; let cur = "", q = false; for (let i = 0; i < l.length; i++) { const c = l[i]; if (q) { if (c === '"' && l[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; } else if (c === '"') q = true; else if (c === ",") { out.push(cur); cur = ""; } else cur += c; } out.push(cur); return out; };
+            const lines = text.split(/\r?\n/).filter((l) => l.trim()); if (/brand/i.test(lines[0] || "")) lines.shift();
+            let added = 0, changed = 0; const next = [...draft.catalog];
+            for (const l of lines) {
+              const [brand, model, category, release, sizes, adj, hidden] = parseLine(l).map((x) => (x || "").trim());
+              if (!brand || !model) continue;
+              const retail = Object.fromEntries(String(sizes || "").split(/[;|]/).map((x) => x.trim().match(/^(\S+)\s*[:=]?\s*\$?(\d+)$/)).filter(Boolean).map((m) => [m[1].toUpperCase(), Number(m[2])]));
+              const i = next.findIndex((d) => d.brand.toLowerCase() === brand.toLowerCase() && d.model.toLowerCase() === model.toLowerCase());
+              const patch = { ...(Object.keys(retail).length ? { retail } : {}), ...(release ? { release } : {}), ...(category ? { category } : {}), ...(adj !== "" && Number.isFinite(Number(adj)) ? { marketAdjPct: Number(adj) } : {}), hidden: /^y/i.test(hidden || "") };
+              if (i >= 0) { next[i] = { ...next[i], ...patch }; changed++; }
+              else if (Object.keys(retail).length) { next.unshift({ brand, model, category: category || "phone", release: release || new Date().toISOString().slice(0, 10), marketAdjPct: 0, ...patch, retail }); added++; }
+            }
+            setDraft({ ...draft, catalog: next });
+            window.alert(`${changed} updated, ${added} added. Check them, then press Save.`);
+          }} />
+        </label>
       </div>
       {adding && (
         <div style={{ border: `1px solid ${brass}`, borderRadius: 4, padding: 12, marginBottom: 14, display: "grid", gap: 8 }}>
@@ -765,6 +812,25 @@ function CatalogEditor({ draft, setDraft, numInput, line, muted, red, green, bra
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Exact prices for particular models on one repair ("iPhone 13 189; iPhone 14 219"). The
+// website then shows the customer's exact price once they type their model.
+function ModelPrices({ row, inp, muted, onChange }) {
+  const [open, setOpen] = useState(false);
+  const toText = (m) => Object.entries(m || {}).map(([k, v]) => `${k} ${v}`).join("; ");
+  const [t, setT] = useState(toText(row.models));
+  const n = Object.keys(row.models || {}).length;
+  if (!open) return <button type="button" onClick={() => setOpen(true)} style={{ ...inp, cursor: "pointer", color: muted, fontSize: 12 }}>{n ? `${n} exact model price${n === 1 ? "" : "s"}` : "+ exact price by model"}</button>;
+  return (
+    <div style={{ flex: "1 1 100%", display: "flex", gap: 6, alignItems: "center" }}>
+      <input value={t} onChange={(e) => setT(e.target.value)} placeholder="iPhone 13 189; iPhone 14 219; Galaxy S23 249" aria-label={`Exact prices for ${row.name}`} style={{ ...inp, flex: 1 }} />
+      <button type="button" style={{ ...inp, cursor: "pointer" }} onClick={() => {
+        const models = Object.fromEntries(t.split(/[;\n]/).map((x) => x.trim().match(/^(.+?)\s+\$?(\d+)$/)).filter(Boolean).map((m) => [m[1].trim(), Number(m[2])]));
+        onChange(Object.keys(models).length ? models : undefined); setOpen(false);
+      }}>Done</button>
     </div>
   );
 }

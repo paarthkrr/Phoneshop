@@ -51,3 +51,15 @@ test("one follow-up a week after collection, never for old jobs, never twice", (
   assert.equal(planFollowUps([done], {}, T0 + 15 * D).sends.length, 0, "an old job isn't emailed when this is switched on");
   assert.equal(planFollowUps([{ ...done, noFollowUp: true }], {}, T0 + 7 * D + H).sends.length, 0, "customer opted out");
 });
+
+test("part arrived and warranty-ending notices go once each", () => {
+  const { planNotices } = require("../pickup-reminders.js");
+  const waiting = job({ status: "awaiting_parts", partsNeeded: [{ label: "Screen", arrivedAt: new Date(T0).toISOString() }] });
+  let p = planNotices([waiting], {}, T0 + H); assert.equal(p.sends.length, 1); assert.match(p.sends[0].subject, /arrived/);
+  assert.equal(planNotices([waiting], p.state, T0 + 2 * H).sends.length, 0, "once");
+  assert.equal(planNotices([waiting], {}, T0 + 3 * D).sends.length, 0, "not for an old arrival");
+  const done = job({ status: "completed", completedAt: new Date(T0).toISOString(), warrantyDays: 90 });
+  assert.equal(planNotices([done], {}, T0 + 80 * D).sends.length, 0);
+  p = planNotices([done], {}, T0 + 84 * D); assert.equal(p.sends.length, 1); assert.match(p.sends[0].subject, /warranty/);
+  assert.equal(planNotices([done], p.state, T0 + 85 * D).sends.length, 0, "once");
+});

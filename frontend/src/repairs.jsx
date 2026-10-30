@@ -12,6 +12,7 @@ import React, { useState, useMemo } from "react";
 import { DamagePhotos } from "./job-extras.jsx";
 import { DOORSTEP, zoneForPostcode, doorstepFee, slotDays, expressAvailable } from "./doorstep.js";
 import useRepairPrices from "./use-repair-prices.js";
+import { exactPrice } from "./repair-prices.js";
 
 async function findPublicRecord(key, query, localList, fields = ["id", "email"]) {
   const q = query.trim().toLowerCase();
@@ -205,7 +206,7 @@ export default function Repairs() {
         ) : (
         <>
         <div role="group" aria-label="Device type" style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-          {DEVICE_TYPES.map((d) => (
+          {[...DEVICE_TYPES, ...Object.keys(REPAIRS_BY_DEVICE).filter((k) => !DEVICE_TYPES.includes(k))].map((d) => ( // plus any device the shop added in Pricing
             <button key={d} onClick={() => setDeviceType(d)} aria-pressed={deviceType === d}
               style={{ padding: "9px 16px", borderRadius: 3, fontSize: 13, fontWeight: 600, cursor: "pointer",
                 border: `1.5px solid ${deviceType === d ? brass : line}`, background: deviceType === d ? brassDim : "transparent", color: deviceType === d ? brass : paper }}>
@@ -221,7 +222,7 @@ export default function Repairs() {
               style={{ border: `1px solid ${issue.startsWith(r.name) ? brass : line}`, borderRadius: 3, padding: 14, background: panel, color: paper, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
               <div style={{ marginBottom: 8 }}><DeviceArt type={deviceType.toLowerCase()} size={36} /></div>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{r.name}</div>
-              <div style={{ fontSize: 12, color: muted }}>From ${r.from} · <span style={{ color: brass, fontWeight: 600 }}>Book →</span></div>
+              <div style={{ fontSize: 12, color: muted }}>{exactPrice(r, model) ? <b style={{ color: paper }}>{exactPrice(r, model).model}: ${exactPrice(r, model).price}</b> : `From $${r.from}`} · <span style={{ color: brass, fontWeight: 600 }}>Book →</span></div>
             </button>
           ))}
         </div>
